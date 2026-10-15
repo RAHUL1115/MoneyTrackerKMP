@@ -1,0 +1,3 @@
+-- Schema v3 → v4: time of day on entries, hidden accounts.
+ALTER TABLE Txn ADD COLUMN timeOfDay INTEGER;
+ALTER TABLE Account ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;

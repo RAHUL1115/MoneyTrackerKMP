@@ -1,0 +1,84 @@
+name: Android
+
+# Pushes and pull requests run the tests. A version tag (v0.1.0) builds the signed release APK and
+# publishes it as a GitHub release; IzzyOnDroid and F-Droid pick releases up from the tags.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests
+        run: ./gradlew :composeApp:testDebugUnitTest --console=plain
+
+      # The tag must match versionName in composeApp/build.gradle.kts, so every channel ships the same version.
+      - name: Check tag matches version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' composeApp/build.gradle.kts)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match versionName $version."
+            exit 1
+          fi
+
+      # Release key from repository secrets. Without it the build stops: the debug key in keystore/
+      # is public, so nothing signed with it may be published.
+      - name: Prepare release key
+        id: key
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$STORE_PASSWORD" ]; then
+            echo "::error::Release key secrets are not set; refusing to publish an unsigned or debug-signed build."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "store=$RUNNER_TEMP/release.jks" >> "$GITHUB_OUTPUT"
+
+      - name: Build optimized APK
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          RELEASE_STORE_FILE: ${{ steps.key.outputs.store }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew :composeApp:assembleRelease --console=plain
+
+      - name: Remove release key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      # Release notes come from the changelog for this versionCode, the same text F-Droid and Play show.
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          code=$(sed -n 's/^ *versionCode = \([0-9]*\)$/\1/p' composeApp/build.gradle.kts)
+          name="MoneyTracker-$GITHUB_REF_NAME.apk"
+          cp composeApp/build/outputs/apk/release/composeApp-release.apk "$name"
+          sha256sum "$name" > "$name.sha256"
+          notes="fastlane/metadata/android/en-US/changelogs/$code.txt"
+          [ -f "$notes" ] || { echo "::error::Missing $notes"; exit 1; }
+          gh release create "$GITHUB_REF_NAME" "$name" "$name.sha256" \
+            --title "MoneyTracker $GITHUB_REF_NAME" --notes-file "$notes"

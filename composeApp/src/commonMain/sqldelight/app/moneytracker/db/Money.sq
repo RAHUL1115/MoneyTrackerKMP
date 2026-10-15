@@ -1,0 +1,464 @@
+-- Amounts are whole minor units (e.g. cents). Dates are epoch days (LocalDate.toEpochDays()).
+-- Every row: text uid primary key, updatedAt (epoch ms), deleted flag → ready for a future sync layer.
+
+CREATE TABLE AccountGroup (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,              -- AccountType enum name
+    sortOrder INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL
+);
+
+CREATE TABLE Account (
+    id TEXT NOT NULL PRIMARY KEY,
+    groupId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    includeInTotals INTEGER NOT NULL DEFAULT 1,
+    transferAsExpense INTEGER NOT NULL DEFAULT 0,  -- moving money INTO this account counts as expense (savings, investments)
+    cardSettlementDay INTEGER,                     -- credit cards: day the billing cycle starts (1..31)
+    cardPaymentAccountId TEXT,                     -- credit cards: account the bill is paid from; debit cards: linked bank
+    sortOrder INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL,
+    currency TEXT,                                 -- v2: ISO code; null = main currency
+    cardLimit INTEGER,                             -- v2: credit cards: monthly spending limit (minor units)
+    hidden INTEGER NOT NULL DEFAULT 0,             -- v4: hidden from lists and pickers; balances and history kept
+    memo TEXT NOT NULL DEFAULT '',                 -- v5: free-form note about the account
+    cardPaymentDay INTEGER,                        -- v5: credit cards: day of the month the bill is paid (1..31)
+    cardAutoPay INTEGER NOT NULL DEFAULT 0,        -- v5: credit cards: bill is paid automatically
+    usageTarget INTEGER,                           -- v5: credit cards: monthly spending target (minor units)
+    usageTargetType INTEGER NOT NULL DEFAULT 1,    -- v5: 1 = measured on last month, 2 = on the 3-month average
+    smsSender TEXT NOT NULL DEFAULT '',            -- v5: messages from this sender (part of the number/ID) belong here
+    smsMatch TEXT NOT NULL DEFAULT ''              -- v5: …or messages containing this text (e.g. card digits "x1234")
+);
+
+CREATE TABLE Category (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL,              -- INCOME | EXPENSE
+    parentId TEXT,                   -- null = main category; one level of children
+    sortOrder INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL,
+    defaultAccountId TEXT            -- v3: account pre-selected when this category is picked
+);
+
+CREATE TABLE Txn (
+    id TEXT NOT NULL PRIMARY KEY,
+    kind TEXT NOT NULL,              -- TxnKind enum name
+    date INTEGER NOT NULL,           -- epoch day
+    createdAt INTEGER NOT NULL,      -- ordering within a day
+    accountId TEXT NOT NULL,
+    toAccountId TEXT,                -- transfers: the other side
+    categoryId TEXT,
+    amount INTEGER NOT NULL,         -- always positive; kind gives the sign
+    note TEXT NOT NULL DEFAULT '',
+    memo TEXT NOT NULL DEFAULT '',
+    transferGroupId TEXT,            -- links TRANSFER_OUT + TRANSFER_IN (+ fee)
+    installmentGroupId TEXT,
+    installmentLabel TEXT,           -- "(2/6)"
+    recurringRuleId TEXT,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL,
+    currency TEXT,                   -- v2: currency the amount was entered in; null = main
+    originalAmount INTEGER,          -- v2: amount in that currency (minor units); null = same as amount
+    accountAmount INTEGER,           -- v2: amount in the account's currency; null = same as amount
+    lat REAL,                        -- v2: optional location
+    lng REAL,
+    timeOfDay INTEGER,               -- v4: minutes after midnight; null = no time recorded
+    origin TEXT NOT NULL DEFAULT ''  -- v5: the bank message an entry was made from
+);
+CREATE INDEX Txn_date ON Txn(date);
+CREATE INDEX Txn_account ON Txn(accountId);
+CREATE INDEX Txn_transfer ON Txn(transferGroupId);
+
+CREATE TABLE BudgetAmount (
+    categoryId TEXT NOT NULL,        -- '' = total budget
+    period INTEGER NOT NULL,         -- yyyymm the amount takes effect from
+    amount INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    PRIMARY KEY (categoryId, period)
+);
+
+CREATE TABLE RecurringRule (
+    id TEXT NOT NULL PRIMARY KEY,
+    kind TEXT NOT NULL,              -- INCOME | EXPENSE | TRANSFER_OUT
+    accountId TEXT NOT NULL,
+    toAccountId TEXT,
+    categoryId TEXT,
+    amount INTEGER NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    repeat TEXT NOT NULL,            -- RepeatType enum name
+    startDate INTEGER NOT NULL,
+    nextDate INTEGER NOT NULL,
+    endDate INTEGER,                 -- inclusive; null = forever
+    deleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL,
+    currency TEXT,                   -- v2: currency of amount; null = main
+    memo TEXT NOT NULL DEFAULT ''    -- v5: description copied onto each generated entry
+);
+
+-- ───────── v2 tables
+
+CREATE TABLE Currency (
+    code TEXT NOT NULL PRIMARY KEY,  -- ISO 4217, e.g. USD
+    symbol TEXT NOT NULL,
+    decimals INTEGER NOT NULL,
+    rate REAL NOT NULL,              -- main-currency units per 1 unit of this currency
+    sortOrder INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL
+);
+
+CREATE TABLE Tag (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    sortOrder INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL
+);
+
+CREATE TABLE TxnTag (
+    txnId TEXT NOT NULL,
+    tagId TEXT NOT NULL,
+    PRIMARY KEY (txnId, tagId)
+);
+CREATE INDEX TxnTag_tag ON TxnTag(tagId);
+
+CREATE TABLE Photo (
+    id TEXT NOT NULL PRIMARY KEY,
+    txnId TEXT NOT NULL,
+    fileName TEXT NOT NULL,          -- inside app-private photos/ directory
+    createdAt INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX Photo_txn ON Photo(txnId);
+
+CREATE TABLE Note (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    color INTEGER NOT NULL DEFAULT 0,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE Template (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,              -- DraftType enum name
+    accountId TEXT,
+    toAccountId TEXT,
+    categoryId TEXT,
+    amount INTEGER NOT NULL,         -- 0 = ask every time
+    note TEXT NOT NULL DEFAULT '',
+    memo TEXT NOT NULL DEFAULT '',
+    sortOrder INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL
+);
+
+CREATE TABLE Capture (
+    id TEXT NOT NULL PRIMARY KEY,
+    receivedAt INTEGER NOT NULL,     -- epoch ms
+    source TEXT NOT NULL,            -- SMS
+    sender TEXT NOT NULL,            -- phone number or sender ID
+    text TEXT NOT NULL,
+    amount INTEGER,                  -- parsed, minor units
+    kind TEXT,                       -- INCOME | EXPENSE (parsed)
+    merchant TEXT NOT NULL DEFAULT '',
+    accountId TEXT,                  -- matched by rule
+    status TEXT NOT NULL,            -- PENDING | SAVED | DISMISSED
+    txnId TEXT
+);
+CREATE INDEX Capture_status ON Capture(status, receivedAt);
+
+-- Tiny Naive Bayes model learned from the user's own entries: token counts per label
+-- (label = "cat:<categoryId>" or "acc:<accountId>"). A few KB; no model files.
+CREATE TABLE LearnToken (
+    token TEXT NOT NULL,
+    label TEXT NOT NULL,
+    count INTEGER NOT NULL,
+    PRIMARY KEY (token, label)
+);
+
+CREATE TABLE LearnLabel (
+    label TEXT NOT NULL PRIMARY KEY,
+    count INTEGER NOT NULL
+);
+
+CREATE TABLE Setting (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- ───────── settings
+getSetting:
+SELECT value FROM Setting WHERE key = ?;
+putSetting:
+INSERT OR REPLACE INTO Setting(key, value) VALUES (?, ?);
+
+-- ───────── groups / accounts
+allGroups:
+SELECT * FROM AccountGroup WHERE deleted = 0 ORDER BY sortOrder;
+deletedGroups:
+SELECT * FROM AccountGroup WHERE deleted = 1 ORDER BY name;
+restoreGroup:
+UPDATE AccountGroup SET deleted = 0, updatedAt = ? WHERE id = ?;
+upsertGroup:
+INSERT OR REPLACE INTO AccountGroup VALUES ?;
+allAccounts:
+SELECT * FROM Account WHERE deleted = 0 ORDER BY sortOrder, name;
+upsertAccount:
+INSERT OR REPLACE INTO Account VALUES ?;
+softDeleteAccount:
+UPDATE Account SET deleted = 1, updatedAt = ? WHERE id = ?;
+deletedAccounts:
+SELECT * FROM Account WHERE deleted = 1 ORDER BY name;
+restoreAccount:
+UPDATE Account SET deleted = 0, updatedAt = ? WHERE id = ?;
+
+-- Balance = (+) income, transfer in, adjust up  − (−) expense, transfer out, adjust down
+balances:
+SELECT accountId,
+       TOTAL(CASE WHEN kind IN ('INCOME','TRANSFER_IN','ADJUST_UP') THEN COALESCE(accountAmount, amount)
+                  WHEN kind IN ('EXPENSE','TRANSFER_OUT','ADJUST_DOWN') THEN -COALESCE(accountAmount, amount) ELSE 0 END) AS balance
+FROM Txn WHERE deleted = 0 AND date <= :asOf GROUP BY accountId;
+
+balanceOf:
+SELECT TOTAL(CASE WHEN kind IN ('INCOME','TRANSFER_IN','ADJUST_UP') THEN COALESCE(accountAmount, amount) ELSE -COALESCE(accountAmount, amount) END)
+FROM Txn WHERE deleted = 0 AND accountId = ? AND date <= ?;
+
+-- ───────── categories
+allCategories:
+SELECT * FROM Category WHERE deleted = 0 ORDER BY kind, sortOrder, name;
+
+categoriesWithDeleted:
+SELECT * FROM Category;
+upsertCategory:
+INSERT OR REPLACE INTO Category VALUES ?;
+softDeleteCategory:
+UPDATE Category SET deleted = 1, updatedAt = ? WHERE id = ? OR parentId = ?;
+
+-- ───────── transactions
+txnsBetween:
+SELECT * FROM Txn WHERE deleted = 0 AND date BETWEEN ? AND ? ORDER BY date DESC, createdAt DESC;
+txnsForAccountBetween:
+SELECT * FROM Txn WHERE deleted = 0 AND accountId = ? AND date BETWEEN ? AND ? ORDER BY date DESC, createdAt DESC;
+txnsForAccount:
+SELECT * FROM Txn WHERE deleted = 0 AND accountId = ? ORDER BY date, createdAt;
+txnById:
+SELECT * FROM Txn WHERE id = ?;
+txnsByTransferGroup:
+SELECT * FROM Txn WHERE deleted = 0 AND transferGroupId = ?;
+txnsByInstallmentGroup:
+SELECT * FROM Txn WHERE deleted = 0 AND installmentGroupId = ? ORDER BY date;
+allTxns:
+SELECT * FROM Txn WHERE deleted = 0 ORDER BY date, createdAt;
+upsertTxn:
+INSERT OR REPLACE INTO Txn VALUES ?;
+insertTxnIfAbsent:
+INSERT OR IGNORE INTO Txn VALUES ?;
+softDeleteTxn:
+UPDATE Txn SET deleted = 1, updatedAt = ? WHERE id = ?;
+softDeleteTransferGroup:
+UPDATE Txn SET deleted = 1, updatedAt = ? WHERE transferGroupId = ?;
+softDeleteInstallmentGroup:
+UPDATE Txn SET deleted = 1, updatedAt = ? WHERE installmentGroupId = ?;
+
+-- Rows used for income/expense reporting, joined with both sides' accounts.
+reportRows:
+SELECT T.kind, T.amount, T.categoryId, T.date,
+       COALESCE(SA.transferAsExpense, 0) AS srcTransferExpense,
+       COALESCE(DA.transferAsExpense, 0) AS dstTransferExpense,
+       COALESCE(SG.type, '') AS srcType,
+       COALESCE(DG.type, '') AS dstType
+FROM Txn T
+LEFT JOIN Account SA ON SA.id = T.accountId
+LEFT JOIN Account DA ON DA.id = T.toAccountId
+LEFT JOIN AccountGroup SG ON SG.id = SA.groupId
+LEFT JOIN AccountGroup DG ON DG.id = DA.groupId
+WHERE T.deleted = 0 AND T.date BETWEEN ? AND ?
+  AND T.kind IN ('INCOME','EXPENSE','TRANSFER_OUT');
+
+-- ───────── budgets
+budgetAmountsUpTo:
+SELECT * FROM BudgetAmount WHERE period <= ? ORDER BY categoryId, period;
+upsertBudgetAmount:
+INSERT OR REPLACE INTO BudgetAmount VALUES ?;
+deleteBudgetFrom:
+DELETE FROM BudgetAmount WHERE categoryId = ? AND period >= ?;
+
+-- ───────── recurring
+activeRules:
+SELECT * FROM RecurringRule WHERE deleted = 0 ORDER BY nextDate;
+upsertRule:
+INSERT OR REPLACE INTO RecurringRule VALUES ?;
+softDeleteRule:
+UPDATE RecurringRule SET deleted = 1, updatedAt = ? WHERE id = ?;
+
+-- ───────── search
+searchTxns:
+SELECT T.* FROM Txn T
+LEFT JOIN Category C ON C.id = T.categoryId
+LEFT JOIN Category P ON P.id = C.parentId
+LEFT JOIN Account A ON A.id = T.accountId
+WHERE T.deleted = 0 AND T.kind != 'TRANSFER_IN'
+  AND T.date >= :fromDay AND T.date <= :toDay
+  AND (T.note LIKE :pattern OR T.memo LIKE :pattern OR C.name LIKE :pattern OR P.name LIKE :pattern OR A.name LIKE :pattern
+       OR T.id IN (SELECT TT.txnId FROM TxnTag TT JOIN Tag G ON G.id = TT.tagId WHERE G.name LIKE :pattern))
+  AND T.amount >= :minAmount AND T.amount <= :maxAmount
+ORDER BY T.date DESC, T.createdAt DESC
+LIMIT 1000;
+
+-- ───────── currencies
+allCurrencies:
+SELECT * FROM Currency WHERE deleted = 0 ORDER BY sortOrder, code;
+upsertCurrency:
+INSERT OR REPLACE INTO Currency VALUES ?;
+softDeleteCurrency:
+UPDATE Currency SET deleted = 1, updatedAt = ? WHERE code = ?;
+
+-- ───────── tags
+allTags:
+SELECT * FROM Tag WHERE deleted = 0 ORDER BY sortOrder, name;
+upsertTag:
+INSERT OR REPLACE INTO Tag VALUES ?;
+softDeleteTag:
+UPDATE Tag SET deleted = 1, updatedAt = ? WHERE id = ?;
+tagIdsForTxn:
+SELECT tagId FROM TxnTag WHERE txnId = ?;
+allTxnTags:
+SELECT TT.txnId, G.name FROM TxnTag TT JOIN Tag G ON G.id = TT.tagId WHERE G.deleted = 0;
+clearTxnTags:
+DELETE FROM TxnTag WHERE txnId = ?;
+addTxnTag:
+INSERT OR IGNORE INTO TxnTag(txnId, tagId) VALUES (?, ?);
+txnIdsWithTag:
+SELECT txnId FROM TxnTag WHERE tagId = ?;
+tagById:
+SELECT * FROM Tag WHERE id = ?;
+
+-- ───────── photos
+photosForTxn:
+SELECT * FROM Photo WHERE txnId = ? AND deleted = 0 ORDER BY createdAt;
+insertPhoto:
+INSERT OR REPLACE INTO Photo VALUES ?;
+softDeletePhoto:
+UPDATE Photo SET deleted = 1 WHERE id = ?;
+txnIdsWithPhotos:
+SELECT DISTINCT txnId FROM Photo WHERE deleted = 0;
+
+-- ───────── notes
+allNotes:
+SELECT * FROM Note WHERE deleted = 0 ORDER BY pinned DESC, updatedAt DESC;
+upsertNote:
+INSERT OR REPLACE INTO Note VALUES ?;
+softDeleteNote:
+UPDATE Note SET deleted = 1, updatedAt = ? WHERE id = ?;
+
+-- ───────── templates
+allTemplates:
+SELECT * FROM Template WHERE deleted = 0 ORDER BY sortOrder, name;
+upsertTemplate:
+INSERT OR REPLACE INTO Template VALUES ?;
+softDeleteTemplate:
+UPDATE Template SET deleted = 1, updatedAt = ? WHERE id = ?;
+
+-- ───────── captured SMS / notifications
+pendingCaptures:
+SELECT * FROM Capture WHERE status = 'PENDING' ORDER BY receivedAt DESC;
+captureBySenderAndText:
+SELECT * FROM Capture WHERE sender = ? AND text = ? AND receivedAt > ? LIMIT 1;
+insertCapture:
+INSERT OR REPLACE INTO Capture VALUES ?;
+setCaptureStatus:
+UPDATE Capture SET status = ?, txnId = ? WHERE id = ?;
+
+-- ───────── learning (SMS / note → category & account)
+-- Two-step upsert: UPSERT syntax needs SQLite 3.24 (Android 11+), minSdk is 24.
+seedToken:
+INSERT OR IGNORE INTO LearnToken(token, label, count) VALUES (?, ?, 0);
+bumpToken:
+UPDATE LearnToken SET count = count + 1 WHERE token = ? AND label = ?;
+seedLabel:
+INSERT OR IGNORE INTO LearnLabel(label, count) VALUES (?, 0);
+bumpLabel:
+UPDATE LearnLabel SET count = count + 1 WHERE label = ?;
+tokenCounts:
+SELECT * FROM LearnToken WHERE token IN ?;
+labelCounts:
+SELECT * FROM LearnLabel;
+
+-- ───────── full replace (restoring another app's backup)
+wipeTxn:
+DELETE FROM Txn;
+wipeAccount:
+DELETE FROM Account;
+wipeAccountGroup:
+DELETE FROM AccountGroup;
+wipeCategory:
+DELETE FROM Category;
+wipeBudget:
+DELETE FROM BudgetAmount;
+wipeRules:
+DELETE FROM RecurringRule;
+wipeTags:
+DELETE FROM Tag;
+wipeTxnTags:
+DELETE FROM TxnTag;
+wipeCurrencies:
+DELETE FROM Currency;
+wipeNotes:
+DELETE FROM Note;
+wipePhotos:
+DELETE FROM Photo;
+wipeTemplates:
+DELETE FROM Template;
+wipeLearning:
+DELETE FROM LearnToken;
+wipeLearnLabels:
+DELETE FROM LearnLabel;
+upsertGroupRaw:
+INSERT OR REPLACE INTO AccountGroup(id, name, type, sortOrder, deleted, updatedAt) VALUES (?, ?, ?, ?, ?, ?);
+upsertAccountRaw:
+INSERT OR REPLACE INTO Account(id, groupId, name, includeInTotals, transferAsExpense, cardSettlementDay, cardPaymentAccountId, sortOrder, deleted, updatedAt, currency, cardLimit, hidden,
+    memo, cardPaymentDay, cardAutoPay, usageTarget, usageTargetType, smsSender, smsMatch)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+upsertCategoryRaw:
+INSERT OR REPLACE INTO Category(id, name, kind, parentId, sortOrder, deleted, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?);
+allAccountNames:
+SELECT id, name FROM Account;
+
+-- ───────── v4
+-- Past notes for autocomplete: newest use first, with the category/account last used with them.
+noteSuggestions:
+SELECT note, categoryId, accountId, kind, MAX(createdAt) AS lastUsed
+FROM Txn
+WHERE deleted = 0 AND note != '' AND note LIKE :prefix || '%' ESCAPE '\' AND createdAt > :since
+  AND kind IN ('INCOME', 'EXPENSE', 'TRANSFER_OUT')
+GROUP BY note
+ORDER BY lastUsed DESC
+LIMIT 6;
+
+setAccountOrder:
+UPDATE Account SET sortOrder = ?, updatedAt = ? WHERE id = ?;
+setAccountHidden:
+UPDATE Account SET hidden = ?, updatedAt = ? WHERE id = ?;
+setCategoryOrder:
+UPDATE Category SET sortOrder = ?, updatedAt = ? WHERE id = ?;
+setGroupOrder:
+UPDATE AccountGroup SET sortOrder = ?, updatedAt = ? WHERE id = ?;
+softDeleteGroup:
+UPDATE AccountGroup SET deleted = 1, updatedAt = ? WHERE id = ?;
+setTxnDate:
+UPDATE Txn SET date = ?, updatedAt = ? WHERE id = ? OR (transferGroupId IS NOT NULL AND transferGroupId = ?);
+setTxnCategory:
+UPDATE Txn SET categoryId = ?, updatedAt = ? WHERE id = ?;
+setTxnAccount:
+UPDATE Txn SET accountId = ?, updatedAt = ? WHERE id = ?;
+wipeCaptures:
+DELETE FROM Capture;

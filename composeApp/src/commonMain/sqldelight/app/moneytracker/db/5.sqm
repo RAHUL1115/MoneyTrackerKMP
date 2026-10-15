@@ -1,0 +1,27 @@
+-- Schema v5 → v6: drop Account.appPackage (bank-app notification reading was removed).
+CREATE TABLE Account_v6 (
+    id TEXT NOT NULL PRIMARY KEY,
+    groupId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    includeInTotals INTEGER NOT NULL DEFAULT 1,
+    transferAsExpense INTEGER NOT NULL DEFAULT 0,
+    cardSettlementDay INTEGER,
+    cardPaymentAccountId TEXT,
+    sortOrder INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL,
+    currency TEXT,
+    cardLimit INTEGER,
+    hidden INTEGER NOT NULL DEFAULT 0,
+    memo TEXT NOT NULL DEFAULT '',
+    cardPaymentDay INTEGER,
+    cardAutoPay INTEGER NOT NULL DEFAULT 0,
+    usageTarget INTEGER,
+    usageTargetType INTEGER NOT NULL DEFAULT 1,
+    smsSender TEXT NOT NULL DEFAULT '',
+    smsMatch TEXT NOT NULL DEFAULT ''
+);
+INSERT INTO Account_v6 SELECT id, groupId, name, includeInTotals, transferAsExpense, cardSettlementDay, cardPaymentAccountId, sortOrder,
+    deleted, updatedAt, currency, cardLimit, hidden, memo, cardPaymentDay, cardAutoPay, usageTarget, usageTargetType, smsSender, smsMatch FROM Account;
+DROP TABLE Account;
+ALTER TABLE Account_v6 RENAME TO Account;

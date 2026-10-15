@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Same view for collapsed and expanded states: three rounded icon pills. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <ImageView android:id="@+id/qa_income" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+        android:layout_marginStart="4dp" android:layout_marginEnd="4dp"
+        android:background="@drawable/bg_qa_income" android:paddingTop="9dp" android:paddingBottom="9dp" android:scaleType="fitCenter"
+        android:src="@drawable/ic_qa_income" android:contentDescription="@string/qa_income" />
+
+    <ImageView android:id="@+id/qa_expense" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+        android:layout_marginStart="4dp" android:layout_marginEnd="4dp"
+        android:background="@drawable/bg_qa_expense" android:paddingTop="9dp" android:paddingBottom="9dp" android:scaleType="fitCenter"
+        android:src="@drawable/ic_qa_expense" android:contentDescription="@string/qa_expense" />
+
+    <ImageView android:id="@+id/qa_transfer" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1"
+        android:layout_marginStart="4dp" android:layout_marginEnd="4dp"
+        android:background="@drawable/bg_qa_transfer" android:paddingTop="9dp" android:paddingBottom="9dp" android:scaleType="fitCenter"
+        android:src="@drawable/ic_qa_transfer" android:contentDescription="@string/qa_transfer" />
+</LinearLayout>

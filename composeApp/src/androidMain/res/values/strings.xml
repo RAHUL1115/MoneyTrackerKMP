@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">MoneyTracker</string>
+    <string name="widget_description">This month\'s income, expenses and quick add</string>
+    <string name="widget_quick_add_description">Add an expense, income or transfer</string>
+    <string name="widget_month_description">This month\'s totals in one line</string>
+    <string name="widget_cards_description">Your credit cards: amount due and this cycle\'s spending</string>
+    <string name="sc_expense">Add expense</string>
+    <string name="sc_income">Add income</string>
+    <string name="sc_voice">Voice entry</string>
+    <string name="sc_search">Search</string>
+    <string name="qa_income">Add income</string>
+    <string name="qa_expense">Add expense</string>
+    <string name="qa_transfer">Add transfer</string>
+</resources>

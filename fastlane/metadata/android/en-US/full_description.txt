@@ -1,0 +1,31 @@
+MoneyTracker is a free, open-source personal-finance app that works entirely offline. It has no ads, no accounts, no analytics and no internet permission: your data stays on your phone.
+
+<b>Quick daily bookkeeping</b>
+• Add income, expenses and transfers with a built-in calculator keypad
+• Daily, Calendar and Monthly views, notes and search
+• Repeating entries, credit-card installments and transfer fees
+• Bookmarks for entries you add often, tags and receipt photos
+• Voice entry ("spent 250 on lunch") and category suggestions learned from your notes
+
+<b>Accounts and budgets</b>
+• Account groups, net worth and per-account currency
+• Credit-card cycles: what's due now, outstanding and upcoming
+• Monthly budgets per category and sub-category
+• Monthly and yearly statistics with drill-down
+
+<b>Smart, but private</b>
+• Optional bank-SMS detection that suggests entries and learns your categories, all on the phone
+• Optional location tag on new entries
+• Passcode and fingerprint lock
+
+<b>Your data, your files</b>
+• Daily automatic snapshots and manual backups
+• Export and import full backups, CSV and Excel files
+• Switching apps? Restore your Money Manager (.mmbak) backup. MoneyTracker is not affiliated with Realbyte.
+
+<b>And more</b>
+• Material You colours, light and dark theme
+• Home-screen widgets, launcher shortcuts and a quick-add notification
+• 79 languages
+
+MoneyTracker is licensed under the GNU GPL v3. Source code, privacy policy and issue tracker: https://github.com/RAHUL1115/MoneyTrackerKMP

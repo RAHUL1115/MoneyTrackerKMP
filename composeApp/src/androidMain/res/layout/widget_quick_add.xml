@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Quick add: three buttons; works from 2x1 to 4x2. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/widget_bg" android:importantForAccessibility="no" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal"
+        android:gravity="center_vertical" android:padding="8dp">
+        <TextView android:id="@+id/w_add_expense" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+            android:background="@drawable/widget_button" android:gravity="center" android:text="Expense" android:textColor="#FFFFFF" android:textSize="13sp" />
+        <TextView android:id="@+id/w_add_income" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="6dp"
+            android:background="@drawable/widget_button_income" android:gravity="center" android:text="Income" android:textColor="#FFFFFF" android:textSize="13sp" />
+        <TextView android:id="@+id/w_add_transfer" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="6dp"
+            android:background="@drawable/widget_button_neutral" android:gravity="center" android:text="Transfer" android:textColor="#FFFFFF" android:textSize="13sp" />
+    </LinearLayout>
+</FrameLayout>

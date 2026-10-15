@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="add_expense" android:enabled="true" android:icon="@android:drawable/ic_input_add"
+        android:shortcutShortLabel="@string/sc_expense">
+        <intent android:action="app.moneytracker.ADD_EXPENSE" android:targetPackage="in.amrahul.moneytracker" android:targetClass="app.moneytracker.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="add_income" android:enabled="true" android:icon="@android:drawable/ic_input_add"
+        android:shortcutShortLabel="@string/sc_income">
+        <intent android:action="app.moneytracker.ADD_INCOME" android:targetPackage="in.amrahul.moneytracker" android:targetClass="app.moneytracker.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="voice" android:enabled="true" android:icon="@android:drawable/ic_btn_speak_now"
+        android:shortcutShortLabel="@string/sc_voice">
+        <intent android:action="app.moneytracker.VOICE" android:targetPackage="in.amrahul.moneytracker" android:targetClass="app.moneytracker.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="search" android:enabled="true" android:icon="@android:drawable/ic_menu_search"
+        android:shortcutShortLabel="@string/sc_search">
+        <intent android:action="app.moneytracker.SEARCH" android:targetPackage="in.amrahul.moneytracker" android:targetClass="app.moneytracker.MainActivity" />
+    </shortcut>
+</shortcuts>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 7.x fallback (no adaptive icons): gradient tile + line-art wallet. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="48dp" android:height="48dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M54,0 h0 a54,54 0 0 1 54,54 v0 a54,54 0 0 1 -54,54 h-0 a54,54 0 0 1 -54,-54 v-0 a54,54 0 0 1 54,-54 z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0" android:endX="108" android:endY="108">
+                <item android:offset="0" android:color="#FF119C8C" />
+                <item android:offset="1" android:color="#FF00695C" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="3.6" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M38,42 L60,35 A3,3 0 0 1 63.7,37 L65.3,42" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="3.6" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M40,42 H68 A7,7 0 0 1 75,49 V65 A7,7 0 0 1 68,72 H40 A7,7 0 0 1 33,65 V49 A7,7 0 0 1 40,42 Z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="3.6" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M75,51 H67 A5,5 0 0 0 67,61 H75" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M67,56 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0 z" />
+</vector>

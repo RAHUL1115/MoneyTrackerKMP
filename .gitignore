@@ -1,0 +1,12 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+.DS_Store
+*.apk
+captures/
+
+# Private local material (reference files, notes, backups); never committed.
+/.scratch/

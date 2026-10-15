@@ -1,0 +1,2 @@
+-- Schema v2 → v3: per-category default account.
+ALTER TABLE Category ADD COLUMN defaultAccountId TEXT;
