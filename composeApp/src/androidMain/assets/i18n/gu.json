@@ -615,5 +615,22 @@
 "Full text, offline": "સંપૂર્ણ લખાણ, ઑફલાઇન",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. ના Money Manager થી પ્રેરિત. MoneyTracker એક સ્વતંત્ર ઍપ છે, Realbyte સાથે સંકળાયેલી નથી કે તેમના દ્વારા સમર્થિત નથી, અને તે Money Manager ના બૅકઅપ ઇમ્પોર્ટ કરી શકે છે.",
 "This cycle {0}": "આ ચક્ર {0}",
-"Due {0}": "બાકી {0}"
+"Due {0}": "બાકી {0}",
+"Daily average": "દૈનિક સરેરાશ",
+"Projected": "અંદાજિત",
+"Net": "ચોખ્ખું",
+"{0}% of income": "આવકના {0}%",
+"Trend": "વલણ",
+"Last 6 months": "છેલ્લા 6 મહિના",
+"By month": "મહિના પ્રમાણે",
+"By day": "દિવસ પ્રમાણે",
+"Breakdown": "વિભાજન",
+"Tag": "ટૅગ",
+"No tag": "ટૅગ વિના",
+"Top entries": "સૌથી મોટી એન્ટ્રી",
+"vs {0}": "{0}ની સરખામણીએ",
+"vs previous period": "પાછલા સમયગાળાની સરખામણીએ",
+"New": "નવું",
+"Deleted account": "કાઢી નાખેલું ખાતું",
+"An entry with several tags counts once for each tag.": "ઘણા ટૅગવાળી એન્ટ્રી દરેક ટૅગ માટે એક વાર ગણાય છે."
 }

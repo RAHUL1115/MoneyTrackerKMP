@@ -615,5 +615,22 @@
 "Full text, offline": "全文（オフライン）",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. の Money Manager に着想を得ています。MoneyTracker は独立したアプリで、Realbyte とは提携しておらず、同社の承認も受けていません。Money Manager のバックアップをインポートできます。",
 "This cycle {0}": "今期 {0}",
-"Due {0}": "支払額 {0}"
+"Due {0}": "支払額 {0}",
+"Daily average": "1日平均",
+"Projected": "予測",
+"Net": "収支",
+"{0}% of income": "収入の{0}%",
+"Trend": "推移",
+"Last 6 months": "直近6か月",
+"By month": "月別",
+"By day": "日別",
+"Breakdown": "内訳",
+"Tag": "タグ",
+"No tag": "タグなし",
+"Top entries": "金額の大きい入力",
+"vs {0}": "{0}比",
+"vs previous period": "前期比",
+"New": "新規",
+"Deleted account": "削除された口座",
+"An entry with several tags counts once for each tag.": "複数のタグが付いた入力は、タグごとに1回ずつ集計されます。"
 }

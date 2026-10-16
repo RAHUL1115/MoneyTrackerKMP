@@ -615,5 +615,22 @@
 "Full text, offline": "Volledige tekst, offline",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Geïnspireerd door Money Manager van Realbyte Inc. MoneyTracker is een onafhankelijke app, niet gelieerd aan of goedgekeurd door Realbyte, en kan back-ups van Money Manager importeren.",
 "This cycle {0}": "Deze cyclus {0}",
-"Due {0}": "Te betalen {0}"
+"Due {0}": "Te betalen {0}",
+"Daily average": "Daggemiddelde",
+"Projected": "Prognose",
+"Net": "Netto",
+"{0}% of income": "{0}% van inkomsten",
+"Trend": "Verloop",
+"Last 6 months": "Laatste 6 maanden",
+"By month": "Per maand",
+"By day": "Per dag",
+"Breakdown": "Verdeling",
+"Tag": "Tag",
+"No tag": "Geen tag",
+"Top entries": "Grootste posten",
+"vs {0}": "vs. {0}",
+"vs previous period": "vs. vorige periode",
+"New": "Nieuw",
+"Deleted account": "Verwijderde rekening",
+"An entry with several tags counts once for each tag.": "Een post met meerdere tags telt één keer per tag."
 }

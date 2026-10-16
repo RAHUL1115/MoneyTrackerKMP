@@ -615,5 +615,22 @@
 "Full text, offline": "Tam metin, çevrimdışı",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.'in Money Manager uygulamasından esinlenmiştir. MoneyTracker bağımsız bir uygulamadır; Realbyte ile bağlantılı değildir ve onun tarafından onaylanmamıştır. Money Manager yedeklerini içe aktarabilir.",
 "This cycle {0}": "Bu dönem {0}",
-"Due {0}": "Ödenecek {0}"
+"Due {0}": "Ödenecek {0}",
+"Daily average": "Günlük ortalama",
+"Projected": "Tahmini",
+"Net": "Net",
+"{0}% of income": "Gelire oranı: %{0}",
+"Trend": "Eğilim",
+"Last 6 months": "Son 6 ay",
+"By month": "Aylara göre",
+"By day": "Günlere göre",
+"Breakdown": "Dağılım",
+"Tag": "Etiket",
+"No tag": "Etiketsiz",
+"Top entries": "En büyük kayıtlar",
+"vs {0}": "{0} ile kıyasla",
+"vs previous period": "önceki döneme kıyasla",
+"New": "Yeni",
+"Deleted account": "Silinmiş hesap",
+"An entry with several tags counts once for each tag.": "Birden çok etiketi olan kayıt her etiket için bir kez sayılır."
 }

@@ -615,5 +615,22 @@
 "Full text, offline": "Бүтэн текст, офлайн",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.-ийн Money Manager-ээс санаа авсан. MoneyTracker нь бие даасан апп бөгөөд Realbyte-тэй холбоогүй, тэдний зөвшөөрөлгүй бөгөөд Money Manager-ийн нөөцийг импортлох боломжтой.",
 "This cycle {0}": "Энэ мөчлөг {0}",
-"Due {0}": "Төлөх {0}"
+"Due {0}": "Төлөх {0}",
+"Daily average": "Өдрийн дундаж",
+"Projected": "Төсөөлөл",
+"Net": "Цэвэр",
+"{0}% of income": "Орлогын {0}%",
+"Trend": "Хандлага",
+"Last 6 months": "Сүүлийн 6 сар",
+"By month": "Сараар",
+"By day": "Өдрөөр",
+"Breakdown": "Задаргаа",
+"Tag": "Шошго",
+"No tag": "Шошгогүй",
+"Top entries": "Хамгийн том бичилтүүд",
+"vs {0}": "{0}-тэй харьцуулахад",
+"vs previous period": "өмнөх хугацаатай харьцуулахад",
+"New": "Шинэ",
+"Deleted account": "Устгасан данс",
+"An entry with several tags counts once for each tag.": "Олон шошготой бичилт шошго бүрт нэг удаа тоологдоно."
 }

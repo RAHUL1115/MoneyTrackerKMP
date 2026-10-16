@@ -1,6 +1,5 @@
 package app.moneytracker.ui
 
-import androidx.compose.ui.text.drawText
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,9 +40,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.icons.outlined.EditNote
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -102,6 +104,15 @@ fun byMainCategory(rows: List<ReportRow>, catById: Map<String, Category>, flow: 
         }
         .mapValues { (_, v) -> v.sumOf { it.amount } }
 
+private enum class GroupBy(val label: String) { CATEGORY("Category"), ACCOUNT("Account"), TAG("Tag") }
+private const val NO_TAG = "__notag"
+
+/** One part of the breakdown: amount in the shown and the previous period; [open] drills in when there is somewhere to go. */
+private class Slice(val key: String, val name: String, val amount: Long, val previous: Long, val open: (() -> Unit)?)
+
+private fun DateRange.days() = endInclusive.toEpochDays() - start.toEpochDays() + 1
+private fun DateRange.shift(days: Int) = DateRange(start.plus(DatePeriod(days = days)), endInclusive.plus(DatePeriod(days = days)))
+
 @Composable
 fun StatsTab() {
     val repo = LocalRepo.current
@@ -111,12 +122,14 @@ fun StatsTab() {
     var periodKey by rememberPeriod()
     var span by rememberSaveable { mutableStateOf(StatsSpan.MONTHLY) }
     var showIncome by rememberSaveable { mutableStateOf(false) }
+    var groupBy by rememberSaveable { mutableStateOf(GroupBy.CATEGORY) }
     var spanMenu by remember { mutableStateOf(false) }
     val ym = YearMonth.fromKey(periodKey)
+    val today = repo.today()
     // Weekly: any day of the shown week. Period: user-chosen dates (default: this month).
-    var weekDay by rememberSaveable { mutableStateOf(repo.today().toEpochDays()) }
-    var periodStart by rememberSaveable { mutableStateOf(ps.month(ps.labelFor(repo.today())).start.toEpochDays()) }
-    var periodEnd by rememberSaveable { mutableStateOf(repo.today().toEpochDays()) }
+    var weekDay by rememberSaveable { mutableStateOf(today.toEpochDays()) }
+    var periodStart by rememberSaveable { mutableStateOf(ps.month(ps.labelFor(today)).start.toEpochDays()) }
+    var periodEnd by rememberSaveable { mutableStateOf(today.toEpochDays()) }
     var pickStart by remember { mutableStateOf(false) }
     var pickEnd by remember { mutableStateOf(false) }
     val range = when (span) {
@@ -130,10 +143,26 @@ fun StatsTab() {
         StatsSpan.YEARLY -> ps.year(ym.year)
         StatsSpan.PERIOD -> DateRange(LocalDate.fromEpochDays(minOf(periodStart, periodEnd)), LocalDate.fromEpochDays(maxOf(periodStart, periodEnd)))
     }
+    // The period before, for the comparisons; and the bars of the trend chart (six months up to the shown one for Monthly).
+    val previousRange = when (span) {
+        StatsSpan.WEEKLY -> range.shift(-7)
+        StatsSpan.MONTHLY -> ps.month(ym.plus(-1))
+        StatsSpan.YEARLY -> ps.year(ym.year - 1)
+        StatsSpan.PERIOD -> range.shift(-range.days())
+    }
+    val trendRange = if (span == StatsSpan.MONTHLY) DateRange(ps.month(ym.plus(-5)).start, range.endInclusive) else range
     val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
-    val categories by repo.categories.collectAsState(emptyList())
+    val previousRows by remember(previousRange) { repo.reportRows(previousRange) }.collectAsState(emptyList())
+    val trendRows by remember(trendRange) { repo.reportRows(trendRange) }.collectAsState(emptyList())
     val catById by repo.categoryById.collectAsState(emptyMap())
+    val accounts by repo.accounts.collectAsState(emptyList())
+    val tagNames by repo.txnTagNames.collectAsState(emptyMap())
     val t = totals(rows)
+    val flow = if (showIncome) Flow.INCOME else Flow.EXPENSE
+    val flowColor = if (showIncome) IncomeColor else ExpenseColor
+    val flowLabel = if (showIncome) tr("Income") else tr("Expenses")
+    val flowTotal = if (showIncome) t.income else t.expense
+    val previousTotal = totals(previousRows).let { if (showIncome) it.income else it.expense }
 
     Column(Modifier.fillMaxSize()) {
         val step = if (span == StatsSpan.YEARLY) 12 else 1
@@ -146,13 +175,13 @@ fun StatsTab() {
             StatsSpan.WEEKLY -> weekDay += 7 * dir
             StatsSpan.PERIOD -> {
                 // Step by the period's own length.
-                val len = range.endInclusive.toEpochDays() - range.start.toEpochDays() + 1
+                val len = range.days()
                 periodStart = range.start.toEpochDays() + len * dir; periodEnd = range.endInclusive.toEpochDays() + len * dir
             }
             else -> periodKey = ym.plus(step * dir).key
         }
         var monthPicker by remember { mutableStateOf(false) }
-        if (monthPicker) MonthPickerDialog(ym, ps.labelFor(repo.today()), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
+        if (monthPicker) MonthPickerDialog(ym, ps.labelFor(today), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
         MonthTopBar(label, { move(-1) }, { move(1) }, onLabelClick = if (span == StatsSpan.MONTHLY || span == StatsSpan.YEARLY) ({ monthPicker = true }) else null) {
             Box(Modifier.padding(end = 12.dp)) {
                 Row(
@@ -183,78 +212,285 @@ fun StatsTab() {
             if (showIncome) 0 else 1,
         ) { showIncome = it == 0 }
 
-        val amounts = byMainCategory(rows, catById, if (showIncome) Flow.INCOME else Flow.EXPENSE)
-        val total = amounts.values.sum()
-        if (total == 0L) { EmptyState(icon = Icons.Outlined.PieChart); return@Column }
-        val sorted = amounts.entries.sortedByDescending { it.value }
-        LazyColumn(Modifier.fillMaxSize()) {
-            item {
-                Box(Modifier.padding(top = 10.dp).card().fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
-                    PieChart(
-                        sorted.map { it.value }, Modifier.fillMaxWidth().height(260.dp),
-                        labels = sorted.map { e -> "${nameOf(e.key, catById)}\n${((e.value * 100.0) / total).toInt()}%" },
-                    )
+        // Daily average over the days so far; a projection while the period is still running.
+        val elapsed = when {
+            today < range.start -> 0
+            today > range.endInclusive -> range.days()
+            else -> today.toEpochDays() - range.start.toEpochDays() + 1
+        }
+        val dailyAverage = if (elapsed > 0) flowTotal / elapsed else 0L
+        val projected = if (elapsed in 1 until range.days()) flowTotal * range.days() / elapsed else null
+        val compareLabel = when (span) {
+            StatsSpan.MONTHLY -> tr("vs {0}", ym.plus(-1).label())
+            StatsSpan.YEARLY -> tr("vs {0}", (ym.year - 1).toString())
+            else -> tr("vs previous period")
+        }
+
+        val trend = trendBars(span, range, ym, today, ps, trendRows, flow)
+        val slices = run {
+            val current = rows.filter { classify(it) == flow }
+            val previous = previousRows.filter { classify(it) == flow }
+            val accountById = accounts.associateBy { it.id }
+            when (groupBy) {
+                GroupBy.CATEGORY -> {
+                    val before = byMainCategory(previousRows, catById, flow)
+                    byMainCategory(rows, catById, flow).map { (key, amount) ->
+                        val name = nameOf(key, catById)
+                        Slice(key, name, amount, before[key] ?: 0L,
+                            if (catById[key] != null) ({ nav.push(Screen.StatsDetail(key, showIncome, range.start, range.endInclusive, name)) }) else null)
+                    }
                 }
-                Spacer(Modifier.height(10.dp))
+                GroupBy.ACCOUNT -> {
+                    fun sum(list: List<ReportRow>) = list.groupBy { it.accountId }.mapValues { (_, v) -> v.sumOf { it.amount } }
+                    val before = sum(previous)
+                    sum(current).map { (key, amount) ->
+                        Slice(key, accountById[key]?.name ?: tr("Deleted account"), amount, before[key] ?: 0L,
+                            if (accountById[key] != null) ({ nav.push(Screen.AccountDetail(key)) }) else null)
+                    }
+                }
+                GroupBy.TAG -> {
+                    // An entry counts once for each of its tags.
+                    fun sum(list: List<ReportRow>): Map<String, Long> = buildMap {
+                        list.forEach { r -> tagNames[r.txnId].orEmpty().ifEmpty { listOf(NO_TAG) }.distinct().forEach { k -> put(k, (get(k) ?: 0L) + r.amount) } }
+                    }
+                    val before = sum(previous)
+                    sum(current).map { (key, amount) -> Slice(key, if (key == NO_TAG) tr("No tag") else key, amount, before[key] ?: 0L, null) }
+                }
+            }.sortedByDescending { it.amount }
+        }
+        val top = rows.filter { classify(it) == flow }.sortedByDescending { it.amount }.take(5)
+        val accountName = accounts.associate { it.id to it.name }
+
+        val chartMemory = remember { ChartMemory() }
+        androidx.compose.runtime.CompositionLocalProvider(LocalChartMemory provides chartMemory) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            item(key = "overview") {
+                Column(Modifier.padding(top = 10.dp).card().fillMaxWidth().padding(16.dp)) {
+                    Text(flowLabel, color = SubtleText, fontSize = 13.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(currency.format(animatedAmount(flowTotal, "overview")), Modifier.weight(1f, fill = false), color = Ink, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        Spacer(Modifier.width(10.dp))
+                        ChangeChip(flowTotal, previousTotal, upIsGood = showIncome)
+                    }
+                    Text("$compareLabel · ${currency.format(previousTotal)}", color = SubtleText, fontSize = 12.sp)
+                    HorizontalDivider(Modifier.padding(vertical = 12.dp), color = DividerColor)
+                    Row {
+                        MiniStat(tr("Daily average"), currency.format(dailyAverage), Ink, Modifier.weight(1f))
+                        if (projected != null) MiniStat(tr("Projected"), currency.format(projected), Ink, Modifier.weight(1f))
+                        MiniStat(
+                            tr("Net"), currency.format(t.net), if (t.net >= 0) IncomeColor else ExpenseColor, Modifier.weight(1f),
+                            note = if (t.income > 0) tr("{0}% of income", (t.net * 100 / t.income).toString()) else null,
+                        )
+                    }
+                }
             }
-            item(key = "list") {
-                Column(Modifier.card().padding(vertical = 4.dp)) {
-                    sorted.forEachIndexed { i, e ->
-                        val drillable = catById[e.key] != null
-                        Row(
-                            Modifier.fillMaxWidth()
-                                .clickable(enabled = drillable) {
-                                    nav.push(Screen.StatsDetail(e.key, showIncome, range.start, range.endInclusive, nameOf(e.key, catById)))
+            item(key = "trend") {
+                Column(Modifier.padding(top = 10.dp).card().fillMaxWidth().padding(top = 14.dp, bottom = 8.dp)) {
+                    Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom) {
+                        Text(tr("Trend"), Modifier.weight(1f), color = Ink, fontWeight = FontWeight.Medium)
+                        Text(trend.subtitle, color = SubtleText, fontSize = 12.sp)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    BarChart(trend.values, trend.labels, flowColor, trend.highlight, id = "trend",
+                        onBarClick = trend.open?.let { open -> { i: Int -> open(i).let { (s, key) -> span = s; periodKey = key } } })
+                }
+            }
+            item(key = "breakdown") {
+                Column(Modifier.padding(top = 10.dp).card().fillMaxWidth().padding(vertical = 4.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(tr("Breakdown"), Modifier.weight(1f), color = Ink, fontWeight = FontWeight.Medium)
+                        GroupBy.entries.forEach { g ->
+                            val sel = g == groupBy
+                            Text(tr(g.label),
+                                Modifier.padding(start = 6.dp).clip(RoundedCornerShape(50)).background(if (sel) AccentTint else FillColor)
+                                    .clickable { groupBy = g }.padding(horizontal = 12.dp, vertical = 6.dp),
+                                color = if (sel) Accent else InkSoft, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                    if (slices.isEmpty()) {
+                        Text(tr("No data available."), Modifier.fillMaxWidth().padding(vertical = 32.dp), color = SubtleText, textAlign = TextAlign.Center)
+                    } else {
+                        // Tapping a slice (or its row) shows that part in the middle; the selection clears when the data changes.
+                        var picked by remember(slices.map { it.key }) { mutableStateOf<Int?>(null) }
+                        val sel = picked?.let { slices.getOrNull(it) }
+                        DonutChart(slices.map { it.amount }, Modifier.fillMaxWidth().height(220.dp).padding(vertical = 12.dp), id = "donut",
+                            selected = picked, onSelect = { picked = it }) {
+                            Column(Modifier.width(120.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                if (sel == null) {
+                                    Text(currency.format(animatedAmount(flowTotal, "donut")), color = Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                    Text(flowLabel, color = SubtleText, fontSize = 12.sp)
+                                } else {
+                                    val pct = if (flowTotal > 0) (sel.amount * 100.0 / flowTotal).roundToInt() else 0
+                                    Text(sel.name, color = ChartColors[picked!! % ChartColors.size], fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                    Text(currency.format(sel.amount), color = Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                    Text(if (pct == 0 && sel.amount > 0) "<1%" else "$pct%", color = SubtleText, fontSize = 12.sp)
+                                    if (sel.previous > 0) ChangeChip(sel.amount, sel.previous, upIsGood = showIncome, compact = true)
                                 }
-                                .padding(horizontal = 16.dp, vertical = 13.dp),
+                            }
+                        }
+                        slices.forEachIndexed { i, sl ->
+                            SliceRow(sl, ChartColors[i % ChartColors.size], flowTotal, showIncome, currency, highlighted = picked == i,
+                                dimmed = picked != null && picked != i)
+                        }
+                        if (groupBy == GroupBy.TAG) Text(tr("An entry with several tags counts once for each tag."),
+                            Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = SubtleText, fontSize = 11.sp)
+                    }
+                }
+            }
+            if (top.isNotEmpty()) item(key = "top") {
+                Column(Modifier.padding(top = 10.dp).card().fillMaxWidth().padding(vertical = 4.dp)) {
+                    Text(tr("Top entries"), Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp), color = Ink, fontWeight = FontWeight.Medium)
+                    top.forEach { r ->
+                        val title = r.note.ifBlank {
+                            if (r.kind == TxnKind.TRANSFER_OUT) nameOf(TRANSFERS, catById) else r.categoryId?.let { catById[it]?.name } ?: tr("Uncategorized")
+                        }
+                        Row(
+                            Modifier.fillMaxWidth().clickable { nav.push(Screen.EditTxn(txnId = r.txnId)) }.padding(horizontal = 16.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            PercentBadge(((e.value * 100.0) / total).toInt().coerceAtLeast(if (e.value > 0) 1 else 0), ChartColors[i % ChartColors.size])
-                            Text(nameOf(e.key, catById), Modifier.weight(1f).padding(start = 12.dp), color = Ink)
-                            Text(currency.format(e.value), color = Ink, fontWeight = FontWeight.Medium)
+                            Column(Modifier.weight(1f)) {
+                                Text(title, color = Ink, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                Text(listOfNotNull(r.date?.short(), accountName[r.accountId]).joinToString(" · "), color = SubtleText, fontSize = 12.sp, maxLines = 1)
+                            }
+                            Text(currency.format(r.amount), Modifier.padding(start = 12.dp), color = flowColor, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
             }
             item { Spacer(Modifier.height(24.dp)) }
         }
+        }
     }
 }
 
-@Composable
-fun PieChart(values: List<Long>, modifier: Modifier = Modifier, labels: List<String>? = null) {
-    val total = values.sum().toFloat().takeIf { it > 0 } ?: return
-    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
-    val labelStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = Ink)
-    Canvas(modifier) {
-        // With labels the pie shrinks to leave room for leader lines and text on both sides.
-        val radius = if (labels != null) minOf(size.width * 0.27f, size.height * 0.40f) else minOf(size.width, size.height) / 2
-        val center = androidx.compose.ui.geometry.Offset(size.width / 2, size.height / 2)
-        val topLeft = androidx.compose.ui.geometry.Offset(center.x - radius, center.y - radius)
-        val pieSize = androidx.compose.ui.geometry.Size(radius * 2, radius * 2)
-        var start = -90f
-        values.forEachIndexed { i, v ->
-            val sweep = v / total * 360f
-            val color = ChartColors[i % ChartColors.size]
-            drawArc(color, start, sweep, useCenter = true, topLeft = topLeft, size = pieSize)
-            if (values.size > 1) drawArc(SurfaceColor, start, sweep, useCenter = true, topLeft = topLeft, size = pieSize, style = Stroke(width = 2f))
-            val label = labels?.getOrNull(i)
-            // Label slices of at least 3%; thinner ones would overlap.
-            if (label != null && sweep >= 10.8f) {
-                val mid = (start + sweep / 2) * kotlin.math.PI / 180.0
-                val cos = kotlin.math.cos(mid).toFloat(); val sin = kotlin.math.sin(mid).toFloat()
-                val p1 = androidx.compose.ui.geometry.Offset(center.x + cos * radius, center.y + sin * radius)
-                val p2 = androidx.compose.ui.geometry.Offset(center.x + cos * (radius + 14.dp.toPx()), center.y + sin * (radius + 14.dp.toPx()))
-                val right = cos >= 0
-                val p3 = androidx.compose.ui.geometry.Offset(p2.x + (if (right) 10.dp.toPx() else -10.dp.toPx()), p2.y)
-                drawLine(color, p1, p2, strokeWidth = 1.5.dp.toPx()); drawLine(color, p2, p3, strokeWidth = 1.5.dp.toPx())
-                val maxW = (if (right) size.width - p3.x else p3.x) - 4.dp.toPx()
-                val text = measurer.measure(label, labelStyle, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    constraints = androidx.compose.ui.unit.Constraints(maxWidth = maxW.toInt().coerceAtLeast(1)))
-                val x = if (right) p3.x + 4.dp.toPx() else p3.x - 4.dp.toPx() - text.size.width
-                drawText(text, topLeft = androidx.compose.ui.geometry.Offset(x, p3.y - text.size.height / 2))
+/** Bars for the trend card, and where a tapped bar leads (span and period), if anywhere. */
+private class TrendBars(
+    val values: List<Long>, val labels: List<String>, val highlight: Int?, val subtitle: String,
+    val open: ((Int) -> Pair<StatsSpan, Int>)?,
+)
+
+private fun trendBars(
+    span: StatsSpan, range: DateRange, ym: YearMonth, today: LocalDate, ps: app.moneytracker.data.PeriodSettings,
+    rows: List<ReportRow>, flow: Flow,
+): TrendBars {
+    val inFlow = rows.filter { classify(it) == flow && it.date != null }
+    fun byMonth(months: List<YearMonth>): List<Long> {
+        val sums = inFlow.groupBy { ps.labelFor(it.date!!) }.mapValues { (_, v) -> v.sumOf { it.amount } }
+        return months.map { sums[it] ?: 0L }
+    }
+    fun byDay(): Pair<List<LocalDate>, List<Long>> {
+        val sums = inFlow.groupBy { it.date!! }.mapValues { (_, v) -> v.sumOf { it.amount } }
+        val days = (0 until range.days()).map { range.start.plus(DatePeriod(days = it)) }
+        return days to days.map { sums[it] ?: 0L }
+    }
+    return when {
+        span == StatsSpan.MONTHLY -> {
+            val months = (5 downTo 0).map { ym.plus(-it) }
+            TrendBars(byMonth(months), months.map { monthShort(it.month) }, 5, tr("Last 6 months")) { i -> StatsSpan.MONTHLY to months[i].key }
+        }
+        span == StatsSpan.YEARLY -> {
+            val months = (1..12).map { YearMonth(ym.year, it) }
+            TrendBars(byMonth(months), months.map { monthShort(it.month) }, months.indexOf(ps.labelFor(today)).takeIf { it >= 0 }, tr("By month")) { i ->
+                StatsSpan.MONTHLY to months[i].key
             }
-            start += sweep
+        }
+        range.days() <= 62 -> {
+            val (days, values) = byDay()
+            val every = (days.size + 7) / 8   // about eight labels
+            TrendBars(values, days.mapIndexed { i, d -> if (i % every == 0) d.dayOfMonth.toString() else "" },
+                days.indexOf(today).takeIf { it >= 0 }, tr("By day"), null)
+        }
+        else -> {
+            val first = ps.labelFor(range.start); val last = ps.labelFor(range.endInclusive)
+            val months = generateSequence(first) { it.plus(1) }.takeWhile { it <= last }.toList()
+            TrendBars(byMonth(months), months.map { monthShort(it.month) }, months.indexOf(ps.labelFor(today)).takeIf { it >= 0 }, tr("By month")) { i ->
+                StatsSpan.MONTHLY to months[i].key
+            }
+        }
+    }
+}
+
+/** Counts from the last shown amount to [target] whenever it changes; settles on the exact value. [id] names it in [LocalChartMemory]. */
+@Composable
+private fun animatedAmount(target: Long, id: String): Long {
+    val memory = LocalChartMemory.current
+    val key = "amount:$id"
+    val last = memory?.shown?.get(key) as? Long
+    val anim = remember { androidx.compose.animation.core.Animatable((last ?: 0L).toFloat()) }
+    var settled by remember { mutableStateOf(last == target) }
+    androidx.compose.runtime.LaunchedEffect(target) {
+        if (memory != null && memory.shown[key] == target) { anim.snapTo(target.toFloat()); settled = true; return@LaunchedEffect }
+        memory?.shown?.set(key, target)
+        settled = false
+        anim.animateTo(target.toFloat(), androidx.compose.animation.core.tween(700, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+        settled = true
+    }
+    return if (settled) target else anim.value.roundToLong()
+}
+
+/** "▲ 12%" against the previous period; green when the change is good (less spending, more income). */
+@Composable
+private fun ChangeChip(current: Long, previous: Long, upIsGood: Boolean, compact: Boolean = false) {
+    if (previous <= 0L) {
+        if (current > 0 && !compact) Text(tr("New"), Modifier.background(FillColor, RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 3.dp),
+            color = InkSoft, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        return
+    }
+    val pct = ((current - previous) * 100.0 / previous).roundToInt()
+    val color = when {
+        pct == 0 -> SubtleText
+        (pct > 0) == upIsGood -> IncomeColor
+        else -> ExpenseColor
+    }
+    val text = "${if (pct > 0) "▲" else if (pct < 0) "▼" else "="} ${kotlin.math.abs(pct)}%"
+    if (compact) Text(text, color = color, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+    else Text(text, Modifier.background(color.copy(alpha = 0.12f), RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 3.dp),
+        color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+}
+
+@Composable
+private fun MiniStat(label: String, value: String, color: Color, modifier: Modifier, note: String? = null) {
+    Column(modifier) {
+        Text(label, color = SubtleText, fontSize = 12.sp, maxLines = 1)
+        Text(value, color = color, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        if (note != null) Text(note, color = SubtleText, fontSize = 11.sp, maxLines = 1)
+    }
+}
+
+/** A breakdown row: colour dot, name and amount, then a share bar with the percentage and the change. */
+@Composable
+private fun SliceRow(
+    slice: Slice, color: Color, total: Long, income: Boolean, currency: app.moneytracker.domain.CurrencyFormat,
+    highlighted: Boolean = false, dimmed: Boolean = false,
+) {
+    val share = if (total > 0) slice.amount.toFloat() / total else 0f
+    val pct = (share * 100).roundToInt()
+    // The bar slides to its new width when the period or grouping changes.
+    val shownShare by androidx.compose.animation.core.animateFloatAsState(share.coerceIn(0f, 1f), androidx.compose.animation.core.tween(700), label = "share")
+    Row(
+        Modifier.fillMaxWidth().background(if (highlighted) color.copy(alpha = 0.08f) else Color.Transparent)
+            .clickable(enabled = slice.open != null) { slice.open?.invoke() }.padding(horizontal = 16.dp, vertical = 11.dp)
+            .then(if (dimmed) Modifier.alpha(0.45f) else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(10.dp).clip(RoundedCornerShape(50)).background(color))
+        Column(Modifier.weight(1f).padding(start = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(slice.name, Modifier.weight(1f), color = Ink, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text(currency.format(slice.amount), Modifier.padding(start = 8.dp), color = Ink, fontWeight = FontWeight.Medium)
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(FillColor)) {
+                    Box(Modifier.fillMaxWidth(shownShare).height(4.dp).clip(RoundedCornerShape(50)).background(color))
+                }
+                Text(if (pct == 0 && slice.amount > 0) "<1%" else "$pct%", Modifier.padding(start = 8.dp), color = SubtleText, fontSize = 12.sp)
+                if (slice.previous > 0) {
+                    Spacer(Modifier.width(8.dp))
+                    ChangeChip(slice.amount, slice.previous, upIsGood = income, compact = true)
+                }
+            }
         }
     }
 }

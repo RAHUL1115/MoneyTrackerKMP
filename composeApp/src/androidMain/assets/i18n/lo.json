@@ -615,5 +615,22 @@
 "Full text, offline": "ຂໍ້ຄວາມເຕັມ, ອອບລາຍ",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "ໄດ້ຮັບແຮງບັນດານໃຈຈາກ Money Manager ຂອງ Realbyte Inc. MoneyTracker ເປັນແອັບອິດສະຫຼະ, ບໍ່ມີສ່ວນກ່ຽວຂ້ອງ ຫຼື ໄດ້ຮັບການຮັບຮອງຈາກ Realbyte, ແລະ ສາມາດນຳເຂົ້າການສຳຮອງຂໍ້ມູນຂອງ Money Manager ໄດ້.",
 "This cycle {0}": "ຮອບນີ້ {0}",
-"Due {0}": "ຕ້ອງຈ່າຍ {0}"
+"Due {0}": "ຕ້ອງຈ່າຍ {0}",
+"Daily average": "ສະເລ່ຍຕໍ່ມື້",
+"Projected": "ຄາດຄະເນ",
+"Net": "ສຸດທິ",
+"{0}% of income": "{0}% ຂອງລາຍຮັບ",
+"Trend": "ແນວໂນ້ມ",
+"Last 6 months": "6 ເດືອນຫຼ້າສຸດ",
+"By month": "ຕາມເດືອນ",
+"By day": "ຕາມມື້",
+"Breakdown": "ການແບ່ງ",
+"Tag": "ແທັກ",
+"No tag": "ບໍ່ມີແທັກ",
+"Top entries": "ລາຍການໃຫຍ່ສຸດ",
+"vs {0}": "ທຽບກັບ {0}",
+"vs previous period": "ທຽບກັບໄລຍະກ່ອນ",
+"New": "ໃໝ່",
+"Deleted account": "ບັນຊີທີ່ລຶບແລ້ວ",
+"An entry with several tags counts once for each tag.": "ລາຍການທີ່ມີຫຼາຍແທັກຈະຖືກນັບໜຶ່ງເທື່ອສຳລັບແຕ່ລະແທັກ."
 }

@@ -615,5 +615,22 @@
 "Full text, offline": "Maandishi kamili, nje ya mtandao",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Imehamasishwa na Money Manager ya Realbyte Inc. MoneyTracker ni programu huru, haihusiani na Realbyte wala haijaidhinishwa nao, na inaweza kuingiza hifadhi nakala za Money Manager.",
 "This cycle {0}": "Mzunguko huu {0}",
-"Due {0}": "Inadaiwa {0}"
+"Due {0}": "Inadaiwa {0}",
+"Daily average": "Wastani wa kila siku",
+"Projected": "Makadirio",
+"Net": "Halisi",
+"{0}% of income": "{0}% ya mapato",
+"Trend": "Mwenendo",
+"Last 6 months": "Miezi 6 ya mwisho",
+"By month": "Kwa mwezi",
+"By day": "Kwa siku",
+"Breakdown": "Mgawanyo",
+"Tag": "Lebo",
+"No tag": "Bila lebo",
+"Top entries": "Maingizo makubwa",
+"vs {0}": "ikilinganishwa na {0}",
+"vs previous period": "ikilinganishwa na kipindi kilichopita",
+"New": "Mpya",
+"Deleted account": "Akaunti iliyofutwa",
+"An entry with several tags counts once for each tag.": "Ingizo lenye lebo kadhaa huhesabiwa mara moja kwa kila lebo."
 }

@@ -615,5 +615,22 @@
 "Full text, offline": "Testu osoa, konexiorik gabe",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.-en Money Manager-en inspiratua. MoneyTracker aplikazio independentea da, ez dago Realbyte-rekin lotuta eta ez du haren babesik, eta Money Manager-en babeskopiak inportatu ditzake.",
 "This cycle {0}": "Ziklo hau {0}",
-"Due {0}": "Ordaintzeko {0}"
+"Due {0}": "Ordaintzeko {0}",
+"Daily average": "Eguneko batezbestekoa",
+"Projected": "Aurreikuspena",
+"Net": "Garbia",
+"{0}% of income": "Sarreren %{0}",
+"Trend": "Joera",
+"Last 6 months": "Azken 6 hilabeteak",
+"By month": "Hilabeteka",
+"By day": "Egunka",
+"Breakdown": "Banaketa",
+"Tag": "Etiketa",
+"No tag": "Etiketarik gabe",
+"Top entries": "Sarrera handienak",
+"vs {0}": "{0}(r)ekin alderatuta",
+"vs previous period": "aurreko aldiarekin alderatuta",
+"New": "Berria",
+"Deleted account": "Ezabatutako kontua",
+"An entry with several tags counts once for each tag.": "Hainbat etiketa dituen sarrera behin zenbatzen da etiketa bakoitzeko."
 }

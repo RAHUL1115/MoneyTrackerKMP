@@ -615,5 +615,22 @@
 "Full text, offline": "អត្ថបទពេញ គ្មានអ៊ីនធឺណិត",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "បានបំផុសគំនិតពី Money Manager របស់ Realbyte Inc.។ MoneyTracker គឺជាកម្មវិធីឯករាជ្យ មិនពាក់ព័ន្ធ ឬមិនត្រូវបានគាំទ្រដោយ Realbyte ទេ ហើយអាចនាំចូលការបម្រុងទុករបស់ Money Manager បាន។",
 "This cycle {0}": "វដ្តនេះ {0}",
-"Due {0}": "ត្រូវបង់ {0}"
+"Due {0}": "ត្រូវបង់ {0}",
+"Daily average": "មធ្យមភាគប្រចាំថ្ងៃ",
+"Projected": "ការព្យាករ",
+"Net": "សុទ្ធ",
+"{0}% of income": "{0}% នៃចំណូល",
+"Trend": "និន្នាការ",
+"Last 6 months": "6 ខែចុងក្រោយ",
+"By month": "តាមខែ",
+"By day": "តាមថ្ងៃ",
+"Breakdown": "ការបែងចែក",
+"Tag": "ស្លាក",
+"No tag": "គ្មានស្លាក",
+"Top entries": "កំណត់ត្រាធំៗ",
+"vs {0}": "ធៀបនឹង {0}",
+"vs previous period": "ធៀបនឹងរយៈពេលមុន",
+"New": "ថ្មី",
+"Deleted account": "គណនីដែលបានលុប",
+"An entry with several tags counts once for each tag.": "កំណត់ត្រាដែលមានស្លាកច្រើន ត្រូវបានរាប់ម្តងសម្រាប់ស្លាកនីមួយៗ។"
 }

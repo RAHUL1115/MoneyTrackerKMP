@@ -615,5 +615,22 @@
 "Full text, offline": "Pilns teksts, bezsaistē",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Iedvesmojusies no Realbyte Inc. lietotnes Money Manager. MoneyTracker ir neatkarīga lietotne, kas nav saistīta ar Realbyte un nav tās apstiprināta, un tā var importēt Money Manager dublējumus.",
 "This cycle {0}": "Šis cikls {0}",
-"Due {0}": "Jāmaksā {0}"
+"Due {0}": "Jāmaksā {0}",
+"Daily average": "Dienas vidējais",
+"Projected": "Prognoze",
+"Net": "Bilance",
+"{0}% of income": "{0}% no ienākumiem",
+"Trend": "Tendence",
+"Last 6 months": "Pēdējie 6 mēneši",
+"By month": "Pa mēnešiem",
+"By day": "Pa dienām",
+"Breakdown": "Sadalījums",
+"Tag": "Atzīme",
+"No tag": "Bez atzīmes",
+"Top entries": "Lielākie ieraksti",
+"vs {0}": "salīdzinot ar {0}",
+"vs previous period": "salīdzinot ar iepriekšējo periodu",
+"New": "Jauns",
+"Deleted account": "Dzēsts konts",
+"An entry with several tags counts once for each tag.": "Ieraksts ar vairākām atzīmēm tiek ieskaitīts vienreiz katrai atzīmei."
 }

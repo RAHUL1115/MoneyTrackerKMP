@@ -615,5 +615,22 @@
 "Full text, offline": "Πλήρες κείμενο, εκτός σύνδεσης",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Εμπνευσμένο από το Money Manager της Realbyte Inc. Το MoneyTracker είναι μια ανεξάρτητη εφαρμογή, χωρίς σχέση με τη Realbyte ούτε έγκρισή της, και μπορεί να εισαγάγει αντίγραφα ασφαλείας του Money Manager.",
 "This cycle {0}": "Αυτός ο κύκλος {0}",
-"Due {0}": "Οφειλή {0}"
+"Due {0}": "Οφειλή {0}",
+"Daily average": "Ημερήσιος μέσος όρος",
+"Projected": "Πρόβλεψη",
+"Net": "Καθαρό",
+"{0}% of income": "{0}% των εσόδων",
+"Trend": "Τάση",
+"Last 6 months": "Τελευταίοι 6 μήνες",
+"By month": "Ανά μήνα",
+"By day": "Ανά ημέρα",
+"Breakdown": "Ανάλυση",
+"Tag": "Ετικέτα",
+"No tag": "Χωρίς ετικέτα",
+"Top entries": "Μεγαλύτερες καταχωρίσεις",
+"vs {0}": "έναντι {0}",
+"vs previous period": "έναντι προηγούμενης περιόδου",
+"New": "Νέο",
+"Deleted account": "Διαγραμμένος λογαριασμός",
+"An entry with several tags counts once for each tag.": "Μια καταχώριση με πολλές ετικέτες μετράει μία φορά για κάθε ετικέτα."
 }

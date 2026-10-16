@@ -615,5 +615,22 @@
 "Full text, offline": "הטקסט המלא, ללא חיבור",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "בהשראת Money Manager של Realbyte Inc. MoneyTracker היא אפליקציה עצמאית, שאינה קשורה ל-Realbyte ואינה מאושרת על ידה, והיא יכולה לייבא גיבויים של Money Manager.",
 "This cycle {0}": "במחזור הזה {0}",
-"Due {0}": "לתשלום {0}"
+"Due {0}": "לתשלום {0}",
+"Daily average": "ממוצע יומי",
+"Projected": "תחזית",
+"Net": "נטו",
+"{0}% of income": "{0}% מההכנסה",
+"Trend": "מגמה",
+"Last 6 months": "6 החודשים האחרונים",
+"By month": "לפי חודש",
+"By day": "לפי יום",
+"Breakdown": "פילוח",
+"Tag": "תג",
+"No tag": "ללא תג",
+"Top entries": "הרשומות הגדולות",
+"vs {0}": "לעומת {0}",
+"vs previous period": "לעומת התקופה הקודמת",
+"New": "חדש",
+"Deleted account": "חשבון שנמחק",
+"An entry with several tags counts once for each tag.": "רשומה עם כמה תגים נספרת פעם אחת לכל תג."
 }

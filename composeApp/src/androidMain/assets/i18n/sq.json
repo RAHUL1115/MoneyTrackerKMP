@@ -615,5 +615,22 @@
 "Full text, offline": "Teksti i plotë, jashtë linje",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Frymëzuar nga Money Manager i Realbyte Inc. MoneyTracker është një aplikacion i pavarur, pa lidhje me Realbyte dhe pa miratimin e saj, dhe mund të importojë kopjeruajtjet e Money Manager.",
 "This cycle {0}": "Ky cikël {0}",
-"Due {0}": "Për t’u paguar {0}"
+"Due {0}": "Për t’u paguar {0}",
+"Daily average": "Mesatarja ditore",
+"Projected": "Parashikimi",
+"Net": "Neto",
+"{0}% of income": "{0}% e të ardhurave",
+"Trend": "Tendenca",
+"Last 6 months": "6 muajt e fundit",
+"By month": "Sipas muajve",
+"By day": "Sipas ditëve",
+"Breakdown": "Ndarja",
+"Tag": "Etiketa",
+"No tag": "Pa etiketë",
+"Top entries": "Regjistrimet më të mëdha",
+"vs {0}": "krahasuar me {0}",
+"vs previous period": "krahasuar me periudhën e mëparshme",
+"New": "E re",
+"Deleted account": "Llogari e fshirë",
+"An entry with several tags counts once for each tag.": "Një regjistrim me disa etiketa numërohet një herë për secilën etiketë."
 }

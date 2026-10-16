@@ -615,5 +615,22 @@
 "Full text, offline": "Ամբողջական տեքստ, անցանց",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Ոգեշնչված է Realbyte Inc.-ի Money Manager-ով։ MoneyTracker-ը անկախ հավելված է, կապ չունի Realbyte-ի հետ և հավանություն չի ստացել նրանից, և կարող է ներմուծել Money Manager-ի պահուստները։",
 "This cycle {0}": "Այս ցիկլ {0}",
-"Due {0}": "Վճարելի {0}"
+"Due {0}": "Վճարելի {0}",
+"Daily average": "Օրական միջին",
+"Projected": "Կանխատեսում",
+"Net": "Զուտ",
+"{0}% of income": "Եկամտի {0}%-ը",
+"Trend": "Միտում",
+"Last 6 months": "Վերջին 6 ամիսը",
+"By month": "Ըստ ամիսների",
+"By day": "Ըստ օրերի",
+"Breakdown": "Բաշխում",
+"Tag": "Պիտակ",
+"No tag": "Առանց պիտակի",
+"Top entries": "Ամենամեծ գրառումները",
+"vs {0}": "{0}-ի համեմատ",
+"vs previous period": "նախորդ ժամանակահատվածի համեմատ",
+"New": "Նոր",
+"Deleted account": "Ջնջված հաշիվ",
+"An entry with several tags counts once for each tag.": "Մի քանի պիտակով գրառումը հաշվվում է մեկ անգամ յուրաքանչյուր պիտակի համար։"
 }

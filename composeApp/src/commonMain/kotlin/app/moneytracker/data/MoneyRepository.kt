@@ -364,7 +364,7 @@ class MoneyRepository(
                 TxnKind.valueOf(it.kind), it.amount, it.categoryId, it.srcTransferExpense != 0L, it.dstTransferExpense != 0L,
                 LocalDate.fromEpochDays(it.date.toInt()),
                 srcIsCard = it.srcType == AccountType.CREDIT_CARD.name, dstIsCard = it.dstType == AccountType.CREDIT_CARD.name,
-                cardAtPayment = cardAtPayment,
+                cardAtPayment = cardAtPayment, txnId = it.id, accountId = it.accountId, note = it.note,
             )
         }
     }

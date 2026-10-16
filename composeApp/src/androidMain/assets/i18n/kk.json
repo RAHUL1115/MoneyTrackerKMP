@@ -615,5 +615,22 @@
 "Full text, offline": "Толық мәтін, офлайн",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. компаниясының Money Manager қолданбасынан шабыт алған. MoneyTracker — тәуелсіз қолданба, Realbyte-пен байланысы жоқ және олар мақұлдамаған; ол Money Manager сақтық көшірмелерін импорттай алады.",
 "This cycle {0}": "Осы цикл {0}",
-"Due {0}": "Төлеуге {0}"
+"Due {0}": "Төлеуге {0}",
+"Daily average": "Күнделікті орташа",
+"Projected": "Болжам",
+"Net": "Таза",
+"{0}% of income": "Кірістің {0}%",
+"Trend": "Үрдіс",
+"Last 6 months": "Соңғы 6 ай",
+"By month": "Айлар бойынша",
+"By day": "Күндер бойынша",
+"Breakdown": "Бөлініс",
+"Tag": "Тег",
+"No tag": "Тегсіз",
+"Top entries": "Ең ірі жазбалар",
+"vs {0}": "салыстырғанда: {0}",
+"vs previous period": "алдыңғы кезеңмен салыстырғанда",
+"New": "Жаңа",
+"Deleted account": "Жойылған шот",
+"An entry with several tags counts once for each tag.": "Бірнеше тегі бар жазба әр тег үшін бір рет есептеледі."
 }

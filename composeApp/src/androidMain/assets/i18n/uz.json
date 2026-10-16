@@ -615,5 +615,22 @@
 "Full text, offline": "Toʻliq matn, oflayn",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. kompaniyasining Money Manager ilovasidan ilhomlangan. MoneyTracker mustaqil ilova boʻlib, Realbyte bilan bogʻliq emas va u tomonidan maʼqullanmagan; u Money Manager zaxira nusxalarini import qila oladi.",
 "This cycle {0}": "Shu davr {0}",
-"Due {0}": "Toʻlanadigan {0}"
+"Due {0}": "Toʻlanadigan {0}",
+"Daily average": "Kunlik oʻrtacha",
+"Projected": "Prognoz",
+"Net": "Sof",
+"{0}% of income": "Daromadning {0}%",
+"Trend": "Tendensiya",
+"Last 6 months": "Oxirgi 6 oy",
+"By month": "Oylar boʻyicha",
+"By day": "Kunlar boʻyicha",
+"Breakdown": "Taqsimot",
+"Tag": "Teg",
+"No tag": "Tegsiz",
+"Top entries": "Eng katta yozuvlar",
+"vs {0}": "{0} bilan solishtirganda",
+"vs previous period": "oldingi davr bilan solishtirganda",
+"New": "Yangi",
+"Deleted account": "Oʻchirilgan hisob",
+"An entry with several tags counts once for each tag.": "Bir nechta tegli yozuv har bir teg uchun bir martadan hisoblanadi."
 }

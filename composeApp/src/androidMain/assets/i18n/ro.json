@@ -615,5 +615,22 @@
 "Full text, offline": "Text complet, offline",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspirată de Money Manager de la Realbyte Inc. MoneyTracker este o aplicație independentă, neafiliată cu Realbyte și neaprobată de aceasta, și poate importa backupuri Money Manager.",
 "This cycle {0}": "Ciclul curent {0}",
-"Due {0}": "De plată {0}"
+"Due {0}": "De plată {0}",
+"Daily average": "Medie zilnică",
+"Projected": "Estimat",
+"Net": "Net",
+"{0}% of income": "{0}% din venit",
+"Trend": "Tendință",
+"Last 6 months": "Ultimele 6 luni",
+"By month": "Pe luni",
+"By day": "Pe zile",
+"Breakdown": "Defalcare",
+"Tag": "Etichetă",
+"No tag": "Fără etichetă",
+"Top entries": "Cele mai mari înregistrări",
+"vs {0}": "față de {0}",
+"vs previous period": "față de perioada anterioară",
+"New": "Nou",
+"Deleted account": "Cont șters",
+"An entry with several tags counts once for each tag.": "O înregistrare cu mai multe etichete se numără o dată pentru fiecare etichetă."
 }

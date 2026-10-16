@@ -615,5 +615,22 @@
 "Full text, offline": "Fullstendig tekst, frakoblet",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspirert av Money Manager fra Realbyte Inc. MoneyTracker er en uavhengig app, verken tilknyttet eller godkjent av Realbyte, og kan importere sikkerhetskopier fra Money Manager.",
 "This cycle {0}": "Denne perioden {0}",
-"Due {0}": "Å betale {0}"
+"Due {0}": "Å betale {0}",
+"Daily average": "Daglig gjennomsnitt",
+"Projected": "Prognose",
+"Net": "Netto",
+"{0}% of income": "{0} % av inntekt",
+"Trend": "Utvikling",
+"Last 6 months": "Siste 6 måneder",
+"By month": "Per måned",
+"By day": "Per dag",
+"Breakdown": "Fordeling",
+"Tag": "Etikett",
+"No tag": "Uten etikett",
+"Top entries": "Største poster",
+"vs {0}": "mot {0}",
+"vs previous period": "mot forrige periode",
+"New": "Ny",
+"Deleted account": "Slettet konto",
+"An entry with several tags counts once for each tag.": "En post med flere etiketter telles én gang for hver etikett."
 }

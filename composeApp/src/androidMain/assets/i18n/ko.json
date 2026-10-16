@@ -615,5 +615,22 @@
 "Full text, offline": "전문, 오프라인",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.의 Money Manager에서 영감을 받았습니다. MoneyTracker는 독립 앱으로 Realbyte와 제휴하거나 Realbyte의 승인을 받지 않았으며, Money Manager 백업을 가져올 수 있습니다.",
 "This cycle {0}": "이번 주기 {0}",
-"Due {0}": "납부액 {0}"
+"Due {0}": "납부액 {0}",
+"Daily average": "일평균",
+"Projected": "예상",
+"Net": "수지",
+"{0}% of income": "수입의 {0}%",
+"Trend": "추이",
+"Last 6 months": "최근 6개월",
+"By month": "월별",
+"By day": "일별",
+"Breakdown": "구성",
+"Tag": "태그",
+"No tag": "태그 없음",
+"Top entries": "고액 내역",
+"vs {0}": "{0} 대비",
+"vs previous period": "이전 기간 대비",
+"New": "신규",
+"Deleted account": "삭제된 계좌",
+"An entry with several tags counts once for each tag.": "태그가 여러 개인 내역은 태그마다 한 번씩 집계됩니다."
 }

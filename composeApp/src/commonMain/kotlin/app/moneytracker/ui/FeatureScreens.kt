@@ -554,7 +554,7 @@ fun StatsDetailScreen(s: Screen.StatsDetail) {
                 Text("${s.from.short()} – ${s.to.short()} ${s.to.year} · ${currency.format(total)}", Modifier.padding(20.dp), color = SubtleText)
                 if (total > 0 && bySub.size > 1) {
                     Box(Modifier.fillMaxWidth().background(SurfaceColor).padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
-                        PieChart(bySub.values.sortedDescending(), Modifier.size(180.dp))
+                        DonutChart(bySub.values.sortedDescending(), Modifier.size(180.dp))
                     }
                 }
             }

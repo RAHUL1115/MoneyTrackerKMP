@@ -615,5 +615,22 @@
 "Full text, offline": "სრული ტექსტი, ხაზგარეშე",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "შთაგონებულია Realbyte Inc.-ის Money Manager-ით. MoneyTracker დამოუკიდებელი აპია, არ არის დაკავშირებული Realbyte-თან და არც მის მიერ არის მოწონებული, და შეუძლია Money Manager-ის სარეზერვო ასლების იმპორტი.",
 "This cycle {0}": "ეს ციკლი {0}",
-"Due {0}": "გადასახდელი {0}"
+"Due {0}": "გადასახდელი {0}",
+"Daily average": "დღიური საშუალო",
+"Projected": "პროგნოზი",
+"Net": "წმინდა",
+"{0}% of income": "შემოსავლის {0}%",
+"Trend": "ტენდენცია",
+"Last 6 months": "ბოლო 6 თვე",
+"By month": "თვეების მიხედვით",
+"By day": "დღეების მიხედვით",
+"Breakdown": "განაწილება",
+"Tag": "ტეგი",
+"No tag": "ტეგის გარეშე",
+"Top entries": "უდიდესი ჩანაწერები",
+"vs {0}": "{0}-თან შედარებით",
+"vs previous period": "წინა პერიოდთან შედარებით",
+"New": "ახალი",
+"Deleted account": "წაშლილი ანგარიში",
+"An entry with several tags counts once for each tag.": "რამდენიმე ტეგიანი ჩანაწერი თითოეულ ტეგზე ერთხელ ითვლება."
 }

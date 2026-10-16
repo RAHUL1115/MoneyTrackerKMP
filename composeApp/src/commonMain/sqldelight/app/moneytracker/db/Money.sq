@@ -275,7 +275,8 @@ SELECT T.kind, T.amount, T.categoryId, T.date,
        COALESCE(SA.transferAsExpense, 0) AS srcTransferExpense,
        COALESCE(DA.transferAsExpense, 0) AS dstTransferExpense,
        COALESCE(SG.type, '') AS srcType,
-       COALESCE(DG.type, '') AS dstType
+       COALESCE(DG.type, '') AS dstType,
+       T.id, T.accountId, T.note
 FROM Txn T
 LEFT JOIN Account SA ON SA.id = T.accountId
 LEFT JOIN Account DA ON DA.id = T.toAccountId

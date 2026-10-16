@@ -615,5 +615,22 @@
 "Full text, offline": "Visas tekstas, neprisijungus",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Įkvėpta Realbyte Inc. programėlės Money Manager. MoneyTracker yra nepriklausoma programėlė, nesusijusi su Realbyte ir jos nepatvirtinta, galinti importuoti Money Manager atsargines kopijas.",
 "This cycle {0}": "Šis ciklas {0}",
-"Due {0}": "Mokėti {0}"
+"Due {0}": "Mokėti {0}",
+"Daily average": "Dienos vidurkis",
+"Projected": "Prognozė",
+"Net": "Balansas",
+"{0}% of income": "{0} % pajamų",
+"Trend": "Tendencija",
+"Last 6 months": "Paskutiniai 6 mėnesiai",
+"By month": "Pagal mėnesius",
+"By day": "Pagal dienas",
+"Breakdown": "Paskirstymas",
+"Tag": "Žyma",
+"No tag": "Be žymos",
+"Top entries": "Didžiausi įrašai",
+"vs {0}": "palyginti su {0}",
+"vs previous period": "palyginti su ankstesniu laikotarpiu",
+"New": "Nauja",
+"Deleted account": "Ištrinta sąskaita",
+"An entry with several tags counts once for each tag.": "Įrašas su keliomis žymomis skaičiuojamas po kartą kiekvienai žymai."
 }

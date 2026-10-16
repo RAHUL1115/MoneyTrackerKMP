@@ -615,5 +615,22 @@
 "Full text, offline": "Teljes szöveg, offline",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "A Realbyte Inc. Money Manager alkalmazása ihlette. A MoneyTracker független alkalmazás, nem áll kapcsolatban a Realbyte-tal, és az nem is támogatja, de képes Money Manager-mentéseket importálni.",
 "This cycle {0}": "Ez a ciklus {0}",
-"Due {0}": "Esedékes {0}"
+"Due {0}": "Esedékes {0}",
+"Daily average": "Napi átlag",
+"Projected": "Előrejelzés",
+"Net": "Nettó",
+"{0}% of income": "A bevétel {0}%-a",
+"Trend": "Trend",
+"Last 6 months": "Utolsó 6 hónap",
+"By month": "Havonta",
+"By day": "Naponta",
+"Breakdown": "Megoszlás",
+"Tag": "Címke",
+"No tag": "Nincs címke",
+"Top entries": "Legnagyobb tételek",
+"vs {0}": "vs. {0}",
+"vs previous period": "vs. előző időszak",
+"New": "Új",
+"Deleted account": "Törölt számla",
+"An entry with several tags counts once for each tag.": "A több címkével ellátott tétel minden címkénél egyszer számít."
 }

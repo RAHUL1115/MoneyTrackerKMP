@@ -615,5 +615,22 @@
 "Full text, offline": "ข้อความฉบับเต็ม แบบออฟไลน์",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "ได้แรงบันดาลใจจาก Money Manager ของ Realbyte Inc. MoneyTracker เป็นแอปอิสระ ไม่มีส่วนเกี่ยวข้องหรือได้รับการรับรองจาก Realbyte และสามารถนำเข้าข้อมูลสำรองของ Money Manager ได้",
 "This cycle {0}": "รอบนี้ {0}",
-"Due {0}": "ยอดชำระ {0}"
+"Due {0}": "ยอดชำระ {0}",
+"Daily average": "เฉลี่ยต่อวัน",
+"Projected": "คาดการณ์",
+"Net": "สุทธิ",
+"{0}% of income": "{0}% ของรายรับ",
+"Trend": "แนวโน้ม",
+"Last 6 months": "6 เดือนที่ผ่านมา",
+"By month": "ตามเดือน",
+"By day": "ตามวัน",
+"Breakdown": "สัดส่วน",
+"Tag": "แท็ก",
+"No tag": "ไม่มีแท็ก",
+"Top entries": "รายการสูงสุด",
+"vs {0}": "เทียบกับ {0}",
+"vs previous period": "เทียบกับช่วงก่อนหน้า",
+"New": "ใหม่",
+"Deleted account": "บัญชีที่ลบ",
+"An entry with several tags counts once for each tag.": "รายการที่มีหลายแท็กจะถูกนับหนึ่งครั้งต่อแต่ละแท็ก"
 }

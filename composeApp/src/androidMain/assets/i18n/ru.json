@@ -615,5 +615,22 @@
 "Full text, offline": "Полный текст, без интернета",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Вдохновлено Money Manager от Realbyte Inc. MoneyTracker — независимое приложение, не связанное с Realbyte и не одобренное ею; оно умеет импортировать резервные копии Money Manager.",
 "This cycle {0}": "Этот цикл {0}",
-"Due {0}": "К оплате {0}"
+"Due {0}": "К оплате {0}",
+"Daily average": "Среднее в день",
+"Projected": "Прогноз",
+"Net": "Баланс",
+"{0}% of income": "{0}% от дохода",
+"Trend": "Динамика",
+"Last 6 months": "Последние 6 месяцев",
+"By month": "По месяцам",
+"By day": "По дням",
+"Breakdown": "Структура",
+"Tag": "Тег",
+"No tag": "Без тега",
+"Top entries": "Крупнейшие записи",
+"vs {0}": "vs {0}",
+"vs previous period": "vs прошлый период",
+"New": "Новое",
+"Deleted account": "Удалённый счёт",
+"An entry with several tags counts once for each tag.": "Запись с несколькими тегами учитывается один раз для каждого тега."
 }

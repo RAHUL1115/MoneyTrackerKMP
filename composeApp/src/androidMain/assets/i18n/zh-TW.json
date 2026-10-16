@@ -615,5 +615,22 @@
 "Full text, offline": "全文，可離線閱讀",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "靈感來自 Realbyte Inc. 的 Money Manager。MoneyTracker 是一款獨立應用程式，與 Realbyte 無關聯，也未獲其認可，可匯入 Money Manager 的備份。",
 "This cycle {0}": "本週期 {0}",
-"Due {0}": "應付 {0}"
+"Due {0}": "應付 {0}",
+"Daily average": "每日平均",
+"Projected": "預計",
+"Net": "結餘",
+"{0}% of income": "佔收入的 {0}%",
+"Trend": "趨勢",
+"Last 6 months": "最近 6 個月",
+"By month": "按月",
+"By day": "按日",
+"Breakdown": "構成",
+"Tag": "標籤",
+"No tag": "無標籤",
+"Top entries": "大額記錄",
+"vs {0}": "較 {0}",
+"vs previous period": "較上期",
+"New": "新增",
+"Deleted account": "已刪除的帳戶",
+"An entry with several tags counts once for each tag.": "有多個標籤的記錄會在每個標籤下各計一次。"
 }

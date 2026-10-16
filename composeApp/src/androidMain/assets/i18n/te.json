@@ -615,5 +615,22 @@
 "Full text, offline": "పూర్తి పాఠం, ఆఫ్‌లైన్",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. యొక్క Money Manager నుండి ప్రేరణ పొందింది. MoneyTracker ఒక స్వతంత్ర యాప్; ఇది Realbyte తో అనుబంధం కలిగినది లేదా వారి ఆమోదం పొందినది కాదు, మరియు Money Manager బ్యాకప్‌లను దిగుమతి చేయగలదు.",
 "This cycle {0}": "ఈ సైకిల్ {0}",
-"Due {0}": "చెల్లించాల్సింది {0}"
+"Due {0}": "చెల్లించాల్సింది {0}",
+"Daily average": "రోజువారీ సగటు",
+"Projected": "అంచనా",
+"Net": "నికరం",
+"{0}% of income": "ఆదాయంలో {0}%",
+"Trend": "ధోరణి",
+"Last 6 months": "గత 6 నెలలు",
+"By month": "నెలవారీగా",
+"By day": "రోజువారీగా",
+"Breakdown": "విభజన",
+"Tag": "ట్యాగ్",
+"No tag": "ట్యాగ్ లేదు",
+"Top entries": "పెద్ద ఎంట్రీలు",
+"vs {0}": "{0}తో పోలిస్తే",
+"vs previous period": "మునుపటి కాలంతో పోలిస్తే",
+"New": "కొత్తది",
+"Deleted account": "తొలగించిన ఖాతా",
+"An entry with several tags counts once for each tag.": "అనేక ట్యాగ్‌లు ఉన్న ఎంట్రీ ప్రతి ట్యాగ్‌కు ఒకసారి లెక్కించబడుతుంది."
 }

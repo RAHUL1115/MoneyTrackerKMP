@@ -615,5 +615,22 @@
 "Full text, offline": "Celý text, offline",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inšpirované aplikáciou Money Manager od spoločnosti Realbyte Inc. MoneyTracker je nezávislá aplikácia, nie je spojená so spoločnosťou Realbyte ani ňou podporovaná a dokáže importovať zálohy z Money Manager.",
 "This cycle {0}": "Tento cyklus {0}",
-"Due {0}": "Na úhradu {0}"
+"Due {0}": "Na úhradu {0}",
+"Daily average": "Denný priemer",
+"Projected": "Odhad",
+"Net": "Bilancia",
+"{0}% of income": "{0} % príjmu",
+"Trend": "Vývoj",
+"Last 6 months": "Posledných 6 mesiacov",
+"By month": "Po mesiacoch",
+"By day": "Po dňoch",
+"Breakdown": "Rozpis",
+"Tag": "Štítok",
+"No tag": "Bez štítka",
+"Top entries": "Najväčšie záznamy",
+"vs {0}": "vs {0}",
+"vs previous period": "vs predchádzajúce obdobie",
+"New": "Nové",
+"Deleted account": "Odstránený účet",
+"An entry with several tags counts once for each tag.": "Záznam s viacerými štítkami sa započíta raz za každý štítok."
 }

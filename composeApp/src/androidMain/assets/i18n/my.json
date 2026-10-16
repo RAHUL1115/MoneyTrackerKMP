@@ -615,5 +615,22 @@
 "Full text, offline": "စာသားအပြည့်၊ အော့ဖ်လိုင်း",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. ၏ Money Manager မှ စိတ်ကူးရယူထားသည်။ MoneyTracker သည် လွတ်လပ်သော အက်ပ်ဖြစ်ပြီး Realbyte နှင့် ဆက်စပ်မှုမရှိ၊ ၎င်းတို့၏ ထောက်ခံမှုလည်း မရှိပါ။ Money Manager အရန်ကူးထားမှုများကို တင်သွင်းနိုင်သည်။",
 "This cycle {0}": "ဤစက်ဝန်း {0}",
-"Due {0}": "ပေးရန် {0}"
+"Due {0}": "ပေးရန် {0}",
+"Daily average": "နေ့စဉ် ပျမ်းမျှ",
+"Projected": "ခန့်မှန်း",
+"Net": "အသားတင်",
+"{0}% of income": "ဝင်ငွေ၏ {0}%",
+"Trend": "လမ်းကြောင်း",
+"Last 6 months": "နောက်ဆုံး ၆ လ",
+"By month": "လအလိုက်",
+"By day": "နေ့အလိုက်",
+"Breakdown": "ခွဲခြမ်းချက်",
+"Tag": "တဂ်",
+"No tag": "တဂ်မရှိ",
+"Top entries": "အကြီးဆုံး မှတ်တမ်းများ",
+"vs {0}": "{0} နှင့် နှိုင်းယှဉ်",
+"vs previous period": "ယခင်ကာလနှင့် နှိုင်းယှဉ်",
+"New": "အသစ်",
+"Deleted account": "ဖျက်ထားသော အကောင့်",
+"An entry with several tags counts once for each tag.": "တဂ်များစွာပါသော မှတ်တမ်းကို တဂ်တစ်ခုစီအတွက် တစ်ကြိမ်စီ ရေတွက်သည်။"
 }

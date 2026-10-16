@@ -615,5 +615,22 @@
 "Full text, offline": "Koko teksti, offline",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Money Manager -sovelluksen (Realbyte Inc.) innoittama. MoneyTracker on itsenäinen sovellus, joka ei ole Realbyten kanssa yhteydessä eikä sen hyväksymä, ja se voi tuoda Money Managerin varmuuskopioita.",
 "This cycle {0}": "Tämä jakso {0}",
-"Due {0}": "Maksettava {0}"
+"Due {0}": "Maksettava {0}",
+"Daily average": "Päivän keskiarvo",
+"Projected": "Ennuste",
+"Net": "Netto",
+"{0}% of income": "{0} % tuloista",
+"Trend": "Kehitys",
+"Last 6 months": "Viimeiset 6 kuukautta",
+"By month": "Kuukausittain",
+"By day": "Päivittäin",
+"Breakdown": "Erittely",
+"Tag": "Tunniste",
+"No tag": "Ei tunnistetta",
+"Top entries": "Suurimmat kirjaukset",
+"vs {0}": "vs. {0}",
+"vs previous period": "vs. edellinen jakso",
+"New": "Uusi",
+"Deleted account": "Poistettu tili",
+"An entry with several tags counts once for each tag.": "Kirjaus, jolla on useita tunnisteita, lasketaan kerran kunkin tunnisteen kohdalla."
 }

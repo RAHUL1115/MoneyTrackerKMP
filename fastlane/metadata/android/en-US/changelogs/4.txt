@@ -1,0 +1,5 @@
+• Redesigned Stats tab with animated charts
+• Overview: the period's total with the change vs the previous period, daily average, projected total and net savings rate
+• Trend chart: the last 6 months, the months of a year or the days of a period; tap a bar to open that month
+• Breakdown by category, account or tag, with a touchable donut chart that shows each part's amount, share and change
+• Top entries: the biggest entries of the period

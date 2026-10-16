@@ -181,6 +181,10 @@ data class ReportRow(
     val dstIsCard: Boolean = false,
     /** Setting "card expenses count when the bill is paid" (instead of at purchase). */
     val cardAtPayment: Boolean = false,
+    /** The entry itself, for per-account / per-tag breakdowns and the top-entries list. */
+    val txnId: String = "",
+    val accountId: String = "",
+    val note: String = "",
 )
 
 enum class Flow { INCOME, EXPENSE, NONE }

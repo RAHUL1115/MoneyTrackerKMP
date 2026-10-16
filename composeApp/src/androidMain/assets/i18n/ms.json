@@ -615,5 +615,22 @@
 "Full text, offline": "Teks penuh, luar talian",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Diilhamkan oleh Money Manager daripada Realbyte Inc. MoneyTracker ialah aplikasi bebas, tidak bergabung dengan atau disokong oleh Realbyte, dan boleh mengimport sandaran Money Manager.",
 "This cycle {0}": "Kitaran ini {0}",
-"Due {0}": "Perlu dibayar {0}"
+"Due {0}": "Perlu dibayar {0}",
+"Daily average": "Purata harian",
+"Projected": "Unjuran",
+"Net": "Bersih",
+"{0}% of income": "{0}% daripada pendapatan",
+"Trend": "Trend",
+"Last 6 months": "6 bulan lalu",
+"By month": "Mengikut bulan",
+"By day": "Mengikut hari",
+"Breakdown": "Pecahan",
+"Tag": "Teg",
+"No tag": "Tiada teg",
+"Top entries": "Catatan terbesar",
+"vs {0}": "berbanding {0}",
+"vs previous period": "berbanding tempoh sebelumnya",
+"New": "Baharu",
+"Deleted account": "Akaun dipadam",
+"An entry with several tags counts once for each tag.": "Catatan dengan beberapa teg dikira sekali bagi setiap teg."
 }

@@ -615,5 +615,22 @@
 "Full text, offline": "Целосен текст, без интернет",
 "Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Инспирирано од Money Manager на Realbyte Inc. MoneyTracker е независна апликација, неповрзана со Realbyte и неодобрена од нив, и може да увезува резервни копии од Money Manager.",
 "This cycle {0}": "Овој циклус {0}",
-"Due {0}": "За плаќање {0}"
+"Due {0}": "За плаќање {0}",
+"Daily average": "Дневен просек",
+"Projected": "Проекција",
+"Net": "Нето",
+"{0}% of income": "{0}% од приходот",
+"Trend": "Тренд",
+"Last 6 months": "Последни 6 месеци",
+"By month": "По месеци",
+"By day": "По денови",
+"Breakdown": "Распределба",
+"Tag": "Ознака",
+"No tag": "Без ознака",
+"Top entries": "Најголеми ставки",
+"vs {0}": "во однос на {0}",
+"vs previous period": "во однос на претходниот период",
+"New": "Ново",
+"Deleted account": "Избришана сметка",
+"An entry with several tags counts once for each tag.": "Ставка со повеќе ознаки се брои еднаш за секоја ознака."
 }
