@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ଯଥା “ମଧ୍ୟାହ୍ନ ଭୋଜନରେ 250 ଖର୍ଚ୍ଚ କଲି”",
 "no end": "ଶେଷ ନାହିଁ",
 "or use your fingerprint / face": "କିମ୍ବା ଆପଣଙ୍କ ଫିଙ୍ଗରପ୍ରିଣ୍ଟ / ଫେସ୍ ବ୍ୟବହାର କରନ୍ତୁ",
-"{0}   due {1} · this cycle {2}": "{0}   ଦେୟ {1} · ଏହି ଚକ୍ର {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} ମିଳିଲା · ଆୟ {1} · ଖର୍ଚ୍ଚ {2}",
 "{0} installments": "{0}ଟି କିସ୍ତି",
@@ -614,5 +613,7 @@
 "Open-source libraries": "ଓପନ୍ ସୋର୍ସ ଲାଇବ୍ରେରୀ",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "ସମ୍ପୂର୍ଣ୍ଣ ପାଠ, ଅଫଲାଇନ୍",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. ର Money Manager ରୁ ଅନୁପ୍ରାଣିତ। MoneyTracker ଏକ ସ୍ୱାଧୀନ ଆପ୍, Realbyte ସହ ସମ୍ପର୍କିତ କିମ୍ବା ସେମାନଙ୍କ ଦ୍ୱାରା ଅନୁମୋଦିତ ନୁହେଁ, ଏବଂ ଏହା Money Manager ବ୍ୟାକଅପ୍ ଇମ୍ପୋର୍ଟ କରିପାରେ।"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. ର Money Manager ରୁ ଅନୁପ୍ରାଣିତ। MoneyTracker ଏକ ସ୍ୱାଧୀନ ଆପ୍, Realbyte ସହ ସମ୍ପର୍କିତ କିମ୍ବା ସେମାନଙ୍କ ଦ୍ୱାରା ଅନୁମୋଦିତ ନୁହେଁ, ଏବଂ ଏହା Money Manager ବ୍ୟାକଅପ୍ ଇମ୍ପୋର୍ଟ କରିପାରେ।",
+"This cycle {0}": "ଏହି ଚକ୍ର {0}",
+"Due {0}": "ଦେୟ {0}"
 }

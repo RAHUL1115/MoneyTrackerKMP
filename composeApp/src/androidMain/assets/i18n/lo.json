@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ເຊັ່ນ “ໃຊ້ 250 ຄ່າອາຫານທ່ຽງ”",
 "no end": "ບໍ່ມີວັນສິ້ນສຸດ",
 "or use your fingerprint / face": "ຫຼື ໃຊ້ລາຍນິ້ວມື / ໃບໜ້າຂອງທ່ານ",
-"{0}   due {1} · this cycle {2}": "{0}   ຄົບກຳນົດ {1} · ຮອບນີ້ {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "ພົບ {0} · ລາຍຮັບ {1} · ລາຍຈ່າຍ {2}",
 "{0} installments": "{0} ງວດ",
@@ -614,5 +613,7 @@
 "Open-source libraries": "ຫ້ອງສະໝຸດໂອເພັນຊອດ",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "ຂໍ້ຄວາມເຕັມ, ອອບລາຍ",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "ໄດ້ຮັບແຮງບັນດານໃຈຈາກ Money Manager ຂອງ Realbyte Inc. MoneyTracker ເປັນແອັບອິດສະຫຼະ, ບໍ່ມີສ່ວນກ່ຽວຂ້ອງ ຫຼື ໄດ້ຮັບການຮັບຮອງຈາກ Realbyte, ແລະ ສາມາດນຳເຂົ້າການສຳຮອງຂໍ້ມູນຂອງ Money Manager ໄດ້."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "ໄດ້ຮັບແຮງບັນດານໃຈຈາກ Money Manager ຂອງ Realbyte Inc. MoneyTracker ເປັນແອັບອິດສະຫຼະ, ບໍ່ມີສ່ວນກ່ຽວຂ້ອງ ຫຼື ໄດ້ຮັບການຮັບຮອງຈາກ Realbyte, ແລະ ສາມາດນຳເຂົ້າການສຳຮອງຂໍ້ມູນຂອງ Money Manager ໄດ້.",
+"This cycle {0}": "ຮອບນີ້ {0}",
+"Due {0}": "ຕ້ອງຈ່າຍ {0}"
 }

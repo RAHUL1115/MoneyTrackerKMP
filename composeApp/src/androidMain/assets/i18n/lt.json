@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "pvz., „išleidau 250 pietums“",
 "no end": "be pabaigos",
 "or use your fingerprint / face": "arba naudokite piršto atspaudą / veidą",
-"{0}   due {1} · this cycle {2}": "{0}   mokėti iki {1} · šis ciklas {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Rasta: {0} · pajamos {1} · išlaidos {2}",
 "{0} installments": "Dalių: {0}",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Atvirojo kodo bibliotekos",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Visas tekstas, neprisijungus",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Įkvėpta Realbyte Inc. programėlės Money Manager. MoneyTracker yra nepriklausoma programėlė, nesusijusi su Realbyte ir jos nepatvirtinta, galinti importuoti Money Manager atsargines kopijas."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Įkvėpta Realbyte Inc. programėlės Money Manager. MoneyTracker yra nepriklausoma programėlė, nesusijusi su Realbyte ir jos nepatvirtinta, galinti importuoti Money Manager atsargines kopijas.",
+"This cycle {0}": "Šis ciklas {0}",
+"Due {0}": "Mokėti {0}"
 }

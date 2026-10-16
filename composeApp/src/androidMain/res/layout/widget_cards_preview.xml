@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picker preview for the Credit cards widget: static sample tiles (the real widget is a scrolling list). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_outline" android:clipToOutline="true">
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/widget_bg" android:importantForAccessibility="no" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="@dimen/widget_padding">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="6dp"
+            android:text="Credit cards" android:textColor="@color/widget_ink" android:textSize="16sp" android:textStyle="bold" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingBottom="6dp">
+            <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+                android:scaleType="fitXY" android:src="@drawable/widget_panel" android:importantForAccessibility="no" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="8dp" android:paddingBottom="8dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textColor="@color/widget_ink" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" android:text="Everyday card" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="1dp"
+                        android:textColor="@color/widget_subtle" android:textSize="12sp" android:maxLines="1" android:ellipsize="end" android:text="This cycle 8,950" />
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp"
+                    android:textColor="@color/widget_expense" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:text="Due 12,400" />
+            </LinearLayout>
+        </FrameLayout>
+        <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingBottom="6dp">
+            <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+                android:scaleType="fitXY" android:src="@drawable/widget_panel" android:importantForAccessibility="no" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="8dp" android:paddingBottom="8dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textColor="@color/widget_ink" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" android:text="Travel card" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="1dp"
+                        android:textColor="@color/widget_subtle" android:textSize="12sp" android:maxLines="1" android:ellipsize="end" android:text="This cycle 1,240" />
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp"
+                    android:textColor="@color/widget_expense" android:textSize="14sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:text="Due 3,180" />
+            </LinearLayout>
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>

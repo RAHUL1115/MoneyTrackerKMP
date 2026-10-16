@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "เช่น “ใช้ไป 250 ค่าข้าวเที่ยง”",
 "no end": "ไม่มีวันสิ้นสุด",
 "or use your fingerprint / face": "หรือใช้ลายนิ้วมือ / ใบหน้า",
-"{0}   due {1} · this cycle {2}": "{0}   ครบกำหนด {1} · รอบนี้ {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "พบ {0} · รายรับ {1} · รายจ่าย {2}",
 "{0} installments": "ผ่อน {0} งวด",
@@ -614,5 +613,7 @@
 "Open-source libraries": "ไลบรารีโอเพนซอร์ส",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "ข้อความฉบับเต็ม แบบออฟไลน์",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "ได้แรงบันดาลใจจาก Money Manager ของ Realbyte Inc. MoneyTracker เป็นแอปอิสระ ไม่มีส่วนเกี่ยวข้องหรือได้รับการรับรองจาก Realbyte และสามารถนำเข้าข้อมูลสำรองของ Money Manager ได้"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "ได้แรงบันดาลใจจาก Money Manager ของ Realbyte Inc. MoneyTracker เป็นแอปอิสระ ไม่มีส่วนเกี่ยวข้องหรือได้รับการรับรองจาก Realbyte และสามารถนำเข้าข้อมูลสำรองของ Money Manager ได้",
+"This cycle {0}": "รอบนี้ {0}",
+"Due {0}": "ยอดชำระ {0}"
 }

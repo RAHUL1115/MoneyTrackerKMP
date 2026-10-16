@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "f.eks. “brugte 250 på frokost”",
 "no end": "ingen slutdato",
 "or use your fingerprint / face": "eller brug dit fingeraftryk / ansigt",
-"{0}   due {1} · this cycle {2}": "{0}   forfalder {1} · denne periode {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} fundet · indtægt {1} · udgift {2}",
 "{0} installments": "{0} rater",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Open source-biblioteker",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Fuld tekst, offline",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspireret af Money Manager fra Realbyte Inc. MoneyTracker er en uafhængig app, der hverken er tilknyttet eller godkendt af Realbyte, og den kan importere sikkerhedskopier fra Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspireret af Money Manager fra Realbyte Inc. MoneyTracker er en uafhængig app, der hverken er tilknyttet eller godkendt af Realbyte, og den kan importere sikkerhedskopier fra Money Manager.",
+"This cycle {0}": "Denne periode {0}",
+"Due {0}": "Skyldig {0}"
 }

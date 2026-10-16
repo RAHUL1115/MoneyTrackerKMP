@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "t.d. „eyddi 250 í hádegismat“",
 "no end": "enginn endir",
 "or use your fingerprint / face": "eða notaðu fingrafarið / andlitið",
-"{0}   due {1} · this cycle {2}": "{0}   á gjalddaga {1} · þetta tímabil {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} fundust · tekjur {1} · gjöld {2}",
 "{0} installments": "{0} afborganir",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Opin hugbúnaðarsöfn",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Allur textinn, án nettengingar",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Innblásið af Money Manager frá Realbyte Inc. MoneyTracker er sjálfstætt forrit, hvorki tengt Realbyte né samþykkt af þeim, og getur flutt inn afrit úr Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Innblásið af Money Manager frá Realbyte Inc. MoneyTracker er sjálfstætt forrit, hvorki tengt Realbyte né samþykkt af þeim, og getur flutt inn afrit úr Money Manager.",
+"This cycle {0}": "Þetta tímabil {0}",
+"Due {0}": "Til greiðslu {0}"
 }

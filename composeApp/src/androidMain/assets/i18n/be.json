@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "напр., «патрачана 250 на абед»",
 "no end": "без заканчэння",
 "or use your fingerprint / face": "або выкарыстоўвайце адбітак пальца / твар",
-"{0}   due {1} · this cycle {2}": "{0}   тэрмін {1} · гэты цыкл {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Знойдзена: {0} · даход {1} · расход {2}",
 "{0} installments": "Растэрміноўка: {0} плацяжоў",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Бібліятэкі з адкрытым кодам",
 "Apache License 2.0": "Ліцэнзія Apache 2.0",
 "Full text, offline": "Поўны тэкст, без інтэрнэту",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Натхнёна Money Manager ад Realbyte Inc. MoneyTracker — незалежная праграма, не звязаная з Realbyte і не адобраная імі; яна можа імпартаваць рэзервовыя копіі Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Натхнёна Money Manager ад Realbyte Inc. MoneyTracker — незалежная праграма, не звязаная з Realbyte і не адобраная імі; яна можа імпартаваць рэзервовыя копіі Money Manager.",
+"This cycle {0}": "Гэты цыкл {0}",
+"Due {0}": "Да выплаты {0}"
 }

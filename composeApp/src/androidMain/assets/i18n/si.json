@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "උදා. “දිවා ආහාරයට 250 වියදම් කළා”",
 "no end": "අවසානයක් නැත",
 "or use your fingerprint / face": "හෝ ඔබේ ඇඟිලි සලකුණ / මුහුණ භාවිත කරන්න",
-"{0}   due {1} · this cycle {2}": "{0}   නියමිත {1} · මෙම චක්‍රය {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0}ක් හමු විය · ආදායම {1} · වියදම {2}",
 "{0} installments": "වාරික {0}",
@@ -614,5 +613,7 @@
 "Open-source libraries": "විවෘත මූලාශ්‍ර පුස්තකාල",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "සම්පූර්ණ පෙළ, නොබැඳි",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. හි Money Manager වෙතින් ආභාසය ලැබූ. MoneyTracker ස්වාධීන යෙදුමකි; එය Realbyte සමඟ සම්බන්ධ හෝ ඔවුන් විසින් අනුමත කළ එකක් නොවන අතර Money Manager උපස්ථ ආයාත කළ හැක."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. හි Money Manager වෙතින් ආභාසය ලැබූ. MoneyTracker ස්වාධීන යෙදුමකි; එය Realbyte සමඟ සම්බන්ධ හෝ ඔවුන් විසින් අනුමත කළ එකක් නොවන අතර Money Manager උපස්ථ ආයාත කළ හැක.",
+"This cycle {0}": "මෙම චක්‍රය {0}",
+"Due {0}": "ගෙවිය යුතු {0}"
 }

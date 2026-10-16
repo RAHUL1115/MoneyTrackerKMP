@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ഉദാ. “ഉച്ചഭക്ഷണത്തിന് 250 ചെലവായി”",
 "no end": "അവസാനമില്ല",
 "or use your fingerprint / face": "അല്ലെങ്കിൽ ഫിംഗർപ്രിന്റ് / മുഖം ഉപയോഗിക്കുക",
-"{0}   due {1} · this cycle {2}": "{0}   അവസാന തീയതി {1} · ഈ സൈക്കിൾ {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} കണ്ടെത്തി · വരുമാനം {1} · ചെലവ് {2}",
 "{0} installments": "{0} തവണകൾ",
@@ -614,5 +613,7 @@
 "Open-source libraries": "ഓപ്പൺ സോഴ്സ് ലൈബ്രറികൾ",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "പൂർണ്ണ വാചകം, ഓഫ്‌ലൈൻ",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.-ന്റെ Money Manager-ൽ നിന്ന് പ്രചോദനം ഉൾക്കൊണ്ടത്. MoneyTracker ഒരു സ്വതന്ത്ര ആപ്പാണ്; Realbyte-മായി ബന്ധമോ അവരുടെ അംഗീകാരമോ ഇല്ല, Money Manager ബാക്കപ്പുകൾ ഇറക്കുമതി ചെയ്യാൻ കഴിയും."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.-ന്റെ Money Manager-ൽ നിന്ന് പ്രചോദനം ഉൾക്കൊണ്ടത്. MoneyTracker ഒരു സ്വതന്ത്ര ആപ്പാണ്; Realbyte-മായി ബന്ധമോ അവരുടെ അംഗീകാരമോ ഇല്ല, Money Manager ബാക്കപ്പുകൾ ഇറക്കുമതി ചെയ്യാൻ കഴിയും.",
+"This cycle {0}": "ഈ സൈക്കിൾ {0}",
+"Due {0}": "അടയ്ക്കേണ്ടത് {0}"
 }

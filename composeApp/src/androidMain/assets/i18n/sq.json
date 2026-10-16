@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "p.sh. “shpenzova 250 për drekë”",
 "no end": "pa fund",
 "or use your fingerprint / face": "ose përdor gjurmën e gishtit / fytyrën",
-"{0}   due {1} · this cycle {2}": "{0}   afati {1} · ky cikël {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} u gjetën · të ardhura {1} · shpenzime {2}",
 "{0} installments": "{0} këste",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Biblioteka me burim të hapur",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Teksti i plotë, jashtë linje",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Frymëzuar nga Money Manager i Realbyte Inc. MoneyTracker është një aplikacion i pavarur, pa lidhje me Realbyte dhe pa miratimin e saj, dhe mund të importojë kopjeruajtjet e Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Frymëzuar nga Money Manager i Realbyte Inc. MoneyTracker është një aplikacion i pavarur, pa lidhje me Realbyte dhe pa miratimin e saj, dhe mund të importojë kopjeruajtjet e Money Manager.",
+"This cycle {0}": "Ky cikël {0}",
+"Due {0}": "Për t’u paguar {0}"
 }

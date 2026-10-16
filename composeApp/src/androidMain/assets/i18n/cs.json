@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "např. „utratil 250 za oběd“",
 "no end": "bez konce",
 "or use your fingerprint / face": "nebo použijte otisk prstu / obličej",
-"{0}   due {1} · this cycle {2}": "{0}   splatné {1} · tento cyklus {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Nalezeno: {0} · příjem {1} · výdaj {2}",
 "{0} installments": "{0} splátek",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Open-source knihovny",
 "Apache License 2.0": "Licence Apache 2.0",
 "Full text, offline": "Celý text, offline",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspirováno aplikací Money Manager od společnosti Realbyte Inc. MoneyTracker je nezávislá aplikace, není spojena se společností Realbyte ani jí podporována a umí importovat zálohy z Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspirováno aplikací Money Manager od společnosti Realbyte Inc. MoneyTracker je nezávislá aplikace, není spojena se společností Realbyte ani jí podporována a umí importovat zálohy z Money Manager.",
+"This cycle {0}": "Tento cyklus {0}",
+"Due {0}": "K úhradě {0}"
 }

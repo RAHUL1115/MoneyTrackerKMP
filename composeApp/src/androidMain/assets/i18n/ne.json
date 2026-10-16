@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "जस्तै “खाजामा २५० खर्च भयो”",
 "no end": "अन्त्य छैन",
 "or use your fingerprint / face": "वा आफ्नो फिंगरप्रिन्ट / अनुहार प्रयोग गर्नुहोस्",
-"{0}   due {1} · this cycle {2}": "{0}   {1} मा तिर्नुपर्ने · यो चक्र {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} भेटियो · आम्दानी {1} · खर्च {2}",
 "{0} installments": "{0} किस्ता",
@@ -614,5 +613,7 @@
 "Open-source libraries": "खुला स्रोत लाइब्रेरीहरू",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "पूरा पाठ, अफलाइन",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. को Money Manager बाट प्रेरित। MoneyTracker एक स्वतन्त्र एप हो, Realbyte सँग सम्बद्ध वा उनीहरूद्वारा अनुमोदित छैन, र यसले Money Manager का ब्याकअप आयात गर्न सक्छ।"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. को Money Manager बाट प्रेरित। MoneyTracker एक स्वतन्त्र एप हो, Realbyte सँग सम्बद्ध वा उनीहरूद्वारा अनुमोदित छैन, र यसले Money Manager का ब्याकअप आयात गर्न सक्छ।",
+"This cycle {0}": "यो चक्र {0}",
+"Due {0}": "तिर्नुपर्ने {0}"
 }

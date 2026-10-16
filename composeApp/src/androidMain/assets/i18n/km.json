@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ឧ. “ចំណាយ 250 លើអាហារថ្ងៃត្រង់”",
 "no end": "គ្មានទីបញ្ចប់",
 "or use your fingerprint / face": "ឬប្រើស្នាមម្រាមដៃ / មុខរបស់អ្នក",
-"{0}   due {1} · this cycle {2}": "{0}   ដល់កំណត់ {1} · វដ្តនេះ {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "រកឃើញ {0} · ចំណូល {1} · ចំណាយ {2}",
 "{0} installments": "បង់រំលស់ {0}",
@@ -614,5 +613,7 @@
 "Open-source libraries": "បណ្ណាល័យកូដចំហ",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "អត្ថបទពេញ គ្មានអ៊ីនធឺណិត",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "បានបំផុសគំនិតពី Money Manager របស់ Realbyte Inc.។ MoneyTracker គឺជាកម្មវិធីឯករាជ្យ មិនពាក់ព័ន្ធ ឬមិនត្រូវបានគាំទ្រដោយ Realbyte ទេ ហើយអាចនាំចូលការបម្រុងទុករបស់ Money Manager បាន។"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "បានបំផុសគំនិតពី Money Manager របស់ Realbyte Inc.។ MoneyTracker គឺជាកម្មវិធីឯករាជ្យ មិនពាក់ព័ន្ធ ឬមិនត្រូវបានគាំទ្រដោយ Realbyte ទេ ហើយអាចនាំចូលការបម្រុងទុករបស់ Money Manager បាន។",
+"This cycle {0}": "វដ្តនេះ {0}",
+"Due {0}": "ត្រូវបង់ {0}"
 }

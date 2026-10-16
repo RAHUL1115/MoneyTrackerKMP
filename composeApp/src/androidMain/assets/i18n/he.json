@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "למשל “הוצאתי 250 על ארוחת צהריים”",
 "no end": "ללא סיום",
 "or use your fingerprint / face": "או השתמשו בטביעת האצבע / בפנים",
-"{0}   due {1} · this cycle {2}": "{0}   לתשלום ב-{1} · במחזור הזה {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "נמצאו {0} · הכנסות {1} · הוצאות {2}",
 "{0} installments": "{0} תשלומים",
@@ -614,5 +613,7 @@
 "Open-source libraries": "ספריות קוד פתוח",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "הטקסט המלא, ללא חיבור",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "בהשראת Money Manager של Realbyte Inc. MoneyTracker היא אפליקציה עצמאית, שאינה קשורה ל-Realbyte ואינה מאושרת על ידה, והיא יכולה לייבא גיבויים של Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "בהשראת Money Manager של Realbyte Inc. MoneyTracker היא אפליקציה עצמאית, שאינה קשורה ל-Realbyte ואינה מאושרת על ידה, והיא יכולה לייבא גיבויים של Money Manager.",
+"This cycle {0}": "במחזור הזה {0}",
+"Due {0}": "לתשלום {0}"
 }

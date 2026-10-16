@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget defaults, used for the picker preview and the first frame; the app repaints with the user's style. -->
+<resources>
+    <color name="widget_surface">#FFFFFFFF</color>
+    <color name="widget_panel">#FFF3F4F6</color>
+    <color name="widget_ink">#FF1B1C1F</color>
+    <color name="widget_subtle">#FF8A8F99</color>
+    <color name="widget_accent">#FF0F766E</color>
+    <color name="widget_accent_tint">#FFE6F4F2</color>
+    <color name="widget_income">#FF16A34A</color>
+    <color name="widget_expense">#FFE5484D</color>
+    <color name="widget_neutral">#FF8A8F99</color>
+    <!-- Pill fills: the kind's colour at low alpha (the app re-tints them, keeping this alpha). -->
+    <color name="widget_pill_income">#1F16A34A</color>
+    <color name="widget_pill_expense">#1FE5484D</color>
+    <color name="widget_pill_neutral">#1F8A8F99</color>
+</resources>

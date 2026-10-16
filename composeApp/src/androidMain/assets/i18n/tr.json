@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ör. “öğle yemeğine 250 harcadım”",
 "no end": "bitiş yok",
 "or use your fingerprint / face": "veya parmak izi / yüz kullanın",
-"{0}   due {1} · this cycle {2}": "{0}   vade {1} · bu dönem {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} bulundu · gelir {1} · gider {2}",
 "{0} installments": "{0} taksit",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Açık kaynak kütüphaneler",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Tam metin, çevrimdışı",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.'in Money Manager uygulamasından esinlenmiştir. MoneyTracker bağımsız bir uygulamadır; Realbyte ile bağlantılı değildir ve onun tarafından onaylanmamıştır. Money Manager yedeklerini içe aktarabilir."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.'in Money Manager uygulamasından esinlenmiştir. MoneyTracker bağımsız bir uygulamadır; Realbyte ile bağlantılı değildir ve onun tarafından onaylanmamıştır. Money Manager yedeklerini içe aktarabilir.",
+"This cycle {0}": "Bu dönem {0}",
+"Due {0}": "Ödenecek {0}"
 }

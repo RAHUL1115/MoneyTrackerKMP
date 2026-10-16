@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "مثلاً “دوپہر کے کھانے پر 250 خرچ کیے”",
 "no end": "کوئی اختتام نہیں",
 "or use your fingerprint / face": "یا اپنا فنگر پرنٹ / چہرہ استعمال کریں",
-"{0}   due {1} · this cycle {2}": "{0}   واجب الادا {1} · یہ سائیکل {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} ملے · آمدنی {1} · اخراجات {2}",
 "{0} installments": "{0} اقساط",
@@ -614,5 +613,7 @@
 "Open-source libraries": "اوپن سورس لائبریریاں",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "مکمل متن، آف لائن",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. کے Money Manager سے متاثر۔ MoneyTracker ایک آزاد ایپ ہے، جو Realbyte سے وابستہ یا اس کی منظور شدہ نہیں، اور Money Manager کے بیک اپ درآمد کر سکتی ہے۔"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. کے Money Manager سے متاثر۔ MoneyTracker ایک آزاد ایپ ہے، جو Realbyte سے وابستہ یا اس کی منظور شدہ نہیں، اور Money Manager کے بیک اپ درآمد کر سکتی ہے۔",
+"This cycle {0}": "یہ سائیکل {0}",
+"Due {0}": "واجب الادا {0}"
 }

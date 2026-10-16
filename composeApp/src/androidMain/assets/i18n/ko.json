@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "예: “점심에 250 썼어요”",
 "no end": "종료 없음",
 "or use your fingerprint / face": "또는 지문 / 얼굴 사용",
-"{0}   due {1} · this cycle {2}": "{0}   납부일 {1} · 이번 주기 {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0}건 발견 · 수입 {1} · 지출 {2}",
 "{0} installments": "{0}회 할부",
@@ -614,5 +613,7 @@
 "Open-source libraries": "오픈 소스 라이브러리",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "전문, 오프라인",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.의 Money Manager에서 영감을 받았습니다. MoneyTracker는 독립 앱으로 Realbyte와 제휴하거나 Realbyte의 승인을 받지 않았으며, Money Manager 백업을 가져올 수 있습니다."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.의 Money Manager에서 영감을 받았습니다. MoneyTracker는 독립 앱으로 Realbyte와 제휴하거나 Realbyte의 승인을 받지 않았으며, Money Manager 백업을 가져올 수 있습니다.",
+"This cycle {0}": "이번 주기 {0}",
+"Due {0}": "납부액 {0}"
 }

@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "例：「ランチに250使った」",
 "no end": "終了なし",
 "or use your fingerprint / face": "または指紋 / 顔認証を使用",
-"{0}   due {1} · this cycle {2}": "{0}   期限 {1} · 今期 {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0}件検出 · 収入 {1} · 支出 {2}",
 "{0} installments": "{0}回分割",
@@ -614,5 +613,7 @@
 "Open-source libraries": "オープンソースライブラリ",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "全文（オフライン）",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. の Money Manager に着想を得ています。MoneyTracker は独立したアプリで、Realbyte とは提携しておらず、同社の承認も受けていません。Money Manager のバックアップをインポートできます。"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. の Money Manager に着想を得ています。MoneyTracker は独立したアプリで、Realbyte とは提携しておらず、同社の承認も受けていません。Money Manager のバックアップをインポートできます。",
+"This cycle {0}": "今期 {0}",
+"Due {0}": "支払額 {0}"
 }

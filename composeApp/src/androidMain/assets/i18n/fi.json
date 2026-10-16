@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "esim. “kulutin 250 lounaaseen”",
 "no end": "ei loppua",
 "or use your fingerprint / face": "tai käytä sormenjälkeä / kasvoja",
-"{0}   due {1} · this cycle {2}": "{0}   erääntyy {1} · tämä jakso {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} löytyi · tulot {1} · menot {2}",
 "{0} installments": "{0} erää",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Avoimen lähdekoodin kirjastot",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Koko teksti, offline",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Money Manager -sovelluksen (Realbyte Inc.) innoittama. MoneyTracker on itsenäinen sovellus, joka ei ole Realbyten kanssa yhteydessä eikä sen hyväksymä, ja se voi tuoda Money Managerin varmuuskopioita."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Money Manager -sovelluksen (Realbyte Inc.) innoittama. MoneyTracker on itsenäinen sovellus, joka ei ole Realbyten kanssa yhteydessä eikä sen hyväksymä, ja se voi tuoda Money Managerin varmuuskopioita.",
+"This cycle {0}": "Tämä jakso {0}",
+"Due {0}": "Maksettava {0}"
 }

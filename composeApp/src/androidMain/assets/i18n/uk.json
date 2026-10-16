@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "напр., «витратив 250 на обід»",
 "no end": "без кінця",
 "or use your fingerprint / face": "або скористайтеся відбитком / обличчям",
-"{0}   due {1} · this cycle {2}": "{0}   до сплати {1} · цей цикл {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Знайдено {0} · доходи {1} · витрати {2}",
 "{0} installments": "Платежів розстрочки: {0}",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Бібліотеки з відкритим кодом",
 "Apache License 2.0": "Ліцензія Apache 2.0",
 "Full text, offline": "Повний текст, офлайн",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Натхненно Money Manager від Realbyte Inc. MoneyTracker — незалежний застосунок, не пов’язаний з Realbyte і не схвалений нею; він може імпортувати резервні копії Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Натхненно Money Manager від Realbyte Inc. MoneyTracker — незалежний застосунок, не пов’язаний з Realbyte і не схвалений нею; він може імпортувати резервні копії Money Manager.",
+"This cycle {0}": "Цей цикл {0}",
+"Due {0}": "До сплати {0}"
 }

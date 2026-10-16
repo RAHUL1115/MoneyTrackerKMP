@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "hal. “gumastos ng 250 sa tanghalian”",
 "no end": "walang katapusan",
 "or use your fingerprint / face": "o gamitin ang fingerprint / mukha mo",
-"{0}   due {1} · this cycle {2}": "{0}   due {1} · cycle na ito {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} ang nakita · kita {1} · gastos {2}",
 "{0} installments": "{0} hulog",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Mga open-source na library",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Buong teksto, offline",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Hango sa inspirasyon ng Money Manager ng Realbyte Inc. Ang MoneyTracker ay isang independiyenteng app, hindi kaugnay o inendorso ng Realbyte, at kayang mag-import ng mga backup ng Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Hango sa inspirasyon ng Money Manager ng Realbyte Inc. Ang MoneyTracker ay isang independiyenteng app, hindi kaugnay o inendorso ng Realbyte, at kayang mag-import ng mga backup ng Money Manager.",
+"This cycle {0}": "Cycle na ito {0}",
+"Due {0}": "Due {0}"
 }

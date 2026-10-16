@@ -29,7 +29,7 @@ More › Backup › Restore file reads Money Manager backups (`.mmbak`) from And
 - **Budgets:** total, per category and per sub-category, from a month onward.
 - **Settings:** month start day with weekend shift, week start, start screen, card expenses at purchase vs payment, sub currencies with rates, tags, passcode + fingerprint, daily reminder, quick-add notification, bank-SMS detection, location.
 - **Data:** daily automatic snapshots, manual snapshots, full-file export/import, CSV and Excel (.xlsx) export and import, Money Manager (`.mmbak`) import. Schema migrations keep old backups restorable.
-- **Android extras:** home-screen widget (month totals + quick add), launcher shortcuts, notification quick add.
+- **Android extras:** home-screen widgets (month totals with add buttons, quick add, scrolling credit-card list), launcher shortcuts, notification quick add.
 - **SMS assistant:** regex parser for bank, amount, card digits and vendor, plus a tiny Naive Bayes learner stored in SQLite. Detected messages become suggestions in an inbox; nothing is saved without you, and each save teaches it. You can also paste a message.
 
 No ads, no network access, no cloud.

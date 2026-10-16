@@ -1,16 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Credit cards: amount payable and this cycle's spending, up to five cards (4x2). -->
+<!-- Credit cards (4x2): a scrolling list with what's due and this cycle's spending for every card. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent">
+    android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_outline" android:clipToOutline="true">
     <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent"
         android:scaleType="fitXY" android:src="@drawable/widget_bg" android:importantForAccessibility="no" />
-    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="12dp">
-        <TextView android:id="@+id/w_month" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:textSize="14sp" android:textStyle="bold" android:text="Cards" />
-        <TextView android:id="@+id/w_row1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textSize="13sp" android:maxLines="1" />
-        <TextView android:id="@+id/w_row2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:textSize="13sp" android:maxLines="1" />
-        <TextView android:id="@+id/w_row3" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:textSize="13sp" android:maxLines="1" />
-        <TextView android:id="@+id/w_row4" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:textSize="13sp" android:maxLines="1" />
-        <TextView android:id="@+id/w_row5" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:textSize="13sp" android:maxLines="1" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+        android:paddingTop="@dimen/widget_padding" android:paddingStart="@dimen/widget_padding" android:paddingEnd="@dimen/widget_padding">
+        <TextView android:id="@+id/w_title" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Credit cards" android:textColor="@color/widget_ink" android:textSize="16sp" android:textStyle="bold" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="6dp">
+            <ListView android:id="@+id/w_list" android:layout_width="match_parent" android:layout_height="match_parent"
+                android:divider="@null" android:dividerHeight="0dp" android:scrollbars="none"
+                android:clipToPadding="false" android:paddingBottom="8dp" />
+            <TextView android:id="@+id/w_empty" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center"
+                android:text="No credit cards" android:textColor="@color/widget_subtle" android:textSize="13sp" />
+        </FrameLayout>
     </LinearLayout>
 </FrameLayout>

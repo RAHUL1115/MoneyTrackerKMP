@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "isb. “ngichithe u-250 ekudleni kwasemini”",
 "no end": "akunakuphela",
 "or use your fingerprint / face": "noma sebenzisa isigxivizo seminwe / ubuso bakho",
-"{0}   due {1} · this cycle {2}": "{0}   kufanele ikhokhwe {1} · lesi sikhathi {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} etholakele · imali engenayo {1} · indleko {2}",
 "{0} installments": "Izingxenye ezingu-{0}",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Imitapo yolwazi yomthombo ovulekile",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Umbhalo ogcwele, ngaphandle kwe-inthanethi",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Kugqugquzelwe yi-Money Manager ka-Realbyte Inc. I-MoneyTracker iwuhlelo oluzimele, aluhlobene ne-Realbyte futhi alugunyazwanga yibo, futhi lungangenisa izipele ze-Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Kugqugquzelwe yi-Money Manager ka-Realbyte Inc. I-MoneyTracker iwuhlelo oluzimele, aluhlobene ne-Realbyte futhi alugunyazwanga yibo, futhi lungangenisa izipele ze-Money Manager.",
+"This cycle {0}": "Lesi sikhathi {0}",
+"Due {0}": "Okufanele kukhokhwe {0}"
 }

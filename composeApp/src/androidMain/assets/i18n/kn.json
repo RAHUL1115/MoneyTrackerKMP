@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ಉದಾ. “ಊಟಕ್ಕೆ 250 ಖರ್ಚು ಮಾಡಿದೆ”",
 "no end": "ಅಂತ್ಯವಿಲ್ಲ",
 "or use your fingerprint / face": "ಅಥವಾ ನಿಮ್ಮ ಫಿಂಗರ್‌ಪ್ರಿಂಟ್ / ಮುಖ ಬಳಸಿ",
-"{0}   due {1} · this cycle {2}": "{0}   ಬಾಕಿ {1} · ಈ ಚಕ್ರ {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} ಸಿಕ್ಕಿದೆ · ಆದಾಯ {1} · ಖರ್ಚು {2}",
 "{0} installments": "{0} ಕಂತುಗಳು",
@@ -614,5 +613,7 @@
 "Open-source libraries": "ಮುಕ್ತ ಮೂಲ ಲೈಬ್ರರಿಗಳು",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "ಪೂರ್ಣ ಪಠ್ಯ, ಆಫ್‌ಲೈನ್",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. ನ Money Manager ನಿಂದ ಪ್ರೇರಿತ. MoneyTracker ಒಂದು ಸ್ವತಂತ್ರ ಆ್ಯಪ್; ಇದು Realbyte ಜೊತೆ ಸಂಬಂಧ ಹೊಂದಿಲ್ಲ ಅಥವಾ ಅವರಿಂದ ಅನುಮೋದಿತವಲ್ಲ, ಮತ್ತು Money Manager ಬ್ಯಾಕಪ್‌ಗಳನ್ನು ಆಮದು ಮಾಡಬಲ್ಲದು."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. ನ Money Manager ನಿಂದ ಪ್ರೇರಿತ. MoneyTracker ಒಂದು ಸ್ವತಂತ್ರ ಆ್ಯಪ್; ಇದು Realbyte ಜೊತೆ ಸಂಬಂಧ ಹೊಂದಿಲ್ಲ ಅಥವಾ ಅವರಿಂದ ಅನುಮೋದಿತವಲ್ಲ, ಮತ್ತು Money Manager ಬ್ಯಾಕಪ್‌ಗಳನ್ನು ಆಮದು ಮಾಡಬಲ್ಲದು.",
+"This cycle {0}": "ಈ ಚಕ್ರ {0}",
+"Due {0}": "ಬಾಕಿ {0}"
 }

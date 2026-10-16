@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "bijv. “250 uitgegeven aan lunch”",
 "no end": "geen einde",
 "or use your fingerprint / face": "of gebruik je vingerafdruk / gezicht",
-"{0}   due {1} · this cycle {2}": "{0}   verschuldigd {1} · deze cyclus {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} gevonden · inkomsten {1} · uitgaven {2}",
 "{0} installments": "{0} termijnen",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Opensourcebibliotheken",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Volledige tekst, offline",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Geïnspireerd door Money Manager van Realbyte Inc. MoneyTracker is een onafhankelijke app, niet gelieerd aan of goedgekeurd door Realbyte, en kan back-ups van Money Manager importeren."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Geïnspireerd door Money Manager van Realbyte Inc. MoneyTracker is een onafhankelijke app, niet gelieerd aan of goedgekeurd door Realbyte, en kan back-ups van Money Manager importeren.",
+"This cycle {0}": "Deze cyclus {0}",
+"Due {0}": "Te betalen {0}"
 }

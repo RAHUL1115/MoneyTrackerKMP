@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "օր.՝ «ճաշին ծախսեցի 250»",
 "no end": "առանց ավարտի",
 "or use your fingerprint / face": "կամ օգտագործեք մատնահետքը / դեմքը",
-"{0}   due {1} · this cycle {2}": "{0}   վճարման ժամկետ {1} · այս ցիկլ {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Գտնվեց {0} · եկամուտ {1} · ծախս {2}",
 "{0} installments": "{0} մասնաբաժին",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Բաց կոդով գրադարաններ",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Ամբողջական տեքստ, անցանց",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Ոգեշնչված է Realbyte Inc.-ի Money Manager-ով։ MoneyTracker-ը անկախ հավելված է, կապ չունի Realbyte-ի հետ և հավանություն չի ստացել նրանից, և կարող է ներմուծել Money Manager-ի պահուստները։"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Ոգեշնչված է Realbyte Inc.-ի Money Manager-ով։ MoneyTracker-ը անկախ հավելված է, կապ չունի Realbyte-ի հետ և հավանություն չի ստացել նրանից, և կարող է ներմուծել Money Manager-ի պահուստները։",
+"This cycle {0}": "Այս ցիկլ {0}",
+"Due {0}": "Վճարելի {0}"
 }

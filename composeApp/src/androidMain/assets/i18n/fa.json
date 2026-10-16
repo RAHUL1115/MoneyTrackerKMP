@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "مثلاً «۲۵۰ برای ناهار خرج کردم»",
 "no end": "بدون پایان",
 "or use your fingerprint / face": "یا از اثر انگشت / چهره استفاده کنید",
-"{0}   due {1} · this cycle {2}": "{0}   سررسید {1} · این دوره {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} یافت شد · درآمد {1} · هزینه {2}",
 "{0} installments": "{0} قسط",
@@ -614,5 +613,7 @@
 "Open-source libraries": "کتابخانه‌های متن‌باز",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "متن کامل، آفلاین",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "الهام‌گرفته از Money Manager ساختهٔ Realbyte Inc. MoneyTracker برنامه‌ای مستقل است، هیچ وابستگی‌ای به Realbyte ندارد و مورد تأیید آن نیست، و می‌تواند پشتیبان‌های Money Manager را وارد کند."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "الهام‌گرفته از Money Manager ساختهٔ Realbyte Inc. MoneyTracker برنامه‌ای مستقل است، هیچ وابستگی‌ای به Realbyte ندارد و مورد تأیید آن نیست، و می‌تواند پشتیبان‌های Money Manager را وارد کند.",
+"This cycle {0}": "این دوره {0}",
+"Due {0}": "قابل پرداخت {0}"
 }

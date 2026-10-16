@@ -1,44 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Background is a separate image so the app can tint it (light/dark) and fade it (opacity) at runtime. -->
+<!-- The main widget, fixed at 4x1: month over income / expenses / total, and the add buttons. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/w_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
+    android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_outline" android:clipToOutline="true">
     <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent"
         android:scaleType="fitXY" android:src="@drawable/widget_bg" android:importantForAccessibility="no" />
-
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="12dp">
-
-    <TextView android:id="@+id/w_month" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:textColor="#222222" android:textSize="14sp" android:textStyle="bold" android:text="Oct 2026" />
-
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="horizontal">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal"
+        android:gravity="center_vertical" android:paddingStart="16dp" android:paddingEnd="12dp" android:paddingTop="8dp" android:paddingBottom="8dp">
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/w_l_income" android:text="Income" android:textColor="#8A8A92" android:textSize="11sp" />
-            <TextView android:id="@+id/w_income" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#16A34A" android:textSize="13sp" />
+            <TextView android:id="@+id/w_month" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Oct 2026" android:textColor="@color/widget_ink" android:textSize="15sp" android:textStyle="bold" android:maxLines="1" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:id="@+id/w_l_income" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Income" android:textColor="@color/widget_subtle" android:textSize="11sp" android:maxLines="1" />
+                    <TextView android:id="@+id/w_income" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="42,000" android:textColor="@color/widget_income" android:textSize="14sp" android:fontFamily="sans-serif-medium"
+                        android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="14sp" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="6dp">
+                    <TextView android:id="@+id/w_l_expense" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Expenses" android:textColor="@color/widget_subtle" android:textSize="11sp" android:maxLines="1" />
+                    <TextView android:id="@+id/w_expense" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="18,320" android:textColor="@color/widget_expense" android:textSize="14sp" android:fontFamily="sans-serif-medium"
+                        android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="14sp" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="6dp">
+                    <TextView android:id="@+id/w_l_total" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Total" android:textColor="@color/widget_subtle" android:textSize="11sp" android:maxLines="1" />
+                    <TextView android:id="@+id/w_total" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="23,680" android:textColor="@color/widget_ink" android:textSize="14sp" android:fontFamily="sans-serif-medium"
+                        android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
-        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/w_l_expense" android:text="Expenses" android:textColor="#8A8A92" android:textSize="11sp" />
-            <TextView android:id="@+id/w_expense" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#E5484D" android:textSize="13sp" />
-        </LinearLayout>
-        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/w_l_total" android:text="Total" android:textColor="#8A8A92" android:textSize="11sp" />
-            <TextView android:id="@+id/w_total" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#333336" android:textSize="13sp" />
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:orientation="horizontal">
+                <FrameLayout android:id="@+id/w_add_income" android:layout_width="36dp" android:layout_height="36dp">
+                    <ImageView android:id="@+id/w_add_income_bg" android:layout_width="match_parent" android:layout_height="match_parent"
+                        android:src="@drawable/widget_fab_tint" android:importantForAccessibility="no" />
+                    <ImageView android:id="@+id/w_add_income_icon" android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center"
+                        android:src="@drawable/ic_qa_income" android:importantForAccessibility="no" />
+                </FrameLayout>
+                <FrameLayout android:id="@+id/w_add_expense" android:layout_width="36dp" android:layout_height="36dp" android:layout_marginStart="8dp">
+                    <ImageView android:id="@+id/w_add_expense_bg" android:layout_width="match_parent" android:layout_height="match_parent"
+                        android:src="@drawable/widget_fab" android:importantForAccessibility="no" />
+                    <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center"
+                        android:src="@drawable/ic_widget_add" android:importantForAccessibility="no" />
+                </FrameLayout>
         </LinearLayout>
     </LinearLayout>
-
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="horizontal">
-        <TextView android:id="@+id/w_add_expense" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1"
-            android:background="@drawable/widget_button" android:gravity="center" android:text="+ Expense" android:textColor="#FFFFFF" android:textSize="13sp" />
-        <TextView android:id="@+id/w_add_income" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1" android:layout_marginStart="6dp"
-            android:background="@drawable/widget_button_income" android:gravity="center" android:text="+ Income" android:textColor="#FFFFFF" android:textSize="13sp" />
-        <TextView android:id="@+id/w_add_transfer" android:layout_width="0dp" android:layout_height="34dp" android:layout_weight="1" android:layout_marginStart="6dp"
-            android:background="@drawable/widget_button_neutral" android:gravity="center" android:text="Transfer" android:textColor="#FFFFFF" android:textSize="13sp" />
-    </LinearLayout>
-</LinearLayout>
 </FrameLayout>

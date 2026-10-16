@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "мыс., “түскі асқа 250 жұмсадым”",
 "no end": "аяқталмайды",
 "or use your fingerprint / face": "немесе саусақ ізін / бетті қолданыңыз",
-"{0}   due {1} · this cycle {2}": "{0}   мерзімі {1} · осы цикл {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Табылды: {0} · кіріс {1} · шығыс {2}",
 "{0} installments": "{0} бөліп төлем",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Ашық кодты кітапханалар",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Толық мәтін, офлайн",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. компаниясының Money Manager қолданбасынан шабыт алған. MoneyTracker — тәуелсіз қолданба, Realbyte-пен байланысы жоқ және олар мақұлдамаған; ол Money Manager сақтық көшірмелерін импорттай алады."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. компаниясының Money Manager қолданбасынан шабыт алған. MoneyTracker — тәуелсіз қолданба, Realbyte-пен байланысы жоқ және олар мақұлдамаған; ол Money Manager сақтық көшірмелерін импорттай алады.",
+"This cycle {0}": "Осы цикл {0}",
+"Due {0}": "Төлеуге {0}"
 }

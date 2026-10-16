@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ለምሳሌ “ለምሳ 250 አወጣሁ”",
 "no end": "መጨረሻ የለውም",
 "or use your fingerprint / face": "ወይም የጣት አሻራዎን / ፊትዎን ይጠቀሙ",
-"{0}   due {1} · this cycle {2}": "{0}   የሚከፈለው {1} · ይህ ዑደት {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} ተገኝተዋል · ገቢ {1} · ወጪ {2}",
 "{0} installments": "{0} ክፍያዎች",
@@ -614,5 +613,7 @@
 "Open-source libraries": "ክፍት ምንጭ ቤተ-መጻሕፍት",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "ሙሉ ጽሑፍ፣ ከመስመር ውጭ",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "በRealbyte Inc. Money Manager ተነሳስቶ የተሠራ። MoneyTracker ከRealbyte ጋር ግንኙነት የሌለው ወይም በእነርሱ ያልተደገፈ ገለልተኛ መተግበሪያ ሲሆን የMoney Manager ምትኬዎችን ማስገባት ይችላል።"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "በRealbyte Inc. Money Manager ተነሳስቶ የተሠራ። MoneyTracker ከRealbyte ጋር ግንኙነት የሌለው ወይም በእነርሱ ያልተደገፈ ገለልተኛ መተግበሪያ ሲሆን የMoney Manager ምትኬዎችን ማስገባት ይችላል።",
+"This cycle {0}": "ይህ ዑደት {0}",
+"Due {0}": "የሚከፈል {0}"
 }

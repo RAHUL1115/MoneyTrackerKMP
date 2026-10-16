@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "на пр. „потрошив 250 на ручек“",
 "no end": "без крај",
 "or use your fingerprint / face": "или користете отпечаток / лице",
-"{0}   due {1} · this cycle {2}": "{0}   рок {1} · овој циклус {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Пронајдени {0} · приход {1} · трошок {2}",
 "{0} installments": "{0} рати",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Библиотеки со отворен код",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Целосен текст, без интернет",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Инспирирано од Money Manager на Realbyte Inc. MoneyTracker е независна апликација, неповрзана со Realbyte и неодобрена од нив, и може да увезува резервни копии од Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Инспирирано од Money Manager на Realbyte Inc. MoneyTracker е независна апликација, неповрзана со Realbyte и неодобрена од нив, и може да увезува резервни копии од Money Manager.",
+"This cycle {0}": "Овој циклус {0}",
+"Due {0}": "За плаќање {0}"
 }

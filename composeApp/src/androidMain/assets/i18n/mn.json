@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "жишээ нь “өдрийн хоолонд 250 зарсан”",
 "no end": "төгсгөлгүй",
 "or use your fingerprint / face": "эсвэл хурууны хээ / нүүрээ ашиглах",
-"{0}   due {1} · this cycle {2}": "{0}   хугацаа {1} · энэ мөчлөг {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} олдлоо · орлого {1} · зарлага {2}",
 "{0} installments": "{0} хуваан төлөлт",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Нээлттэй эхийн сангууд",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Бүтэн текст, офлайн",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.-ийн Money Manager-ээс санаа авсан. MoneyTracker нь бие даасан апп бөгөөд Realbyte-тэй холбоогүй, тэдний зөвшөөрөлгүй бөгөөд Money Manager-ийн нөөцийг импортлох боломжтой."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc.-ийн Money Manager-ээс санаа авсан. MoneyTracker нь бие даасан апп бөгөөд Realbyte-тэй холбоогүй, тэдний зөвшөөрөлгүй бөгөөд Money Manager-ийн нөөцийг импортлох боломжтой.",
+"This cycle {0}": "Энэ мөчлөг {0}",
+"Due {0}": "Төлөх {0}"
 }

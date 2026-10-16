@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "π.χ. «ξόδεψα 250 στο μεσημεριανό»",
 "no end": "χωρίς λήξη",
 "or use your fingerprint / face": "ή χρησιμοποιήστε το δακτυλικό αποτύπωμα / πρόσωπό σας",
-"{0}   due {1} · this cycle {2}": "{0}   οφείλεται {1} · αυτός ο κύκλος {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Βρέθηκαν {0} · έσοδα {1} · έξοδα {2}",
 "{0} installments": "{0} δόσεις",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Βιβλιοθήκες ανοιχτού κώδικα",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Πλήρες κείμενο, εκτός σύνδεσης",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Εμπνευσμένο από το Money Manager της Realbyte Inc. Το MoneyTracker είναι μια ανεξάρτητη εφαρμογή, χωρίς σχέση με τη Realbyte ούτε έγκρισή της, και μπορεί να εισαγάγει αντίγραφα ασφαλείας του Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Εμπνευσμένο από το Money Manager της Realbyte Inc. Το MoneyTracker είναι μια ανεξάρτητη εφαρμογή, χωρίς σχέση με τη Realbyte ούτε έγκρισή της, και μπορεί να εισαγάγει αντίγραφα ασφαλείας του Money Manager.",
+"This cycle {0}": "Αυτός ο κύκλος {0}",
+"Due {0}": "Οφειλή {0}"
 }

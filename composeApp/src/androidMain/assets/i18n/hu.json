@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "pl. „250-et költöttem ebédre”",
 "no end": "nincs vége",
 "or use your fingerprint / face": "vagy használd az ujjlenyomatodat / arcodat",
-"{0}   due {1} · this cycle {2}": "{0}   esedékes: {1} · e ciklus {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} találat · bevétel {1} · kiadás {2}",
 "{0} installments": "{0} részlet",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Nyílt forráskódú könyvtárak",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Teljes szöveg, offline",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "A Realbyte Inc. Money Manager alkalmazása ihlette. A MoneyTracker független alkalmazás, nem áll kapcsolatban a Realbyte-tal, és az nem is támogatja, de képes Money Manager-mentéseket importálni."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "A Realbyte Inc. Money Manager alkalmazása ihlette. A MoneyTracker független alkalmazás, nem áll kapcsolatban a Realbyte-tal, és az nem is támogatja, de képes Money Manager-mentéseket importálni.",
+"This cycle {0}": "Ez a ciklus {0}",
+"Due {0}": "Esedékes {0}"
 }

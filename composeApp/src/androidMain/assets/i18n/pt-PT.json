@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ex.: “gastei 250 no almoço”",
 "no end": "sem fim",
 "or use your fingerprint / face": "ou use a impressão digital / rosto",
-"{0}   due {1} · this cycle {2}": "{0}   vence {1} · este ciclo {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} encontrados · receitas {1} · despesas {2}",
 "{0} installments": "{0} prestações",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Bibliotecas de código aberto",
 "Apache License 2.0": "Licença Apache 2.0",
 "Full text, offline": "Texto completo, offline",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspirada no Money Manager da Realbyte Inc. O MoneyTracker é uma aplicação independente, sem afiliação com a Realbyte nem aprovada por esta, e pode importar cópias de segurança do Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspirada no Money Manager da Realbyte Inc. O MoneyTracker é uma aplicação independente, sem afiliação com a Realbyte nem aprovada por esta, e pode importar cópias de segurança do Money Manager.",
+"This cycle {0}": "Este ciclo {0}",
+"Due {0}": "A pagar {0}"
 }

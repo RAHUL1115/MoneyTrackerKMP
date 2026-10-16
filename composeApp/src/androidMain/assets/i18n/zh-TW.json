@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "例如「午餐花了 250」",
 "no end": "無結束日",
 "or use your fingerprint / face": "或使用指紋 / 臉部",
-"{0}   due {1} · this cycle {2}": "{0}   到期 {1} · 本週期 {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "找到 {0} 筆 · 收入 {1} · 支出 {2}",
 "{0} installments": "{0} 期分期",
@@ -614,5 +613,7 @@
 "Open-source libraries": "開放原始碼程式庫",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "全文，可離線閱讀",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "靈感來自 Realbyte Inc. 的 Money Manager。MoneyTracker 是一款獨立應用程式，與 Realbyte 無關聯，也未獲其認可，可匯入 Money Manager 的備份。"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "靈感來自 Realbyte Inc. 的 Money Manager。MoneyTracker 是一款獨立應用程式，與 Realbyte 無關聯，也未獲其認可，可匯入 Money Manager 的備份。",
+"This cycle {0}": "本週期 {0}",
+"Due {0}": "應付 {0}"
 }

@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "მაგ. “ლანჩზე 250 დავხარჯე”",
 "no end": "დასასრულის გარეშე",
 "or use your fingerprint / face": "ან გამოიყენეთ თითის ანაბეჭდი / სახე",
-"{0}   due {1} · this cycle {2}": "{0}   ვადა {1} · ეს ციკლი {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "ნაპოვნია {0} · შემოსავალი {1} · ხარჯი {2}",
 "{0} installments": "{0} განვადება",
@@ -614,5 +613,7 @@
 "Open-source libraries": "ღია კოდის ბიბლიოთეკები",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "სრული ტექსტი, ხაზგარეშე",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "შთაგონებულია Realbyte Inc.-ის Money Manager-ით. MoneyTracker დამოუკიდებელი აპია, არ არის დაკავშირებული Realbyte-თან და არც მის მიერ არის მოწონებული, და შეუძლია Money Manager-ის სარეზერვო ასლების იმპორტი."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "შთაგონებულია Realbyte Inc.-ის Money Manager-ით. MoneyTracker დამოუკიდებელი აპია, არ არის დაკავშირებული Realbyte-თან და არც მის მიერ არის მოწონებული, და შეუძლია Money Manager-ის სარეზერვო ასლების იმპორტი.",
+"This cycle {0}": "ეს ციკლი {0}",
+"Due {0}": "გადასახდელი {0}"
 }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: match the launcher's own widget corner radius. -->
+<resources>
+    <dimen name="widget_radius">@android:dimen/system_app_widget_background_radius</dimen>
+    <!-- Launchers that ignore targetCellWidth/Height (e.g. vivo) size widgets from these; their cells are
+         larger than AOSP's, so a 250x110dp minimum would land on 3x1 instead of 4x2. -->
+    <dimen name="widget_width_4">300dp</dimen>
+    <dimen name="widget_height_2">150dp</dimen>
+</resources>

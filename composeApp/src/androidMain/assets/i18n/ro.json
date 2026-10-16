@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ex. „am cheltuit 250 pe prânz”",
 "no end": "fără sfârșit",
 "or use your fingerprint / face": "sau folosește amprenta / fața",
-"{0}   due {1} · this cycle {2}": "{0}   scadent {1} · ciclul curent {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} găsite · venituri {1} · cheltuieli {2}",
 "{0} installments": "{0} rate",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Biblioteci open source",
 "Apache License 2.0": "Licența Apache 2.0",
 "Full text, offline": "Text complet, offline",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspirată de Money Manager de la Realbyte Inc. MoneyTracker este o aplicație independentă, neafiliată cu Realbyte și neaprobată de aceasta, și poate importa backupuri Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Inspirată de Money Manager de la Realbyte Inc. MoneyTracker este o aplicație independentă, neafiliată cu Realbyte și neaprobată de aceasta, și poate importa backupuri Money Manager.",
+"This cycle {0}": "Ciclul curent {0}",
+"Due {0}": "De plată {0}"
 }

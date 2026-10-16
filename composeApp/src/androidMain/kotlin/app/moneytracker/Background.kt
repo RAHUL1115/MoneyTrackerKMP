@@ -218,7 +218,7 @@ object Detected {
 
 // ───────────────────────── home-screen widget
 
-/** Theme, opacity and money format shared by all widgets (Configuration › Widget settings). */
+/** Theme, accent, opacity and money format shared by all widgets (Configuration › Widget settings). */
 private class WidgetStyle(ctx: Context, r: app.moneytracker.data.MoneyRepository) {
     init { ensureTranslations(ctx, r) }
     private val night = (ctx.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -227,33 +227,86 @@ private class WidgetStyle(ctx: Context, r: app.moneytracker.data.MoneyRepository
     private val swapped = r.settingNow(Keys.COLOR_SET) == "B"
     val ink = if (dark) 0xFFECEDEF.toInt() else 0xFF1B1C1F.toInt()
     val subtle = if (dark) 0xFF8F949E.toInt() else 0xFF8A8F99.toInt()
+    private val surface = if (dark) 0xFF1A1B1E.toInt() else 0xFFFFFFFF.toInt()
+    /** Inset panels and card tiles: the app's page grey. */
+    val panel = if (dark) 0xFF26282D.toInt() else 0xFFF3F4F6.toInt()
     val incomeColor = if (swapped) 0xFFE5484D.toInt() else 0xFF16A34A.toInt()
     val expenseColor = if (swapped) 0xFF16A34A.toInt() else 0xFFE5484D.toInt()
+    /** The app's accent and its light tint; "Follow system" reads the wallpaper colours like MainActivity does. */
+    private val accentChoice = app.moneytracker.ui.AccentChoice.entries.firstOrNull { it.name == r.settingNow(Keys.ACCENT) } ?: app.moneytracker.ui.AccentChoice.TEAL
+    private val systemAccent = accentChoice == app.moneytracker.ui.AccentChoice.SYSTEM && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val accent: Int =
+        if (systemAccent) ctx.getColor(if (dark) android.R.color.system_accent1_200 else android.R.color.system_accent1_600)
+        else (if (dark) accentChoice.dark else accentChoice.light).toInt()
+    val accentTint: Int =
+        if (systemAccent) ctx.getColor(if (dark) android.R.color.system_accent1_800 else android.R.color.system_accent1_100)
+        else (if (dark) accentChoice.tintDark else accentChoice.tintLight).toInt()
     val fmt = app.moneytracker.domain.CurrencyFormat(r.settingNow(Keys.CURRENCY_SYMBOL) ?: "₹",
         r.settingNow(Keys.CURRENCY_DECIMALS)?.toIntOrNull() ?: 2, r.settingNow(Keys.SYMBOL_AFTER) == "1")
 
     fun background(v: RemoteViews) {
-        v.setInt(R.id.w_bg, "setColorFilter", if (dark) 0xFF1A1B1E.toInt() else 0xFFFFFFFF.toInt())
+        v.setInt(R.id.w_bg, "setColorFilter", surface)
         v.setInt(R.id.w_bg, "setImageAlpha", opacity * 255 / 100)
     }
     fun openApp(ctx: Context, v: RemoteViews) =
-        v.setOnClickPendingIntent(R.id.w_root, PendingIntent.getActivity(ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE))
+        v.setOnClickPendingIntent(android.R.id.background, PendingIntent.getActivity(ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE))
     /** Fixed labels from the layouts, set here so widgets follow the app language. */
     fun labels(v: RemoteViews, vararg idToText: Pair<Int, String>) = idToText.forEach { (id, text) -> v.setTextViewText(id, tr(text)) }
-    fun quickAdd(ctx: Context, v: RemoteViews, transfer: Boolean = true, income: Boolean = true) {
+
+    /** The app's two add buttons: income on the accent tint, and the accent "+" for an expense. */
+    fun addButtons(ctx: Context, v: RemoteViews) {
+        v.setInt(R.id.w_add_expense_bg, "setColorFilter", accent)
+        v.setContentDescription(R.id.w_add_expense, tr("Add expense"))
         v.setOnClickPendingIntent(R.id.w_add_expense, Launch.pending(ctx, LaunchAction.ADD_EXPENSE))
-        if (income) v.setOnClickPendingIntent(R.id.w_add_income, Launch.pending(ctx, LaunchAction.ADD_INCOME))
-        if (transfer) v.setOnClickPendingIntent(R.id.w_add_transfer, Launch.pending(ctx, LaunchAction.ADD_TRANSFER))
+        v.setInt(R.id.w_add_income_bg, "setColorFilter", accentTint)
+        v.setInt(R.id.w_add_income_icon, "setColorFilter", incomeColor)
+        v.setContentDescription(R.id.w_add_income, tr("Add income"))
+        v.setOnClickPendingIntent(R.id.w_add_income, Launch.pending(ctx, LaunchAction.ADD_INCOME))
+    }
+
+    /** Colours, labels and taps of the Expense / Income / Transfer pills; icon-only when [labels] don't fit. */
+    fun pills(ctx: Context, v: RemoteViews, labels: Boolean) {
+        data class Pill(val root: Int, val bg: Int, val icon: Int, val label: Int, val text: String, val description: String, val color: Int, val action: LaunchAction)
+        listOf(
+            Pill(R.id.w_add_expense, R.id.w_add_expense_bg, R.id.w_add_expense_icon, R.id.w_add_expense_label, "Expense", "Add expense", expenseColor, LaunchAction.ADD_EXPENSE),
+            Pill(R.id.w_add_income, R.id.w_add_income_bg, R.id.w_add_income_icon, R.id.w_add_income_label, "Income", "Add income", incomeColor, LaunchAction.ADD_INCOME),
+            Pill(R.id.w_add_transfer, R.id.w_add_transfer_bg, R.id.w_add_transfer_icon, R.id.w_add_transfer_label, "Transfer", "Add transfer", subtle, LaunchAction.ADD_TRANSFER),
+        ).forEach { p ->
+            // The pill shape keeps its low alpha; the filter only changes its hue.
+            v.setInt(p.bg, "setColorFilter", p.color)
+            v.setInt(p.icon, "setColorFilter", p.color)
+            v.setTextViewText(p.label, tr(p.text)); v.setTextColor(p.label, ink)
+            v.setViewVisibility(p.label, if (labels) android.view.View.VISIBLE else android.view.View.GONE)
+            v.setContentDescription(p.root, tr(p.description))
+            v.setOnClickPendingIntent(p.root, Launch.pending(ctx, p.action))
+        }
     }
 }
+
+/** A widget's current size in dp (portrait width); 0 when the launcher doesn't report it. */
+internal class WidgetSize(val widthDp: Int)
+internal fun sizeOf(manager: AppWidgetManager, id: Int) = WidgetSize(manager.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH))
 
 /** Base for the home-screen widgets: renders off the main thread with the user's data. */
 abstract class MoneyWidget : AppWidgetProvider() {
     override fun onUpdate(ctx: Context, manager: AppWidgetManager, ids: IntArray) {
         val pending = goAsync()
-        Thread { try { ids.forEach { manager.updateAppWidget(it, build(ctx, repo(ctx))) } } finally { pending.finish() } }.start()
+        Thread {
+            try { ids.forEach { manager.updateAppWidget(it, build(ctx, repo(ctx), sizeOf(manager, it))) }; afterUpdate(manager, ids) }
+            finally { pending.finish() }
+        }.start()
     }
-    abstract fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository): RemoteViews
+
+    /** Called after the widgets were redrawn, e.g. to reload list rows. */
+    open fun afterUpdate(manager: AppWidgetManager, ids: IntArray) {}
+
+    /** Resized: rebuild so the layout fits the new width. */
+    override fun onAppWidgetOptionsChanged(ctx: Context, manager: AppWidgetManager, id: Int, options: android.os.Bundle) {
+        val pending = goAsync()
+        Thread { try { manager.updateAppWidget(id, build(ctx, repo(ctx), sizeOf(manager, id))) } finally { pending.finish() } }.start()
+    }
+
+    internal abstract fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository, size: WidgetSize): RemoteViews
 
     protected fun monthLabel(r: app.moneytracker.data.MoneyRepository): Pair<String, app.moneytracker.domain.YearMonth> {
         val label = r.periodSettingsNow().labelFor(r.today())
@@ -261,24 +314,21 @@ abstract class MoneyWidget : AppWidgetProvider() {
     }
 }
 
-/** This month's totals plus the three add buttons (4x2). */
+/** This month like the app's main screen: month, income / expenses / total and the add buttons (fixed 4x1). */
 class SummaryWidget : MoneyWidget() {
-    override fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository): RemoteViews {
+    override fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository, size: WidgetSize): RemoteViews {
         val st = WidgetStyle(ctx, r)
         val (month, label) = monthLabel(r)
         val t = r.totalsNow(r.periodSettingsNow().month(label))
         val v = RemoteViews(ctx.packageName, R.layout.widget_summary)
         st.background(v)
-        v.setTextViewText(R.id.w_month, month)
-        v.setTextColor(R.id.w_month, st.ink); v.setTextColor(R.id.w_total, st.ink)
+        v.setTextViewText(R.id.w_month, month); v.setTextColor(R.id.w_month, st.ink)
         listOf(R.id.w_l_income, R.id.w_l_expense, R.id.w_l_total).forEach { v.setTextColor(it, st.subtle) }
-        st.labels(v, R.id.w_l_income to "Income", R.id.w_l_expense to "Expenses", R.id.w_l_total to "Total",
-            R.id.w_add_expense to "+ Expense", R.id.w_add_income to "+ Income", R.id.w_add_transfer to "Transfer")
-        v.setTextColor(R.id.w_income, st.incomeColor); v.setTextColor(R.id.w_expense, st.expenseColor)
-        v.setTextViewText(R.id.w_income, st.fmt.format(t.income))
-        v.setTextViewText(R.id.w_expense, st.fmt.format(t.expense))
-        v.setTextViewText(R.id.w_total, st.fmt.format(t.net))
-        st.openApp(ctx, v); st.quickAdd(ctx, v)
+        st.labels(v, R.id.w_l_income to "Income", R.id.w_l_expense to "Expenses", R.id.w_l_total to "Total")
+        v.setTextViewText(R.id.w_income, st.fmt.format(t.income)); v.setTextColor(R.id.w_income, st.incomeColor)
+        v.setTextViewText(R.id.w_expense, st.fmt.format(t.expense)); v.setTextColor(R.id.w_expense, st.expenseColor)
+        v.setTextViewText(R.id.w_total, st.fmt.format(t.net)); v.setTextColor(R.id.w_total, st.ink)
+        st.openApp(ctx, v); st.addButtons(ctx, v)
         return v
     }
 
@@ -286,62 +336,80 @@ class SummaryWidget : MoneyWidget() {
         /** Refreshes every kind of widget after data or settings change. */
         fun updateAll(ctx: Context) {
             val manager = AppWidgetManager.getInstance(ctx)
-            listOf(SummaryWidget(), QuickAddWidget(), MonthWidget(), CardsWidget()).forEach { w ->
+            listOf(SummaryWidget(), QuickAddWidget(), CardsWidget()).forEach { w ->
                 val ids = manager.getAppWidgetIds(ComponentName(ctx, w::class.java))
-                if (ids.isNotEmpty()) Thread { ids.forEach { manager.updateAppWidget(it, w.build(ctx, repo(ctx))) } }.start()
+                if (ids.isNotEmpty()) Thread {
+                    ids.forEach { manager.updateAppWidget(it, w.build(ctx, repo(ctx), sizeOf(manager, it))) }
+                    w.afterUpdate(manager, ids)
+                }.start()
             }
         }
     }
 }
 
-/** Quick-add widget: Expense / Income / Transfer. */
+/** Quick-add widget: Expense / Income / Transfer pills. */
 class QuickAddWidget : MoneyWidget() {
-    override fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository): RemoteViews {
+    override fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository, size: WidgetSize): RemoteViews {
         val st = WidgetStyle(ctx, r)
         val v = RemoteViews(ctx.packageName, R.layout.widget_quick_add)
-        st.background(v); st.quickAdd(ctx, v)
-        st.labels(v, R.id.w_add_expense to "Expense", R.id.w_add_income to "Income", R.id.w_add_transfer to "Transfer")
+        st.background(v); st.pills(ctx, v, labels = size.widthDp == 0 || size.widthDp >= 200)
         return v
     }
 }
 
-/** One line: month, income, expenses, total and a + button (4x1). */
-class MonthWidget : MoneyWidget() {
-    override fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository): RemoteViews {
-        val st = WidgetStyle(ctx, r)
-        val (month, label) = monthLabel(r)
-        val t = r.totalsNow(r.periodSettingsNow().month(label))
-        val v = RemoteViews(ctx.packageName, R.layout.widget_month)
-        st.background(v)
-        v.setTextViewText(R.id.w_month, month); v.setTextColor(R.id.w_month, st.ink)
-        v.setTextViewText(R.id.w_income, st.fmt.format(t.income)); v.setTextColor(R.id.w_income, st.incomeColor)
-        v.setTextViewText(R.id.w_expense, st.fmt.format(t.expense)); v.setTextColor(R.id.w_expense, st.expenseColor)
-        v.setTextViewText(R.id.w_total, st.fmt.format(t.net)); v.setTextColor(R.id.w_total, st.ink)
-        st.openApp(ctx, v); st.quickAdd(ctx, v, transfer = false, income = false)
-        return v
-    }
-}
-
-/** Credit cards with what's due and this cycle's spending. */
+/** Credit cards: a scrolling list of every card with what's due and this cycle's spending (4x2). */
 class CardsWidget : MoneyWidget() {
-    override fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository): RemoteViews {
+    override fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository, size: WidgetSize): RemoteViews {
         val st = WidgetStyle(ctx, r)
         val v = RemoteViews(ctx.packageName, R.layout.widget_cards)
         st.background(v)
-        v.setTextColor(R.id.w_month, st.ink)
-        st.labels(v, R.id.w_month to "Cards")
-        val cardGroups = r.groupsNow().filter { it.type.isCreditCard }.map { it.id }.toSet()
-        val prepaid = r.txnIdsWithTag(app.moneytracker.domain.TAG_PREPAYMENT)
-        val lines = r.accountsNow().filter { it.groupId in cardGroups && !it.hidden }.map { a ->
-            val s = app.moneytracker.domain.cardStatus(r.accountTxns(a.id), a.cardSettlementDay ?: 1, r.today(), prepaid)
-            tr("{0}   due {1} · this cycle {2}", a.name, st.fmt.format(s.statementDue + s.overdue), st.fmt.format(s.cycleSpend))
-        }
-        val rows = listOf(R.id.w_row1, R.id.w_row2, R.id.w_row3, R.id.w_row4, R.id.w_row5)
-        rows.forEachIndexed { i, id ->
-            v.setTextViewText(id, lines.getOrNull(i) ?: if (i == 0 && lines.isEmpty()) tr("No credit cards") else "")
-            v.setTextColor(id, if (i == 0 && lines.isEmpty()) st.subtle else st.ink)
-        }
+        v.setTextColor(R.id.w_title, st.ink); v.setTextColor(R.id.w_empty, st.subtle)
+        st.labels(v, R.id.w_title to "Credit cards", R.id.w_empty to "No credit cards")
+        v.setRemoteAdapter(R.id.w_list, Intent(ctx, CardsWidgetService::class.java))
+        v.setEmptyView(R.id.w_list, R.id.w_empty)
+        // Rows fill in this template; a template must be mutable on Android 12+.
+        v.setPendingIntentTemplate(R.id.w_list, PendingIntent.getActivity(ctx, 1, Intent(ctx, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)))
         st.openApp(ctx, v)
         return v
+    }
+
+    /** The list's rows come from [CardsWidgetService]; ask it to reload. */
+    override fun afterUpdate(manager: AppWidgetManager, ids: IntArray) = manager.notifyAppWidgetViewDataChanged(ids, R.id.w_list)
+}
+
+/** Rows for [CardsWidget]'s list. */
+class CardsWidgetService : android.widget.RemoteViewsService() {
+    override fun onGetViewFactory(intent: Intent): RemoteViewsFactory = object : RemoteViewsFactory {
+        private var rows: List<RemoteViews> = emptyList()
+
+        /** Runs on a binder thread, so reading the database here is fine. */
+        override fun onDataSetChanged() {
+            val ctx = applicationContext
+            val r = repo(ctx)
+            val st = WidgetStyle(ctx, r)
+            val cardGroups = r.groupsNow().filter { it.type.isCreditCard }.map { it.id }.toSet()
+            val prepaid = r.txnIdsWithTag(app.moneytracker.domain.TAG_PREPAYMENT)
+            rows = r.accountsNow().filter { it.groupId in cardGroups && !it.hidden }.map { a ->
+                val s = app.moneytracker.domain.cardStatus(r.accountTxns(a.id), a.cardSettlementDay ?: 1, r.today(), prepaid)
+                val owed = s.statementDue + s.overdue
+                RemoteViews(ctx.packageName, R.layout.widget_card_item).apply {
+                    setInt(R.id.w_card_bg, "setColorFilter", st.panel)
+                    setTextViewText(R.id.w_card_name, a.name); setTextColor(R.id.w_card_name, st.ink)
+                    setTextViewText(R.id.w_card_cycle, tr("This cycle {0}", st.fmt.format(s.cycleSpend))); setTextColor(R.id.w_card_cycle, st.subtle)
+                    setTextViewText(R.id.w_card_due, tr("Due {0}", st.fmt.format(owed))); setTextColor(R.id.w_card_due, if (owed > 0) st.expenseColor else st.subtle)
+                    setOnClickFillInIntent(R.id.w_card, Intent())
+                }
+            }
+        }
+
+        override fun onCreate() {}
+        override fun onDestroy() { rows = emptyList() }
+        override fun getCount() = rows.size
+        override fun getViewAt(position: Int) = rows[position]
+        override fun getLoadingView(): RemoteViews? = null
+        override fun getViewTypeCount() = 1
+        override fun getItemId(position: Int) = position.toLong()
+        override fun hasStableIds() = false
     }
 }

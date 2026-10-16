@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "எ.கா. “மதிய உணவுக்கு 250 செலவு”",
 "no end": "முடிவு இல்லை",
 "or use your fingerprint / face": "அல்லது உங்கள் கைரேகை / முகத்தைப் பயன்படுத்தவும்",
-"{0}   due {1} · this cycle {2}": "{0}   செலுத்த வேண்டிய நாள் {1} · இந்தச் சுழற்சி {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} கண்டறியப்பட்டது · வருமானம் {1} · செலவு {2}",
 "{0} installments": "{0} தவணைகள்",
@@ -614,5 +613,7 @@
 "Open-source libraries": "திறந்த மூல நூலகங்கள்",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "முழு உரை, ஆஃப்லைனில்",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. இன் Money Manager ஆல் ஈர்க்கப்பட்டது. MoneyTracker ஒரு சுயாதீனப் பயன்பாடு; இது Realbyte உடன் தொடர்புடையதோ அவர்களால் அங்கீகரிக்கப்பட்டதோ அல்ல, மேலும் Money Manager காப்புப் பிரதிகளை இறக்குமதி செய்ய முடியும்."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. இன் Money Manager ஆல் ஈர்க்கப்பட்டது. MoneyTracker ஒரு சுயாதீனப் பயன்பாடு; இது Realbyte உடன் தொடர்புடையதோ அவர்களால் அங்கீகரிக்கப்பட்டதோ அல்ல, மேலும் Money Manager காப்புப் பிரதிகளை இறக்குமதி செய்ய முடியும்.",
+"This cycle {0}": "இந்தச் சுழற்சி {0}",
+"Due {0}": "செலுத்த வேண்டியது {0}"
 }

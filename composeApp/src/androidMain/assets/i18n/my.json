@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ဥပမာ “နေ့လည်စာ ၂၅၀ သုံးခဲ့သည်”",
 "no end": "အဆုံးမရှိ",
 "or use your fingerprint / face": "သို့မဟုတ် သင့်လက်ဗွေ / မျက်နှာကို သုံးပါ",
-"{0}   due {1} · this cycle {2}": "{0}   ပေးရန် {1} · ဤစက်ဝန်း {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "တွေ့ရှိ {0} · ဝင်ငွေ {1} · အသုံးစရိတ် {2}",
 "{0} installments": "အရစ်ကျ {0} ကြိမ်",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Open source စာကြည့်တိုက်များ",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "စာသားအပြည့်၊ အော့ဖ်လိုင်း",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. ၏ Money Manager မှ စိတ်ကူးရယူထားသည်။ MoneyTracker သည် လွတ်လပ်သော အက်ပ်ဖြစ်ပြီး Realbyte နှင့် ဆက်စပ်မှုမရှိ၊ ၎င်းတို့၏ ထောက်ခံမှုလည်း မရှိပါ။ Money Manager အရန်ကူးထားမှုများကို တင်သွင်းနိုင်သည်။"
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. ၏ Money Manager မှ စိတ်ကူးရယူထားသည်။ MoneyTracker သည် လွတ်လပ်သော အက်ပ်ဖြစ်ပြီး Realbyte နှင့် ဆက်စပ်မှုမရှိ၊ ၎င်းတို့၏ ထောက်ခံမှုလည်း မရှိပါ။ Money Manager အရန်ကူးထားမှုများကို တင်သွင်းနိုင်သည်။",
+"This cycle {0}": "ဤစက်ဝန်း {0}",
+"Due {0}": "ပေးရန် {0}"
 }

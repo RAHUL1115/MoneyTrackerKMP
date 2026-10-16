@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ఉదా. “భోజనానికి 250 ఖర్చు చేశాను”",
 "no end": "ముగింపు లేదు",
 "or use your fingerprint / face": "లేదా మీ వేలిముద్ర / ముఖాన్ని ఉపయోగించండి",
-"{0}   due {1} · this cycle {2}": "{0}   గడువు {1} · ఈ సైకిల్ {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "{0} కనుగొనబడ్డాయి · ఆదాయం {1} · ఖర్చు {2}",
 "{0} installments": "{0} వాయిదాలు",
@@ -614,5 +613,7 @@
 "Open-source libraries": "ఓపెన్ సోర్స్ లైబ్రరీలు",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "పూర్తి పాఠం, ఆఫ్‌లైన్",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. యొక్క Money Manager నుండి ప్రేరణ పొందింది. MoneyTracker ఒక స్వతంత్ర యాప్; ఇది Realbyte తో అనుబంధం కలిగినది లేదా వారి ఆమోదం పొందినది కాదు, మరియు Money Manager బ్యాకప్‌లను దిగుమతి చేయగలదు."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Realbyte Inc. యొక్క Money Manager నుండి ప్రేరణ పొందింది. MoneyTracker ఒక స్వతంత్ర యాప్; ఇది Realbyte తో అనుబంధం కలిగినది లేదా వారి ఆమోదం పొందినది కాదు, మరియు Money Manager బ్యాకప్‌లను దిగుమతి చేయగలదు.",
+"This cycle {0}": "ఈ సైకిల్ {0}",
+"Due {0}": "చెల్లించాల్సింది {0}"
 }

@@ -1,0 +1,5 @@
+• Redesigned home-screen widgets to match the app: your accent colour, light/dark style and rounded corners
+• MoneyTracker widget: a fixed 4x1 with the month, income, expenses, total and quick add buttons
+• Credit cards widget: a scrolling list of all your cards with what's due and this cycle's spending
+• Quick add widget: tidier buttons that show icons only when space is tight
+• The separate "This month" widget was removed; use the MoneyTracker widget instead

@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "ví dụ “chi 250 cho bữa trưa”",
 "no end": "không kết thúc",
 "or use your fingerprint / face": "hoặc dùng vân tay / khuôn mặt",
-"{0}   due {1} · this cycle {2}": "{0}   đến hạn {1} · kỳ này {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Tìm thấy {0} · thu nhập {1} · chi tiêu {2}",
 "{0} installments": "{0} kỳ trả góp",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Thư viện mã nguồn mở",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Toàn văn, ngoại tuyến",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Lấy cảm hứng từ Money Manager của Realbyte Inc. MoneyTracker là ứng dụng độc lập, không liên kết với hay được Realbyte bảo trợ, và có thể nhập các bản sao lưu của Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Lấy cảm hứng từ Money Manager của Realbyte Inc. MoneyTracker là ứng dụng độc lập, không liên kết với hay được Realbyte bảo trợ, và có thể nhập các bản sao lưu của Money Manager.",
+"This cycle {0}": "Kỳ này {0}",
+"Due {0}": "Phải trả {0}"
 }

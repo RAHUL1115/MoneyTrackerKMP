@@ -587,7 +587,6 @@
 "e.g. “spent 250 on lunch”": "напр. „похарчих 250 за обяд“",
 "no end": "без край",
 "or use your fingerprint / face": "или използвайте пръстов отпечатък / лице",
-"{0}   due {1} · this cycle {2}": "{0}   падеж {1} · този цикъл {2}",
 "{0} KB": "{0} KB",
 "{0} found · income {1} · expense {2}": "Намерени {0} · приходи {1} · разходи {2}",
 "{0} installments": "{0} вноски",
@@ -614,5 +613,7 @@
 "Open-source libraries": "Библиотеки с отворен код",
 "Apache License 2.0": "Apache License 2.0",
 "Full text, offline": "Пълен текст, офлайн",
-"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Вдъхновено от Money Manager на Realbyte Inc. MoneyTracker е независимо приложение, несвързано с Realbyte и неодобрено от тях, и може да импортира архиви от Money Manager."
+"Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups.": "Вдъхновено от Money Manager на Realbyte Inc. MoneyTracker е независимо приложение, несвързано с Realbyte и неодобрено от тях, и може да импортира архиви от Money Manager.",
+"This cycle {0}": "Този цикъл {0}",
+"Due {0}": "Дължимо {0}"
 }
