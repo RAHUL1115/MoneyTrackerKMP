@@ -1,0 +1,1 @@
+• Accounts: an account with "Include in totals" turned off no longer counts towards its group's total (including a credit-card group's payable and outstanding amounts)

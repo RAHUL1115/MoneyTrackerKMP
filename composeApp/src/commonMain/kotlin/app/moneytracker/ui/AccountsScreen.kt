@@ -131,11 +131,13 @@ fun AccountsTab() {
             // Every group keeps its header and total; hidden accounts only lose their own row.
             lines.groupBy { it.group }.entries.sortedBy { it.key.sortOrder }.forEach { (group, groupLines) ->
                 val isCard = group.type.isCreditCard
+                // Accounts with "Include in totals" off still show below, but don't add to the group's total.
+                val counted = groupLines.filter { it.account.includeInTotals }
                 item(key = "g${group.id}") {
                     Column(Modifier.padding(top = 10.dp).card()) {
                         if (isCard) {
-                            val payable = groupLines.sumOf { (it.card?.statementDue ?: 0) + (it.card?.overdue ?: 0) }
-                            val outstanding = groupLines.sumOf { (it.card?.currentCycle ?: 0) + (it.card?.upcoming ?: 0) }
+                            val payable = counted.sumOf { (it.card?.statementDue ?: 0) + (it.card?.overdue ?: 0) }
+                            val outstanding = counted.sumOf { (it.card?.currentCycle ?: 0) + (it.card?.upcoming ?: 0) }
                             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.Bottom) {
                                 Text(group.name, Modifier.weight(1f), color = SubtleText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                 CardColumn(tr("Balance payable"), currency.format(payable))
@@ -143,7 +145,7 @@ fun AccountsTab() {
                             }
                         } else {
                             // In the main currency: foreign-currency accounts are converted at their rate.
-                            val sum = groupLines.sumOf {
+                            val sum = counted.sumOf {
                                 val v = if (group.type.isDebitCard) it.balance else it.effectiveBalance
                                 app.moneytracker.domain.Fx.toMain(v, it.account.currency?.let { c -> currencies[c] }, currency.decimals)
                             }
