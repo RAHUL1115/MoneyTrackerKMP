@@ -115,6 +115,16 @@ class MoneyRepository(
 ) {
     private val q get() = db.moneyQueries
 
+    /** A live list query that also remembers its latest result (see [CachedFlow]). */
+    private fun <R : Any, T> cached(query: () -> app.cash.sqldelight.Query<R>, map: (List<R>) -> T): CachedFlow<T> =
+        CachedFlow(query().asFlow().mapToList(io).map { map(it) }) { map(query().executeAsList()) }
+
+    /** The most recently viewed periods' rows (months, years, custom ranges), so switching back to one is instant. */
+    private val rangeCache = FlowCache(max = 24)
+
+    /** Results screens computed off the main thread (e.g. the accounts summary), shown at once the next time they open. */
+    val screenCache = mutableMapOf<String, Any?>()
+
     // ───────────────────────── settings
 
     object Keys {
@@ -173,9 +183,9 @@ class MoneyRepository(
     /** Sub-categories are optional and off unless the user turns them on. */
     val useSubcategories: Flow<Boolean> = flag(Keys.USE_SUBCATEGORIES)
 
-    val periodSettings: Flow<PeriodSettings> = combine(
+    val periodSettings: CachedFlow<PeriodSettings> = CachedFlow(combine(
         setting(Keys.MONTH_START_DAY), setting(Keys.WEEKEND_SHIFT), setting(Keys.WEEK_START),
-    ) { day, shift, week -> parsePeriodSettings(day, shift, week) }
+    ) { day, shift, week -> parsePeriodSettings(day, shift, week) }) { periodSettingsNow() }
 
     fun periodSettingsNow() = parsePeriodSettings(settingNow(Keys.MONTH_START_DAY), settingNow(Keys.WEEKEND_SHIFT), settingNow(Keys.WEEK_START))
 
@@ -185,14 +195,15 @@ class MoneyRepository(
         week?.let { runCatching { DayOfWeek.valueOf(it) }.getOrNull() } ?: DayOfWeek.SUNDAY,
     )
 
-    val currency: Flow<CurrencyFormat> = combine(setting(Keys.CURRENCY_SYMBOL), setting(Keys.CURRENCY_DECIMALS), setting(Keys.SYMBOL_AFTER)) { sym, dec, after ->
-        CurrencyFormat(sym ?: "₹", dec?.toIntOrNull() ?: 2, after == "1")
-    }
+    val currency: CachedFlow<CurrencyFormat> = CachedFlow(
+        combine(setting(Keys.CURRENCY_SYMBOL), setting(Keys.CURRENCY_DECIMALS), setting(Keys.SYMBOL_AFTER)) { sym, dec, after -> currencyFormat(sym, dec, after) },
+    ) { currencyFormat(settingNow(Keys.CURRENCY_SYMBOL), settingNow(Keys.CURRENCY_DECIMALS), settingNow(Keys.SYMBOL_AFTER)) }
+    private fun currencyFormat(sym: String?, dec: String?, after: String?) = CurrencyFormat(sym ?: "₹", dec?.toIntOrNull() ?: 2, after == "1")
     private fun mainDecimals() = settingNow(Keys.CURRENCY_DECIMALS)?.toIntOrNull() ?: 2
 
     // ───────────────────────── currencies
 
-    val currencies: Flow<List<Currency>> = q.allCurrencies().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
+    val currencies: CachedFlow<List<Currency>> = cached({ q.allCurrencies() }) { rows -> rows.map { it.toDomain() } }
     private fun currencyNow(code: String?): Currency? = code?.let { c -> q.allCurrencies().executeAsList().firstOrNull { it.code == c }?.toDomain() }
 
     fun saveCurrency(c: Currency) = q.upsertCurrency(CurrencyRow(c.code.uppercase(), c.symbol, c.decimals.toLong(), c.rate, c.sortOrder.toLong(), 0, now()))
@@ -200,10 +211,10 @@ class MoneyRepository(
 
     // ───────────────────────── accounts
 
-    val groups: Flow<List<AccountGroup>> = q.allGroups().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
+    val groups: CachedFlow<List<AccountGroup>> = cached({ q.allGroups() }) { rows -> rows.map { it.toDomain() } }
     val deletedGroups: Flow<List<AccountGroup>> = q.deletedGroups().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
     fun restoreGroup(id: String) = q.restoreGroup(now(), id)
-    val accounts: Flow<List<Account>> = q.allAccounts().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
+    val accounts: CachedFlow<List<Account>> = cached({ q.allAccounts() }) { rows -> rows.map { it.toDomain() } }
     val deletedAccounts: Flow<List<Account>> = q.deletedAccounts().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
     private fun accountNow(id: String?): Account? = id?.let { a -> q.allAccounts().executeAsList().firstOrNull { it.id == a }?.toDomain() }
 
@@ -211,8 +222,8 @@ class MoneyRepository(
      * Own-row balance per account as of today, in each account's currency. Future-dated rows
      * (upcoming installments, post-dated entries) are excluded. Debit-card folding happens in domain.summarize.
      */
-    val balances: Flow<Map<String, Long>> get() = q.balances(today().toEpochDays().toLong()).asFlow().mapToList(io).map { rows ->
-        rows.associate { it.accountId to it.balance.toLong() }
+    val balances: CachedFlow<Map<String, Long>> get() = today().toEpochDays().toLong().let { day ->
+        rangeCache.get("balances:$day") { cached({ q.balances(day) }) { rows -> rows.associate { it.accountId to it.balance.toLong() } } }
     }
 
     fun saveAccount(a: Account) = q.upsertAccount(
@@ -263,9 +274,9 @@ class MoneyRepository(
 
     // ───────────────────────── categories
 
-    val categories: Flow<List<Category>> = q.allCategories().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
+    val categories: CachedFlow<List<Category>> = cached({ q.allCategories() }) { rows -> rows.map { it.toDomain() } }
     /** Every category by id, deleted ones too: for showing the names of past entries (pickers use [categories]). */
-    val categoryById: Flow<Map<String, Category>> = q.categoriesWithDeleted().asFlow().mapToList(io).map { rows -> rows.associate { it.id to it.toDomain() } }
+    val categoryById: CachedFlow<Map<String, Category>> = cached({ q.categoriesWithDeleted() }) { rows -> rows.associate { it.id to it.toDomain() } }
 
     fun saveCategory(c: Category) =
         q.upsertCategory(CategoryRow(c.id, c.name, c.kind.name, c.parentId, c.sortOrder.toLong(), 0, now(), c.defaultAccountId))
@@ -274,10 +285,12 @@ class MoneyRepository(
 
     // ───────────────────────── transactions
 
-    fun txnsBetween(range: DateRange): Flow<List<Txn>> = combine(
-        q.txnsBetween(range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong()).asFlow().mapToList(io),
-        setting(Keys.TIME_SORT),
-    ) { rows, sort -> sortWithinDays(rows.map { it.toDomain() }, ascending = sort == "ASC") }
+    fun txnsBetween(range: DateRange): CachedFlow<List<Txn>> = rangeCache.get("txns:$range") {
+        val from = range.start.toEpochDays().toLong(); val to = range.endInclusive.toEpochDays().toLong()
+        CachedFlow(combine(q.txnsBetween(from, to).asFlow().mapToList(io), setting(Keys.TIME_SORT)) { rows, sort ->
+            sortWithinDays(rows.map { it.toDomain() }, ascending = sort == "ASC")
+        }) { sortWithinDays(q.txnsBetween(from, to).executeAsList().map { it.toDomain() }, ascending = settingNow(Keys.TIME_SORT) == "ASC") }
+    }
 
     /** Newest day first; within a day by recorded time (entries without one by entry order), newest first unless [ascending]. */
     fun sortWithinDays(txns: List<Txn>, ascending: Boolean = false): List<Txn> {
@@ -355,19 +368,19 @@ class MoneyRepository(
         }
     }
 
-    fun reportRows(range: DateRange): Flow<List<ReportRow>> = combine(
-        q.reportRows(range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong()).asFlow().mapToList(io),
-        flag(Keys.CARD_AT_PAYMENT),
-    ) { rows, cardAtPayment ->
-        rows.map {
-            ReportRow(
-                TxnKind.valueOf(it.kind), it.amount, it.categoryId, it.srcTransferExpense != 0L, it.dstTransferExpense != 0L,
-                LocalDate.fromEpochDays(it.date.toInt()),
-                srcIsCard = it.srcType == AccountType.CREDIT_CARD.name, dstIsCard = it.dstType == AccountType.CREDIT_CARD.name,
-                cardAtPayment = cardAtPayment, txnId = it.id, accountId = it.accountId, note = it.note,
-            )
-        }
+    fun reportRows(range: DateRange): CachedFlow<List<ReportRow>> = rangeCache.get("report:$range") {
+        val from = range.start.toEpochDays().toLong(); val to = range.endInclusive.toEpochDays().toLong()
+        CachedFlow(combine(q.reportRows(from, to).asFlow().mapToList(io), flag(Keys.CARD_AT_PAYMENT)) { rows, cardAtPayment ->
+            rows.map { it.toReportRow(cardAtPayment) }
+        }) { q.reportRows(from, to).executeAsList().map { it.toReportRow(settingNow(Keys.CARD_AT_PAYMENT) == "1") } }
     }
+
+    private fun app.moneytracker.db.ReportRows.toReportRow(cardAtPayment: Boolean) = ReportRow(
+        TxnKind.valueOf(kind), amount, categoryId, srcTransferExpense != 0L, dstTransferExpense != 0L,
+        LocalDate.fromEpochDays(date.toInt()),
+        srcIsCard = srcType == AccountType.CREDIT_CARD.name, dstIsCard = dstType == AccountType.CREDIT_CARD.name,
+        cardAtPayment = cardAtPayment, txnId = id, accountId = accountId, note = note,
+    )
 
     /** Synchronous totals for widgets / notifications (same rules as [reportRows]). */
     fun totalsNow(range: DateRange): app.moneytracker.domain.Totals {
@@ -515,9 +528,9 @@ class MoneyRepository(
 
     // ───────────────────────── tags
 
-    val tags: Flow<List<Tag>> = q.allTags().asFlow().mapToList(io).map { rows -> rows.map { Tag(it.id, it.name, it.sortOrder.toInt()) } }
+    val tags: CachedFlow<List<Tag>> = cached({ q.allTags() }) { rows -> rows.map { Tag(it.id, it.name, it.sortOrder.toInt()) } }
     /** txnId → tag names, for list rendering. */
-    val txnTagNames: Flow<Map<String, List<String>>> = q.allTxnTags().asFlow().mapToList(io).map { rows ->
+    val txnTagNames: CachedFlow<Map<String, List<String>>> = cached({ q.allTxnTags() }) { rows ->
         rows.groupBy({ it.txnId }, { it.name })
     }
 
@@ -554,13 +567,15 @@ class MoneyRepository(
     fun photos(txnId: String): Flow<List<Photo>> = q.photosForTxn(txnId).asFlow().mapToList(io).map { rows ->
         rows.map { Photo(it.id, it.txnId, it.fileName, it.createdAt) }
     }
-    val txnIdsWithPhotos: Flow<Set<String>> = q.txnIdsWithPhotos().asFlow().mapToList(io).map { it.toSet() }
+    /** Synchronous: the edit screen fills its form from this before the first frame. */
+    fun photosNow(txnId: String): List<Photo> = q.photosForTxn(txnId).executeAsList().map { Photo(it.id, it.txnId, it.fileName, it.createdAt) }
+    val txnIdsWithPhotos: CachedFlow<Set<String>> = cached({ q.txnIdsWithPhotos() }) { it.toSet() }
     fun addPhoto(txnId: String, fileName: String) = q.insertPhoto(PhotoRow(newId(), txnId, fileName, now(), 0))
     fun deletePhoto(id: String) = q.softDeletePhoto(id)
 
     // ───────────────────────── notes
 
-    val notes: Flow<List<Note>> = q.allNotes().asFlow().mapToList(io).map { rows ->
+    val notes: CachedFlow<List<Note>> = cached({ q.allNotes() }) { rows ->
         rows.map { Note(it.id, it.title, it.content, it.color.toInt(), it.pinned != 0L, it.createdAt, it.updatedAt) }
     }
     fun saveNote(n: Note) = q.upsertNote(NoteRow(n.id, n.title, n.content, n.color.toLong(), n.pinned.toLong(), n.createdAt, now(), 0))
@@ -568,7 +583,7 @@ class MoneyRepository(
 
     // ───────────────────────── templates
 
-    val templates: Flow<List<Template>> = q.allTemplates().asFlow().mapToList(io).map { rows ->
+    val templates: CachedFlow<List<Template>> = cached({ q.allTemplates() }) { rows ->
         rows.map { Template(it.id, it.name, DraftType.valueOf(it.type), it.accountId, it.toAccountId, it.categoryId, it.amount, it.note, it.memo, it.sortOrder.toInt()) }
     }
     fun saveTemplate(t: Template) = q.upsertTemplate(TemplateRow(t.id, t.name, t.type.name, t.accountId, t.toAccountId, t.categoryId,
@@ -577,7 +592,7 @@ class MoneyRepository(
 
     // ───────────────────────── captured SMS
 
-    val pendingCaptures: Flow<List<Capture>> = q.pendingCaptures().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
+    val pendingCaptures: CachedFlow<List<Capture>> = cached({ q.pendingCaptures() }) { rows -> rows.map { it.toDomain() } }
 
     /** Stores a parsed message unless the same text from the same sender arrived in the last 2 minutes. */
     fun addCapture(c: Capture): Boolean = db.transactionWithResult {
@@ -684,7 +699,7 @@ class MoneyRepository(
 
     // ───────────────────────── recurring
 
-    val rules: Flow<List<RecurringRule>> = q.activeRules().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
+    val rules: CachedFlow<List<RecurringRule>> = cached({ q.activeRules() }) { rows -> rows.map { it.toDomain() } }
 
     fun saveRule(r: RecurringRule) = q.upsertRule(
         RuleRow(r.id, r.kind.name, r.accountId, r.toAccountId, r.categoryId, r.amount, r.note, r.repeat.name,
@@ -725,8 +740,9 @@ class MoneyRepository(
 
     // ───────────────────────── budgets
 
-    fun budgetEntries(upTo: YearMonth): Flow<List<BudgetEntry>> = q.budgetAmountsUpTo(upTo.key.toLong()).asFlow().mapToList(io)
-        .map { rows -> rows.map { BudgetEntry(it.categoryId, it.period.toInt(), it.amount) } }
+    fun budgetEntries(upTo: YearMonth): CachedFlow<List<BudgetEntry>> = rangeCache.get("budget:${upTo.key}") {
+        cached({ q.budgetAmountsUpTo(upTo.key.toLong()) }) { rows -> rows.map { BudgetEntry(it.categoryId, it.period.toInt(), it.amount) } }
+    }
 
     /** Sets the budget from [from] onward (later explicit changes are replaced). 0 removes it. */
     fun setBudget(categoryId: String, from: YearMonth, amount: Long) = db.transaction {
@@ -842,7 +858,7 @@ class MoneyRepository(
     }
 
     /** Names of every account, including deleted ones, so old transactions keep showing where they happened. */
-    val accountNames: Flow<Map<String, String>> = q.allAccountNames().asFlow().mapToList(io).map { rows -> rows.associate { it.id to it.name } }
+    val accountNames: CachedFlow<Map<String, String>> = cached({ q.allAccountNames() }) { rows -> rows.associate { it.id to it.name } }
 
     // ───────────────────────── first-run seed
 

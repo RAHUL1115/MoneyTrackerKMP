@@ -1,0 +1,4 @@
+• Faster, smoother app: screens draw their data straight away instead of flashing empty first
+• Opening an entry shows it at once, with no flash of a blank or different layout
+• Going back to the main page from an entry is instant
+• Recently viewed months, stats and account summaries are kept in memory, so switching between them is instant

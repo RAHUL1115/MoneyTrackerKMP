@@ -93,7 +93,10 @@ private fun rememberAccountSummary(): Pair<List<AccountLine>, NetWorth>? {
     val currencies by repo.currencies.collectAsState(emptyList())
     val mainDecimals = LocalCurrency.current.decimals
     val tagged by repo.txnTagNames.collectAsState(emptyMap())     // re-run when tags change (Prepayment)
-    val summary by produceState<Pair<List<AccountLine>, NetWorth>?>(null, groups, accounts, balances, currencies, tagged) {
+    // Starts from the last summary, so reopening the tab draws at once; the fresh one replaces it moments later.
+    @Suppress("UNCHECKED_CAST")
+    val last = repo.screenCache["accountSummary"] as Pair<List<AccountLine>, NetWorth>?
+    val summary by produceState(last, groups, accounts, balances, currencies, tagged) {
         value = withContext(repo.io) {
             val prepaid = repo.txnIdsWithTag(TAG_PREPAYMENT)
             summarize(
@@ -101,7 +104,7 @@ private fun rememberAccountSummary(): Pair<List<AccountLine>, NetWorth>? {
                 cardStatusOf = { a -> cardStatus(repo.accountTxns(a.id), a.cardSettlementDay ?: 1, repo.today(), prepaid) },
                 toMain = { a, v -> Fx.toMain(v, currencies.firstOrNull { it.code == a.currency }, mainDecimals) },
             )
-        }
+        }.also { repo.screenCache["accountSummary"] = it }
     }
     return summary
 }

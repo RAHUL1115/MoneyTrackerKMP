@@ -1,5 +1,8 @@
 package app.moneytracker.ui
 
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -178,9 +181,17 @@ fun App(
                                 (seen - keys.toSet()).forEach { stateHolder.removeState(it) }
                                 seen.retainAll(keys.toSet()); seen.addAll(keys)
                             }
-                            stateHolder.SaveableStateProvider(keys.last()) {
-                            when (val top = navigator.stack.lastOrNull()) {
-                                null -> Home()
+                            val top = navigator.stack.lastOrNull()
+                            Box(Modifier.fillMaxSize()) {
+                            // Home stays composed (not drawn, not touchable, hidden from accessibility) under other
+                            // screens, so going back shows it at once with its data already loaded instead of blank.
+                            stateHolder.SaveableStateProvider("home") {
+                                Box(Modifier.fillMaxSize().then(if (top != null) Modifier.drawWithContent { }.clearAndSetSemantics { } else Modifier)) { Home() }
+                            }
+                            if (top != null) stateHolder.SaveableStateProvider(keys.last()) {
+                            // Takes every touch, so none reach Home underneath.
+                            Box(Modifier.fillMaxSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }) {
+                            when (top) {
                                 is Screen.EditTxn -> EditTxnScreen(top)
                                 is Screen.AccountDetail -> AccountDetailScreen(top.accountId)
                                 is Screen.EditAccount -> EditAccountScreen(top.accountId)
@@ -206,6 +217,8 @@ fun App(
                                 Screen.Security -> SecurityScreen()
                                 Screen.AccountsTrend -> AccountsTrendScreen()
                                 Screen.AccountGroups -> AccountGroupsScreen()
+                            }
+                            }
                             }
                             }
                         }

@@ -154,13 +154,14 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     var timeOfDay by remember { mutableStateOf(screen.preset?.timeOfDay ?: if (screen.txnId == null && timeOn) nowMinutes() else null) }
     var timePicker by remember { mutableStateOf(false) }
 
-    // Load the transaction being edited (with its transfer pair / fee / installment plan, tags, photos).
-    LaunchedEffect(screen.txnId) {
-        val id = screen.txnId ?: return@LaunchedEffect
-        val t = withContext(repo.io) { repo.txn(id) } ?: return@LaunchedEffect
-        val d = withContext(repo.io) { repo.draftFrom(t) }
-        // Photos first: the unsaved-changes baseline is taken once [existing] is set.
-        existingPhotos = repo.photos(t.id).first()
+    // Fill the form with the entry being edited (transfer pair / fee / installment plan, tags, photos) before the
+    // first frame: a few indexed rows read in well under a millisecond, and loading later would flash the
+    // new-entry defaults first.
+    remember(screen.txnId) {
+        val id = screen.txnId ?: return@remember
+        val t = repo.txn(id) ?: return@remember
+        val d = repo.draftFrom(t)
+        existingPhotos = repo.photosNow(t.id)
         adjustUp = t.kind == TxnKind.ADJUST_UP
         existing = t
         type = d.type; date = d.date; accountId = d.accountId; toAccountId = d.toAccountId; accountChosen = true
@@ -171,8 +172,9 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         if (d.fee > 0) { feeText = fmt.toInput(d.fee); showFee = true }
         note = d.note; memo = d.memo; installments = d.installments; tagIds = d.tagIds; timeOfDay = d.timeOfDay; origin = d.origin
         lat = t.lat; lng = t.lng
-        repo.photos(t.id).collect { existingPhotos = it }
     }
+    // Then keep the photo strip current (photos added or removed while editing).
+    LaunchedEffect(existing?.id) { existing?.let { t -> repo.photos(t.id).collect { existingPhotos = it } } }
     // New entries: capture location once if the user enabled it.
     LaunchedEffect(locationOn) {
         if (locationOn && screen.txnId == null && lat == null) platform.currentLocation({ a, b -> lat = a; lng = b }, {})
