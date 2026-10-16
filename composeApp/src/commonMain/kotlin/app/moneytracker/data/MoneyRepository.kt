@@ -170,6 +170,7 @@ class MoneyRepository(
         const val SMS_BLOCKED_PHRASES = "smsBlockedPhrases" // one per line
         const val SMS_CONTENT_FILTER = "smsContentFilter"   // one per line: removed from messages before reading them
         const val SMS_IMPORT_DAYS = "smsImportDays"       // "Import SMS": how far back to read the inbox
+        const val SMS_LAST_SCAN = "smsLastScan"           // epoch ms of the last catch-up read of the inbox
         const val ACCOUNTS_GROUPED = "accountsGrouped"    // "1" = account picker shows groups on the left, accounts on the right
     }
 

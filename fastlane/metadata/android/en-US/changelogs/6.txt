@@ -1,0 +1,5 @@
+• The quick-add notification comes back if it's swiped away, and whenever you open the app
+• Bank SMS that arrived while the app couldn't run are picked up the next time you open it
+• The daily reminder arrives on time, even when the phone is idle
+• Lighter on battery: widgets refresh less often in the background
+• Recurring entries due while the app was in the background now show up as soon as you return

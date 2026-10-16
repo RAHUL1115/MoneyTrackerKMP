@@ -5,7 +5,7 @@
     android:targetCellWidth="4"
     android:targetCellHeight="1"
     android:resizeMode="none"
-    android:updatePeriodMillis="1800000"
+    android:updatePeriodMillis="10800000"
     android:initialLayout="@layout/widget_summary"
     android:previewLayout="@layout/widget_summary"
     android:description="@string/widget_description"

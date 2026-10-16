@@ -270,7 +270,8 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
             PackageManager.DONT_KILL_APP,
         )
         if (!enabled) { toggle(false); return onResult(false) }
-        val perms = listOf(Manifest.permission.RECEIVE_SMS) + if (Build.VERSION.SDK_INT >= 33) listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
+        // READ_SMS lets the app catch up on messages that arrived while it couldn't run (same permission group, no extra prompt).
+        val perms = listOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS) + if (Build.VERSION.SDK_INT >= 33) listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
         withPermissions(perms) { ok -> toggle(ok); onResult(ok) }
     }
 

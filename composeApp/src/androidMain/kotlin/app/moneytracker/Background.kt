@@ -102,16 +102,30 @@ object Notifications {
         setContentDescription(R.id.qa_transfer, tr("Add transfer"))
     }
 
+    /**
+     * Android 14+ lets the user swipe away even ongoing notifications, so the delete intent
+     * re-posts it through [QuickAddDismissReceiver] while the setting is on.
+     */
     fun showQuickAdd(ctx: Context) = post(ctx, ID_QUICK, NotificationCompat.Builder(ctx, CH_QUICK)
         .setSmallIcon(R.drawable.ic_notification)
         .setContentTitle(tr("Quick add")).setColor(0xFF0F766E.toInt())
-        .setOngoing(true).setShowWhen(false).setPriority(NotificationCompat.PRIORITY_LOW)
+        .setOngoing(true).setAutoCancel(false).setShowWhen(false).setPriority(NotificationCompat.PRIORITY_LOW)
         .setStyle(NotificationCompat.DecoratedCustomViewStyle())
         .setCustomContentView(quickAddView(ctx))
         .setContentIntent(PendingIntent.getActivity(ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE))
-        .build())
+        .setDeleteIntent(PendingIntent.getBroadcast(ctx, ID_QUICK, Intent(ctx, QuickAddDismissReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+        .build().apply { flags = flags or android.app.Notification.FLAG_NO_CLEAR })
 
     fun cancelQuickAdd(ctx: Context) = NotificationManagerCompat.from(ctx).cancel(ID_QUICK)
+
+    /** Puts quick add back if the setting is on and it isn't showing (swiped away, or cleared while the app was stopped). */
+    fun restoreQuickAdd(ctx: Context) {
+        val r = repo(ctx)
+        if (r.settingNow(Keys.QUICK_ADD_NOTIFICATION) != "1") return
+        if (ctx.getSystemService(NotificationManager::class.java).activeNotifications.any { it.id == ID_QUICK }) return
+        ensureTranslations(ctx, r)
+        showQuickAdd(ctx)
+    }
 
     fun showDetected(ctx: Context, id: Int, title: String, text: String) = post(ctx, 1000 + (id and 0xFFFF), NotificationCompat.Builder(ctx, CH_DETECTED)
         .setSmallIcon(R.drawable.ic_notification)
@@ -127,14 +141,20 @@ object Reminders {
         ctx, 1, Intent(ctx, ReminderReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
-    /** Inexact daily alarm: no exact-alarm permission needed, battery friendly. */
+    /** One alarm at a time, re-armed when it fires: on time even in Doze, no exact-alarm permission. */
     fun schedule(ctx: Context, hour: Int, minute: Int) {
         val at = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, hour); set(Calendar.MINUTE, minute); set(Calendar.SECOND, 0)
             if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
         }
-        val am = ctx.getSystemService(AlarmManager::class.java)
-        am.setInexactRepeating(AlarmManager.RTC_WAKEUP, at.timeInMillis, AlarmManager.INTERVAL_DAY, pending(ctx))
+        ctx.getSystemService(AlarmManager::class.java).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.timeInMillis, pending(ctx))
+    }
+
+    /** Arms the next reminder from the saved time, if the reminder is on. */
+    fun rearm(ctx: Context, r: app.moneytracker.data.MoneyRepository = repo(ctx)) {
+        if (r.settingNow(Keys.REMINDER) != "1") return
+        val (h, m) = (r.settingNow(Keys.REMINDER_TIME) ?: "21:00").split(":").map { it.toIntOrNull() ?: 0 }
+        schedule(ctx, h, m)
     }
 
     fun cancel(ctx: Context) = ctx.getSystemService(AlarmManager::class.java).cancel(pending(ctx))
@@ -143,10 +163,7 @@ object Reminders {
     fun restore(ctx: Context) {
         val r = repo(ctx)
         ensureTranslations(ctx, r)
-        if (r.settingNow(Keys.REMINDER) == "1") {
-            val (h, m) = (r.settingNow(Keys.REMINDER_TIME) ?: "21:00").split(":").map { it.toIntOrNull() ?: 0 }
-            schedule(ctx, h, m)
-        }
+        rearm(ctx, r)
         if (r.settingNow(Keys.QUICK_ADD_NOTIFICATION) == "1") Notifications.showQuickAdd(ctx)
     }
 }
@@ -154,14 +171,22 @@ object Reminders {
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pending = goAsync()
-        Thread { try { ensureTranslations(ctx); Notifications.showReminder(ctx) } finally { pending.finish() } }.start()
+        Thread { try { ensureTranslations(ctx); Notifications.showReminder(ctx); Reminders.rearm(ctx) } finally { pending.finish() } }.start()
+    }
+}
+
+/** The quick-add notification was swiped away: put it back unless the user turned it off. */
+class QuickAddDismissReceiver : BroadcastReceiver() {
+    override fun onReceive(ctx: Context, intent: Intent) {
+        val pending = goAsync()
+        Thread { try { Notifications.restoreQuickAdd(ctx) } finally { pending.finish() } }.start()
     }
 }
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pending = goAsync()
-        Thread { try { Reminders.restore(ctx); SummaryWidget.updateAll(ctx) } finally { pending.finish() } }.start()
+        Thread { try { Reminders.restore(ctx); runCatching { Detected.catchUp(ctx) }; SummaryWidget.updateAll(ctx) } finally { pending.finish() } }.start()
     }
 }
 
@@ -202,9 +227,26 @@ object Detected {
     }
 
     /** "Import SMS": reads the inbox for the last [days] days; returns how many new messages were picked up. */
-    fun importInbox(ctx: Context, days: Int): Int {
+    fun importInbox(ctx: Context, days: Int): Int = importSince(ctx, System.currentTimeMillis() - days * DAY_MS)
+
+    /**
+     * SMS that arrived while the receiver couldn't run (app force-stopped, or killed by an aggressive
+     * battery saver) are picked up on the next app open or boot. Duplicates are dropped by [ingestMessage].
+     */
+    fun catchUp(ctx: Context) {
+        if (ctx.packageManager.getComponentEnabledSetting(ComponentName(ctx, SmsReceiver::class.java)) != android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED) return
+        if (ctx.checkSelfPermission(android.Manifest.permission.READ_SMS) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
         val r = repo(ctx)
-        val since = System.currentTimeMillis() - days * 24L * 60 * 60 * 1000
+        val now = System.currentTimeMillis()
+        val last = r.settingNow(Keys.SMS_LAST_SCAN)?.toLongOrNull() ?: (now - DAY_MS)
+        importSince(ctx, maxOf(last - 60 * 60 * 1000, now - 7 * DAY_MS))   // an hour of overlap; at most a week back
+        r.putSetting(Keys.SMS_LAST_SCAN, now.toString())
+    }
+
+    private const val DAY_MS = 24L * 60 * 60 * 1000
+
+    private fun importSince(ctx: Context, since: Long): Int {
+        val r = repo(ctx)
         var added = 0
         ctx.contentResolver.query(Telephony.Sms.Inbox.CONTENT_URI, arrayOf(Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE),
             "${Telephony.Sms.DATE} >= ?", arrayOf(since.toString()), "${Telephony.Sms.DATE} ASC")?.use { c ->
