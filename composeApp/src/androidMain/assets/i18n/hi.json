@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "कई टैग वाली प्रविष्टि हर टैग के लिए एक बार गिनी जाती है।",
 "A reminder at the time you choose to record the day's spending.": "दिन का खर्च दर्ज करने के लिए आपके चुने हुए समय पर एक रिमाइंडर।",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "नोटिफ़िकेशन शेड से आय, व्यय या स्थानांतरण जोड़ने के लिए साइलेंट, हमेशा दिखने वाले बटन।",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "जब कोई बैंक SMS लेन-देन जैसा लगे तब अलर्ट, चाहे वह अपने-आप सेव हुआ हो या आपकी समीक्षा का इंतज़ार कर रहा हो।"
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "जब कोई बैंक SMS लेन-देन जैसा लगे तब अलर्ट, चाहे वह अपने-आप सेव हुआ हो या आपकी समीक्षा का इंतज़ार कर रहा हो।",
+"Refund": "रिफ़ंड",
+"Refund {0}": "{0} रिफ़ंड हुए",
+"incl. {0} refunded": "{0} रिफ़ंड सहित",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "Money Manager के लिए एक्सपोर्ट करें (.mmbak)",
+"Exported for Money Manager": "Money Manager के लिए एक्सपोर्ट हुआ",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "Money Manager में Backup › Data Recovery के अंतर्गत फ़ाइल पुनर्स्थापित करें। यह वहां का डेटा बदल देती है। खाते, प्रविष्टियां (रिफ़ंड ऋणात्मक व्यय के रूप में), श्रेणियां, बजट, दोहराव, टैग और नोट शामिल हैं; फ़ोटो, बुकमार्क और पहचाने गए SMS नहीं। MoneyTracker का Realbyte से कोई संबंध नहीं है।",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "किसी ख़रीद के लिए वापस मिला पैसा, जैसे लौटाया गया ऑर्डर। यह आय गिने जाने के बजाय व्यय श्रेणी में खर्च घटाता है।"
 }

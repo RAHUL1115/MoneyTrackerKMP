@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "تُحتسب المعاملة التي تحمل عدة وسوم مرة واحدة لكل وسم.",
 "A reminder at the time you choose to record the day's spending.": "تذكير في الوقت الذي تختاره لتسجيل مصروفات اليوم.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "أزرار صامتة ومتاحة دائمًا لإضافة الدخل أو المصروفات أو التحويلات من لوحة الإشعارات.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "تنبيهات عندما تبدو رسالة SMS من البنك كمعاملة، سواء تم حفظها تلقائيًا أو كانت بانتظار مراجعتك."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "تنبيهات عندما تبدو رسالة SMS من البنك كمعاملة، سواء تم حفظها تلقائيًا أو كانت بانتظار مراجعتك.",
+"Refund": "استرداد",
+"Refund {0}": "استرداد {0}",
+"incl. {0} refunded": "يشمل {0} مستردة",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "تصدير لـ Money Manager (‎.mmbak)",
+"Exported for Money Manager": "تم التصدير لـ Money Manager",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "استعد الملف في Money Manager من Backup › Data Recovery. سيحل محل البيانات الموجودة هناك. يشمل الملف الحسابات والمعاملات (الاستردادات كمصروفات سالبة) والفئات والميزانيات والمعاملات المتكررة والوسوم والملاحظات، ولا يشمل الصور والمفضلة والرسائل المكتشفة. MoneyTracker غير تابع لـ Realbyte.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "أموال مستردة مقابل عملية شراء، مثل طلب مُرتجع. تُخفّض الإنفاق في فئة المصروف بدلًا من احتسابها دخلًا."
 }

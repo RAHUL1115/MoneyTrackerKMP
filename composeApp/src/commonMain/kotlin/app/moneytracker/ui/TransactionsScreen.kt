@@ -319,6 +319,7 @@ fun TxnLine(
             val prefs = LocalListPrefs.current
             if (prefs.showDescription && txn.memo.isNotBlank()) Text(txn.memo, color = SubtleText, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             val marks = buildString {
+                if (txn.isRefund) append("  · ").append(tr("Refund"))
                 if (txn.recurringRuleId != null) append("  ↻")
                 if (hasPhoto) append("  📷")
                 if (txn.lat != null) append("  📍")
@@ -328,16 +329,20 @@ fun TxnLine(
             if (tags.isNotEmpty()) Text(tags.joinToString(" ") { "#$it" }, color = IncomeColor, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment = Alignment.End) {
-            val color = when (flow) {
-                Flow.INCOME -> IncomeColor
-                Flow.EXPENSE -> ExpenseColor
-                Flow.NONE -> InkSoft
+            // A refund is money back: shown as +amount in the income colour.
+            val refund = txn.isRefund
+            val color = when {
+                refund && flow != Flow.NONE -> IncomeColor
+                flow == Flow.INCOME -> IncomeColor
+                flow == Flow.EXPENSE -> ExpenseColor
+                else -> InkSoft
             }
+            fun shown(v: Long) = if (refund) -v else v
             val foreign = txn.currency?.let { currencies[it] }
             if (foreign != null && txn.originalAmount != null) {
-                Text(foreign.format.format(txn.originalAmount), color = color, fontWeight = FontWeight.Medium)
-                Text(currency.format(txn.amount), color = SubtleText, fontSize = 12.sp)
-            } else Text(currency.format(txn.amount), color = color, fontWeight = FontWeight.Medium)
+                Text(foreign.format.format(shown(txn.originalAmount), showSign = refund), color = color, fontWeight = FontWeight.Medium)
+                Text(currency.format(shown(txn.amount), showSign = refund), color = SubtleText, fontSize = 12.sp)
+            } else Text(currency.format(shown(txn.amount), showSign = refund), color = color, fontWeight = FontWeight.Medium)
             if (runningBalance != null) {
                 Text("(${currency.format(runningBalance, withSymbol = false)})", color = SubtleText, fontSize = 10.sp)
             }

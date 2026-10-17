@@ -13,6 +13,12 @@ enum class TxnKind(val sign: Int) {
     val isTransfer get() = this == TRANSFER_OUT || this == TRANSFER_IN
 }
 
+/**
+ * A refund is stored as an expense with a negative amount (money back into the account, spending in its
+ * category goes down), the same way Money Manager stores one, so every expense total nets it out.
+ */
+fun isRefund(kind: TxnKind?, amount: Long?) = kind == TxnKind.EXPENSE && amount != null && amount < 0
+
 enum class CategoryKind { INCOME, EXPENSE }
 
 enum class RepeatType(val label: String) {
@@ -117,6 +123,7 @@ data class Txn(
     val signedAccountValue: Long get() = accountValue * kind.sign
     /** What the user typed, in the currency they typed it in. */
     val enteredAmount: Long get() = originalAmount ?: amount
+    val isRefund: Boolean get() = isRefund(kind, amount)
 }
 
 data class RecurringRule(

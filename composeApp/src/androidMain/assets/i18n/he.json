@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "רשומה עם כמה תגים נספרת פעם אחת לכל תג.",
 "A reminder at the time you choose to record the day's spending.": "תזכורת בשעה שתבחרו לרישום ההוצאות של היום.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "לחצנים שקטים וקבועים להוספת הכנסות, הוצאות או העברות מלוח ההתראות.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "התראות כשהודעת SMS מהבנק נראית כמו עסקה, בין אם נשמרה אוטומטית ובין אם היא ממתינה לבדיקה שלכם."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "התראות כשהודעת SMS מהבנק נראית כמו עסקה, בין אם נשמרה אוטומטית ובין אם היא ממתינה לבדיקה שלכם.",
+"Refund": "החזר",
+"Refund {0}": "הוחזר {0}",
+"incl. {0} refunded": "כולל החזרים של {0}",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "ייצוא ל-Money Manager (.mmbak)",
+"Exported for Money Manager": "יוצא ל-Money Manager",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "יש לשחזר את הקובץ ב-Money Manager דרך Backup › Data Recovery. הוא מחליף את הנתונים שם. כלולים חשבונות, רשומות (החזרים כהוצאות שליליות), קטגוריות, תקציבים, חזרות, תגים והערות; תמונות, סימניות ו-SMS שזוהו אינם כלולים. ל-MoneyTracker אין קשר ל-Realbyte.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "כסף שהוחזר על רכישה, למשל הזמנה שהוחזרה. הוא מקטין את ההוצאה בקטגוריית ההוצאה במקום להיספר כהכנסה."
 }

@@ -14,6 +14,7 @@ import app.moneytracker.domain.Capture
 import app.moneytracker.domain.CaptureStatus
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.CategoryKind
+import app.moneytracker.domain.isRefund
 import app.moneytracker.domain.Currency
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.DateRange
@@ -80,7 +81,8 @@ data class TxnDraft(
     val origin: String = "",
 )
 
-enum class DraftType { INCOME, EXPENSE, TRANSFER }
+/** [REFUND] is money back into an expense category; it is saved as an expense with a negative amount. */
+enum class DraftType { INCOME, EXPENSE, TRANSFER, REFUND }
 
 /** A saved one-tap entry ("bookmark"). [amount] 0 = ask every time. */
 data class Template(
@@ -408,7 +410,7 @@ class MoneyRepository(
     /** Creates the rows for a draft. Returns the id of the primary row (or of the recurring rule). */
     fun create(d: TxnDraft): String = db.transactionWithResult {
         if (d.repeat != null) {
-            val rule = RecurringRule(newId(), d.type.primaryKind(), d.accountId, d.toAccountId, d.categoryId, d.amount,
+            val rule = RecurringRule(newId(), d.type.primaryKind(), d.accountId, d.toAccountId, d.categoryId, d.amount * d.type.sign,
                 d.note, d.repeat, d.date, d.date, d.repeatEnd, d.currency, d.memo)
             saveRule(rule)
             generateRecurring()
@@ -448,7 +450,7 @@ class MoneyRepository(
         val srcCur = currencyNow(accountNow(d.accountId)?.currency)
         val ids = mutableListOf<String>()
         val primary = when (d.type) {
-            DraftType.INCOME, DraftType.EXPENSE -> {
+            DraftType.INCOME, DraftType.EXPENSE, DraftType.REFUND -> {
                 val kind = d.type.primaryKind()
                 if (d.type == DraftType.EXPENSE && d.installments > 1) {
                     val group = newId()
@@ -462,7 +464,7 @@ class MoneyRepository(
                         insert(t); ids += t.id; t.id
                     }.first()
                 } else {
-                    val m = money(d.amount, entered, srcCur, mainDec)
+                    val m = money(d.amount * d.type.sign, entered, srcCur, mainDec)
                     val t = Txn(fixedId ?: newId(), kind, d.date, created, d.accountId, categoryId = d.categoryId,
                         amount = m.main, note = d.note, memo = d.memo, recurringRuleId = recurringRuleId,
                         currency = m.currency, originalAmount = m.original, accountAmount = m.account, lat = d.lat, lng = d.lng, timeOfDay = d.timeOfDay,
@@ -517,9 +519,11 @@ class MoneyRepository(
                 Quint(DraftType.TRANSFER, out.accountId, out.toAccountId, feeRow?.enteredAmount ?: 0L, feeRow?.categoryId)
             }
             t.kind == TxnKind.INCOME -> Quint(DraftType.INCOME, t.accountId, null, 0L, t.categoryId)
+            t.isRefund -> Quint(DraftType.REFUND, t.accountId, null, 0L, t.categoryId)
             else -> Quint(DraftType.EXPENSE, t.accountId, null, 0L, t.categoryId)
         }
-        val amount = if (t.installmentGroupId != null) installmentGroup(t.installmentGroupId).sumOf { it.enteredAmount } else t.enteredAmount
+        val signed = if (t.installmentGroupId != null) installmentGroup(t.installmentGroupId).sumOf { it.enteredAmount } else t.enteredAmount
+        val amount = signed * type.sign
         return TxnDraft(type, t.date, from, to, cat, amount, fee, t.note, t.memo,
             installments = t.installmentGroupId?.let { installmentGroup(it).size } ?: 1, currency = t.currency, tagIds = tagsOf(t.id),
             timeOfDay = t.timeOfDay, origin = t.origin)
@@ -660,15 +664,16 @@ class MoneyRepository(
         val vendor = p.vendor.orEmpty()
         val capture = Capture(
             newId(), receivedAt, source, sender, text,
-            amount = p.amount,
-            kind = if (p.isCredit) TxnKind.INCOME else TxnKind.EXPENSE,
+            // Refunds are kept like stored entries: an expense with a negative amount.
+            amount = if (p.isRefund) -p.amount else p.amount,
+            kind = if (p.isCredit && !p.isRefund) TxnKind.INCOME else TxnKind.EXPENSE,
             merchant = listOfNotNull(vendor.ifBlank { null }, p.bank?.let { "· $it" }).joinToString(" "),
             accountId = ruled ?: s.accountId ?: byName,
             status = CaptureStatus.PENDING,
         )
         if (!addCapture(capture)) return null
         // "Auto-save": straight into the books when the account is known.
-        if (settingNow(Keys.SMS_AUTO_SAVE) == "1" && capture.accountId != null && (capture.amount ?: 0) > 0) {
+        if (settingNow(Keys.SMS_AUTO_SAVE) == "1" && capture.accountId != null && (capture.amount ?: 0) != 0L) {
             val d = draftFromCapture(capture)
             completeCapture(capture, d, create(d))
             return capture.copy(status = CaptureStatus.SAVED)
@@ -684,9 +689,17 @@ class MoneyRepository(
         val s = p?.let { suggest(SmsParser.tokens(it)) }
         val date = Instant.fromEpochMilliseconds(c.receivedAt).toLocalDateTime(TimeZone.currentSystemDefault()).date
         val knownCurrency = p?.currencyCode?.let { code -> currencyNow(code)?.code }
+        val type = when {
+            c.kind == TxnKind.INCOME -> DraftType.INCOME
+            isRefund(c.kind, c.amount) -> DraftType.REFUND
+            else -> DraftType.EXPENSE
+        }
+        // A learned category of the other kind (an income category for a refund, say) doesn't fit.
+        val wantedKind = if (type == DraftType.INCOME) CategoryKind.INCOME.name else CategoryKind.EXPENSE.name
+        val category = s?.categoryId?.takeIf { id -> q.allCategories().executeAsList().any { it.id == id && it.kind == wantedKind } }
         return TxnDraft(
-            if (c.kind == TxnKind.INCOME) DraftType.INCOME else DraftType.EXPENSE, date,
-            c.accountId ?: s?.accountId ?: "", categoryId = s?.categoryId, amount = c.amount ?: 0,
+            type, date,
+            c.accountId ?: s?.accountId ?: "", categoryId = category, amount = (c.amount ?: 0) * type.sign,
             note = p?.vendor.orEmpty(), currency = knownCurrency,
             origin = if (settingNow(Keys.SMS_SHOW_ORIGINAL) == "0") "" else c.text,
         )
@@ -724,12 +737,13 @@ class MoneyRepository(
             val rule = row.toDomain()
             val (dates, next) = Recurrence.due(rule, horizon)
             for (date in dates) {
-                val type = when (rule.kind) {
-                    TxnKind.INCOME -> DraftType.INCOME
-                    TxnKind.TRANSFER_OUT -> DraftType.TRANSFER
+                val type = when {
+                    rule.kind == TxnKind.INCOME -> DraftType.INCOME
+                    rule.kind == TxnKind.TRANSFER_OUT -> DraftType.TRANSFER
+                    isRefund(rule.kind, rule.amount) -> DraftType.REFUND
                     else -> DraftType.EXPENSE
                 }
-                writeDraft(TxnDraft(type, date, rule.accountId, rule.toAccountId, rule.categoryId, rule.amount, note = rule.note, memo = rule.memo, currency = rule.currency),
+                writeDraft(TxnDraft(type, date, rule.accountId, rule.toAccountId, rule.categoryId, rule.amount * type.sign, note = rule.note, memo = rule.memo, currency = rule.currency),
                     recurringRuleId = rule.id, fixedId = "${rule.id}_${date.toEpochDays()}")
                 created++
             }
@@ -816,6 +830,46 @@ class MoneyRepository(
      * Replaces everything with the contents of a Money Manager backup, in one database transaction
      * (any failure leaves current data untouched). Settings like passcode are kept.
      */
+    /** Everything a Money Manager backup can hold, in the importer's shape, for [MoneyManagerExport]. Deleted accounts and categories are kept so old entries keep their names. */
+    fun moneyManagerData(): MoneyManagerBackup.Data {
+        val keys = listOf(Keys.MONTH_START_DAY, Keys.WEEKEND_SHIFT, Keys.WEEK_START, Keys.CARRY_OVER, Keys.CARD_AT_PAYMENT, Keys.USE_SUBCATEGORIES,
+            Keys.START_SCREEN, Keys.SWIPE, Keys.COLOR_SET, Keys.TIME_INPUT, Keys.TIME_SORT, Keys.SHOW_DESCRIPTION, Keys.AUTOCOMPLETE, Keys.NOTE_BUTTON,
+            Keys.INPUT_ORDER, Keys.REPEAT_TIMING, Keys.SMS_BLOCKED_SENDERS, Keys.SMS_BLOCKED_PHRASES, Keys.SMS_CONTENT_FILTER, Keys.SMS_AUTO_SAVE,
+            Keys.SMS_ALERT, Keys.SMS_SHOW_ORIGINAL, Keys.SMS_IMPORT_DAYS, Keys.SYMBOL_AFTER, Keys.QUICK_ADD_NOTIFICATION)
+        val mainCode = settingNow(Keys.CURRENCY_CODE) ?: "INR"
+        return MoneyManagerBackup.Data(
+            mainCode = mainCode, mainSymbol = settingNow(Keys.CURRENCY_SYMBOL) ?: "₹", mainDecimals = mainDecimals(),
+            currencies = q.allCurrencies().executeAsList().filter { it.code != mainCode }
+                .map { MoneyManagerBackup.Currency(it.code, it.symbol, it.decimals.toInt(), it.rate) },
+            groups = q.everyGroup().executeAsList().map { MoneyManagerBackup.Group(it.id, it.name, AccountType.valueOf(it.type), it.sortOrder.toInt(), it.deleted != 0L) },
+            accounts = q.everyAccount().executeAsList().map { a ->
+                MoneyManagerBackup.Account(a.id, a.groupId, a.name, a.includeInTotals != 0L, a.transferAsExpense != 0L, a.cardSettlementDay?.toInt(),
+                    a.cardPaymentAccountId, a.sortOrder.toInt(), a.currency, a.deleted != 0L, a.hidden != 0L, a.memo, a.cardPaymentDay?.toInt(),
+                    a.cardAutoPay != 0L, a.usageTarget, a.usageTargetType.toInt(), a.smsSender, a.smsMatch)
+            },
+            categories = q.everyCategory().executeAsList().map {
+                MoneyManagerBackup.Category(it.id, it.name, it.kind == CategoryKind.INCOME.name, it.parentId, it.sortOrder.toInt(), it.deleted != 0L)
+            },
+            txns = allTxns().let { all ->
+                val activeRules = q.activeRules().executeAsList().map { it.id }.toSet()
+                all.map { t ->
+                    MoneyManagerBackup.Txn(t.id, t.kind, t.date, t.createdAt, t.accountId, t.toAccountId, t.categoryId, t.amount, t.currency,
+                        t.originalAmount, t.accountAmount, t.note, t.memo, t.transferGroupId, t.installmentGroupId, t.installmentLabel, t.lat, t.lng,
+                        t.timeOfDay, t.origin, recurringRuleId = t.recurringRuleId?.takeIf { it in activeRules })
+                }
+            },
+            rules = q.activeRules().executeAsList().map { it.toDomain() }.map { r ->
+                MoneyManagerBackup.Rule(r.id, r.kind, r.accountId, r.toAccountId, r.categoryId, r.amount, r.note, r.repeat, r.nextDate, r.endDate, r.currency, r.memo)
+            },
+            budgets = q.allBudgetAmounts().executeAsList().map { MoneyManagerBackup.Budget(it.categoryId, it.period.toInt(), it.amount) },
+            tags = q.allTags().executeAsList().map { MoneyManagerBackup.Tag(it.id, it.name, it.sortOrder.toInt()) },
+            txnTags = q.allTxnTagIds().executeAsList().map { it.txnId to it.tagId },
+            memos = q.allNotes().executeAsList().map { MoneyManagerBackup.Memo(it.id, it.title, it.content, it.pinned != 0L, it.createdAt) },
+            settings = keys.mapNotNull { k -> settingNow(k)?.let { k to it } }.toMap(),
+            skipped = emptyList(),
+        )
+    }
+
     fun replaceWithMoneyManager(d: MoneyManagerBackup.Data): LegacyResult = db.transactionWithResult {
         listOf(q::wipeTxn, q::wipeAccount, q::wipeAccountGroup, q::wipeCategory, q::wipeBudget, q::wipeRules, q::wipeTags,
             q::wipeTxnTags, q::wipeCurrencies, q::wipeNotes, q::wipePhotos, q::wipeTemplates, q::wipeLearning, q::wipeLearnLabels, q::wipeCaptures)
@@ -838,8 +892,8 @@ class MoneyRepository(
         }
         d.txns.forEach { t ->
             insert(Txn(t.id, t.kind, t.date, t.createdAt, t.accountId, t.toAccountId, t.categoryId, t.amountMain, t.note, t.memo,
-                t.transferGroupId, t.installmentGroupId, t.installmentLabel, null, t.currency, t.originalAmount, t.accountAmount, t.lat, t.lng, t.timeOfDay,
-                t.origin))
+                t.transferGroupId, t.installmentGroupId, t.installmentLabel, t.recurringRuleId, t.currency, t.originalAmount, t.accountAmount, t.lat, t.lng,
+                t.timeOfDay, t.origin))
         }
         d.rules.forEach { r ->
             saveRule(RecurringRule(r.id, r.kind, r.accountId, r.toAccountId, r.categoryId, r.amount, r.note, r.repeat, r.nextDate, r.nextDate, r.endDate, r.currency, r.memo))
@@ -899,9 +953,12 @@ class MoneyRepository(
 
 private fun DraftType.primaryKind() = when (this) {
     DraftType.INCOME -> TxnKind.INCOME
-    DraftType.EXPENSE -> TxnKind.EXPENSE
+    DraftType.EXPENSE, DraftType.REFUND -> TxnKind.EXPENSE
     DraftType.TRANSFER -> TxnKind.TRANSFER_OUT
 }
+
+/** Stored amounts are negative for refunds; the editor always works with positive amounts. */
+val DraftType.sign: Int get() = if (this == DraftType.REFUND) -1 else 1
 
 private fun Boolean.toLong() = if (this) 1L else 0L
 

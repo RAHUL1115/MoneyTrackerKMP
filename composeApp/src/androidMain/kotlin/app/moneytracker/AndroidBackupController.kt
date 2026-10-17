@@ -1,11 +1,13 @@
 package app.moneytracker
 
+import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import app.moneytracker.data.BackupController
 import app.moneytracker.data.MoneyManagerBackup
+import app.moneytracker.data.MoneyManagerExport
 import app.moneytracker.data.IosMoneyManagerSource
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.TabularImport
@@ -19,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -73,6 +76,10 @@ class AndroidBackupController(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { runWithMessage { importFrom(it) } } }
 
+    private val mmbakLauncher = activity.registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream"),
+    ) { uri -> uri?.let { run(tr("Exported for Money Manager")) { exportMoneyManagerTo(it) } } }
+
     private val csvLauncher = activity.registerForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv"),
     ) { uri -> uri?.let { run(tr("Exported CSV")) { writeTable(it, excel = false) } } }
@@ -113,12 +120,12 @@ class AndroidBackupController(
 
     override fun deleteLocal(name: String) = run(tr("Deleted")) { File(dir, name).delete(); refresh() }
 
-    override fun exportToFile() = exportLauncher.launch("MoneyTracker-${stamp()}.mmdb")
+    override fun exportToFile() = exportLauncher.launch("MoneyTracker-${stamp()}.$EXT")
     override fun shareBackup() = runWithMessage {
         val file = withContext(Dispatchers.IO) {
             db.checkpoint()
             val dir = File(activity.cacheDir, "share").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
-            File(dir, "MoneyTracker-${stamp()}.mmdb").also { db.dbFile.copyTo(it, overwrite = true) }
+            File(dir, "MoneyTracker-${stamp()}.$EXT").also { db.dbFile.copyTo(it, overwrite = true) }
         }
         val uri = androidx.core.content.FileProvider.getUriForFile(activity, "${activity.packageName}.files", file)
         val send = android.content.Intent(android.content.Intent.ACTION_SEND)
@@ -131,6 +138,7 @@ class AndroidBackupController(
     }
     override fun importFromFile() = importLauncher.launch(arrayOf("*/*"))
     override fun exportCsv() = csvLauncher.launch("MoneyTracker-${stamp()}.csv")
+    override fun exportMoneyManager() = mmbakLauncher.launch("MoneyTracker-${stamp()}.mmbak")
     override fun exportExcel() = excelLauncher.launch("MoneyTracker-${stamp()}.xlsx")
     override fun importSpreadsheet() = sheetImportLauncher.launch(arrayOf("text/*", XLSX_MIME, "application/vnd.ms-excel", "application/octet-stream"))
     override fun clearStatus() { _status.value = null }
@@ -164,7 +172,7 @@ class AndroidBackupController(
 
     private fun snapshot(kind: String): File {
         db.checkpoint()
-        val out = File(dir, "$kind-${stamp()}.mmdb")
+        val out = File(dir, "$kind-${stamp()}.$EXT")
         db.dbFile.copyTo(out, overwrite = true)
         DatabaseManager.validate(out)?.let { out.delete(); error(it) }
         prune()
@@ -176,6 +184,26 @@ class AndroidBackupController(
         db.checkpoint()
         activity.contentResolver.openOutputStream(uri, "wt")?.use { out -> db.dbFile.inputStream().use { it.copyTo(out) } }
             ?: error(tr("Cannot write to the selected location"))
+    }
+
+    /** Builds the .mmbak in the cache (Money Manager restores it by opening it as its database), then copies it out. */
+    private fun exportMoneyManagerTo(uri: Uri) {
+        val repo = db.repo ?: error(tr("Database not ready"))
+        val data = repo.moneyManagerData()
+        val file = File(activity.cacheDir, "export.mmbak").also { it.delete() }
+        // No localized collators: android_metadata is written by the exporter, as Money Manager's own files have it.
+        val out = SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.CREATE_IF_NECESSARY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+        try {
+            out.beginTransaction()
+            try {
+                MoneyManagerExport.write(SqliteRowSink(out), data, TimeZone.currentSystemDefault(), System.currentTimeMillis())
+                out.setTransactionSuccessful()
+            } finally { out.endTransaction() }
+        } finally { out.close() }
+        try {
+            activity.contentResolver.openOutputStream(uri, "wt")?.use { o -> file.inputStream().use { it.copyTo(o) } }
+                ?: error(tr("Cannot write to the selected location"))
+        } finally { file.delete() }
     }
 
     private fun exportPhotosTo(uri: Uri): String {
@@ -215,7 +243,7 @@ class AndroidBackupController(
 
     /** Restores our own backup, or converts a Money Manager (.mmbak) backup. */
     private suspend fun importFrom(uri: Uri): String {
-        val tmp = File(activity.cacheDir, "import.mmdb")
+        val tmp = File(activity.cacheDir, "import.$EXT")
         activity.contentResolver.openInputStream(uri)?.use { input -> tmp.outputStream().use { input.copyTo(it) } }
             ?: error(tr("Cannot read the selected file"))
         try {
@@ -261,7 +289,7 @@ class AndroidBackupController(
     /** Safety snapshot first, then swap files while the database is closed. */
     private suspend fun replaceDatabaseWith(source: File) {
         snapshot("pre-restore")
-        val staged = File(activity.cacheDir, "staged.mmdb")
+        val staged = File(activity.cacheDir, "staged.$EXT")
         source.copyTo(staged, overwrite = true)
         withContext(Dispatchers.Main) {
             db.withClosed { target ->
@@ -325,7 +353,7 @@ class AndroidBackupController(
     private fun refresh() { _local.value = list() }
 
     private fun list(): List<LocalBackup> =
-        dir.listFiles { f -> f.extension == "mmdb" }.orEmpty()
+        dir.listFiles { f -> f.extension == EXT || f.extension == OLD_EXT }.orEmpty()
             .sortedByDescending { it.lastModified() }
             .map { LocalBackup(it.name, it.length(), it.lastModified()) }
 
@@ -333,6 +361,10 @@ class AndroidBackupController(
 
     companion object {
         const val KEEP = 10
+        /** Our own backup format (a copy of the database). Restore tells formats apart by content, not by name. */
+        const val EXT = "mtbak"
+        /** Backups made before 0.1.7; still listed and restorable. */
+        const val OLD_EXT = "mmdb"
         const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     }
 }

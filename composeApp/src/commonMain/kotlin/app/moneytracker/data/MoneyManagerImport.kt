@@ -42,6 +42,8 @@ object MoneyManagerBackup {
         val categoryId: String?, val amountMain: Long, val currency: String?, val originalAmount: Long?, val accountAmount: Long?,
         val note: String, val memo: String, val transferGroupId: String?, val installmentGroupId: String?, val installmentLabel: String?,
         val lat: Double?, val lng: Double?, val timeOfDay: Int? = null, val origin: String = "",
+        /** The repeating rule that created the entry (Money Manager names such entries "<rule uid>_…"). */
+        val recurringRuleId: String? = null,
     )
     data class Rule(
         val id: String, val kind: TxnKind, val accountId: String, val toAccountId: String?, val categoryId: String?, val amount: Long,
@@ -70,8 +72,9 @@ object MoneyManagerBackup {
     private fun Map<String, String?>.isDeleted(col: String) = int(col) == 1
     private fun idOrNull(v: String?) = v?.trim()?.takeUnless { it.isEmpty() || it == "0" || it == "-1" || it == "-2" || it == "-4" }
 
-    private fun minor(text: String?, decimals: Int): Long? =
-        text?.trim()?.replace(",", "")?.toDoubleOrNull()?.let { kotlin.math.round(kotlin.math.abs(it) * CurrencyFormat.pow10(decimals)).toLong() }
+    /** [signed] keeps a minus: Money Manager writes a refund as an expense with a negative amount, and so do we. */
+    private fun minor(text: String?, decimals: Int, signed: Boolean = false): Long? =
+        text?.trim()?.replace(",", "")?.toDoubleOrNull()?.let { kotlin.math.round((if (signed) it else kotlin.math.abs(it)) * CurrencyFormat.pow10(decimals)).toLong() }
 
     private fun dayOf(millis: Long, tz: TimeZone) = Instant.fromEpochMilliseconds(millis).toLocalDateTime(tz).date
 
@@ -151,6 +154,7 @@ object MoneyManagerBackup {
             .associate { it.str("txUidFee") to it.str("txUidTrans") }
         val categoryRows = rows("ZCATEGORY")
         val categoryIds = categoryRows.map { it.str("uid") }.toSet()
+        val ruleUids = rows("REPEATTRANSACTION").filterNot { it.isDeleted("IS_DEL") }.map { it.str("uid") }.filter { it.isNotEmpty() }
         val txns = txRows.mapNotNull { t ->
             val k = kind(t.int("DO_TYPE")) ?: run { skipped += "transaction ${t.str("uid")}: unknown type ${t.str("DO_TYPE")}"; return@mapNotNull null }
             val account = t.str("assetUid")
@@ -160,7 +164,8 @@ object MoneyManagerBackup {
                 ?: run { skipped += "transaction ${t.str("uid")}: no date"; return@mapNotNull null }
             val code = codeOf(t.s("currencyUid"))
             val accountCode = accountById[account]?.currency
-            val amountMain = minor(t.s("ZMONEY"), mainDecimals) ?: run { skipped += "transaction ${t.str("uid")}: no amount"; return@mapNotNull null }
+            val signed = k == TxnKind.EXPENSE
+            val amountMain = minor(t.s("ZMONEY"), mainDecimals, signed) ?: run { skipped += "transaction ${t.str("uid")}: no amount"; return@mapNotNull null }
             val transferId = idOrNull(t.s("txUidTrans"))
             val feeGroup = if (k == TxnKind.EXPENSE) idOrNull(t.s("txUidFee"))?.let { feeToTransfer[it] } else null
             val installment = idOrNull(t.s("cardDivideUid"))
@@ -177,8 +182,8 @@ object MoneyManagerBackup {
                 },
                 amountMain = amountMain,
                 currency = code,
-                originalAmount = code?.let { minor(t.s("IN_ZMONEY"), decimals(it)) },
-                accountAmount = accountCode?.let { minor(t.s("AMOUNT_ACCOUNT"), decimals(it)) },
+                originalAmount = code?.let { minor(t.s("IN_ZMONEY"), decimals(it), signed) },
+                accountAmount = accountCode?.let { minor(t.s("AMOUNT_ACCOUNT"), decimals(it), signed) },
                 note = t.str("ZCONTENT"), memo = t.str("ZDATA"),
                 transferGroupId = if (k.isTransfer) transferId else feeGroup,
                 installmentGroupId = installment, installmentLabel = installment?.let { t.str("CARD_DIVIDE_MONTH_STR").ifEmpty { null } },
@@ -189,6 +194,7 @@ object MoneyManagerBackup {
                     ?: t.s("ZDATE")?.toLongOrNull()?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(tz) }
                         ?.takeIf { it.date == date }?.let { it.hour * 60 + it.minute },
                 origin = t.str("SMS_ORIGIN").trim(),
+                recurringRuleId = t.str("uid").let { uid -> ruleUids.firstOrNull { uid.startsWith(it + "_") } },
             )
         }
         // A transfer needs both legs; a lone leg would double-count, so keep it as plain in/out.
@@ -223,7 +229,7 @@ object MoneyManagerBackup {
                 r.str("uid").ifEmpty { newId() }, k, account,
                 if (k == TxnKind.TRANSFER_OUT) idOrNull(r.s("toAssetUid"))?.takeIf { it in accountById } else null,
                 idOrNull(r.s("ctgUid"))?.takeIf { it in allCatIds && k != TxnKind.TRANSFER_OUT },
-                minor(r.s("AMOUNT_SUB"), decimals(code)) ?: 0, r.str("PAYEE").trim(), type, next,
+                minor(r.s("AMOUNT_SUB"), decimals(code), signed = k == TxnKind.EXPENSE) ?: 0, r.str("PAYEE").trim(), type, next,
                 r.s("END_DATE")?.toLongOrNull()?.takeIf { it > 0 }?.let { dayOf(it, tz) }, code,
                 memo = r.str("MEMO").trim(),   // generated entries get PAYEE as the note and MEMO as the description
             )

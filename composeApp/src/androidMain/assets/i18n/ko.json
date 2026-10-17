@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "태그가 여러 개인 내역은 태그마다 한 번씩 집계됩니다.",
 "A reminder at the time you choose to record the day's spending.": "선택한 시간에 그날의 지출을 기록하도록 알려 드립니다.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "알림창에서 수입, 지출, 이체를 바로 추가할 수 있는 무음 상시 버튼입니다.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "은행 문자가 거래로 보일 때 알려 드립니다. 자동으로 저장된 경우와 검토를 기다리는 경우 모두 해당됩니다."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "은행 문자가 거래로 보일 때 알려 드립니다. 자동으로 저장된 경우와 검토를 기다리는 경우 모두 해당됩니다.",
+"Refund": "환불",
+"Refund {0}": "{0} 환불",
+"incl. {0} refunded": "환불 {0} 포함",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "Money Manager용 내보내기 (.mmbak)",
+"Exported for Money Manager": "Money Manager용으로 내보냈습니다",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "Money Manager의 Backup › Data Recovery에서 파일을 복원하세요. 그곳의 데이터가 대체됩니다. 계좌, 내역(환불은 마이너스 지출로), 분류, 예산, 반복, 태그, 내용이 포함되며 사진, 즐겨찾기, 감지된 SMS는 포함되지 않습니다. MoneyTracker는 Realbyte와 관련이 없습니다.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "반품한 주문처럼 구매에 대해 돌려받은 돈입니다. 수입으로 계산되지 않고 지출 분류의 지출을 줄입니다."
 }

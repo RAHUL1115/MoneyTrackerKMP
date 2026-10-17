@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "Një regjistrim me disa etiketa numërohet një herë për secilën etiketë.",
 "A reminder at the time you choose to record the day's spending.": "Një kujtesë në orën që zgjedh për të regjistruar shpenzimet e ditës.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Butona të heshtur dhe gjithmonë të disponueshëm për të shtuar të ardhura, shpenzime ose transferime nga paneli i njoftimeve.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Sinjalizime kur një SMS bankare duket si transaksion, qoftë i ruajtur automatikisht apo në pritje të shqyrtimit tënd."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Sinjalizime kur një SMS bankare duket si transaksion, qoftë i ruajtur automatikisht apo në pritje të shqyrtimit tënd.",
+"Refund": "Rimbursim",
+"Refund {0}": "Rimbursuar {0}",
+"incl. {0} refunded": "përfsh. {0} të rimbursuara",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "Eksporto për Money Manager (.mmbak)",
+"Exported for Money Manager": "U eksportua për Money Manager",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "Rikthe skedarin në Money Manager te Backup › Data Recovery. Ai zëvendëson të dhënat që janë atje. Përfshihen llogaritë, regjistrimet (rimbursimet si shpenzime negative), kategoritë, buxhetet, përsëritjet, etiketat dhe shënimet; fotot, të preferuarat dhe SMS-të e zbuluara jo. MoneyTracker nuk është i lidhur me Realbyte.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "Para të kthyera për një blerje, si një porosi e kthyer. Ul shpenzimet në kategorinë e shpenzimeve në vend që të llogaritet si e ardhur."
 }

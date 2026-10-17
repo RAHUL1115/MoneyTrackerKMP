@@ -198,7 +198,7 @@ fun TemplatesScreen() {
                         )
                         Text(detail.joinToString(" · "), color = SubtleText, fontSize = 13.sp)
                     }
-                    if (t.amount > 0) Text(currency.format(t.amount), color = if (t.type == DraftType.INCOME) IncomeColor else if (t.type == DraftType.EXPENSE) ExpenseColor else InkSoft)
+                    if (t.amount > 0) Text(currency.format(t.amount), color = if (t.type == DraftType.INCOME || t.type == DraftType.REFUND) IncomeColor else if (t.type == DraftType.EXPENSE) ExpenseColor else InkSoft)
                     IconButton(onClick = { scope.launch { withContext(repo.io) { repo.deleteTemplate(t.id) } } }) {
                         Icon(Icons.Outlined.Delete, tr("Delete bookmark"), tint = SubtleText)
                     }
@@ -264,7 +264,13 @@ fun InboxScreen() {
                             Text(c.merchant.ifBlank { c.sender }, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(listOfNotNull(c.accountId?.let { accountName[it] }, c.sender).joinToString(" · "), color = SubtleText, fontSize = 12.sp)
                         }
-                        c.amount?.let { Text(currency.format(it), color = if (c.kind == TxnKind.INCOME) IncomeColor else ExpenseColor, fontWeight = FontWeight.Medium) }
+                        c.amount?.let {
+                            val refund = app.moneytracker.domain.isRefund(c.kind, it)
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(currency.format(if (refund) -it else it, showSign = refund), color = if (c.kind == TxnKind.INCOME || refund) IncomeColor else ExpenseColor, fontWeight = FontWeight.Medium)
+                                if (refund) Text(tr("Refund"), color = SubtleText, fontSize = 11.sp)
+                            }
+                        }
                     }
                     Text(c.text, Modifier.padding(top = 6.dp), color = SubtleText, fontSize = 12.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
                     Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

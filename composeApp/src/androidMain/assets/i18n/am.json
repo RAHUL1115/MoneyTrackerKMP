@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "ብዙ መለያዎች ያሉት መዝገብ ለእያንዳንዱ መለያ አንድ ጊዜ ይቆጠራል።",
 "A reminder at the time you choose to record the day's spending.": "የዕለቱን ወጪ ለመመዝገብ በመረጡት ሰዓት የሚመጣ ማስታወሻ።",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "ከማሳወቂያ ጥላው ገቢ፣ ወጪ ወይም ዝውውር ለማከል ጸጥ ያሉ፣ ሁልጊዜ የሚገኙ አዝራሮች።",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "የባንክ ኤስኤምኤስ ግብይት ሲመስል የሚመጡ ማንቂያዎች፤ በራስ-ሰር ቢቀመጥም ሆነ ግምገማዎን ቢጠብቅ።"
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "የባንክ ኤስኤምኤስ ግብይት ሲመስል የሚመጡ ማንቂያዎች፤ በራስ-ሰር ቢቀመጥም ሆነ ግምገማዎን ቢጠብቅ።",
+"Refund": "ተመላሽ",
+"Refund {0}": "{0} ተመልሷል",
+"incl. {0} refunded": "{0} ተመላሽን ጨምሮ",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "ለMoney Manager ላክ (.mmbak)",
+"Exported for Money Manager": "ለMoney Manager ተልኳል",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "ፋይሉን በMoney Manager ውስጥ በBackup › Data Recovery ስር መልስ። እዚያ ያለውን ውሂብ ይተካል። ሂሳቦች፣ መዝገቦች (ተመላሾች እንደ አሉታዊ ወጪዎች)፣ ምድቦች፣ በጀቶች፣ ተደጋጋሚዎች፣ መለያዎች እና ማስታወሻዎች ተካትተዋል፤ ፎቶዎች፣ ዕልባቶች እና የተገኙ SMS አልተካተቱም። MoneyTracker ከRealbyte ጋር ግንኙነት የለውም።",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "ለግዢ የተመለሰ ገንዘብ፣ ለምሳሌ የተመለሰ ትዕዛዝ። እንደ ገቢ ከመቆጠር ይልቅ በወጪ ምድቡ ውስጥ ያለውን ወጪ ይቀንሳል።"
 }

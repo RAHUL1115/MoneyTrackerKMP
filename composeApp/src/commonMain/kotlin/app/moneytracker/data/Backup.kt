@@ -20,7 +20,7 @@ interface BackupController {
     fun restoreLocal(name: String)
     fun deleteLocal(name: String)
 
-    /** Opens a system "save as" dialog and writes a full database copy (.mmdb). */
+    /** Opens a system "save as" dialog and writes a full database copy (.mtbak). */
     fun exportToFile()
 
     /** Sends a full database copy through the share sheet (e-mail, messaging, file apps). */
@@ -28,6 +28,9 @@ interface BackupController {
 
     /** Opens a system file picker, validates the file and replaces the current data. */
     fun importFromFile()
+
+    /** Writes a Money Manager backup (.mmbak) through a "save as" dialog, for restoring in that app. */
+    fun exportMoneyManager()
 
     /** Writes all transactions as CSV / Excel (.xlsx) through a "save as" dialog. */
     fun exportCsv()

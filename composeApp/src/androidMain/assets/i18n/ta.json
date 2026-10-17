@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "பல குறிச்சொற்கள் உள்ள பதிவு ஒவ்வொரு குறிச்சொல்லுக்கும் ஒருமுறை கணக்கிடப்படும்.",
 "A reminder at the time you choose to record the day's spending.": "அன்றைய செலவுகளைப் பதிவுசெய்ய நீங்கள் தேர்வுசெய்யும் நேரத்தில் ஒரு நினைவூட்டல்.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "அறிவிப்புப் பேனலிலிருந்தே வருமானம், செலவு அல்லது பரிமாற்றங்களைச் சேர்க்க ஒலியில்லாத, எப்போதும் இருக்கும் பட்டன்கள்.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "வங்கி SMS ஒரு பரிவர்த்தனையாகத் தோன்றும்போது விழிப்பூட்டல்கள் — அது தானாகச் சேமிக்கப்பட்டாலும் உங்கள் மதிப்பாய்வுக்காகக் காத்திருந்தாலும்."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "வங்கி SMS ஒரு பரிவர்த்தனையாகத் தோன்றும்போது விழிப்பூட்டல்கள் — அது தானாகச் சேமிக்கப்பட்டாலும் உங்கள் மதிப்பாய்வுக்காகக் காத்திருந்தாலும்.",
+"Refund": "ரீஃபண்ட்",
+"Refund {0}": "ரீஃபண்ட் {0}",
+"incl. {0} refunded": "{0} ரீஃபண்ட் உட்பட",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "Money Manager-க்கு ஏற்றுமதி செய் (.mmbak)",
+"Exported for Money Manager": "Money Manager-க்கு ஏற்றுமதி செய்யப்பட்டது",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "Money Manager-இல் Backup › Data Recovery என்பதில் கோப்பை மீட்டெடுங்கள். அது அங்குள்ள தரவை மாற்றிவிடும். கணக்குகள், பதிவுகள் (ரீஃபண்டுகள் எதிர்மறைச் செலவுகளாக), வகைகள், பட்ஜெட்கள், தொடர்ச்சியானவை, குறிச்சொற்கள் மற்றும் குறிப்புகள் சேர்க்கப்படும்; புகைப்படங்கள், புத்தகக்குறிகள் மற்றும் கண்டறியப்பட்ட SMS சேர்க்கப்படாது. MoneyTracker-க்கு Realbyte உடன் எந்தத் தொடர்பும் இல்லை.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "ஒரு வாங்குதலுக்குத் திரும்பக் கிடைத்த பணம், எ.கா. திருப்பி அனுப்பிய ஆர்டர். இது வருமானமாகக் கணக்கிடப்படாமல், செலவு வகையில் உள்ள செலவைக் குறைக்கும்."
 }

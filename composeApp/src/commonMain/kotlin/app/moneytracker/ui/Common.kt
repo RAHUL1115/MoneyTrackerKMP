@@ -264,7 +264,9 @@ fun DayHeader(date: LocalDate, income: Long, expense: Long, currency: CurrencyFo
         // Only the sides that moved; a "₹ 0.00" column is noise on a busy list.
         if (income != 0L) Text(currency.format(income), color = IncomeColor, maxLines = 1, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         if (income != 0L && expense != 0L) Spacer(Modifier.width(14.dp))
-        if (expense != 0L) Text(currency.format(expense), color = ExpenseColor, maxLines = 1, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        // Below zero only when refunds outweigh the day's spending: money back, shown like a refund row.
+        if (expense != 0L) Text(if (expense < 0) currency.format(-expense, showSign = true) else currency.format(expense), color = if (expense < 0) IncomeColor else ExpenseColor,
+            maxLines = 1, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }
 

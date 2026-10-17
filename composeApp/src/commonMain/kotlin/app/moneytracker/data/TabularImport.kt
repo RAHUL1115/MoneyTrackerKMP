@@ -72,6 +72,9 @@ object TabularImport {
                 typeText.startsWith("transfer-in") || typeText == "transfer_in" -> return@forEachIndexed   // mirror of a transfer-out row
                 typeText.startsWith("transfer") || to != null -> DraftType.TRANSFER
                 typeText.startsWith("inc") || typeText == "income balance" || typeText == "adjust_up" -> DraftType.INCOME
+                typeText.startsWith("refund") -> DraftType.REFUND
+                // A negative expense is how Money Manager and many sheets write a refund.
+                typeText.startsWith("exp") && negative -> DraftType.REFUND
                 typeText.startsWith("exp") || typeText == "adjust_down" -> DraftType.EXPENSE
                 typeText.isBlank() -> if (negative) DraftType.EXPENSE else DraftType.INCOME
                 else -> { errors += "Row $line: unknown type '${v("type")}'"; return@forEachIndexed }
@@ -144,13 +147,13 @@ object TabularImport {
             listOf(
                 t.date.toString(),
                 when (t.kind) {
-                    TxnKind.INCOME -> "Income"; TxnKind.EXPENSE -> "Expense"; TxnKind.TRANSFER_OUT -> "Transfer"
+                    TxnKind.INCOME -> "Income"; TxnKind.EXPENSE -> if (t.isRefund) "Refund" else "Expense"; TxnKind.TRANSFER_OUT -> "Transfer"
                     TxnKind.ADJUST_UP -> "Income"; TxnKind.ADJUST_DOWN -> "Expense"; TxnKind.TRANSFER_IN -> "Transfer-In"
                 },
                 accountName[t.accountId].orEmpty(),
                 if (t.kind == TxnKind.TRANSFER_OUT) accountName[t.toAccountId].orEmpty() else "",
                 mainCat?.name.orEmpty(), sub?.name.orEmpty(),
-                fmt.toInput(t.enteredAmount), t.currency.orEmpty(), t.note, t.memo,
+                fmt.toInput(kotlin.math.abs(t.enteredAmount)), t.currency.orEmpty(), t.note, t.memo,
                 tagNames[t.id].orEmpty().joinToString("; "),
             )
         }

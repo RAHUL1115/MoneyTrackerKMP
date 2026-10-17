@@ -52,7 +52,7 @@ CREATE TABLE Txn (
     accountId TEXT NOT NULL,
     toAccountId TEXT,                -- transfers: the other side
     categoryId TEXT,
-    amount INTEGER NOT NULL,         -- always positive; kind gives the sign
+    amount INTEGER NOT NULL,         -- positive, kind gives the sign; a refund is an EXPENSE with a negative amount
     note TEXT NOT NULL DEFAULT '',
     memo TEXT NOT NULL DEFAULT '',
     transferGroupId TEXT,            -- links TRANSFER_OUT + TRANSFER_IN (+ fee)
@@ -463,3 +463,15 @@ setTxnAccount:
 UPDATE Txn SET accountId = ?, updatedAt = ? WHERE id = ?;
 wipeCaptures:
 DELETE FROM Capture;
+
+-- ───────── Money Manager export: every row, deleted ones included, so old entries keep their names
+everyGroup:
+SELECT * FROM AccountGroup ORDER BY sortOrder;
+everyAccount:
+SELECT * FROM Account ORDER BY sortOrder, name;
+everyCategory:
+SELECT * FROM Category ORDER BY kind, sortOrder, name;
+allBudgetAmounts:
+SELECT * FROM BudgetAmount ORDER BY categoryId, period;
+allTxnTagIds:
+SELECT TT.txnId, TT.tagId FROM TxnTag TT JOIN Tag G ON G.id = TT.tagId WHERE G.deleted = 0;

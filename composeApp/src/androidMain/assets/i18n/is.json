@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "Færsla með mörg merki telst einu sinni fyrir hvert merki.",
 "A reminder at the time you choose to record the day's spending.": "Áminning á þeim tíma sem þú velur til að skrá útgjöld dagsins.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Hljóðlausir, alltaf sýnilegir hnappar til að bæta við tekjum, gjöldum eða millifærslum af tilkynningasvæðinu.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Tilkynningar þegar SMS frá banka virðist vera færsla, hvort sem hún var vistuð sjálfkrafa eða bíður yfirferðar þinnar."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Tilkynningar þegar SMS frá banka virðist vera færsla, hvort sem hún var vistuð sjálfkrafa eða bíður yfirferðar þinnar.",
+"Refund": "Endurgreiðsla",
+"Refund {0}": "Endurgreitt {0}",
+"incl. {0} refunded": "þ.m.t. {0} endurgreitt",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "Flytja út fyrir Money Manager (.mmbak)",
+"Exported for Money Manager": "Flutt út fyrir Money Manager",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "Endurheimtu skrána í Money Manager undir Backup › Data Recovery. Hún kemur í stað gagnanna þar. Reikningar, færslur (endurgreiðslur sem neikvæð gjöld), flokkar, fjárhagsáætlanir, endurtekningar, merki og athugasemdir fylgja með; myndir, bókamerki og greind SMS ekki. MoneyTracker tengist Realbyte ekki.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "Endurgreiðsla vegna kaupa, t.d. á skilaðri pöntun. Hún lækkar útgjöld í gjaldaflokknum í stað þess að teljast tekjur."
 }

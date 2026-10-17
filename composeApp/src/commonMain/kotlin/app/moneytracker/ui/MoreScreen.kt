@@ -560,8 +560,9 @@ fun RecurringScreen() {
                             }, fontSize = 13.sp, color = SubtleText, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             r.endDate?.let { Text(tr("Until: {0}", "${it.monthNumber}/${it.dayOfMonth}/${it.year % 100}"), fontSize = 12.sp, color = SubtleText) }
                         }
-                        Text(currency.format(main(r)), color = when (r.kind) {
-                            TxnKind.INCOME -> IncomeColor; TxnKind.EXPENSE -> ExpenseColor; else -> Ink
+                        val refund = app.moneytracker.domain.isRefund(r.kind, r.amount)
+                        Text(currency.format(if (refund) -main(r) else main(r), showSign = refund), color = when {
+                            r.kind == TxnKind.INCOME || refund -> IncomeColor; r.kind == TxnKind.EXPENSE -> ExpenseColor; else -> Ink
                         })
                     }
                     HorizontalDivider(color = DividerColor)
@@ -626,6 +627,14 @@ fun BackupScreen() {
                         }
                     }
                 }
+                ConfigSection(tr("Money Manager"))
+                Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    BackupButton(tr("Export for Money Manager (.mmbak)"), Modifier.fillMaxWidth(), onClick = backup::exportMoneyManager)
+                    Text(tr("Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. " +
+                        "Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; " +
+                        "photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte."),
+                        fontSize = 12.sp, color = SubtleText)
+                }
                 ConfigSection(tr("Reset"))
                 Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -678,9 +687,9 @@ fun BackupScreen() {
     }
 }
 
-/** "pre-import-20261013-105723.mmdb" → "Before import · 13 Oct 2026, 10:57". */
+/** "pre-import-20261013-105723.mtbak" → "Before import · 13 Oct 2026, 10:57" (older backups end in .mmdb). */
 private fun backupLabel(file: String): String {
-    val base = file.removeSuffix(".mmdb")
+    val base = file.removeSuffix(".mtbak").removeSuffix(".mmdb")
     val m = Regex("""^(.*)-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})\d{2}$""").find(base) ?: return base
     val (kind, y, mo, d, h, mi) = m.destructured
     val what = when (kind) {
@@ -745,7 +754,9 @@ private fun RuleEditDialog(
     onSave: (RecurringRule) -> Unit,
 ) {
     val fmt = LocalCurrencies.current[rule.currency]?.format ?: LocalCurrency.current
-    var amount by remember { mutableStateOf(fmt.toInput(rule.amount)) }
+    // A repeating refund is stored negative; it is edited as a positive amount like in the entry editor.
+    val sign = if (app.moneytracker.domain.isRefund(rule.kind, rule.amount)) -1 else 1
+    var amount by remember { mutableStateOf(fmt.toInput(rule.amount * sign)) }
     var note by remember { mutableStateOf(rule.note) }
     var memo by remember { mutableStateOf(rule.memo) }
     var accountId by remember { mutableStateOf(rule.accountId) }
@@ -790,7 +801,7 @@ private fun RuleEditDialog(
         },
         confirmButton = {
             TextButton(enabled = parsed != null && parsed > 0 && (!transfer || toAccountId != null), onClick = {
-                onSave(rule.copy(amount = parsed ?: rule.amount, note = note.trim(), memo = memo.trim(), accountId = accountId,
+                onSave(rule.copy(amount = parsed?.let { it * sign } ?: rule.amount, note = note.trim(), memo = memo.trim(), accountId = accountId,
                     toAccountId = if (transfer) toAccountId else null, categoryId = if (transfer) null else categoryId,
                     repeat = repeat, nextDate = next, endDate = end))
             }) { Text(tr("Save")) }
@@ -835,7 +846,7 @@ private fun ImportPreviewDialog(parsed: app.moneytracker.data.TabularImport.Pars
                             if (r.note.isNotBlank()) Text(r.note, fontSize = 12.sp, color = SubtleText, maxLines = 1)
                         }
                         Text((r.currency?.let { "$it " } ?: "") + currency.format(r.amount), color = when (r.type) {
-                            app.moneytracker.data.DraftType.INCOME -> IncomeColor
+                            app.moneytracker.data.DraftType.INCOME, app.moneytracker.data.DraftType.REFUND -> IncomeColor
                             app.moneytracker.data.DraftType.EXPENSE -> ExpenseColor
                             else -> Ink
                         })

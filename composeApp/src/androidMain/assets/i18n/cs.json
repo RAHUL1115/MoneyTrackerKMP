@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "Záznam s více štítky se započítá jednou za každý štítek.",
 "A reminder at the time you choose to record the day's spending.": "Připomínka ve zvolený čas, abyste zapsali dnešní výdaje.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Tichá, vždy dostupná tlačítka k přidání příjmů, výdajů nebo převodů z panelu oznámení.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Upozornění, když bankovní SMS vypadá jako transakce – ať už byla uložena automaticky, nebo čeká na vaši kontrolu."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Upozornění, když bankovní SMS vypadá jako transakce – ať už byla uložena automaticky, nebo čeká na vaši kontrolu.",
+"Refund": "Vratka",
+"Refund {0}": "Vráceno {0}",
+"incl. {0} refunded": "vč. vrácených {0}",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "Export pro Money Manager (.mmbak)",
+"Exported for Money Manager": "Exportováno pro Money Manager",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "Obnovte soubor v aplikaci Money Manager v nabídce Backup › Data Recovery. Nahradí data, která tam jsou. Obsahuje účty, záznamy (vratky jako záporné výdaje), kategorie, rozpočty, opakování, štítky a poznámky; fotky, záložky a zjištěné SMS ne. MoneyTracker není spojen se společností Realbyte.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "Peníze vrácené za nákup, například za vrácenou objednávku. Snižují útratu v kategorii výdajů, místo aby se počítaly jako příjem."
 }

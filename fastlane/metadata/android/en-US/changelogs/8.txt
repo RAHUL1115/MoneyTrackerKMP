@@ -1,0 +1,5 @@
+• Refunds: tick "Refund" on the Income tab (or tap Refund on an expense) to book money back against an expense category, so your spending goes down instead of your income going up
+• Stats show how much of a category was refunded, and bank SMS refunds are recognised
+• Money Manager backups: refunds entered there now import correctly
+• New: export a backup that Money Manager can restore (Backup › Export for Money Manager)
+• Your own backups now use the .mtbak extension; older .mmdb backups still restore

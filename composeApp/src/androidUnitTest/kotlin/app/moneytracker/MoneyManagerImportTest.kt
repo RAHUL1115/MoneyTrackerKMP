@@ -40,7 +40,7 @@ class MoneyManagerImportTest {
     }
 
     /** A tiny Money Manager v19 database with the cases that matter. */
-    private fun fixture(): Connection {
+    internal fun fixture(): Connection {
         val c = DriverManager.getConnection("jdbc:sqlite::memory:")
         val st = c.createStatement()
         listOf(

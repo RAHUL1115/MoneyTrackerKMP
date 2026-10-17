@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "Eine Buchung mit mehreren Tags zählt für jeden Tag einmal.",
 "A reminder at the time you choose to record the day's spending.": "Eine Erinnerung zur gewählten Uhrzeit, um die Ausgaben des Tages zu erfassen.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Lautlose, stets verfügbare Schaltflächen, um Einnahmen, Ausgaben oder Umbuchungen direkt aus der Benachrichtigungsleiste hinzuzufügen.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Hinweise, wenn eine Bank-SMS wie eine Buchung aussieht – egal, ob sie automatisch gespeichert wurde oder auf deine Prüfung wartet."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Hinweise, wenn eine Bank-SMS wie eine Buchung aussieht – egal, ob sie automatisch gespeichert wurde oder auf deine Prüfung wartet.",
+"Refund": "Erstattung",
+"Refund {0}": "{0} erstattet",
+"incl. {0} refunded": "inkl. {0} erstattet",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "Für Money Manager exportieren (.mmbak)",
+"Exported for Money Manager": "Für Money Manager exportiert",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "Stelle die Datei in Money Manager unter Backup › Data Recovery wieder her. Sie ersetzt die Daten dort. Enthalten sind Konten, Buchungen (Erstattungen als negative Ausgaben), Kategorien, Budgets, Wiederholungen, Tags und Notizen; Fotos, Lesezeichen und erkannte SMS nicht. MoneyTracker steht in keiner Verbindung zu Realbyte.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "Geld zurück für einen Kauf, etwa bei einer Retoure. Es senkt die Ausgaben in der Ausgabenkategorie, statt als Einnahme zu zählen."
 }

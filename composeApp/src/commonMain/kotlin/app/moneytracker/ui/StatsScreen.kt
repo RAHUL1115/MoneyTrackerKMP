@@ -108,7 +108,12 @@ private enum class GroupBy(val label: String) { CATEGORY("Category"), ACCOUNT("A
 private const val NO_TAG = "__notag"
 
 /** One part of the breakdown: amount in the shown and the previous period; [open] drills in when there is somewhere to go. */
-private class Slice(val key: String, val name: String, val amount: Long, val previous: Long, val open: (() -> Unit)?)
+/** [amount] is net of refunds; [refunded] is how much came back (shown as "incl. … refunded"). */
+private class Slice(val key: String, val name: String, val amount: Long, val previous: Long, val open: (() -> Unit)?, val refunded: Long = 0)
+
+/** Refunds per key, as positive amounts. */
+private fun refundsBy(rows: List<ReportRow>, key: (List<ReportRow>) -> Map<String, Long>): Map<String, Long> =
+    key(rows.filter { app.moneytracker.domain.isRefund(it.kind, it.amount) }).mapValues { -it.value }
 
 private fun DateRange.days() = endInclusive.toEpochDays() - start.toEpochDays() + 1
 private fun DateRange.shift(days: Int) = DateRange(start.plus(DatePeriod(days = days)), endInclusive.plus(DatePeriod(days = days)))
@@ -234,18 +239,21 @@ fun StatsTab() {
             when (groupBy) {
                 GroupBy.CATEGORY -> {
                     val before = byMainCategory(previousRows, catById, flow)
+                    val refunded = refundsBy(rows) { byMainCategory(it, catById, flow) }
                     byMainCategory(rows, catById, flow).map { (key, amount) ->
                         val name = nameOf(key, catById)
                         Slice(key, name, amount, before[key] ?: 0L,
-                            if (catById[key] != null) ({ nav.push(Screen.StatsDetail(key, showIncome, range.start, range.endInclusive, name)) }) else null)
+                            if (catById[key] != null) ({ nav.push(Screen.StatsDetail(key, showIncome, range.start, range.endInclusive, name)) }) else null,
+                            refunded[key] ?: 0L)
                     }
                 }
                 GroupBy.ACCOUNT -> {
                     fun sum(list: List<ReportRow>) = list.groupBy { it.accountId }.mapValues { (_, v) -> v.sumOf { it.amount } }
                     val before = sum(previous)
+                    val refunded = refundsBy(current, ::sum)
                     sum(current).map { (key, amount) ->
                         Slice(key, accountById[key]?.name ?: tr("Deleted account"), amount, before[key] ?: 0L,
-                            if (accountById[key] != null) ({ nav.push(Screen.AccountDetail(key)) }) else null)
+                            if (accountById[key] != null) ({ nav.push(Screen.AccountDetail(key)) }) else null, refunded[key] ?: 0L)
                     }
                 }
                 GroupBy.TAG -> {
@@ -254,11 +262,12 @@ fun StatsTab() {
                         list.forEach { r -> tagNames[r.txnId].orEmpty().ifEmpty { listOf(NO_TAG) }.distinct().forEach { k -> put(k, (get(k) ?: 0L) + r.amount) } }
                     }
                     val before = sum(previous)
-                    sum(current).map { (key, amount) -> Slice(key, if (key == NO_TAG) tr("No tag") else key, amount, before[key] ?: 0L, null) }
+                    val refunded = refundsBy(current, ::sum)
+                    sum(current).map { (key, amount) -> Slice(key, if (key == NO_TAG) tr("No tag") else key, amount, before[key] ?: 0L, null, refunded[key] ?: 0L) }
                 }
             }.sortedByDescending { it.amount }
         }
-        val top = rows.filter { classify(it) == flow }.sortedByDescending { it.amount }.take(5)
+        val top = rows.filter { classify(it) == flow && it.amount > 0 }.sortedByDescending { it.amount }.take(5)
         val accountName = accounts.associate { it.id to it.name }
 
         val chartMemory = remember { ChartMemory() }
@@ -313,7 +322,8 @@ fun StatsTab() {
                         // Tapping a slice (or its row) shows that part in the middle; the selection clears when the data changes.
                         var picked by remember(slices.map { it.key }) { mutableStateOf<Int?>(null) }
                         val sel = picked?.let { slices.getOrNull(it) }
-                        DonutChart(slices.map { it.amount }, Modifier.fillMaxWidth().height(220.dp).padding(vertical = 12.dp), id = "donut",
+                        // A category can end up below zero when refunds outweigh spending; it gets no slice.
+                        DonutChart(slices.map { it.amount.coerceAtLeast(0) }, Modifier.fillMaxWidth().height(220.dp).padding(vertical = 12.dp), id = "donut",
                             selected = picked, onSelect = { picked = it }) {
                             Column(Modifier.width(120.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 if (sel == null) {
@@ -464,7 +474,7 @@ private fun SliceRow(
     slice: Slice, color: Color, total: Long, income: Boolean, currency: app.moneytracker.domain.CurrencyFormat,
     highlighted: Boolean = false, dimmed: Boolean = false,
 ) {
-    val share = if (total > 0) slice.amount.toFloat() / total else 0f
+    val share = if (total > 0) slice.amount.coerceAtLeast(0).toFloat() / total else 0f
     val pct = (share * 100).roundToInt()
     // The bar slides to its new width when the period or grouping changes.
     val shownShare by androidx.compose.animation.core.animateFloatAsState(share.coerceIn(0f, 1f), androidx.compose.animation.core.tween(700), label = "share")
@@ -480,6 +490,7 @@ private fun SliceRow(
                 Text(slice.name, Modifier.weight(1f), color = Ink, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Text(currency.format(slice.amount), Modifier.padding(start = 8.dp), color = Ink, fontWeight = FontWeight.Medium)
             }
+            if (slice.refunded > 0) Text(tr("incl. {0} refunded", currency.format(slice.refunded)), color = IncomeColor, fontSize = 12.sp)
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(FillColor)) {

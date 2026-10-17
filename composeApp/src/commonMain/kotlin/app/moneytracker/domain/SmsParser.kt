@@ -14,6 +14,8 @@ object SmsParser {
         val isCredit: Boolean,
         val accountDigits: String?,  // last digits of card / account, e.g. "1234"
         val vendor: String?,
+        /** A credit that gives back earlier spending ("refund", "reversal") rather than income. */
+        val isRefund: Boolean = false,
     )
 
     /** Sender-ID fragments (e.g. "VM-HDFCBK") and in-text names → display name. */
@@ -44,6 +46,7 @@ object SmsParser {
         Regex("""(?i)\btowards\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=[.,]|$)"""),
     )
     private val debitWords = listOf("debited", "spent", "paid", "purchase", "withdrawn", "withdrawal", "sent", "debit", "txn of", "used for", "charged")
+    private val refundWords = listOf("refund", "reversal", "reversed", "chargeback")
     private val creditWords = listOf("credited", "received", "deposited", "refund", "reversed", "credit of", "added to")
     private val noise = listOf("otp", "one time password", "verification code", "offer", "voucher", "win ", "congratulations",
         "pre-approved", "apply now", "eligible for", "due date", "minimum amount due", "statement is ready", "will be debited")
@@ -67,7 +70,8 @@ object SmsParser {
         val firstCredit = creditWords.mapNotNull { w -> lower.indexOf(w).takeIf { it >= 0 } }.minOrNull() ?: Int.MAX_VALUE
         val credit = firstCredit < firstDebit
 
-        return Parsed(bankOf(sender, text), amount, code, credit, digitsRe.find(text)?.groupValues?.get(1), vendorOf(text))
+        return Parsed(bankOf(sender, text), amount, code, credit, digitsRe.find(text)?.groupValues?.get(1), vendorOf(text),
+            isRefund = credit && refundWords.any { it in lower })
     }
 
     fun bankOf(sender: String, text: String): String? {

@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "అనేక ట్యాగ్‌లు ఉన్న ఎంట్రీ ప్రతి ట్యాగ్‌కు ఒకసారి లెక్కించబడుతుంది.",
 "A reminder at the time you choose to record the day's spending.": "రోజు ఖర్చులను నమోదు చేయడానికి మీరు ఎంచుకున్న సమయంలో ఒక రిమైండర్.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "నోటిఫికేషన్ ప్యానెల్ నుండే ఆదాయం, ఖర్చులు లేదా బదిలీలను జోడించడానికి నిశ్శబ్దంగా, ఎల్లప్పుడూ అందుబాటులో ఉండే బటన్‌లు.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "బ్యాంక్ SMS లావాదేవీలా కనిపించినప్పుడు అలర్ట్‌లు — అది ఆటోమేటిక్‌గా సేవ్ అయినా లేదా మీ సమీక్ష కోసం వేచి ఉన్నా."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "బ్యాంక్ SMS లావాదేవీలా కనిపించినప్పుడు అలర్ట్‌లు — అది ఆటోమేటిక్‌గా సేవ్ అయినా లేదా మీ సమీక్ష కోసం వేచి ఉన్నా.",
+"Refund": "రీఫండ్",
+"Refund {0}": "{0} రీఫండ్ అయింది",
+"incl. {0} refunded": "{0} రీఫండ్‌తో సహా",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "Money Manager కోసం ఎగుమతి చేయి (.mmbak)",
+"Exported for Money Manager": "Money Manager కోసం ఎగుమతి అయింది",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "Money Manager లో Backup › Data Recovery కింద ఫైల్‌ను పునరుద్ధరించండి. ఇది అక్కడి డేటాను భర్తీ చేస్తుంది. ఖాతాలు, ఎంట్రీలు (రీఫండ్‌లు రుణాత్మక ఖర్చులుగా), వర్గాలు, బడ్జెట్‌లు, పునరావృతాలు, ట్యాగ్‌లు మరియు నోట్‌లు చేర్చబడ్డాయి; ఫోటోలు, బుక్‌మార్క్‌లు మరియు గుర్తించిన SMS చేర్చబడలేదు. MoneyTracker కు Realbyte తో ఎలాంటి సంబంధం లేదు.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "కొనుగోలుకు తిరిగి వచ్చిన డబ్బు, ఉదాహరణకు తిరిగి పంపిన ఆర్డర్. ఇది ఆదాయంగా లెక్కించబడకుండా ఖర్చు వర్గంలోని ఖర్చును తగ్గిస్తుంది."
 }

@@ -226,10 +226,15 @@ object Detected {
         if (r.settingNow(Keys.SMS_ALERT) == "0") return
         ensureTranslations(ctx, r)
         val fmt = app.moneytracker.domain.CurrencyFormat(r.settingNow(Keys.CURRENCY_SYMBOL) ?: "₹", r.settingNow(Keys.CURRENCY_DECIMALS)?.toIntOrNull() ?: 2)
-        val amount = c.amount?.let { fmt.format(it) }.orEmpty()
+        val amount = c.amount?.let { fmt.format(kotlin.math.abs(it)) }.orEmpty()
         val saved = c.status == app.moneytracker.domain.CaptureStatus.SAVED
+        val headline = when {
+            app.moneytracker.domain.isRefund(c.kind, c.amount) -> tr("Refund {0}", amount)
+            c.kind?.name == "INCOME" -> tr("Received {0}", amount)
+            else -> tr("Spent {0}", amount)
+        }
         Notifications.showDetected(ctx, c.id.hashCode(),
-            (if (c.kind?.name == "INCOME") tr("Received {0}", amount) else tr("Spent {0}", amount)) + c.merchant.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty(),
+            headline + c.merchant.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty(),
             if (saved) tr("Saved automatically") else tr("Tap to review and add"))
     }
 

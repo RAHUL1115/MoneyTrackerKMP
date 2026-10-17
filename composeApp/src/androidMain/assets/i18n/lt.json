@@ -635,5 +635,13 @@
 "An entry with several tags counts once for each tag.": "Įrašas su keliomis žymomis skaičiuojamas po kartą kiekvienai žymai.",
 "A reminder at the time you choose to record the day's spending.": "Priminimas jūsų pasirinktu laiku užrašyti dienos išlaidas.",
 "Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Tylūs, visada matomi mygtukai pajamoms, išlaidoms ar pervedimams pridėti iš pranešimų skydelio.",
-"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Įspėja, kai banko SMS panaši į operaciją – nesvarbu, ar ji išsaugota automatiškai, ar laukia jūsų peržiūros."
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Įspėja, kai banko SMS panaši į operaciją – nesvarbu, ar ji išsaugota automatiškai, ar laukia jūsų peržiūros.",
+"Refund": "Grąžinimas",
+"Refund {0}": "Grąžinta: {0}",
+"incl. {0} refunded": "įsk. grąžinta {0}",
+"Money Manager": "Money Manager",
+"Export for Money Manager (.mmbak)": "Eksportuoti į „Money Manager“ (.mmbak)",
+"Exported for Money Manager": "Eksportuota į „Money Manager“",
+"Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte.": "Atkurkite failą „Money Manager“ skiltyje Backup › Data Recovery. Jis pakeis ten esančius duomenis. Įtraukiamos sąskaitos, įrašai (grąžinimai kaip neigiamos išlaidos), kategorijos, biudžetai, pasikartojimai, žymos ir pastabos; nuotraukos, žymelės ir aptikti SMS – ne. MoneyTracker nėra susijusi su „Realbyte“.",
+"Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income.": "Už pirkinį grąžinti pinigai, pvz., už grąžintą užsakymą. Jie mažina išlaidas išlaidų kategorijoje, o ne skaičiuojami kaip pajamos."
 }

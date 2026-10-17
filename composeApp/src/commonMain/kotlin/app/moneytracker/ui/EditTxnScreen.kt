@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package app.moneytracker.ui
 
 import androidx.compose.material.icons.outlined.ViewList
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.foundation.horizontalScroll
@@ -42,6 +45,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -191,7 +195,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         else withContext(repo.io) { repo.noteSuggestions(note) }.filter { s ->
             when (type) {
                 DraftType.INCOME -> s.kind == TxnKind.INCOME
-                DraftType.EXPENSE -> s.kind == TxnKind.EXPENSE
+                DraftType.EXPENSE, DraftType.REFUND -> s.kind == TxnKind.EXPENSE
                 DraftType.TRANSFER -> s.kind == TxnKind.TRANSFER_OUT
             }
         }.take(4)
@@ -293,7 +297,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         }
     }
 
-    val title = if (isAdjustment) (if (adjustUp) tr("Income Balance") else tr("Expense Balance")) else when (type) { DraftType.INCOME -> tr("Income"); DraftType.EXPENSE -> tr("Expense"); DraftType.TRANSFER -> tr("Transfer") }
+    val title = if (isAdjustment) (if (adjustUp) tr("Income Balance") else tr("Expense Balance")) else when (type) { DraftType.INCOME -> tr("Income"); DraftType.EXPENSE -> tr("Expense"); DraftType.REFUND -> tr("Refund"); DraftType.TRANSFER -> tr("Transfer") }
     Column(Modifier.fillMaxSize().background(SurfaceColor)) {
         BackTopBar(title, { nav.back() }) {
             if (!isAdjustment) IconButton(onClick = { bookmarkDialog = true }) { Icon(Icons.Outlined.StarOutline, tr("Save as bookmark")) }
@@ -306,12 +310,19 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Spacer(Modifier.height(8.dp))
             // An adjustment has no type selected; choosing one converts it into a normal entry.
-            TypeSegments(listOf(tr("Income"), tr("Expense"), tr("Transfer")), if (isAdjustment) -1 else type.ordinal, { i ->
-                val t = DraftType.entries[i]
+            // A refund is money coming in, so it lives on the Income tab (the "Refund" box on the category row).
+            val tabs = listOf(DraftType.INCOME, DraftType.EXPENSE, DraftType.TRANSFER)
+            TypeSegments(listOf(tr("Income"), tr("Expense"), tr("Transfer")),
+                if (isAdjustment) -1 else tabs.indexOf(if (type == DraftType.REFUND) DraftType.INCOME else type), { i ->
+                val t = tabs[i]
                 if (isAdjustment) {
                     convertedFromAdjustment = true; type = t
                     categoryId = if (t == DraftType.TRANSFER) null else app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
-                } else if (t != type) { type = t; categoryId = null; if (t != DraftType.TRANSFER) toAccountId = null }
+                } else if (t != type && !(t == DraftType.INCOME && type == DraftType.REFUND)) {
+                    // Refund → Expense keeps the (expense) category.
+                    val sameCategories = t == DraftType.EXPENSE && type == DraftType.REFUND
+                    type = t; if (!sameCategories) categoryId = null; if (t != DraftType.TRANSFER) toAccountId = null
+                }
             })
             Spacer(Modifier.height(12.dp))
 
@@ -380,7 +391,33 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                 }
             } else {
                 if (isAdjustment) FormRow("Category", false, onClick = {}) { Text(tr(app.moneytracker.domain.MODIFIED_BALANCE_NAME)) }
-                else FormRow("Category", panel == Panel.CATEGORY, onClick = { focus.clearFocus(); panel = Panel.CATEGORY }) {
+                else FormRow("Category", panel == Panel.CATEGORY, onClick = { focus.clearFocus(); panel = Panel.CATEGORY },
+                    // Income tab only: a refund books money back against an expense category.
+                    trailing = if (type == DraftType.INCOME || type == DraftType.REFUND) ({
+                        val refund = type == DraftType.REFUND
+                        // Long-press (or hover with a mouse) explains what the box does.
+                        androidx.compose.material3.TooltipBox(
+                            positionProvider = androidx.compose.material3.TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            tooltip = {
+                                PlainTooltip(Modifier.widthIn(max = 260.dp)) {
+                                    Text(tr("Money back for a purchase, like a returned order. It lowers spending in the expense category instead of counting as income."))
+                                }
+                            },
+                            state = androidx.compose.material3.rememberTooltipState(),
+                        ) {
+                            Row(
+                                Modifier.clip(RoundedCornerShape(8.dp)).clickable {
+                                    type = if (refund) DraftType.INCOME else DraftType.REFUND; categoryId = null
+                                    if (panel == Panel.NONE) panel = Panel.CATEGORY
+                                }.padding(end = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                androidx.compose.material3.Checkbox(refund, null, Modifier.size(36.dp))
+                                Text(tr("Refund"), fontSize = 13.sp, color = if (refund) IncomeColor else SubtleText)
+                            }
+                        }
+                    }) else null,
+                ) {
                     val sug = suggestion?.categoryId?.takeIf { categoryId == null && catById[it]?.kind == catKind }
                     if (categoryId == null && sug != null) {
                         Text(tr("Suggested: {0}  ✓", categoryPath(sug, catById)), Modifier.clickable { categoryId = sug }, color = IncomeColor)
@@ -502,9 +539,15 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
             error?.let { Text(it, Modifier.padding(horizontal = 20.dp), color = MaterialTheme.colorScheme.error) }
             if (viewing && existing != null) {
                 Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    listOf(
+                    // "Refund" starts a refund for this expense (same category, account and amount; all editable).
+                    val refundable = existing?.let { it.kind == TxnKind.EXPENSE && !it.isRefund && it.transferGroupId == null } == true
+                    listOfNotNull(
                         Triple("Delete", DangerColor) { confirmDelete = true },
                         Triple("Copy", Ink) { copyDialog = true },
+                        if (refundable) Triple("Refund", IncomeColor) {
+                            nav.push(Screen.EditTxn(preset = TxnDraft(DraftType.REFUND, repo.today(), accountId.orEmpty(), categoryId = categoryId,
+                                amount = enteredFmt.parse(amountText) ?: 0L, note = note, currency = currencyCode, tagIds = tagIds)))
+                        } else null,
                         Triple("Bookmark", Ink) { bookmarkDialog = true },
                     ).filter { !isAdjustment || it.first == "Delete" }.forEach { (label, color, action) ->
                         Box(
@@ -517,7 +560,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
             } else Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
                     Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(14.dp))
-                        .background(if (type == DraftType.INCOME) IncomeColor else if (type == DraftType.TRANSFER) InkSoft else ExpenseColor)
+                        .background(if (type == DraftType.INCOME || type == DraftType.REFUND) IncomeColor else if (type == DraftType.TRANSFER) InkSoft else ExpenseColor)
                         .clickable { save(false) },
                     contentAlignment = Alignment.Center,
                 ) { Text(tr("Save"), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
