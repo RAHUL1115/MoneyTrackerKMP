@@ -632,5 +632,8 @@
 "vs previous period": "во однос на претходниот период",
 "New": "Ново",
 "Deleted account": "Избришана сметка",
-"An entry with several tags counts once for each tag.": "Ставка со повеќе ознаки се брои еднаш за секоја ознака."
+"An entry with several tags counts once for each tag.": "Ставка со повеќе ознаки се брои еднаш за секоја ознака.",
+"A reminder at the time you choose to record the day's spending.": "Потсетник во време што ќе го изберете за да ги запишете дневните трошоци.",
+"Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Тивки, секогаш достапни копчиња за додавање приходи, трошоци или трансфери од панелот за известувања.",
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Известува кога банкарска SMS-порака личи на трансакција, без разлика дали е автоматски зачувана или чека ваш преглед."
 }

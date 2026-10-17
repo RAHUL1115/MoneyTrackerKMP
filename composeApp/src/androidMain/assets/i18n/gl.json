@@ -632,5 +632,8 @@
 "vs previous period": "fronte ao período anterior",
 "New": "Novo",
 "Deleted account": "Conta eliminada",
-"An entry with several tags counts once for each tag.": "Un rexistro con varias etiquetas conta unha vez por cada etiqueta."
+"An entry with several tags counts once for each tag.": "Un rexistro con varias etiquetas conta unha vez por cada etiqueta.",
+"A reminder at the time you choose to record the day's spending.": "Un recordatorio á hora que elixas para rexistrar os gastos do día.",
+"Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Botóns silenciosos e sempre visibles para engadir ingresos, gastos ou transferencias desde o panel de notificacións.",
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Avisos cando unha SMS do banco parece unha transacción, tanto se se gardou automaticamente como se agarda a túa revisión."
 }

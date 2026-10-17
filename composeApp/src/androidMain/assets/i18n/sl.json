@@ -632,5 +632,8 @@
 "vs previous period": "glede na prejšnje obdobje",
 "New": "Novo",
 "Deleted account": "Izbrisan račun",
-"An entry with several tags counts once for each tag.": "Vnos z več oznakami se šteje enkrat za vsako oznako."
+"An entry with several tags counts once for each tag.": "Vnos z več oznakami se šteje enkrat za vsako oznako.",
+"A reminder at the time you choose to record the day's spending.": "Opomnik ob izbranem času za vnos dnevne porabe.",
+"Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Tihi, vedno prikazani gumbi za dodajanje prihodkov, odhodkov ali prenosov iz podokna z obvestili.",
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Obvestila, ko je bančni SMS videti kot transakcija – ne glede na to, ali je bila samodejno shranjena ali čaka na vaš pregled."
 }

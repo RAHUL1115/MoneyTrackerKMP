@@ -632,5 +632,8 @@
 "vs previous period": "മുമ്പത്തെ കാലയളവിനെ അപേക്ഷിച്ച്",
 "New": "പുതിയത്",
 "Deleted account": "ഇല്ലാതാക്കിയ അക്കൗണ്ട്",
-"An entry with several tags counts once for each tag.": "ഒന്നിലധികം ടാഗുകളുള്ള എൻട്രി ഓരോ ടാഗിനും ഒരിക്കൽ കണക്കാക്കും."
+"An entry with several tags counts once for each tag.": "ഒന്നിലധികം ടാഗുകളുള്ള എൻട്രി ഓരോ ടാഗിനും ഒരിക്കൽ കണക്കാക്കും.",
+"A reminder at the time you choose to record the day's spending.": "ദിവസത്തെ ചെലവുകൾ രേഖപ്പെടുത്താൻ നിങ്ങൾ തിരഞ്ഞെടുക്കുന്ന സമയത്ത് ഒരു ഓർമ്മപ്പെടുത്തൽ.",
+"Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "അറിയിപ്പ് ഷെയ്‌ഡിൽ നിന്ന് വരുമാനം, ചെലവുകൾ അല്ലെങ്കിൽ കൈമാറ്റങ്ങൾ ചേർക്കാൻ എപ്പോഴുമുള്ള നിശബ്‌ദ ബട്ടണുകൾ.",
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "ബാങ്ക് SMS ഒരു ഇടപാട് പോലെ തോന്നുമ്പോൾ അറിയിക്കുന്നു — അത് സ്വയമേവ സേവ് ചെയ്തതായാലും നിങ്ങളുടെ അവലോകനത്തിനായി കാത്തിരിക്കുന്നതായാലും."
 }

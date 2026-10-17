@@ -1,0 +1,1 @@
+• Each notification type (daily reminder, quick add, detected transactions) now explains what it's for in Android's notification settings, in your language

@@ -73,9 +73,16 @@ object Notifications {
     fun createChannels(ctx: Context) {
         if (Build.VERSION.SDK_INT < 26) return
         val nm = ctx.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel(CH_REMINDER, tr("Daily reminder"), NotificationManager.IMPORTANCE_DEFAULT))
-        nm.createNotificationChannel(NotificationChannel(CH_QUICK, tr("Quick add"), NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
-        nm.createNotificationChannel(NotificationChannel(CH_DETECTED, tr("Detected transactions"), NotificationManager.IMPORTANCE_DEFAULT))
+        nm.createNotificationChannel(NotificationChannel(CH_REMINDER, tr("Daily reminder"), NotificationManager.IMPORTANCE_DEFAULT).apply {
+            description = tr("A reminder at the time you choose to record the day's spending.")
+        })
+        nm.createNotificationChannel(NotificationChannel(CH_QUICK, tr("Quick add"), NotificationManager.IMPORTANCE_LOW).apply {
+            description = tr("Silent, always-on buttons to add income, expenses or transfers from the notification shade.")
+            setShowBadge(false)
+        })
+        nm.createNotificationChannel(NotificationChannel(CH_DETECTED, tr("Detected transactions"), NotificationManager.IMPORTANCE_DEFAULT).apply {
+            description = tr("Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.")
+        })
     }
 
     @android.annotation.SuppressLint("MissingPermission")

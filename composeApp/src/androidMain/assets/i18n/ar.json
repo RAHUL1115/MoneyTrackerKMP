@@ -632,5 +632,8 @@
 "vs previous period": "مقارنةً بالفترة السابقة",
 "New": "جديد",
 "Deleted account": "حساب محذوف",
-"An entry with several tags counts once for each tag.": "تُحتسب المعاملة التي تحمل عدة وسوم مرة واحدة لكل وسم."
+"An entry with several tags counts once for each tag.": "تُحتسب المعاملة التي تحمل عدة وسوم مرة واحدة لكل وسم.",
+"A reminder at the time you choose to record the day's spending.": "تذكير في الوقت الذي تختاره لتسجيل مصروفات اليوم.",
+"Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "أزرار صامتة ومتاحة دائمًا لإضافة الدخل أو المصروفات أو التحويلات من لوحة الإشعارات.",
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "تنبيهات عندما تبدو رسالة SMS من البنك كمعاملة، سواء تم حفظها تلقائيًا أو كانت بانتظار مراجعتك."
 }

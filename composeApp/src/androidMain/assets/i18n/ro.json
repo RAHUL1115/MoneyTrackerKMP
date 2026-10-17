@@ -632,5 +632,8 @@
 "vs previous period": "față de perioada anterioară",
 "New": "Nou",
 "Deleted account": "Cont șters",
-"An entry with several tags counts once for each tag.": "O înregistrare cu mai multe etichete se numără o dată pentru fiecare etichetă."
+"An entry with several tags counts once for each tag.": "O înregistrare cu mai multe etichete se numără o dată pentru fiecare etichetă.",
+"A reminder at the time you choose to record the day's spending.": "Un memento la ora aleasă de tine pentru a înregistra cheltuielile zilei.",
+"Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Butoane silențioase, mereu disponibile, pentru a adăuga venituri, cheltuieli sau transferuri din panoul de notificări.",
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Te anunță când un SMS de la bancă pare o tranzacție, fie că a fost salvată automat, fie că așteaptă să o verifici."
 }

@@ -632,5 +632,8 @@
 "vs previous period": "vs periode sebelumnya",
 "New": "Baru",
 "Deleted account": "Akun dihapus",
-"An entry with several tags counts once for each tag.": "Entri dengan beberapa tag dihitung sekali untuk setiap tag."
+"An entry with several tags counts once for each tag.": "Entri dengan beberapa tag dihitung sekali untuk setiap tag.",
+"A reminder at the time you choose to record the day's spending.": "Pengingat pada waktu pilihan Anda untuk mencatat pengeluaran hari itu.",
+"Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Tombol senyap yang selalu tersedia untuk menambahkan pendapatan, pengeluaran, atau transfer dari panel notifikasi.",
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Peringatan saat SMS bank terlihat seperti transaksi, baik yang sudah disimpan otomatis maupun yang menunggu Anda tinjau."
 }

@@ -632,5 +632,8 @@
 "vs previous period": "vs. vorige tydperk",
 "New": "Nuut",
 "Deleted account": "Uitgevee rekening",
-"An entry with several tags counts once for each tag.": "'n Inskrywing met verskeie etikette tel een keer vir elke etiket."
+"An entry with several tags counts once for each tag.": "'n Inskrywing met verskeie etikette tel een keer vir elke etiket.",
+"A reminder at the time you choose to record the day's spending.": "'n Herinnering op die tyd wat jy kies om die dag se uitgawes aan te teken.",
+"Silent, always-on buttons to add income, expenses or transfers from the notification shade.": "Stil knoppies wat altyd beskikbaar is om inkomste, uitgawes of oordragte vanaf die kennisgewingskerm by te voeg.",
+"Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.": "Waarskuwings wanneer 'n bank-SMS na 'n transaksie lyk, of dit outomaties gestoor is of op jou hersiening wag."
 }
