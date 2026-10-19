@@ -1,6 +1,6 @@
 # Privacy policy
 
-_Last updated: 15 October 2026_
+_Last updated: 18 October 2026_
 
 MoneyTracker is an offline app. It has no servers, no accounts, no ads and no analytics, and it does not request the internet permission, so it cannot send your data anywhere by itself.
 
@@ -19,7 +19,7 @@ Every permission is optional and requested only when you turn on the matching fe
 | Permission | Used for |
 |---|---|
 | Location (precise or approximate) | Attaching where you were to a new entry, when "Save location" is on. Only latitude and longitude are saved with that entry; there is no background location. |
-| SMS (receive and read) | Bank SMS detection, when turned on: messages are read on the phone to suggest entries. Messages are never sent anywhere. |
+| SMS (receive and read) | Bank SMS detection, when turned on, and "Import SMS": bank messages are read on the phone to suggest entries; other messages are ignored. Messages are never uploaded, shared or sent anywhere. |
 | Notifications | Daily reminder, quick-add notification and detected-SMS alerts. |
 | Run at startup | Restoring the reminder after the phone restarts. |
 | Fingerprint / face | Unlocking the app when a passcode is set. The app never sees your biometric data; Android only reports success or failure. |

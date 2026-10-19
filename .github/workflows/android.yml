@@ -62,7 +62,16 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew :composeApp:assembleRelease --console=plain
+        # The APK goes to GitHub; the AAB (same key) is what gets uploaded to Google Play.
+        run: ./gradlew :composeApp:assembleRelease :composeApp:bundleRelease --console=plain
+
+      - name: Keep Play bundle
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: play-bundle
+          path: composeApp/build/outputs/bundle/release/composeApp-release.aab
+          if-no-files-found: error
 
       - name: Remove release key
         if: always()

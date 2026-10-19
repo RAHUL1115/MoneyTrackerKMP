@@ -1,1 +1,1 @@
-Offline expense and budget tracker. No ads, no accounts, no internet.
+Private expense tracker that reads bank SMS on your phone. No ads, no internet.

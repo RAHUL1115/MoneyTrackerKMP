@@ -696,6 +696,18 @@ fun ChoiceDialog(title: String, options: List<Pair<String, String>>, onDismiss: 
     )
 }
 
+/** Shown before a sensitive permission prompt (SMS, location): what is read, why, and that it stays on the phone. */
+@Composable
+fun DisclosureDialog(title: String, body: String, onDismiss: () -> Unit, onContinue: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(body) },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = onContinue) { Text(tr("Continue")) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(tr("Not now")) } },
+    )
+}
+
 /** "Repeat · Rent, To mom, … · 11/1 · −30,000": repeating entries still to come in the shown period (not in the totals). */
 @Composable
 private fun UpcomingRepeatsRow(

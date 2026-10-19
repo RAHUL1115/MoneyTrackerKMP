@@ -51,6 +51,7 @@ fun MessageSettingsScreen() {
     var choosingOriginal by remember { mutableStateOf(false) }
     var daysDialog by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
+    var disclosure by remember { mutableStateOf<(() -> Unit)?>(null) }   // action waiting on the SMS disclosure
 
     fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) } }
     val days = importDays?.toIntOrNull() ?: 30
@@ -63,7 +64,8 @@ fun MessageSettingsScreen() {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             ConfigSection(tr("SMS"))
             ConfigToggle(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture) { on ->
-                platform.setMessageCapture(on) { active -> put(Keys.CAPTURE_ENABLED, if (active) "1" else "0") }
+                val apply = { platform.setMessageCapture(on) { active -> put(Keys.CAPTURE_ENABLED, if (active) "1" else "0") } }
+                if (on) disclosure = apply else apply()
             }
             ConfigToggle(tr("Alert for detected messages"), null, alert != "0") { put(Keys.SMS_ALERT, if (it) "1" else "0") }
             ConfigToggle(tr("Save automatically"), tr("Add the entry right away when the account is recognised"), autoSave == "1") {
@@ -71,9 +73,12 @@ fun MessageSettingsScreen() {
             }
             ConfigRow(tr("Original message on entries"), originalLabel) { choosingOriginal = true }
             ConfigRow(tr("Import SMS from the last {0} days", days), tr("Import")) {
-                platform.importInboxMessages(days) { n ->
-                    message = when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages to Detected SMS", n) }
+                val import = {
+                    platform.importInboxMessages(days) { n ->
+                        message = when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages to Detected SMS", n) }
+                    }
                 }
+                if (capture) import() else disclosure = import
             }
             ConfigRow(tr("Days to import"), "$days") { daysDialog = true }
 
@@ -89,6 +94,13 @@ fun MessageSettingsScreen() {
         }
     }
 
+    disclosure?.let { action ->
+        DisclosureDialog(tr("Detect bank SMS"),
+            tr("MoneyTracker reads SMS from banks and card issuers on this phone to suggest income and expense entries. " +
+                "Messages are processed only on your phone and are never uploaded or shared: the app has no internet access. " +
+                "Other messages are ignored. You can turn this off at any time here in Bank SMS."),
+            { disclosure = null }) { disclosure = null; action() }
+    }
     message?.let { m ->
         AlertDialog(onDismissRequest = { message = null }, text = { Text(m) },
             confirmButton = { TextButton(onClick = { message = null }) { Text(tr("OK")) } })

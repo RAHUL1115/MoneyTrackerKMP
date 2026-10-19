@@ -133,6 +133,7 @@ fun ConfigurationScreen() {
     var choice by remember { mutableStateOf<String?>(null) }   // key of a multiple-choice setting being edited
     var accentDialog by remember { mutableStateOf(false) }
     var languageDialog by remember { mutableStateOf(false) }
+    var locationDisclosure by remember { mutableStateOf(false) }
     val language by remember(repo) { repo.setting(Keys.LANGUAGE) }.collectAsState(null)
     val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
     val carryOver by remember(repo) { repo.flag(Keys.CARRY_OVER) }.collectAsState(false)
@@ -226,11 +227,19 @@ fun ConfigurationScreen() {
                 platform.setQuickAddNotification(on) { active -> setFlag(Keys.QUICK_ADD_NOTIFICATION, active) }
             }
             ConfigRow(tr("Bank SMS"), if (capture) tr("On") else tr("Off")) { nav.push(Screen.MessageSettings) }
-            ConfigToggle(tr("Save location"), tr("Attach your current location to new entries"), location) { setFlag(Keys.LOCATION, it) }
+            ConfigToggle(tr("Save location"), tr("Attach your current location to new entries"), location) { on ->
+                if (on) locationDisclosure = true else setFlag(Keys.LOCATION, false)
+            }
             Spacer(Modifier.height(24.dp))
         }
     }
 
+    if (locationDisclosure) {
+        DisclosureDialog(tr("Save location"),
+            tr("When you add a new entry, MoneyTracker saves where you are (latitude and longitude) with it. " +
+                "Location is read only while you add an entry, never in the background, and stays on your phone."),
+            { locationDisclosure = false }) { locationDisclosure = false; setFlag(Keys.LOCATION, true) }
+    }
     if (languageDialog) {
         ChoiceDialog(tr("Language"), I18n.LANGUAGES.map { (tag, name) -> tag.ifEmpty { "system" } to (if (tag.isEmpty()) tr(name) else name) }, { languageDialog = false }) { tag ->
             put(Keys.LANGUAGE, if (tag == "system") "" else tag); languageDialog = false
