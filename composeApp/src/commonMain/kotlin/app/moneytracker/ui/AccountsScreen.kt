@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.DraftType
@@ -141,8 +142,8 @@ fun AccountsTab() {
                         if (isCard) {
                             val payable = counted.sumOf { (it.card?.statementDue ?: 0) + (it.card?.overdue ?: 0) }
                             val outstanding = counted.sumOf { (it.card?.currentCycle ?: 0) + (it.card?.upcoming ?: 0) }
-                            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.Bottom) {
-                                Text(group.name, Modifier.weight(1f), color = SubtleText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.Bottom) {
+                                GroupName(group.name, Modifier.weight(1f))
                                 CardColumn(tr("Balance payable"), currency.format(payable))
                                 CardColumn(tr("Outst. balance"), currency.format(outstanding))
                             }
@@ -152,9 +153,9 @@ fun AccountsTab() {
                                 val v = if (group.type.isDebitCard) it.balance else it.effectiveBalance
                                 app.moneytracker.domain.Fx.toMain(v, it.account.currency?.let { c -> currencies[c] }, currency.decimals)
                             }
-                            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
-                                Text(group.name, Modifier.weight(1f), color = SubtleText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                                Text(currency.format(sum), color = moneyColor(sum), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                GroupName(group.name, Modifier.weight(1f))
+                                Text(currency.format(sum), color = moneyColor(sum), style = SectionTotalStyle, maxLines = 1)
                             }
                         }
                         groupLines.filter { !it.account.hidden }.forEach { line ->
@@ -183,11 +184,11 @@ fun AccountsTab() {
                                 val card = line.card
                                 if (card != null) {
                                     Text(fmt.format(card.statementDue + card.overdue), Modifier.width(120.dp), textAlign = TextAlign.End,
-                                        color = if (card.overdue > 0) ExpenseColor else Ink, fontWeight = FontWeight.Medium)
-                                    Text(fmt.format(card.currentCycle + card.upcoming), Modifier.width(120.dp), textAlign = TextAlign.End, color = Ink, fontWeight = FontWeight.Medium)
+                                        color = if (card.overdue > 0) ExpenseColor else Ink, style = RowAmountStyle)
+                                    Text(fmt.format(card.currentCycle + card.upcoming), Modifier.width(120.dp), textAlign = TextAlign.End, color = Ink, style = RowAmountStyle)
                                 } else {
                                     val shown = if (line.group.type.isDebitCard) line.balance else line.effectiveBalance
-                                    Text(fmt.format(shown), color = moneyColor(shown), fontWeight = FontWeight.Medium)
+                                    Text(fmt.format(shown), color = moneyColor(shown), style = RowAmountStyle)
                                 }
                             }
                         }
@@ -201,10 +202,15 @@ fun AccountsTab() {
 }
 
 @Composable
+private fun GroupName(name: String, modifier: Modifier) =
+    Text(name, modifier, color = SubtleText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+@Composable
 private fun CardColumn(label: String, value: String) {
     Column(Modifier.width(120.dp), horizontalAlignment = Alignment.End) {
-        Text(label, fontSize = 12.sp, color = SubtleText)
-        Text(value, color = Ink)
+        Text(label, fontSize = 11.sp, color = SubtleText, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // Fixed 120 dp column (it lines up with the amounts below), so a long figure steps its size down instead of clipping.
+        FitAmount(value, SectionTotalStyle, Ink, textAlign = TextAlign.End, min = 12.sp)
     }
 }
 

@@ -62,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -315,7 +316,8 @@ fun TxnLine(
                 else -> accountName[txn.accountId].orEmpty()
             }
             val title = listOfNotNull(txn.note.ifBlank { null }, txn.installmentLabel).joinToString(" ")
-            if (title.isNotEmpty()) Text(title, color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // The note line is always there, even empty, so every entry has the same shape and the account sits on line two.
+            Text(title, color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val prefs = LocalListPrefs.current
             if (prefs.showDescription && txn.memo.isNotBlank()) Text(txn.memo, color = SubtleText, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             val marks = buildString {
@@ -325,7 +327,7 @@ fun TxnLine(
                 if (txn.lat != null) append("  📍")
             }
             val time = if (LocalListPrefs.current.showTime) txn.timeOfDay?.let { formatTime(it) + "  " }.orEmpty() else ""
-            Text(time + account + marks, color = SubtleText, fontSize = if (title.isEmpty()) 13.sp else 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(time + account + marks, color = SubtleText, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (tags.isNotEmpty()) Text(tags.joinToString(" ") { "#$it" }, color = IncomeColor, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment = Alignment.End) {
@@ -340,11 +342,11 @@ fun TxnLine(
             fun shown(v: Long) = if (refund) -v else v
             val foreign = txn.currency?.let { currencies[it] }
             if (foreign != null && txn.originalAmount != null) {
-                Text(foreign.format.format(shown(txn.originalAmount), showSign = refund), color = color, fontWeight = FontWeight.Medium)
-                Text(currency.format(shown(txn.amount), showSign = refund), color = SubtleText, fontSize = 12.sp)
-            } else Text(currency.format(shown(txn.amount), showSign = refund), color = color, fontWeight = FontWeight.Medium)
+                Text(foreign.format.format(shown(txn.originalAmount), showSign = refund), color = color, style = EntryAmountStyle)
+                Text(currency.format(shown(txn.amount), showSign = refund), color = SubtleText, fontSize = 12.sp, style = Tabular)
+            } else Text(currency.format(shown(txn.amount), showSign = refund), color = color, style = EntryAmountStyle)
             if (runningBalance != null) {
-                Text("(${currency.format(runningBalance, withSymbol = false)})", color = SubtleText, fontSize = 10.sp)
+                Text("(${currency.format(runningBalance, withSymbol = false)})", color = SubtleText, fontSize = 10.sp, style = Tabular)
             }
         }
     }
@@ -486,12 +488,12 @@ private fun MonthlyView(selected: YearMonth, ps: PeriodSettings) {
                 ) {
                     Column(Modifier.weight(0.8f)) {
                         Text(monthShort(m), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        if (expanded == m) Text("${range.start.monthNumber}.${range.start.dayOfMonth} ~ ${range.endInclusive.monthNumber}.${range.endInclusive.dayOfMonth}", fontSize = 11.sp, color = SubtleText)
+                        if (expanded == m) Text("${range.start.monthNumber}.${range.start.dayOfMonth} ~ ${range.endInclusive.monthNumber}.${range.endInclusive.dayOfMonth}", fontSize = 11.sp, color = SubtleText, style = Tabular)
                     }
-                    Text(currency.format(mt.income), color = if (mt.income == 0L) ZeroColor else IncomeColor, modifier = Modifier.weight(1f), textAlign = TextAlign.End, maxLines = 1, fontSize = 13.sp)
+                    Text(currency.format(mt.income), color = if (mt.income == 0L) ZeroColor else IncomeColor, modifier = Modifier.weight(1f), textAlign = TextAlign.End, maxLines = 1, style = MonthAmountStyle)
                     Column(Modifier.weight(1f).padding(start = 8.dp), horizontalAlignment = Alignment.End) {
-                        Text(currency.format(mt.expense), color = if (mt.expense == 0L) ZeroColor else ExpenseColor, maxLines = 1, fontSize = 13.sp)
-                        Text(currency.format(mt.net), color = if (mt.net == 0L) ZeroColor else SubtleText, fontSize = 11.sp, maxLines = 1)
+                        Text(currency.format(mt.expense), color = if (mt.expense == 0L) ZeroColor else ExpenseColor, maxLines = 1, style = MonthAmountStyle)
+                        Text(currency.format(mt.net), color = if (mt.net == 0L) ZeroColor else SubtleText, fontSize = 11.sp, style = Tabular, maxLines = 1)
                     }
                 }
             }
@@ -504,11 +506,11 @@ private fun MonthlyView(selected: YearMonth, ps: PeriodSettings) {
                         Modifier.fillMaxWidth().background(if (isCurrent) AccentTint else PageBackground)
                             .padding(start = 44.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
                     ) {
-                        Text("${pad(w.start.monthNumber)}.${pad(w.start.dayOfMonth)} ~ ${pad(w.endInclusive.monthNumber)}.${pad(w.endInclusive.dayOfMonth)}", Modifier.weight(0.8f), fontSize = 13.sp, maxLines = 1)
-                        Text(currency.format(wt.income), color = if (wt.income == 0L) ZeroColor else IncomeColor, fontSize = 13.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.End, maxLines = 1)
+                        Text("${pad(w.start.monthNumber)}.${pad(w.start.dayOfMonth)} ~ ${pad(w.endInclusive.monthNumber)}.${pad(w.endInclusive.dayOfMonth)}", Modifier.weight(0.8f), fontSize = 13.sp, style = Tabular, maxLines = 1)
+                        Text(currency.format(wt.income), color = if (wt.income == 0L) ZeroColor else IncomeColor, fontSize = 13.sp, style = Tabular, modifier = Modifier.weight(1f), textAlign = TextAlign.End, maxLines = 1)
                         Column(Modifier.weight(1f).padding(start = 8.dp), horizontalAlignment = Alignment.End) {
-                            Text(currency.format(wt.expense), color = if (wt.expense == 0L) ZeroColor else ExpenseColor, fontSize = 13.sp, maxLines = 1)
-                            Text(currency.format(wt.net), color = if (wt.net == 0L) ZeroColor else SubtleText, fontSize = 11.sp, maxLines = 1)
+                            Text(currency.format(wt.expense), color = if (wt.expense == 0L) ZeroColor else ExpenseColor, fontSize = 13.sp, style = Tabular, maxLines = 1)
+                            Text(currency.format(wt.net), color = if (wt.net == 0L) ZeroColor else SubtleText, fontSize = 11.sp, style = Tabular, maxLines = 1)
                         }
                     }
                 }
@@ -519,6 +521,9 @@ private fun MonthlyView(selected: YearMonth, ps: PeriodSettings) {
 }
 
 private fun pad(n: Int) = n.toString().padStart(2, '0')
+
+/** A month's totals: same size as its weeks', set apart by weight. */
+private val MonthAmountStyle = TextStyle(fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum")
 
 // ───────────────────────── Total
 

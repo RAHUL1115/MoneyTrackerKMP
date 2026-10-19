@@ -1,0 +1,4 @@
+• Clearer numbers: totals are bolder, day headers are set apart from their entries, and amounts line up in neat columns
+• Accounts: each group's total now stands out above its accounts
+• Every entry keeps the same shape, with or without a note
+• Before bank-SMS detection or "Save location" is turned on, the app explains what it reads and that it stays on your phone

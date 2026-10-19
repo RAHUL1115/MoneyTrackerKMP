@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -217,6 +218,31 @@ fun UnderlineTabs(titles: List<String>, selected: Int, onSelect: (Int) -> Unit) 
     }
 }
 
+/*
+ * Money type roles, in the phone's own font at the app's compact sizes. Headings and totals are set apart by
+ * weight, colour and a divider rather than size; amounts always use tabular digits so columns line up.
+ */
+/** The current text style with tabular digits, for figures that keep their size and weight. */
+val Tabular: TextStyle @Composable get() = androidx.compose.material3.LocalTextStyle.current.copy(fontFeatureSettings = "tnum")
+/** Period totals in the strip under the tabs. */
+val StripAmountStyle = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum")
+/** A card's own total (an account group). */
+val SectionTotalStyle = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum")
+/** One account's balance. */
+val RowAmountStyle = TextStyle(fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum")
+/** One entry's amount: regular weight, so the day's semibold total above it reads as the heading. */
+val EntryAmountStyle = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Normal, fontFeatureSettings = "tnum")
+/** The day's totals in its header. */
+val SubtotalStyle = TextStyle(fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum")
+
+/** One line of figures that steps its size down (to [min]) instead of clipping in a narrow column. */
+@Composable
+fun FitAmount(text: String, style: TextStyle, color: Color, modifier: Modifier = Modifier, textAlign: TextAlign = TextAlign.Center, min: androidx.compose.ui.unit.TextUnit = 11.sp) =
+    androidx.compose.foundation.text.BasicText(
+        text, modifier, style = style.copy(color = color, textAlign = textAlign), maxLines = 1,
+        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = min, maxFontSize = style.fontSize),
+    )
+
 /** "Income | Expenses | Total" strip, numbers without currency symbol. */
 @Composable
 fun SummaryStrip(
@@ -224,14 +250,11 @@ fun SummaryStrip(
     currency: CurrencyFormat,
 ) {
     Column(Modifier.background(SurfaceColor)) {
-        Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 7.dp)) {
+        Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 7.dp)) {
             items.forEach { (label, value, color) ->
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(label, fontSize = 12.sp, color = SubtleText)
-                    Text(
-                        currency.format(value, withSymbol = false), Modifier.padding(top = 1.dp), color = color,
-                        fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1,
-                    )
+                Column(Modifier.weight(1f).padding(horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(label, fontSize = 12.sp, lineHeight = 16.sp, color = SubtleText, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    FitAmount(currency.format(value, withSymbol = false), StripAmountStyle, color, Modifier.padding(top = 1.dp).fillMaxWidth())
                 }
             }
         }
@@ -249,25 +272,29 @@ fun IncomeExpenseStrip(income: Long, expense: Long, currency: CurrencyFormat) = 
     currency,
 )
 
-/** Day header: big day number, tinted weekday chip, month.year, income/expense on the right. */
+/**
+ * Day header: big day number, tinted weekday chip, month.year, income/expense on the right. A hairline below
+ * separates it from the day's entries; its totals are semibold where the entries' amounts are regular.
+ */
 @Composable
-fun DayHeader(date: LocalDate, income: Long, expense: Long, currency: CurrencyFormat, inset: Dp = 16.dp) {
-    Row(Modifier.fillMaxWidth().background(SurfaceColor).padding(start = inset, end = inset, top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(date.dayOfMonth.toString(), fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+fun DayHeader(date: LocalDate, income: Long, expense: Long, currency: CurrencyFormat, inset: Dp = 16.dp) = Column(Modifier.background(SurfaceColor)) {
+    Row(Modifier.fillMaxWidth().background(SurfaceColor).padding(start = inset, end = inset, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(date.dayOfMonth.toString(), fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Ink, style = Tabular)
         Text(
             date.weekday(),
             Modifier.padding(start = 8.dp).background(AccentTint, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
-            color = Accent, fontSize = 10.sp, fontWeight = FontWeight.Medium,
+            color = Accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
         )
-        Text("${date.monthNumber.toString().padStart(2, '0')}.${date.year}", Modifier.padding(start = 6.dp), fontSize = 10.sp, color = SubtleText)
+        Text("${date.monthNumber.toString().padStart(2, '0')}.${date.year}", Modifier.padding(start = 6.dp), fontSize = 10.sp, color = SubtleText, style = Tabular)
         Spacer(Modifier.weight(1f).widthIn(min = 8.dp))
         // Only the sides that moved; a "₹ 0.00" column is noise on a busy list.
-        if (income != 0L) Text(currency.format(income), color = IncomeColor, maxLines = 1, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        if (income != 0L) Text(currency.format(income), color = IncomeColor, maxLines = 1, style = SubtotalStyle)
         if (income != 0L && expense != 0L) Spacer(Modifier.width(14.dp))
         // Below zero only when refunds outweigh the day's spending: money back, shown like a refund row.
         if (expense != 0L) Text(if (expense < 0) currency.format(-expense, showSign = true) else currency.format(expense), color = if (expense < 0) IncomeColor else ExpenseColor,
-            maxLines = 1, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            maxLines = 1, style = SubtotalStyle)
     }
+    HorizontalDivider(Modifier.padding(horizontal = inset), color = DividerColor)
 }
 
 @Composable
