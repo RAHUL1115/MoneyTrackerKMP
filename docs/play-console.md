@@ -69,7 +69,7 @@ Tick the option for **personal finance management / budgeting tools** if it's li
 - Main store listing: title, short and full description from `fastlane/metadata/android/en-US/`.
 - App icon: `fastlane/metadata/android/en-US/images/icon.png` (512 × 512).
 - Feature graphic: `.../images/featureGraphic.png` (1024 × 500).
-- Phone screenshots: **2–8 needed**. `.../images/phoneScreenshots/` is empty; capture them with demo data, not real accounts.
+- Phone screenshots: `.../images/phoneScreenshots/1_daily.png` … `6_detected.png` (1080 × 2137, Galaxy S24 size and density with the status and navigation bars trimmed to fit Play's 2:1 limit; made-up demo data). Regenerate with `DemoData.kt` (see its header) if the UI changes.
 - App category: **Finance**. Tags: budget, expense tracker, personal finance.
 - Contact email: required (shown publicly). Website: `https://github.com/RAHUL1115/MoneyTrackerKMP`.
 
