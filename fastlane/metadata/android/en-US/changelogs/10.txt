@@ -1,0 +1,1 @@
+Release metadata update with refreshed Play Store screenshots and listing documentation. App behavior is unchanged from v0.1.8, including the three notification channels: Daily reminder, Quick add, and Detected transactions.
