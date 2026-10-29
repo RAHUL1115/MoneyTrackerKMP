@@ -1,0 +1,3 @@
+New entries pre-select the account you usually use, and picking a category switches to the account you usually use with it. A category's preferred account still comes first, and an account you pick is never changed. Turn it off under More › Configuration › Remember usual accounts.
+
+Past-note suggestions now show and fill in the amount you used last time, without replacing an amount you've already typed.

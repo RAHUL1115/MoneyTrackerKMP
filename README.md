@@ -31,6 +31,7 @@ You can use MoneyTracker entirely by entering transactions yourself. SMS detecti
 ## What you can do
 
 - **Daily bookkeeping:** record income, expenses and transfers with a built-in keypad; copy entries or use bookmarks for repeat purchases.
+- **Fewer taps for regular spending:** new entries pre-select the account you usually use (a category's preferred account comes first), and past-note suggestions bring back the category, account and amount. Turn account pre-selection off in **More › Configuration › Remember usual accounts**.
 - **Accounts and cards:** see balances and net worth, track credit-card billing cycles and spending limits, link debit cards to bank accounts, and use different currencies per account.
 - **Budgets and reports:** set overall, category or sub-category budgets; explore monthly/yearly spending and search by note, tag, amount or date.
 - **Recurring payments:** schedule repeat entries with an end date or split credit-card spending into monthly installments.
