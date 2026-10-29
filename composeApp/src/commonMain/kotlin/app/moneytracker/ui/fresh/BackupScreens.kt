@@ -132,7 +132,7 @@ internal fun FreshBackup() {
         }
         Text(
             tr("Import adds transactions (columns: Date, Type, Account, Category, Subcategory, Amount, Note…). Missing accounts and categories are created. A snapshot is taken first."),
-            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp,
+            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.5.sp,
         )
 
         SectionLabel(tr("Snapshots on this phone · last 10 kept"))
@@ -144,7 +144,7 @@ internal fun FreshBackup() {
                     Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text(snapshotWhen(b.name, today), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                            Text("${snapshotKind(b.name)} · ${tr("{0} KB", b.sizeBytes / 1024)}", color = F.muted, fontSize = 12.sp)
+                            Text("${snapshotKind(b.name)} · ${tr("{0} KB", b.sizeBytes / 1024)}", color = F.muted, fontSize = 12.5.sp)
                         }
                         StgTextButton(tr("Restore"), { restoring = b })
                         Box(Modifier.size(40.dp).clip(F.iconShape).clickable(onClickLabel = tr("Delete snapshot")) { deleting = b }, contentAlignment = Alignment.Center) {
@@ -224,7 +224,7 @@ private fun ImportPreview(parsed: TabularImport.Parsed, onCancel: () -> Unit, on
                                     DraftType.TRANSFER -> "${r.account} → ${r.toAccount}"
                                     else -> listOf(r.category, r.subcategory).filter { it.isNotBlank() }.joinToString(" / ").ifEmpty { "—" } + " · ${r.account}"
                                 }, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                if (r.note.isNotBlank()) Text(r.note, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                if (r.note.isNotBlank()) Text(r.note, color = F.muted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                             Text((r.currency?.let { "$it " } ?: "") + currency.format(r.amount), style = F.money, fontWeight = FontWeight.Bold, fontSize = 14.sp,
                                 color = when (r.type) {

@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Icon
@@ -100,13 +99,14 @@ internal fun MoneyTab() {
         TabHeader(tr("Money")) {
             IconTile(Icons.Outlined.BarChart, tr("Net worth trend"), { trendOn = !trendOn },
                 tint = if (trendOn) F.onAccent else F.ink, background = if (trendOn) F.accent else F.card)
-            IconTile(Icons.Outlined.Settings, tr("Manage accounts"), { manage = true })
+            // A gear means app Settings everywhere, so this one says what it opens.
+            HeaderButton(tr("Groups"), filled = false) { manage = true }
             IconTile(Icons.Outlined.Add, tr("Add account"), { nav.push(Screen.EditAccount()) })
         }
         val (lines, worth) = summary ?: return@Column
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             NetWorthHero(worth.net, worth.assets, worth.liabilities, trendOn)
 
@@ -131,7 +131,7 @@ internal fun MoneyTab() {
                                 color = if (overdue) F.danger else F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             )
                             Text(fmt.format(l.billDue), color = F.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
-                            if (l.account.cardAutoPay) Text(tr("Auto-pay is on"), color = F.muted, fontSize = 12.sp)
+                            if (l.account.cardAutoPay) Text(tr("Auto-pay is on"), color = F.muted, fontSize = 12.5.sp)
                         }
                         Text(tr("Pay bill"), Modifier.clip(RoundedCornerShape(12.dp)).background(F.accent).padding(horizontal = 14.dp, vertical = 10.dp),
                             color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
@@ -325,7 +325,7 @@ private fun ManageSheet(lines: List<AccountLine>, onDismiss: () -> Unit) {
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(g.name, color = if (hidden) F.muted else F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(tr("{0} · {1} accounts", g.type.moneyLabel, inGroup.size) + if (hidden) " · " + tr("hidden") else "", color = F.muted, fontSize = 12.sp)
+                    Text(tr("{0} · {1} accounts", g.type.moneyLabel, inGroup.size) + if (hidden) " · " + tr("hidden") else "", color = F.muted, fontSize = 12.5.sp)
                 }
                 if (inGroup.isNotEmpty()) SmallTile(if (hidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, if (hidden) tr("Show {0}", g.name) else tr("Hide {0}", g.name)) {
                     val before = inGroup.associate { it.id to it.hidden }

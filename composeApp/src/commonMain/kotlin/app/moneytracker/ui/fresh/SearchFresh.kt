@@ -161,7 +161,7 @@ internal fun FreshSearch() {
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(start = F.gutter, end = F.gutter, bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item(key = "filters") {
                 FCard {
@@ -269,7 +269,7 @@ internal fun FreshSearch() {
 
 @Composable
 private fun FieldLabel(text: String, modifier: Modifier = Modifier) =
-    Text(text.uppercase(), modifier, color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    Text(text.uppercase(), modifier, color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
 
 @Composable
 private fun AmountField(label: String, value: String, placeholder: String, modifier: Modifier, onChange: (String) -> Unit) {

@@ -101,7 +101,7 @@ internal fun BudgetSummaryCard(ym: YearMonth) {
                     1 -> tr("{0} is over", catById[over[0].categoryId]?.name ?: "")
                     else -> tr("{0} categories over", over.size)
                 }
-                Text(listOfNotNull(left, overText).joinToString(" · "), color = F.muted, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(listOfNotNull(left, overText).joinToString(" · "), color = F.muted, fontSize = 12.5.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             Text(tr("Budget ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
@@ -168,8 +168,8 @@ internal fun BudgetBody() {
                         color = if (total.remaining >= 0) F.ink else F.expense, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1,
                     ) else Text(tr("Set one for {0}", ym.label()), color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
                     Text(tr("Spent {0} · {1} was {2}", currency.format(b.spent), monthShort(ym.plus(-1).month), currency.format(before.spent)),
-                        color = F.muted, fontSize = 12.sp, maxLines = 1)
-                    if (total != null && explicit == null) Text(tr("Sum of the category budgets"), color = F.muted, fontSize = 12.sp)
+                        color = F.muted, fontSize = 12.5.sp, maxLines = 1)
+                    if (total != null && explicit == null) Text(tr("Sum of the category budgets"), color = F.muted, fontSize = 12.5.sp)
                 }
             }
             if (totalOpen) {
@@ -200,7 +200,7 @@ internal fun BudgetBody() {
                     Gap(8.dp)
                     Bar(line.ratio, Modifier.padding(start = 46.dp), fill = if (over || line.ratio > 0.9f) F.warn else F.accent, height = 6.dp)
                     Text(tr("{0} of {1}", currency.format(line.spent), currency.format(line.budget)), Modifier.padding(start = 46.dp, top = 6.dp),
-                        color = F.muted, fontSize = 12.sp, style = F.money)
+                        color = F.muted, fontSize = 12.5.sp, style = F.money)
                 }
                 if (isOpen) Column(
                     Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(12.dp),
@@ -224,7 +224,7 @@ internal fun BudgetBody() {
             tr("Category budgets add up to {0}{1}. Tap a category to change its amount or see its entries. Budgets apply from the selected month onward.",
                 currency.format(lines.filter { catById[it.categoryId]?.parentId == null }.sumOf { it.budget }),
                 if (explicit != null) " " + tr("of your {0} total", currency.format(explicit)) else ""),
-            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp,
+            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.5.sp,
         )
         FCard(padding = 4.dp) {
             Column(Modifier.padding(horizontal = 12.dp)) {

@@ -305,7 +305,7 @@ internal fun FreshSettings() {
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(sec.title, color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text(sec.sub, color = F.muted, fontSize = 12.sp)
+                            Text(sec.sub, color = F.muted, fontSize = 12.5.sp)
                         }
                         Icon(if (isOpen) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
                             if (isOpen) tr("Collapse") else tr("Expand"), tint = F.muted)
@@ -315,7 +315,7 @@ internal fun FreshSettings() {
                     }
                 }
             }
-            Text(tr("Tap a setting to change it. Changes save right away."), Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp)
+            Text(tr("Tap a setting to change it. Changes save right away."), Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.5.sp)
         }
     }
 
@@ -412,7 +412,7 @@ private fun EditValueSheet(key: String, startDay: Int, reminderTime: String?, on
     }) {
         StgField(text, { text = if (key == Keys.REMINDER_TIME) it.take(5) else it }, number = key != Keys.CURRENCY_SYMBOL && key != Keys.REMINDER_TIME, error = !valid)
         if (key == Keys.CURRENCY_DECIMALS) Text(tr("Set decimal places before entering data; existing amounts are not converted."),
-            Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.sp)
+            Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.5.sp)
     }
 }
 
@@ -450,11 +450,11 @@ private fun SearchBox(value: String, onChange: (String) -> Unit) {
 
 @Composable
 private fun QuickTile(icon: ImageVector, title: String, value: String, modifier: Modifier, onClick: () -> Unit) {
-    FCard(modifier, onClick = onClick, padding = 12.dp) {
+    FCard(modifier, onClick = onClick, padding = 16.dp) {
         Box(Modifier.size(32.dp).clip(F.iconShape).background(F.accentTint), contentAlignment = Alignment.Center) {
             Icon(icon, null, tint = F.accent, modifier = Modifier.size(18.dp))
         }
         Text(title, Modifier.padding(top = 8.dp), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-        Text(value, color = F.muted, fontSize = 12.sp, maxLines = 1)
+        Text(value, color = F.muted, fontSize = 12.5.sp, maxLines = 1)
     }
 }

@@ -81,7 +81,7 @@ internal fun ActivityMonthsView(
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter).padding(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             ActPeriodSwitch(year.toString(), { onPick(ym.plus(-12)) }, { onPick(ym.plus(12)) }, onPickMonth, minWidth = 48)
@@ -90,7 +90,7 @@ internal fun ActivityMonthsView(
                 withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.ExtraBold)) { append(currency.format(yt.expense)) }
                 append(" · " + tr("In") + " ")
                 withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.ExtraBold)) { append(currency.format(yt.income)) }
-            }, Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, style = F.money,
+            }, Modifier.weight(1f), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, style = F.money,
                 textAlign = androidx.compose.ui.text.style.TextAlign.End, maxLines = 1)
         }
         MonthTotal(ym, ps)
@@ -176,7 +176,7 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
     FCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(tr("TOTAL"), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(tr("TOTAL"), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                 Text(ym.actLongLabel(), color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
             }
             Row(

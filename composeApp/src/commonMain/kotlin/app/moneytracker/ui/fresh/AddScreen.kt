@@ -3,6 +3,8 @@
 package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -111,7 +113,7 @@ import kotlinx.datetime.minus
 
 private const val PHOTO_NOTICE_KEY = "photoNoticeShown"
 
-private enum class AddSheet { NONE, CATEGORY, ACCOUNT, FROM, TO, TAGS, REPEAT, CURRENCY, AMOUNT, FEE, BOOKMARK, COPY }
+private enum class AddSheet { NONE, CATEGORY, ACCOUNT, FROM, TO, TAGS, REPEAT, CURRENCY, BOOKMARK, COPY, DATE, PHOTO, DESC, PLACE, ORIGIN }
 
 /** The entry being added or edited. Mirrors the classic editor's state and rules; only the screens differ. */
 @Stable
@@ -263,19 +265,15 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     val f = remember { AddForm(repo, s, currency, currencies, timeOn) }
     val today = remember { repo.today() }
 
-    // New entries open on the quick screen; "Time, tags, repeat, photo" and existing entries use the full one.
-    var details by remember { mutableStateOf(s.txnId != null) }
     var sheet by remember {
         mutableStateOf(if (s.txnId == null && s.preset == null && f.accountFirst && f.accountId == null) AddSheet.ACCOUNT else AddSheet.NONE)
     }
-    var feeTarget by remember { mutableStateOf(false) }  // quick screen: keypad types into the fee
-    var datesOpen by remember { mutableStateOf(false) }
+    var feeTarget by remember { mutableStateOf(false) }  // transfers: keypad types into the fee
     var datePicker by remember { mutableStateOf(false) }
     var timePicker by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var confirmDiscard by remember { mutableStateOf(false) }
     var photoNotice by remember { mutableStateOf(false) }
-    var photoMenu by remember { mutableStateOf(false) }
     var viewer by remember { mutableStateOf<Int?>(null) }
     var bookmarked by remember { mutableStateOf(false) }
     var listening by remember { mutableStateOf(false) }
@@ -311,11 +309,9 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     var baseline by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(f.existing, accounts) { if (s.txnId == null || f.existing != null) baseline = f.formKey() }
     val dirty = rememberUpdatedState(baseline != null && f.formKey() != baseline)
-    val detailsState = rememberUpdatedState(details)
     DisposableEffect(nav) {
         val remove = nav.interceptBack {
             when {
-                detailsState.value && s.txnId == null -> { details = false; true }
                 dirty.value -> { confirmDiscard = true; true }
                 else -> false
             }
@@ -402,7 +398,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             when {
                 e != null -> { nav.pop(); toaster.show(tr("Changes saved")) }
                 continueAfter -> {
-                    f.resetForNext(timeOn); details = false; feeTarget = false; baseline = f.formKey()
+                    f.resetForNext(timeOn); feeTarget = false; baseline = f.formKey()
                     toaster.show(tr("{0}. Add the next one", label), undo)
                 }
                 else -> { nav.pop(); toaster.show(label, undo) }
@@ -460,7 +456,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     fun dateChips() {
         val days = listOf(today, today.minus(DatePeriod(days = 1)), today.minus(DatePeriod(days = 2)))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            days.forEach { d -> AddChip(dateLabel(d), f.date == d, Modifier.weight(1f)) { f.date = d; datesOpen = false } }
+            days.forEach { d -> AddChip(dateLabel(d), f.date == d, Modifier.weight(1f)) { f.date = d; sheet = AddSheet.NONE } }
             val other = f.date !in days
             AddChip(if (other) f.date.short() else tr("Pick date"), other, Modifier.weight(1f)) { datePicker = true }
         }
@@ -470,7 +466,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     fun currencyChip() {
         if (currencies.isEmpty() || f.isAdjustment) return
         Row(
-            Modifier.height(30.dp).clip(RoundedCornerShape(999.dp)).border(1.dp, F.border, RoundedCornerShape(999.dp))
+            Modifier.height(30.dp).clip(RoundedCornerShape(999.dp)).background(F.page)
                 .clickable { sheet = AddSheet.CURRENCY }.padding(start = 10.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -479,24 +475,19 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         }
     }
 
-    // ───────────── quick screen (new entry)
+    // ───────────── one screen for adding and editing
 
-    if (!details) Column(Modifier.fillMaxSize().background(F.card).statusBarsPadding().padding(horizontal = F.gutter).padding(top = 12.dp, bottom = 16.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconTile(Icons.Filled.Close, tr("Close"), { nav.back() }, background = F.fill)
-            TypeTabs(f, Modifier.weight(1f), compact = true)
-            Row(
-                Modifier.height(44.dp).clip(F.iconShape).background(if (datesOpen) F.accentTint else F.fill).clickable { datesOpen = !datesOpen }.padding(horizontal = 10.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+    val e = f.existing
+    val refundable = !f.isAdjustment && (f.type == DraftType.EXPENSE || f.type == DraftType.REFUND) && e?.transferGroupId == null
+    val allPhotos = if (f.isAdjustment) emptyList() else f.existingPhotos.map { it.fileName } + f.newPhotos
+    Box(Modifier.fillMaxSize().background(F.card).statusBarsPadding()) {
+        Column(Modifier.fillMaxSize().padding(horizontal = F.gutter).padding(top = 20.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            // Big amount in the spare space at the top; the hint shows a running result, the category, or what is missing.
+            Column(
+                Modifier.weight(1f).heightIn(min = 96.dp).fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { feeTarget = false; focus.clearFocus() }
+                    .padding(horizontal = 52.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
             ) {
-                Icon(Icons.Outlined.CalendarToday, null, tint = F.ink, modifier = Modifier.size(16.dp))
-                Text(dateLabel(f.date), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            }
-        }
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (datesOpen) dateChips()
-            // Big amount; the hint underneath shows a running result, the category, or what is missing.
-            Column(Modifier.fillMaxWidth().clickable { feeTarget = false; focus.clearFocus() }, horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         shown(fmt, addExprShown(f.amountText)), Modifier.weight(1f, fill = false),
@@ -509,30 +500,34 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 val (hint, color) = when {
                     f.error != null -> f.error!! to F.danger
                     hasOp -> "= " + (total?.let { fmt.format(it) } ?: "…") to F.accent
+                    f.isAdjustment -> (if (f.adjustUp) tr("Balance increase") else tr("Balance decrease")) to F.muted
                     isTransfer && f.accountId != null && f.accountId == f.toAccountId -> tr("Pick two different accounts") to F.danger
                     isTransfer -> tr("Move money · {0}", f.date.long()) to F.muted
-                    else -> listOfNotNull(if (f.type == DraftType.REFUND) tr("Refund") else null, catLabel ?: tr("Pick a category"), f.date.long()).joinToString(" · ") to F.muted
+                    else -> listOfNotNull(
+                        if (e != null) tr("Editing") else null,
+                        if (f.type == DraftType.REFUND) tr("Refund") else null,
+                        catLabel ?: tr("Pick a category"),
+                    ).joinToString(" · ") to F.muted
                 }
-                Text(hint, color = color, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(hint, color = color, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
             }
 
             if (isTransfer) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccountBox(tr("FROM"), accountName(f.accountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.FROM }
                     Box(
-                        Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(F.fill)
+                        Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(F.page)
                             .clickable(onClickLabel = tr("Swap accounts")) { val a = f.accountId; f.accountId = f.toAccountId; f.toAccountId = a },
                         contentAlignment = Alignment.Center,
                     ) { Icon(Icons.Outlined.SwapHoriz, tr("Swap accounts"), tint = F.accent, modifier = Modifier.size(18.dp)) }
                     AccountBox(tr("TO"), accountName(f.toAccountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.TO }
                 }
                 Row(
-                    Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(12.dp))
-                        .border(if (feeTarget) 2.dp else 1.dp, if (feeTarget) F.accent else F.border, RoundedCornerShape(12.dp))
+                    Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(14.dp)).background(if (feeTarget) F.accentTint else F.page)
                         .clickable { feeTarget = !feeTarget; focus.clearFocus() }.padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(tr("Fee (optional)"), Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("Fee, saved as an expense"), Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     Text(if (f.feeText.isEmpty()) shown(fmt, "0") else shown(fmt, addExprShown(f.feeText)),
                         color = if (f.feeText.isEmpty()) F.muted else F.ink, fontSize = 14.sp, style = F.money)
                 }
@@ -555,249 +550,129 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 }
             }
 
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (!isTransfer) Row(
+                        Modifier.widthIn(max = 168.dp).height(48.dp).clip(RoundedCornerShape(14.dp)).background(F.page)
+                            .clickable { sheet = AddSheet.ACCOUNT }.padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(Icons.Outlined.CreditCard, null, tint = F.ink, modifier = Modifier.size(16.dp))
+                        Text(accountName(f.accountId) ?: tr("Account"), Modifier.weight(1f, fill = false), color = if (f.accountId == null) F.danger else F.ink,
+                            fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Icon(Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.size(14.dp))
+                    }
+                    noteField(Modifier.weight(1f))
+                }
+                noteSuggestions()
+            }
+
+            // Everything else about the entry: one chip each, each opening a small sheet. A chip shows its value once set.
+            Row(Modifier.bleedScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (timeOn) ExtraChip(f.timeOfDay?.let { formatTime(it) } ?: tr("Time"), f.timeOfDay != null) { focus.clearFocus(); timePicker = true }
+                if (!f.isAdjustment) {
+                    val tagNames = tags.filter { it.id in f.tagIds }.map { "#" + it.name }
+                    ExtraChip(when (tagNames.size) { 0 -> tr("Tags"); 1 -> tagNames[0]; else -> tr("{0} tags", tagNames.size) }, tagNames.isNotEmpty()) {
+                        focus.clearFocus(); sheet = AddSheet.TAGS
+                    }
+                    val repeatLabel = listOfNotNull(f.repeat?.let { tr(it.label) }, if (f.installments > 1) tr("{0} installments", f.installments) else null).joinToString(" · ")
+                    ExtraChip(repeatLabel.ifEmpty { tr("Repeat") }, repeatLabel.isNotEmpty()) { focus.clearFocus(); sheet = AddSheet.REPEAT }
+                    ExtraChip(when (allPhotos.size) { 0 -> tr("Photo"); 1 -> tr("1 photo"); else -> tr("{0} photos", allPhotos.size) }, allPhotos.isNotEmpty()) {
+                        focus.clearFocus()
+                        if (allPhotos.isEmpty() && repo.settingNow(PHOTO_NOTICE_KEY) != "1") photoNotice = true else sheet = AddSheet.PHOTO
+                    }
+                }
+                ExtraChip(if (f.memo.isBlank()) tr("Description") else tr("Description ✓"), f.memo.isNotBlank()) { focus.clearFocus(); sheet = AddSheet.DESC }
+                if (refundable) ExtraChip(if (f.type == DraftType.REFUND) tr("Refund ✓") else tr("Refund"), f.type == DraftType.REFUND) {
+                    val on = f.type != DraftType.REFUND
+                    f.type = if (on) DraftType.REFUND else DraftType.EXPENSE
+                    toaster.show(if (on) tr("Marked as a refund: lowers this category's spending") else tr("No longer a refund"))
+                }
+                if (f.lat != null && f.lng != null) ExtraChip(tr("Location"), true) { sheet = AddSheet.PLACE }
+                if (f.origin.isNotBlank() && repo.settingNow(Keys.SMS_SHOW_ORIGINAL) != "0") ExtraChip(tr("Bank SMS"), true) { sheet = AddSheet.ORIGIN }
+                if (!f.isAdjustment) ExtraChip(if (bookmarked) tr("Bookmarked ★") else tr("Bookmark"), bookmarked) { focus.clearFocus(); sheet = AddSheet.BOOKMARK }
+            }
+
+            // Entry type and date sit right above the keypad, within reach of the thumb.
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (!isTransfer) Row(
-                    Modifier.widthIn(max = 160.dp).height(44.dp).clip(RoundedCornerShape(12.dp)).border(1.dp, F.border, RoundedCornerShape(12.dp))
-                        .clickable { sheet = AddSheet.ACCOUNT }.padding(horizontal = 10.dp),
+                TypeTabs(f, Modifier.weight(1f))
+                Row(
+                    Modifier.height(44.dp).clip(F.iconShape).background(F.page).clickable { focus.clearFocus(); sheet = AddSheet.DATE }.padding(horizontal = 10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(Icons.Outlined.CreditCard, null, tint = F.ink, modifier = Modifier.size(16.dp))
-                    Text(accountName(f.accountId) ?: tr("Account"), Modifier.weight(1f, fill = false), color = if (f.accountId == null) F.danger else F.ink,
-                        fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Icon(Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.size(14.dp))
-                }
-                noteField(Modifier.weight(1f))
-            }
-            noteSuggestions()
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                val extras = listOfNotNull(
-                    if (f.tagIds.isNotEmpty()) "#${f.tagIds.size}" else null,
-                    f.repeat?.let { tr(it.label) }, if (f.installments > 1) tr("{0} installments", f.installments) else null,
-                    if (f.newPhotos.isNotEmpty()) tr("{0} photos", f.newPhotos.size) else null,
-                ).joinToString(" · ")
-                Text(
-                    when {
-                        extras.isNotEmpty() -> extras
-                        isTransfer -> if (f.feeText.isNotBlank()) tr("Fee is recorded as an expense") else tr("Transfers are not income or spending")
-                        else -> ""
-                    },
-                    Modifier.weight(1f), color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
-                AddLink(tr("Time, tags, repeat, photo ›")) { focus.clearFocus(); details = true }
-            }
-            if (f.origin.isNotBlank() && repo.settingNow(Keys.SMS_SHOW_ORIGINAL) != "0") {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(F.fill).padding(10.dp)) {
-                    Text(tr("Original message"), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(f.origin, color = F.ink, fontSize = 12.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    Icon(Icons.Outlined.CalendarToday, null, tint = F.ink, modifier = Modifier.size(16.dp))
+                    Text(dateLabel(f.date), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
             }
-        }
-        if (!noteFocused) {
-            Spacer(Modifier.height(10.dp))
-            AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it })
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SecondaryButton(tr("Continue"), { save(true) }, Modifier.width(116.dp))
-            PrimaryButton(saveLabel, { save(false) }, Modifier.weight(1f), enabled = ready)
-        }
-    }
+            if (!noteFocused) AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it })
 
-    // ───────────── full screen (existing entry, or details of a new one)
-
-    if (details) {
-        val e = f.existing
-        val title = when {
-            f.isAdjustment -> if (f.adjustUp) tr("Balance increase") else tr("Balance decrease")
-            e != null -> tr("Edit entry")
-            else -> tr("Entry details")
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (e != null) {
+                    Box(
+                        Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).background(F.dangerTint)
+                            .clickable(onClickLabel = tr("Delete entry")) { confirmDelete = true },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(Icons.Outlined.Delete, tr("Delete entry"), tint = F.danger) }
+                    if (!f.isAdjustment) Box(
+                        Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).border(1.dp, F.border, RoundedCornerShape(18.dp))
+                            .clickable(onClickLabel = tr("Copy entry")) { sheet = AddSheet.COPY },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(Icons.Outlined.ContentCopy, tr("Copy entry"), tint = F.ink, modifier = Modifier.size(20.dp)) }
+                    PrimaryButton(tr("Save changes"), { save(false) }, Modifier.weight(1f).height(54.dp))
+                } else {
+                    Box(
+                        Modifier.height(54.dp).clip(RoundedCornerShape(18.dp)).border(1.dp, F.border, RoundedCornerShape(18.dp))
+                            .clickable { save(true) }.padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { Text(tr("Save & new"), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                    PrimaryButton(saveLabel, { save(false) }, Modifier.weight(1f).height(54.dp), enabled = ready)
+                }
+            }
         }
-        SubScreen(
-            title, { nav.back() },
-            actions = {
-                if (!f.isAdjustment) IconTile(
-                    if (bookmarked) Icons.Filled.Star else Icons.Outlined.StarOutline, tr("Save as bookmark"), { sheet = AddSheet.BOOKMARK },
-                    tint = if (bookmarked) F.warn else F.ink,
-                )
-            },
-            bottom = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (e != null) {
-                        Box(
-                            Modifier.size(52.dp).clip(F.buttonShape).background(F.card).border(1.dp, F.border, F.buttonShape)
-                                .clickable(onClickLabel = tr("Delete entry")) { confirmDelete = true },
-                            contentAlignment = Alignment.Center,
-                        ) { Icon(Icons.Outlined.Delete, tr("Delete entry"), tint = F.danger) }
-                        if (!f.isAdjustment) Row(
-                            Modifier.height(52.dp).clip(F.buttonShape).background(F.card).border(1.dp, F.border, F.buttonShape)
-                                .clickable { sheet = AddSheet.COPY }.padding(horizontal = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(Icons.Outlined.ContentCopy, null, tint = F.ink, modifier = Modifier.size(18.dp))
-                            Text(tr("Copy"), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        }
-                        PrimaryButton(tr("Save changes"), { save(false) }, Modifier.weight(1f))
-                    } else {
-                        SecondaryButton(tr("Continue"), { save(true) }, Modifier.width(116.dp))
-                        PrimaryButton(saveLabel, { save(false) }, Modifier.weight(1f), enabled = ready)
-                    }
-                }
-            },
-        ) {
-            FCard {
-                TypeTabs(f, Modifier.fillMaxWidth(), compact = false)
-                Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        shown(fmt, addExprShown(f.amountText)),
-                        Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).clickable { focus.clearFocus(); sheet = AddSheet.AMOUNT },
-                        color = if ((total ?: 0) > 0) F.ink else F.muted, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis, style = F.money,
-                    )
-                    currencyChip()
-                }
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SmallChip(dateLabel(f.date), datesOpen, Icons.Outlined.CalendarToday) { datesOpen = !datesOpen }
-                    if (timeOn) SmallChip(f.timeOfDay?.let { formatTime(it) } ?: tr("Add time"), false, null) { timePicker = true }
-                }
-                if (datesOpen) { Spacer(Modifier.height(8.dp)); dateChips() }
-            }
-
-            FCard(padding = 0.dp) {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    if (isTransfer) {
-                        FRow(tr("From"), value = accountName(f.accountId) ?: tr("Choose"), valueColor = F.ink, onClick = { sheet = AddSheet.FROM }, trailing = {
-                            Box(
-                                Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(F.fill)
-                                    .clickable(onClickLabel = tr("Swap accounts")) { val a = f.accountId; f.accountId = f.toAccountId; f.toAccountId = a },
-                                contentAlignment = Alignment.Center,
-                            ) { Icon(Icons.Outlined.SwapVert, tr("Swap accounts"), tint = F.accent, modifier = Modifier.size(18.dp)) }
-                        })
-                        Divider()
-                        FRow(tr("To"), value = accountName(f.toAccountId) ?: tr("Choose"), valueColor = F.ink, onClick = { sheet = AddSheet.TO },
-                            subtitle = if (f.accountId != null && f.accountId == f.toAccountId) tr("Pick two different accounts") else null)
-                        Divider()
-                        FRow(tr("Fee"), subtitle = tr("Recorded as an expense"),
-                            value = f.feeText.takeIf { it.isNotBlank() }?.let { fmt.parse(addSettle(it, fmt))?.let { v -> fmt.format(v) } ?: it } ?: tr("None"),
-                            onClick = { sheet = AddSheet.FEE })
-                    } else {
-                        if (f.isAdjustment) FRow(tr("Category"), value = tr(MODIFIED_BALANCE_NAME), chevron = false)
-                        else FRow(tr("Category"), value = catLabel ?: tr("Choose"), valueColor = if (catLabel == null) F.muted else F.ink,
-                            onClick = { sheet = AddSheet.CATEGORY })
-                        Divider()
-                        FRow(tr("Account"), value = accountName(f.accountId) ?: tr("Choose"), valueColor = if (f.accountId == null) F.danger else F.ink,
-                            onClick = { sheet = AddSheet.ACCOUNT })
-                    }
-                    if (!f.isAdjustment) {
-                        Divider()
-                        FRow(tr("Tags"), value = tags.filter { it.id in f.tagIds }.joinToString(" ") { "#" + it.name }.ifEmpty { tr("None") },
-                            valueColor = if (f.tagIds.isEmpty()) F.muted else F.accent, onClick = { sheet = AddSheet.TAGS })
-                        Divider()
-                        FRow(
-                            tr("Repeat"),
-                            subtitle = f.repeatEnd?.takeIf { f.repeat != null }?.let { tr("Until {0}", it.long()) },
-                            value = listOfNotNull(f.repeat?.let { tr(it.label) }, if (f.installments > 1) tr("{0} installments", f.installments) else null)
-                                .joinToString(" · ").ifEmpty { tr("Doesn't repeat") },
-                            onClick = { sheet = AddSheet.REPEAT },
-                        )
-                    }
-                    Divider()
-                    Spacer(Modifier.height(10.dp))
-                    noteField(Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(6.dp))
-                    noteSuggestions()
-                    val refundable = !f.isAdjustment && (f.type == DraftType.EXPENSE || f.type == DraftType.REFUND) && e?.transferGroupId == null
-                    if (refundable) Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(tr("This is a refund"), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                            Text(tr("Money back lowers this category's spending instead of counting as income"), color = F.muted, fontSize = 12.sp)
-                        }
-                        Switch(
-                            f.type == DraftType.REFUND, { on -> f.type = if (on) DraftType.REFUND else DraftType.EXPENSE },
-                            colors = SwitchDefaults.colors(checkedTrackColor = F.accent, checkedThumbColor = F.onAccent, uncheckedTrackColor = F.fill, uncheckedBorderColor = F.border),
-                        )
-                    } else Spacer(Modifier.height(8.dp))
-                }
-            }
-
-            FCard {
-                Text(tr("Description"), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(6.dp))
-                AddInput(f.memo, { f.memo = it }, tr("Anything you want to remember"), Modifier.fillMaxWidth(), singleLine = false,
-                    fieldModifier = Modifier.heightIn(min = 40.dp))
-                val allPhotos = if (f.isAdjustment) emptyList() else f.existingPhotos.map { it.fileName } + f.newPhotos
-                if (!f.isAdjustment || (f.lat != null && f.lng != null)) {
-                    Spacer(Modifier.height(10.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-                        allPhotos.forEachIndexed { i, file ->
-                            Box(Modifier.size(64.dp).clip(RoundedCornerShape(12.dp)).background(F.fill).clickable(onClickLabel = tr("View receipt photo {0}", i + 1)) { viewer = i }) {
-                                platform.PhotoImage(file, Modifier.fillMaxSize())
-                            }
-                        }
-                        if (!f.isAdjustment) Box(
-                            Modifier.size(64.dp).clip(RoundedCornerShape(12.dp)).border(1.dp, F.border, RoundedCornerShape(12.dp))
-                                .clickable(onClickLabel = tr("Add photo")) {
-                                    focus.clearFocus()
-                                    if (repo.settingNow(PHOTO_NOTICE_KEY) == "1") photoMenu = !photoMenu else photoNotice = true
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) { Icon(Icons.Outlined.PhotoCamera, tr("Add photo"), tint = F.muted) }
-                        val la = f.lat; val ln = f.lng
-                        if (la != null && ln != null) Row(
-                            Modifier.height(36.dp).clip(RoundedCornerShape(999.dp)).background(F.accentTint).clickable { platform.openMap(la, ln) }.padding(start = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Icon(Icons.Outlined.LocationOn, null, tint = F.accent, modifier = Modifier.size(16.dp))
-                            Text(tr("Location saved"), color = F.accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Box(
-                                Modifier.size(36.dp).clickable(onClickLabel = tr("Remove location")) { f.lat = null; f.lng = null; toaster.show(tr("Location removed from this entry")) },
-                                contentAlignment = Alignment.Center,
-                            ) { Icon(Icons.Filled.Close, tr("Remove location"), tint = F.accent, modifier = Modifier.size(14.dp)) }
-                        }
-                    }
-                    if (photoMenu) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Pill(tr("Take photo"), false, { photoMenu = false; platform.takePhoto { f.newPhotos = f.newPhotos + it } })
-                        Pill(tr("Choose from gallery"), false, { photoMenu = false; platform.pickPhoto { f.newPhotos = f.newPhotos + it } })
-                    }
-                    if (!f.isAdjustment) Text(tr("Photos stay private on this phone."), Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.sp)
-                }
-                if (f.origin.isNotBlank() && repo.settingNow(Keys.SMS_SHOW_ORIGINAL) != "0") {
-                    Spacer(Modifier.height(12.dp))
-                    Text(tr("Original message"), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text(f.origin, Modifier.padding(top = 2.dp), color = F.ink, fontSize = 13.sp)
-                }
-                viewer?.let { start ->
-                    AddPhotoViewer(allPhotos, start, onRemove = { i ->
-                        val file = allPhotos[i]
-                        val p = f.existingPhotos.firstOrNull { it.fileName == file }
-                        if (p != null) f.existingPhotos = f.existingPhotos - p
-                        else { f.newPhotos = f.newPhotos - file; platform.deletePhotoFile(file) }
-                        viewer = null
-                        toaster.show(if (p != null) tr("Photo removed. Save to keep the change") else tr("Photo removed"))
-                    }, onDismiss = { viewer = null })
-                }
-            }
-            f.error?.let { Text(it, Modifier.padding(horizontal = 4.dp), color = F.danger, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
-        }
+        IconTile(Icons.Filled.Close, tr("Close"), { nav.back() }, background = F.page, modifier = Modifier.padding(start = F.gutter, top = 20.dp))
     }
 
     // ───────────── sheets and dialogs
 
     when (sheet) {
         AddSheet.NONE -> Unit
-        AddSheet.AMOUNT, AddSheet.FEE -> {
-            val fee = sheet == AddSheet.FEE
-            val text = if (fee) f.feeText else f.amountText
-            fun set(v: String) { if (fee) f.feeText = v else f.amountText = v }
-            Sheet(if (fee) tr("Fee") else tr("Amount"), { sheet = AddSheet.NONE }, bottom = {
-                PrimaryButton(tr("Done"), { set(addSettle(text, fmt)); sheet = AddSheet.NONE })
-            }) {
-                Text(shown(fmt, addExprShown(text)), Modifier.fillMaxWidth(), color = F.ink, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, style = F.money)
-                if (Calc.hasOperator(text)) Text("= " + (fmt.parse(addSettle(text, fmt))?.let { fmt.format(it) } ?: "…"), color = F.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                AddKeypad(text, fmt, ::set)
+        AddSheet.DATE -> Sheet(tr("Date"), { sheet = AddSheet.NONE }) {
+            dateChips()
+            Spacer(Modifier.height(8.dp))
+            Text(f.date.long(), color = F.muted, fontSize = 13.sp)
+        }
+        AddSheet.DESC -> Sheet(tr("Description"), { sheet = AddSheet.NONE }, bottom = { PrimaryButton(tr("Done"), { sheet = AddSheet.NONE }) }) {
+            AddInput(f.memo, { f.memo = it }, tr("Anything you want to remember"), Modifier.fillMaxWidth(), singleLine = false,
+                fieldModifier = Modifier.heightIn(min = 72.dp))
+        }
+        AddSheet.PHOTO -> Sheet(tr("Receipt photos"), { sheet = AddSheet.NONE }) {
+            if (allPhotos.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                allPhotos.forEachIndexed { i, file ->
+                    Box(Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)).background(F.fill).clickable(onClickLabel = tr("View receipt photo {0}", i + 1)) { viewer = i }) {
+                        platform.PhotoImage(file, Modifier.fillMaxSize())
+                    }
+                }
             }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SecondaryButton(tr("Take photo"), { platform.takePhoto { f.newPhotos = f.newPhotos + it } }, Modifier.weight(1f))
+                SecondaryButton(tr("From gallery"), { platform.pickPhoto { f.newPhotos = f.newPhotos + it } }, Modifier.weight(1f))
+            }
+            Text(tr("Photos stay private on this phone."), Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.5.sp)
+        }
+        AddSheet.PLACE -> Sheet(tr("Location"), { sheet = AddSheet.NONE }) {
+            Text(tr("Saved where you added this entry."), color = F.muted, fontSize = 13.sp)
+            Spacer(Modifier.height(8.dp))
+            val la = f.lat; val ln = f.lng
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (la != null && ln != null) SecondaryButton(tr("Open in maps"), { platform.openMap(la, ln) }, Modifier.weight(1f))
+                SecondaryButton(tr("Remove location"), {
+                    f.lat = null; f.lng = null; sheet = AddSheet.NONE; toaster.show(tr("Location removed from this entry"))
+                }, Modifier.weight(1f), danger = true)
+            }
+        }
+        AddSheet.ORIGIN -> Sheet(tr("Original message"), { sheet = AddSheet.NONE }) {
+            Text(f.origin, color = F.ink, fontSize = 14.sp, lineHeight = 20.sp)
         }
         AddSheet.CATEGORY -> {
             val mains = categories.filter { it.kind == f.catKind && it.parentId == null }
@@ -816,7 +691,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 val subs = if (useSubcategories) subsOf[selectedMain].orEmpty() else emptyList()
                 if (subs.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Text(tr("{0} has sub-categories (optional)", catById[selectedMain]?.name.orEmpty()), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("{0} has sub-categories (optional)", catById[selectedMain]?.name.orEmpty()), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         subs.forEach { sub -> Pill(sub.name, sub.id == f.categoryId, { f.pickCategory(sub); done() }) }
@@ -935,7 +810,17 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         }
     }
 
-    DatePickerHost(datePicker, f.date, { datePicker = false }, { it?.let { d -> f.date = d; datesOpen = false } })
+    DatePickerHost(datePicker, f.date, { datePicker = false }, { it?.let { d -> f.date = d; sheet = AddSheet.NONE } })
+    viewer?.let { start ->
+        AddPhotoViewer(allPhotos, start, onRemove = { i ->
+            val file = allPhotos[i]
+            val p = f.existingPhotos.firstOrNull { it.fileName == file }
+            if (p != null) f.existingPhotos = f.existingPhotos - p
+            else { f.newPhotos = f.newPhotos - file; platform.deletePhotoFile(file) }
+            viewer = null
+            toaster.show(if (p != null) tr("Photo removed. Save to keep the change") else tr("Photo removed"))
+        }, onDismiss = { viewer = null })
+    }
     if (timePicker) AddTimePicker(f.timeOfDay ?: nowMinutes(), { timePicker = false }, { f.timeOfDay = null; timePicker = false }) {
         f.timeOfDay = it; timePicker = false
     }
@@ -946,7 +831,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             "and they're removed if you uninstall the app."),
         tr("OK"), { photoNotice = false }, danger = false,
     ) {
-        photoMenu = true
+        sheet = AddSheet.PHOTO
         scope.launch { withContext(repo.io) { repo.putSetting(PHOTO_NOTICE_KEY, "1") } }
     }
     if (confirmDelete) f.existing?.let { e ->
@@ -970,10 +855,10 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
 
 /** Expense / Income / Transfer; a refund sits on Expense, an adjustment has none selected. */
 @Composable
-private fun TypeTabs(f: AddForm, modifier: Modifier, compact: Boolean) {
+private fun TypeTabs(f: AddForm, modifier: Modifier) {
     val tabs = listOf(DraftType.EXPENSE to tr("Expense"), DraftType.INCOME to tr("Income"), DraftType.TRANSFER to tr("Transfer"))
     val selected = if (f.isAdjustment) null else if (f.type == DraftType.REFUND) DraftType.EXPENSE else f.type
-    Row(modifier.height(44.dp).clip(F.iconShape).background(F.fill).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(modifier.height(44.dp).clip(F.iconShape).background(F.page).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         tabs.forEach { (t, label) ->
             val on = t == selected
             val ink = when (t) { DraftType.INCOME -> F.income; DraftType.TRANSFER -> F.accent; else -> F.expense }
@@ -981,7 +866,7 @@ private fun TypeTabs(f: AddForm, modifier: Modifier, compact: Boolean) {
                 Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(10.dp)).background(if (on) F.card else Color.Transparent).clickable { f.pickType(t) },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(label, color = if (on) ink else F.muted, fontSize = if (compact) 13.sp else 13.sp, fontWeight = if (on) FontWeight.ExtraBold else FontWeight.SemiBold, maxLines = 1)
+                Text(label, color = if (on) ink else F.muted, fontSize = 14.sp, fontWeight = if (on) FontWeight.ExtraBold else FontWeight.Bold, maxLines = 1)
             }
         }
     }
@@ -990,10 +875,10 @@ private fun TypeTabs(f: AddForm, modifier: Modifier, compact: Boolean) {
 @Composable
 private fun AccountBox(label: String, name: String, modifier: Modifier, onClick: () -> Unit) {
     Column(
-        modifier.height(64.dp).clip(RoundedCornerShape(16.dp)).border(2.dp, F.line, RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(horizontal = 12.dp),
+        modifier.height(64.dp).clip(RoundedCornerShape(16.dp)).background(F.page).clickable(onClick = onClick).padding(horizontal = 12.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(label, color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
         Text(name, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -1007,15 +892,13 @@ private fun SuggestChip(text: String, accent: Boolean = false, onClick: () -> Un
     ) { Text(text, color = if (accent) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
 }
 
+/** One "more about this entry" chip: soft pill, tinted once it holds a value. */
 @Composable
-private fun SmallChip(text: String, selected: Boolean, icon: ImageVector?, onClick: () -> Unit) {
-    Row(
-        Modifier.height(34.dp).clip(RoundedCornerShape(10.dp)).background(if (selected) F.accentTint else F.fill).clickable(onClick = onClick).padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        if (icon != null) Icon(icon, null, tint = F.ink, modifier = Modifier.size(14.dp))
-        Text(text, color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-    }
+private fun ExtraChip(text: String, set: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.height(36.dp).clip(RoundedCornerShape(999.dp)).background(if (set) F.accentTint else F.page).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, color = if (set) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
 }
 
 @Composable
@@ -1042,7 +925,7 @@ private fun RepeatSheet(
                 RepeatType.entries.forEach { t -> Pill(tr(t.label), r == t, { r = t }) }
             }
             if (r != null) FRow(tr("Until"), value = end?.long() ?: tr("No end date"), onClick = { endPicker = true })
-            Text(tr("All rules are listed in Settings › Repeat entries."), color = F.muted, fontSize = 12.sp)
+            Text(tr("All rules are listed in Settings › Repeat entries."), color = F.muted, fontSize = 12.5.sp)
         } else Text(tr("Repeat can only be set on new transactions."), color = F.muted, fontSize = 13.sp)
         SectionLabel(tr("Installments"))
         if (canInstall) {

@@ -2,6 +2,8 @@ package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import app.moneytracker.domain.totals
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -91,92 +93,134 @@ import kotlinx.datetime.toLocalDateTime
 
 // ───────────────────────── Home tab
 
+// Home is a quick look for the one or two times a day the app is opened: what went out today, yesterday and this month,
+// bank SMS waiting to be added, one-tap Quick add, and today's and yesterday's entries.
 @Composable
 internal fun HomeTab(onOpenTab: (FreshTab) -> Unit) {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val pending by repo.pendingCaptures.collectAsState(emptyList())
     val today = repo.today()
     val hour = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour }
     val greeting = when (hour) { in 5..11 -> tr("Good morning"); in 12..16 -> tr("Good afternoon"); else -> tr("Good evening") }
     Column(Modifier.fillMaxSize().background(F.page).verticalScroll(rememberScrollState())) {
         TabHeader(greeting, overline = "${today.weekday()}, ${today.short()}") {
-            IconTile(Icons.Outlined.Sms, if (pending.isEmpty()) tr("Bank messages") else tr("{0} bank messages to review", pending.size),
-                { nav.push(Screen.Inbox) }, badge = pending.size)
             IconTile(Icons.Outlined.Settings, tr("Settings"), { nav.push(Screen.Configuration) })
         }
-        Column(Modifier.padding(horizontal = F.gutter), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            BudgetHero()
+        Column(Modifier.padding(horizontal = F.gutter).padding(top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+            SpendingHero(onOpenTab)
+            SmsWaiting()
             QuickAdd()
-            UpcomingRepeats()
-            RecentCard(onSeeAll = { onOpenTab(FreshTab.ACTIVITY) })
-            Spacer(Modifier.height(16.dp))
+            RecentDays()
+            Text(tr("See everything in Activity ›"),
+                Modifier.align(Alignment.CenterHorizontally).height(44.dp).clip(F.iconShape).background(F.card)
+                    .clickable { onOpenTab(FreshTab.ACTIVITY) }.padding(horizontal = 20.dp).wrapContentHeight(),
+                color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
-/** This period's total budget: what's left, spent of total, per day for the days still to go. */
+private fun entriesText(n: Int) = when (n) { 0 -> tr("Nothing"); 1 -> tr("1 entry"); else -> tr("{0} entries", n) }
+
+/** Spent today (big), yesterday and this period so far, and the budget left as a thin bar. */
 @Composable
-private fun BudgetHero() {
+private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
     val today = repo.today()
+    val yesterday = today.minus(DatePeriod(days = 1))
     val ym = ps.labelFor(today)
     val range = ps.month(ym)
     val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
+    val recentRows by remember(today) { repo.reportRows(DateRange(yesterday, today)) }.collectAsState(emptyList())
     val entries by remember(ym) { repo.budgetEntries(ym) }.collectAsState(emptyList())
     val catById by repo.categoryById.collectAsState(emptyMap())
     val expenseRows = rows.filter { it.kind == TxnKind.EXPENSE && classify(it) == Flow.EXPENSE }
     val spentByMain = byMainCategory(expenseRows, catById, Flow.EXPENSE)
     val spentBySub = expenseRows.filter { r -> r.categoryId?.let { catById[it]?.parentId } != null }
         .groupBy { it.categoryId!! }.mapValues { (_, v) -> v.sumOf { it.amount } }
-    val total = budgetLines(effectiveBudgets(entries, ym), spentByMain, spentBySub) { id -> catById[id]?.parentId != null }
+    val budget = budgetLines(effectiveBudgets(entries, ym), spentByMain, spentBySub) { id -> catById[id]?.parentId != null }
         .firstOrNull { it.categoryId == TOTAL_BUDGET }
     val daysLeft = (today.daysUntil(range.endInclusive) + 1).coerceAtLeast(1)
+    val daysGone = (range.start.daysUntil(today) + 1).coerceAtLeast(1)
 
-    if (total == null) {
-        val spent = rows.filter { classify(it) == Flow.EXPENSE }.sumOf { it.amount }
-        FCard(onClick = { nav.push(Screen.Budget) }) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(44.dp).clip(F.iconShape).background(F.accentTint), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Outlined.Savings, null, tint = F.accent, modifier = Modifier.size(22.dp))
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(tr("Set a monthly budget"), color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text(tr("See what's left to spend each day. You've spent {0} in {1} so far.", currency.format(spent), ym.label()),
-                        color = F.muted, fontSize = 13.sp)
-                }
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = F.muted)
-            }
-        }
-        return
-    }
-    val left = total.remaining
-    val soft = F.onAccent.copy(alpha = 0.78f)
+    // Entry counts skip the second half of a transfer, like the lists do.
+    fun dayRows(d: kotlinx.datetime.LocalDate) = recentRows.filter { it.date == d && it.kind != TxnKind.TRANSFER_IN }
+    val todayRows = dayRows(today)
+    val yesterdayRows = dayRows(yesterday)
+    val monthSpent = totals(rows).expense
+
+    val soft = F.onAccent.copy(alpha = 0.8f)
     Column(
-        Modifier.fillMaxWidth().clip(F.heroShape).background(F.accent).clickable { nav.push(Screen.Budget) }.padding(horizontal = 20.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(F.accent).padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(if (left >= 0) tr("Left in {0} budget", ym.label()) else tr("Over {0} budget", ym.label()),
-                Modifier.weight(1f), color = soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(if (daysLeft == 1) tr("Last day") else tr("{0} days to go", daysLeft),
-                Modifier.clip(RoundedCornerShape(999.dp)).background(F.onAccent.copy(alpha = 0.14f)).padding(horizontal = 10.dp, vertical = 4.dp),
-                color = F.onAccent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Column(Modifier.fillMaxWidth().clickable { onOpenTab(FreshTab.ACTIVITY) }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(tr("Spent today"), color = soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(currency.format(totals(todayRows).expense), color = F.onAccent, fontSize = 44.sp, lineHeight = 46.sp,
+                fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+            Text(if (todayRows.isEmpty()) tr("Nothing yet") else entriesText(todayRows.size), color = soft, fontSize = 13.sp)
         }
-        Text(currency.format(if (left >= 0) left else -left), color = F.onAccent, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
-        Bar(total.ratio, fill = if (total.ratio > 1f) F.warn else F.onAccent, track = F.onAccent.copy(alpha = 0.18f))
-        Row {
-            Text(tr("Spent {0} of {1}", currency.format(total.spent), currency.format(total.budget)), Modifier.weight(1f), color = soft, fontSize = 13.sp, style = F.money)
-            if (left > 0) Text(tr("≈ {0} / day", currency.format(left / daysLeft)), color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold, style = F.money)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            HeroFigure(tr("Yesterday"), currency.format(totals(yesterdayRows).expense), entriesText(yesterdayRows.size), Modifier.weight(1f)) { onOpenTab(FreshTab.ACTIVITY) }
+            HeroFigure(tr("{0} so far", tr(actMonthNames[ym.month - 1])), currency.format(monthSpent),
+                tr("≈ {0} a day", currency.format(monthSpent / daysGone)), Modifier.weight(1f)) { onOpenTab(FreshTab.INSIGHTS) }
+        }
+        Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.Budget) }.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (budget == null) {
+                Text(tr("Set a monthly budget ›"), color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            } else {
+                val left = budget.remaining
+                Row {
+                    Text(if (left >= 0) tr("{0} left in budget", currency.format(left)) else tr("{0} over budget", currency.format(-left)),
+                        Modifier.weight(1f), color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+                    Text(if (daysLeft == 1) tr("Last day ›") else tr("{0} days to go ›", daysLeft), color = soft, fontSize = 13.sp)
+                }
+                Bar(budget.ratio, fill = if (budget.ratio > 1f) F.warn else Color(0xFFFFB547), track = F.onAccent.copy(alpha = 0.18f), height = 6.dp)
+            }
         }
     }
 }
 
+@Composable
+private fun HeroFigure(label: String, value: String, meta: String, modifier: Modifier, onClick: () -> Unit) {
+    val soft = F.onAccent.copy(alpha = 0.8f)
+    Column(modifier.clickable(onClick = onClick), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, color = soft, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(value, color = F.onAccent, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+        Text(meta, color = soft, fontSize = 12.sp, style = F.money, maxLines = 1)
+    }
+}
+
+/** Bank SMS waiting to be added, shown only when there are some. */
+@Composable
+private fun SmsWaiting() {
+    val repo = LocalRepo.current
+    val nav = LocalNavigator.current
+    val currency = LocalCurrency.current
+    val pending by repo.pendingCaptures.collectAsState(emptyList())
+    if (pending.isEmpty()) return
+    val sum = pending.sumOf { it.amount ?: 0L }
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(F.warnTint).clickable { nav.push(Screen.Inbox) }.padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(F.card), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.Sms, null, tint = F.warn, modifier = Modifier.size(18.dp))
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(if (pending.size == 1) tr("1 payment found in bank SMS") else tr("{0} payments found in bank SMS", pending.size),
+                color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(listOfNotNull(if (sum > 0) currency.format(sum) else null, tr("tap to add them")).joinToString(" · "),
+                color = F.muted, fontSize = 12.5.sp, style = F.money, maxLines = 1)
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = F.muted, modifier = Modifier.size(20.dp))
+    }
+}
+
 /** Bookmarks as one-tap chips: an entry for today, with Undo. Bookmarks without an amount open the editor. */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun QuickAdd() {
     val repo = LocalRepo.current
@@ -203,28 +247,26 @@ private fun QuickAdd() {
         }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(tr("Quick add"), Modifier.weight(1f), color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(tr("Manage"), Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.Templates) }.padding(6.dp),
                 color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
         if (templates.isEmpty()) {
-            FCard {
-                Text(tr("Save entries you add often as bookmarks: open an entry and tap ☆. They show up here and one tap logs them for today."),
-                    color = F.muted, fontSize = 13.sp)
-            }
+            Text(tr("Open an entry and tap ☆ to keep it here. One tap then logs it for today."),
+                Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 13.sp)
             return@Column
         }
-        Text(tr("Your bookmarks · one tap logs it, long-press to manage"), color = F.muted, fontSize = 12.sp)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Chips run edge to edge so the row reads as scrollable.
+        Row(Modifier.bleedScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             templates.forEach { t ->
                 val markName = if (t.type == DraftType.TRANSFER) tr("Transfer") else t.categoryId?.let { mainCategoryName(it, catById) } ?: t.name
                 Row(
-                    Modifier.height(44.dp).clip(RoundedCornerShape(999.dp)).background(F.card).border(1.dp, F.border, RoundedCornerShape(999.dp))
+                    Modifier.height(52.dp).clip(RoundedCornerShape(999.dp)).background(F.card)
                         .combinedClickable(onClickLabel = tr("Add {0}", t.name), onLongClick = { nav.push(Screen.Templates) }) { tap(t) }
-                        .padding(start = 6.dp, end = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        .padding(start = 8.dp, end = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Box(Modifier.clip(CircleShape)) { Mark(markName, 32.dp, icon = if (t.type == DraftType.TRANSFER) Icons.Outlined.SwapHoriz else null) }
                     Text(t.name, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
@@ -235,123 +277,43 @@ private fun QuickAdd() {
     }
 }
 
-/** The next date with repeat entries still to be added (next 60 days), all of them summed. */
+/** Today's and yesterday's entries, each day with its total. */
 @Composable
-private fun UpcomingRepeats() {
+private fun RecentDays() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    val currencies = LocalCurrencies.current
-    val rules by repo.rules.collectAsState(emptyList())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val accountName by repo.accountNames.collectAsState(emptyMap())
-    if (rules.isEmpty()) return
     val today = repo.today()
-    val window = DateRange(today, today.plus(DatePeriod(days = 60)))
-    val next = rules.mapNotNull { r -> Recurrence.upcoming(r, window).firstOrNull()?.let { r to it } }
-    val first = next.minOfOrNull { it.second }
-    val due = next.filter { it.second == first }.map { it.first }
-    val title: String
-    val subtitle: String
-    if (first == null) {
-        title = tr("Repeat entries")
-        subtitle = tr("{0} active · none due in the next 60 days", rules.size)
-    } else {
-        val allTransfers = due.all { it.kind.isTransfer }
-        val day = if (first == today) tr("today") else first.short()
-        title = when {
-            due.size == 1 -> tr("Repeat entry on {0}", day)
-            allTransfers -> tr("{0} repeat transfers on {1}", due.size, day)
-            else -> tr("{0} repeat entries on {1}", due.size, day)
-        }
-        val names = due.map { r ->
-            if (r.kind.isTransfer) r.note.ifBlank { "${accountName[r.accountId].orEmpty()} → ${accountName[r.toAccountId].orEmpty()}" }
-            else r.note.ifBlank { categoryPath(r.categoryId, catById) }
-        }
-        val sum = due.sumOf { r ->
-            val main = app.moneytracker.domain.Fx.toMain(r.amount, r.currency?.let { currencies[it] }, currency.decimals)
-            if (allTransfers || r.kind == TxnKind.INCOME) main else -main
-        }
-        subtitle = "${names.joinToString(", ")} · ${currency.format(sum, showSign = !allTransfers)}"
-    }
-    Row(
-        Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).clickable { nav.push(Screen.Recurring) }.padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Mark(tr("Repeat entries"), 38.dp, icon = Icons.Outlined.Autorenew)
-        Column(Modifier.weight(1f)) {
-            Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, style = F.money)
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = F.muted, modifier = Modifier.size(20.dp))
-    }
-}
-
-@Composable
-private fun RecentCard(onSeeAll: () -> Unit) {
-    val repo = LocalRepo.current
-    val nav = LocalNavigator.current
-    val today = repo.today()
-    val range = remember(today) { DateRange(today.minus(DatePeriod(days = 120)), today) }
+    val yesterday = today.minus(DatePeriod(days = 1))
+    val range = remember(today) { DateRange(yesterday, today) }
     val txns by remember(range) { repo.txnsBetween(range) }.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
-    val accountName by repo.accountNames.collectAsState(emptyMap())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val flags = accounts.associate { it.id to it.transferAsExpense }
-    val recent = txns.filter { it.kind != TxnKind.TRANSFER_IN }
-        .sortedWith(compareByDescending<Txn> { it.date }.thenByDescending { it.createdAt }).take(5)
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-            CardTitle(tr("Recent"), tr("See all"), onSeeAll)
-            Divider()
-            if (recent.isEmpty()) {
-                Text(tr("No entries yet. Tap + below to add your first one."), Modifier.padding(vertical = 14.dp), color = F.muted, fontSize = 14.sp)
+    val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
+    val data = rememberActEntryData()
+    val shown = txns.filter { it.kind != TxnKind.TRANSFER_IN }
+    listOf(today to tr("Today"), yesterday to tr("Yesterday")).forEach { (day, title) ->
+        val dayTxns = shown.filter { it.date == day }.sortedWith(compareByDescending<Txn> { it.timeOfDay ?: -1 }.thenByDescending { it.createdAt })
+        if (dayTxns.isEmpty() && day != today) return@forEach
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(title, Modifier.weight(1f), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                val t = totals(rows.filter { it.date == day })
+                if (t.expense > 0 || t.income > 0) Text(
+                    listOfNotNull(
+                        if (t.income > 0) "+" + currency.format(t.income) else null,
+                        if (t.expense > 0) "−" + currency.format(t.expense) else null,
+                    ).joinToString(" · "),
+                    color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, style = F.money,
+                )
             }
-            recent.forEach { t -> RecentRow(t, accountName, catById, classify(t.toReportRow(flags))) { nav.push(Screen.EditTxn(txnId = t.id)) } }
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(F.card).padding(horizontal = 18.dp, vertical = 4.dp)) {
+                if (dayTxns.isEmpty()) Text(tr("Nothing added today yet. Tap + below to add one."),
+                    Modifier.padding(vertical = 18.dp), color = F.muted, fontSize = 14.sp)
+                dayTxns.forEachIndexed { i, txn ->
+                    if (i > 0) Divider()
+                    ActEntryRow(txn, data) { nav.push(Screen.EditTxn(txnId = txn.id)) }
+                }
+            }
         }
-    }
-}
-
-@Composable
-private fun RecentRow(t: Txn, accountName: Map<String, String>, catById: Map<String, app.moneytracker.domain.Category>, flow: Flow, onClick: () -> Unit) {
-    val currency = LocalCurrency.current
-    val currencies = LocalCurrencies.current
-    val transfer = t.kind.isTransfer
-    val adjust = t.kind == TxnKind.ADJUST_UP || t.kind == TxnKind.ADJUST_DOWN
-    val category = when {
-        transfer -> tr("Transfer")
-        adjust -> tr(app.moneytracker.domain.MODIFIED_BALANCE_NAME)
-        else -> mainCategoryName(t.categoryId, catById)
-    }
-    val account = if (transfer) "${accountName[t.accountId].orEmpty()} → ${accountName[t.toAccountId].orEmpty()}" else accountName[t.accountId].orEmpty()
-    val title = listOfNotNull(t.note.ifBlank { null } ?: category, t.installmentLabel).joinToString(" ")
-    val meta = listOfNotNull(
-        if (t.isRefund) tr("Refund") else category.takeIf { it != title && !transfer },
-        account.ifBlank { null },
-        t.date.short(),
-    ).joinToString(" · ")
-    val refund = t.isRefund
-    val color: Color = when {
-        refund && flow != Flow.NONE -> F.income
-        flow == Flow.INCOME -> F.income
-        flow == Flow.EXPENSE -> F.ink
-        else -> F.muted
-    }
-    val foreign = t.currency?.let { currencies[it] }
-    val shown = if (refund) -t.amount else t.amount
-    val amount = if (foreign != null && t.originalAmount != null) foreign.format.format(if (refund) -t.originalAmount else t.originalAmount, showSign = refund)
-    else currency.format(shown, showSign = refund || flow == Flow.INCOME)
-    val signed = if (flow == Flow.EXPENSE && !refund) "−$amount" else amount
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Mark(category, 36.dp, icon = if (transfer) Icons.Outlined.SwapHoriz else null)
-        Column(Modifier.weight(1f)) {
-            Text(title, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(meta, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Text(signed, color = color, fontSize = 15.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
     }
 }
 
@@ -424,6 +386,5 @@ fun FreshLock(hash: String, onUnlocked: () -> Unit) {
     }
 }
 
-@Composable fun FreshWelcome() = WelcomeScreen()
 @Composable internal fun FreshInbox() = SmsReviewScreen()
 @Composable internal fun FreshMessageSettings() = SmsSettingsScreen()

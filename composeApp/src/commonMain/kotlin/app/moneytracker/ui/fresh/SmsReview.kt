@@ -103,18 +103,30 @@ internal fun SmsReviewScreen() {
         toaster.show(when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages from the last {1} days", n, days) })
     }
 
+    // The suggested entry for the message on top; its Dismiss / Edit / Add stay pinned at the bottom, under the thumb.
+    val accountNames by repo.accountNames.collectAsState(emptyMap())
+    val draft by produceState<TxnDraft?>(null, current?.id) { value = current?.let { c -> withContext(repo.io) { repo.draftFromCapture(c) } } }
+    val d = draft
+    val amountText = reviewAmount(d)
+    val ready = d != null && d.amount != 0L && d.accountId in accountNames
     SubScreen(
         tr("Bank messages"), nav::pop,
         actions = { IconTile(Icons.Outlined.Settings, tr("Bank SMS settings"), { nav.push(Screen.MessageSettings) }) },
+        bottom = if (current == null) null else ({
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GreyButton(tr("Dismiss")) { dismiss(current) }
+                GreyButton(tr("Edit")) { d?.let { nav.push(Screen.EditTxn(preset = it, captureId = current.id)) } }
+                PrimaryButton(
+                    if (ready) tr("Add {0}", amountText) else tr("Review and add"),
+                    onClick = { d?.let { if (ready) add(current, it) else nav.push(Screen.EditTxn(preset = it, captureId = current.id)) } },
+                    modifier = Modifier.weight(1f).height(54.dp), enabled = d != null,
+                )
+            }
+        }),
     ) {
         Text(tr("{0} to review · read on this phone only", captures.size), color = F.muted, fontSize = 13.sp, modifier = Modifier.padding(start = 4.dp))
         if (current != null) {
-            ReviewCard(
-                current, position = captures.indexOf(current) + 1, total = captures.size,
-                onDismiss = { dismiss(current) },
-                onEdit = { d -> nav.push(Screen.EditTxn(preset = d, captureId = current.id)) },
-                onAdd = { d -> add(current, d) },
-            )
+            ReviewCard(current, d, amountText, ready, position = captures.indexOf(current) + 1, total = captures.size)
         } else {
             FCard(padding = 24.dp) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -146,7 +158,7 @@ internal fun SmsReviewScreen() {
         if (others.isNotEmpty()) {
             SectionLabel(tr("Also waiting"))
             FCard(padding = 0.dp) {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 2.dp)) {
+                Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
                     others.forEachIndexed { i, c ->
                         if (i > 0) Divider()
                         FRow(
@@ -161,7 +173,7 @@ internal fun SmsReviewScreen() {
             }
         }
         Text(tr("Your corrections teach the matcher: the account and category you pick are suggested next time for messages like this."),
-            color = F.muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 4.dp))
+            color = F.muted, fontSize = 12.5.sp, modifier = Modifier.padding(horizontal = 4.dp))
     }
 
     if (pasting) PasteSheet(onDismiss = { pasting = false }) { c -> pasting = false; focusId = c.id; toaster.show(tr("Message read · review it above")) }
@@ -182,35 +194,36 @@ private fun whenLabel(epochMs: Long): String {
 }
 
 @Composable
-private fun ReviewCard(c: Capture, position: Int, total: Int, onDismiss: () -> Unit, onEdit: (TxnDraft) -> Unit, onAdd: (TxnDraft) -> Unit) {
-    val repo = LocalRepo.current
+private fun reviewAmount(d: TxnDraft?): String {
     val currency = LocalCurrency.current
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val accountName by repo.accountNames.collectAsState(emptyMap())
-    val draft by produceState<TxnDraft?>(null, c.id) { value = withContext(repo.io) { repo.draftFromCapture(c) } }
-    val d = draft
-    val refund = d?.type == DraftType.REFUND
-    val amountText = when {
+    return when {
         d == null || d.amount == 0L -> "—"
-        refund || d.type == DraftType.INCOME -> currency.format(d.amount, showSign = true)
+        d.type == DraftType.REFUND || d.type == DraftType.INCOME -> currency.format(d.amount, showSign = true)
         else -> currency.format(d.amount)
     }
-    val ready = d != null && d.amount != 0L && d.accountId in accountName
+}
+
+@Composable
+private fun ReviewCard(c: Capture, d: TxnDraft?, amountText: String, ready: Boolean, position: Int, total: Int) {
+    val repo = LocalRepo.current
+    val catById by repo.categoryById.collectAsState(emptyMap())
+    val accountName by repo.accountNames.collectAsState(emptyMap())
+    val refund = d?.type == DraftType.REFUND
     Column(
         Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(c.sender.ifBlank { tr("Pasted") }, Modifier.clip(RoundedCornerShape(8.dp)).background(F.fill).padding(horizontal = 8.dp, vertical = 4.dp),
+            Text(c.sender.ifBlank { tr("Pasted") }, Modifier.clip(RoundedCornerShape(8.dp)).background(F.fill).padding(horizontal = 10.dp, vertical = 5.dp),
                 color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-            Text(whenLabel(c.receivedAt), Modifier.weight(1f), color = F.muted, fontSize = 12.sp)
-            if (total > 1) Text(tr("{0} of {1}", position, total), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(whenLabel(c.receivedAt), Modifier.weight(1f), color = F.muted, fontSize = 12.5.sp)
+            if (total > 1) Text(tr("{0} of {1}", position, total), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
         }
         Text(c.text, Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(F.page).padding(horizontal = 12.dp, vertical = 10.dp),
             color = F.ink, fontSize = 13.sp, lineHeight = 19.sp)
         Column {
             Text(if (refund) tr("We'll add a refund") else if (d?.type == DraftType.INCOME) tr("We'll add income") else tr("We'll add"),
-                color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
             Text(amountText, color = if (refund || d?.type == DraftType.INCOME) F.income else F.ink, fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, style = F.money)
         }
         Column {
@@ -220,15 +233,6 @@ private fun ReviewCard(c: Capture, position: Int, total: Int, onDismiss: () -> U
             DetailLine(tr("Category"), d?.categoryId?.let { categoryPath(it, catById) } ?: tr("Not set"), muted = d?.categoryId == null)
             Divider()
             DetailLine(tr("Note"), d?.note?.ifBlank { null } ?: c.merchant.ifBlank { "—" }, muted = false)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GreyButton(tr("Dismiss"), onDismiss)
-            GreyButton(tr("Edit")) { d?.let(onEdit) }
-            PrimaryButton(
-                if (ready) tr("Add {0}", amountText) else tr("Review and add"),
-                onClick = { d?.let { if (ready) onAdd(it) else onEdit(it) } },
-                modifier = Modifier.weight(1f), enabled = d != null,
-            )
         }
     }
 }
@@ -244,7 +248,7 @@ private fun DetailLine(label: String, value: String, muted: Boolean) {
 
 @Composable
 private fun GreyButton(text: String, onClick: () -> Unit) {
-    Box(Modifier.height(52.dp).clip(F.buttonShape).background(F.fill).clickable(onClick = onClick).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.height(54.dp).clip(F.buttonShape).background(F.card).border(1.dp, F.border, F.buttonShape).clickable(onClick = onClick).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
         Text(text, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
 }

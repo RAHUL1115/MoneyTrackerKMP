@@ -76,7 +76,7 @@ internal fun FreshRepeats() {
     }
     val timingLabel = timingOptions().firstOrNull { it.first == (timing ?: "ON_DATE") }?.second ?: timingOptions().first().second
 
-    SubScreen(tr("Repeat entries"), nav::pop, actions = { IconTile(Icons.Outlined.Add, tr("Add a repeating entry"), addNew) }) {
+    SubScreen(tr("Repeat entries"), nav::pop, add = tr("New repeat") to addNew) {
         FCard {
             val next = rules.minOfOrNull { it.nextDate }
             Text(next?.let { tr("Next run · {0}", it.long()) } ?: tr("Nothing scheduled"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -108,7 +108,7 @@ internal fun FreshRepeats() {
             }
         }
         Text(tr("Tap a rule to change it. Stopping a rule keeps the entries it already created. To add one, make an entry and set Repeat."),
-            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp)
+            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.5.sp)
     }
 
     editing?.let { r ->
@@ -142,7 +142,7 @@ private fun ruleName(r: RecurringRule, catById: Map<String, Category>) = r.note.
 
 @Composable
 private fun Stat(label: String, value: String, modifier: Modifier) = Column(modifier) {
-    Text(label, color = F.muted, fontSize = 12.sp, maxLines = 1)
+    Text(label, color = F.muted, fontSize = 12.5.sp, maxLines = 1)
     Text(value, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
@@ -164,9 +164,9 @@ private fun RuleRow(r: RecurringRule, mainAmount: Long, accountName: Map<String,
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(ruleName(r, catById), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (r.memo.isNotBlank()) Text("  " + r.memo, Modifier.weight(1f, fill = false), color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (r.memo.isNotBlank()) Text("  " + r.memo, Modifier.weight(1f, fill = false), color = F.muted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text("${routeOf(r, accountName, catById)} · ${tr(r.repeat.label).lowercase()}", color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("${routeOf(r, accountName, catById)} · ${tr(r.repeat.label).lowercase()}", color = F.muted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(tr("Next {0}", r.nextDate.long()) + (r.endDate?.let { " · " + tr("until {0}", "${it.short()} ${it.year}") } ?: ""),
                 color = F.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }

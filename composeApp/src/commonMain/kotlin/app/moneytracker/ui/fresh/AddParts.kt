@@ -83,18 +83,18 @@ internal fun addSettle(text: String, currency: CurrencyFormat): String =
 internal fun addExprShown(text: String): String =
     if (text.isEmpty()) "0" else text.map { if (it in Calc.OPS) " $it " else it.toString() }.joinToString("")
 
-/** 4 × 4 calculator keypad; long-press ⌫ clears. */
+/** 4 × 4 calculator keypad; long-press ⌫ clears. Digits sit on the page; only the operators are tinted. */
 @Composable
-internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String) -> Unit, keyHeight: Dp = 50.dp) {
+internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String) -> Unit, keyHeight: Dp = 52.dp) {
     val keys = listOf("7", "8", "9", "÷", "4", "5", "6", "×", "1", "2", "3", "−", ".", "0", "⌫", "+")
     val aria = mapOf("÷" to tr("Divide"), "×" to tr("Multiply"), "−" to tr("Minus"), "+" to tr("Plus"), "⌫" to tr("Delete digit"), "." to tr("Decimal point"))
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         keys.chunked(4).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { k ->
                     val op = k in Calc.OPS
                     Box(
-                        Modifier.weight(1f).height(keyHeight).clip(RoundedCornerShape(16.dp)).background(if (op) F.accentTint else F.fill)
+                        Modifier.weight(1f).height(keyHeight).clip(RoundedCornerShape(18.dp)).background(if (op) F.accentTint else Color.Transparent)
                             .combinedClickable(
                                 onClickLabel = aria[k] ?: k,
                                 onLongClick = if (k == "⌫") ({ onChange("") }) else null,
@@ -102,8 +102,8 @@ internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (k == "⌫") Icon(Icons.AutoMirrored.Outlined.Backspace, aria[k], tint = F.ink, modifier = Modifier.size(22.dp))
-                        else Text(k, color = if (op) F.accent else F.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                        if (k == "⌫") Icon(Icons.AutoMirrored.Outlined.Backspace, aria[k], tint = F.ink, modifier = Modifier.size(24.dp))
+                        else Text(k, color = if (op) F.accent else F.ink, fontSize = if (op) 24.sp else 26.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -111,29 +111,30 @@ internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String
     }
 }
 
-/** Category or account tile: coloured mark over the name; tinted border when selected. */
+/** Category or account tile: coloured mark over the name. No outline at rest; the chosen one is tinted with a thin ring. */
 @Composable
 internal fun AddTile(name: String, label: String, selected: Boolean, modifier: Modifier = Modifier, mark: String? = null, onClick: () -> Unit) {
     val (bg, fg) = markColors(name)
+    val shape = RoundedCornerShape(18.dp)
     Column(
-        modifier.height(62.dp).clip(RoundedCornerShape(16.dp)).background(if (selected) bg else F.card)
-            .border(2.dp, if (selected) fg else F.line, RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(horizontal = 2.dp),
+        modifier.height(70.dp).clip(shape).background(if (selected) bg else Color.Transparent)
+            .then(if (selected) Modifier.border(1.5.dp, fg, shape) else Modifier).clickable(onClick = onClick).padding(horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
     ) {
-        Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(if (mark != null) F.fill else bg), contentAlignment = Alignment.Center) {
-            Text(mark ?: markText(name), color = if (mark != null) F.muted else fg, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+        Box(Modifier.size(34.dp).clip(RoundedCornerShape(12.dp)).background(if (mark != null) F.fill else bg), contentAlignment = Alignment.Center) {
+            Text(mark ?: markText(name), color = if (mark != null) F.muted else fg, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
         }
-        Spacer(Modifier.height(4.dp))
-        Text(label, color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(6.dp))
+        Text(label, color = F.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
 /** Equal-width tiles, [columns] per row. */
 @Composable
 internal fun <T> AddGrid(items: List<T>, columns: Int = 4, cell: @Composable (T, Modifier) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items.chunked(columns).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { cell(it, Modifier.weight(1f)) }
                 repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
             }
@@ -151,7 +152,7 @@ internal fun AddChip(text: String, selected: Boolean, modifier: Modifier = Modif
     ) { Text(text, color = if (selected) F.onAccent else F.ink, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
 }
 
-/** Bordered single-line text input with a placeholder. */
+/** Filled text input with a placeholder. */
 @Composable
 internal fun AddInput(
     value: String,
@@ -164,8 +165,8 @@ internal fun AddInput(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        modifier.heightIn(min = 44.dp).clip(RoundedCornerShape(12.dp)).border(1.dp, F.border, RoundedCornerShape(12.dp))
-            .padding(start = 12.dp, end = if (trailing != null) 6.dp else 12.dp),
+        modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(F.page)
+            .padding(start = 12.dp, end = if (trailing != null) 8.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.weight(1f).padding(vertical = 10.dp)) {

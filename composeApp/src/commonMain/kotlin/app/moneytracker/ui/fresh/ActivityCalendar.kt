@@ -78,9 +78,9 @@ internal fun ActivityCalendarView(
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter).padding(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        FCard(padding = 12.dp) {
+        FCard(padding = 16.dp) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     ActPeriodSwitch(ym.actLongLabel(), onPrev, onNext, onPickMonth, tile = true, minWidth = 150)

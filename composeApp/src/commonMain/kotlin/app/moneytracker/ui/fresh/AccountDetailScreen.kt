@@ -219,9 +219,9 @@ internal fun AccountDetailBody(accountId: String) {
                 txns.groupBy { it.date }.forEach { (date, day) ->
                     FCard(padding = 0.dp) {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(date.long(), Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(date.long(), Modifier.weight(1f), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                             val net = day.sumOf { it.signedAccountValue }
-                            Text(fmt.format(net, showSign = true), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold, style = F.money)
+                            Text(fmt.format(net, showSign = true), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, style = F.money)
                         }
                         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 4.dp)) {
                             day.forEachIndexed { i, t ->
@@ -247,9 +247,9 @@ internal fun AccountDetailBody(accountId: String) {
                         history.filter { it.date <= r.endInclusive }.sumOf { it.signedAccountValue }, if (yearly) null else YearMonth(ym.year, i + 1))
                 }
                 FCard(padding = 0.dp) {
-                    Text(tr("Balance"), Modifier.padding(start = 16.dp, top = 14.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("Balance"), Modifier.padding(start = 16.dp, top = 14.dp), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                     LineChart(sums.map { it.balance }, sums.map { if (yearly) it.label.takeLast(2) else it.label.take(1) }, color = F.accent)
-                    Text(tr("In / out"), Modifier.padding(start = 16.dp, top = 4.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("In / out"), Modifier.padding(start = 16.dp, top = 4.dp), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                     PairBarChart(sums.map { it.deposit }, sums.map { it.withdrawal }, sums.map { if (yearly) it.label.takeLast(2) else it.label.take(1) },
                         colorA = F.income, colorB = F.expense)
                     Gap(8.dp)
@@ -267,7 +267,7 @@ internal fun AccountDetailBody(accountId: String) {
                             ) {
                                 Column(Modifier.weight(1f)) {
                                     Text(p.label, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                                    Text(p.range.label(), color = F.muted, fontSize = 12.sp)
+                                    Text(p.range.label(), color = F.muted, fontSize = 12.5.sp)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text("+" + fmt.format(p.deposit), color = F.income, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, style = F.money)
@@ -397,7 +397,7 @@ private fun EntryRow(t: Txn, accountName: Map<String, String>, catById: Map<Stri
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (meta.isNotEmpty()) Text(meta, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (meta.isNotEmpty()) Text(meta, color = F.muted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(fmt.format(value, showSign = true), color = if (incoming) F.income else F.ink,
@@ -470,7 +470,7 @@ private fun PaySheet(line: AccountLine, fmt: CurrencyFormat, today: LocalDate, o
             if (due != null) ChoiceChip(tr("Due date, {0}", due.short()), date == due) { date = due }
         }
         Gap(8.dp)
-        Text(tr("Recorded as a transfer from {0} to {1}, so it isn't counted as spending.", fromName ?: "…", a.name), color = F.muted, fontSize = 12.sp)
+        Text(tr("Recorded as a transfer from {0} to {1}, so it isn't counted as spending.", fromName ?: "…", a.name), color = F.muted, fontSize = 12.5.sp)
     }
 }
 

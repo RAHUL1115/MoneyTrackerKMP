@@ -173,7 +173,7 @@ internal fun MoneyTextField(
             keyboardOptions = KeyboardOptions(keyboardType = keyboard),
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner ->
-                Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(horizontal = 14.dp, vertical = 12.dp),
+                Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(horizontal = 18.dp, vertical = 16.dp),
                     contentAlignment = Alignment.CenterStart) {
                     if (value.isEmpty() && placeholder.isNotEmpty()) Text(placeholder, color = F.muted, fontSize = 16.sp)
                     inner()
@@ -189,7 +189,7 @@ internal fun MoneySwitchRow(title: String, hint: String?, checked: Boolean, onCh
     Row(Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(title, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            if (hint != null) Text(hint, color = F.muted, fontSize = 12.sp)
+            if (hint != null) Text(hint, color = F.muted, fontSize = 12.5.sp)
         }
         Switch(
             checked, onChange,

@@ -68,7 +68,7 @@ private fun BottomBar(selected: FreshTab, onSelect: (FreshTab) -> Unit, onAdd: (
             NavItem(FreshTab.HOME, Icons.Outlined.Home, selected, onSelect)
             NavItem(FreshTab.ACTIVITY, Icons.AutoMirrored.Outlined.ListAlt, selected, onSelect)
             Box(
-                Modifier.offset(y = (-18).dp).size(58.dp).shadow(10.dp, RoundedCornerShape(20.dp), ambientColor = F.accent, spotColor = F.accent)
+                Modifier.offset(y = (-18).dp).size(58.dp).shadow(8.dp, RoundedCornerShape(20.dp))
                     .clip(RoundedCornerShape(20.dp)).background(F.accent).clickable(onClickLabel = tr("Add entry"), onClick = onAdd),
                 contentAlignment = Alignment.Center,
             ) { Icon(Icons.Filled.Add, tr("Add entry"), tint = F.onAccent, modifier = Modifier.size(28.dp)) }

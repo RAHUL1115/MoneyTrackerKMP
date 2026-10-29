@@ -85,7 +85,7 @@ internal fun ActivityNotesView() {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = F.gutter, end = F.gutter, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (list.isEmpty()) item {
             FCard(padding = 28.dp) {

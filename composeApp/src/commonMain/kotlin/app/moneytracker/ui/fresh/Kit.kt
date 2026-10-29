@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -44,6 +43,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.draw.shadow
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -81,7 +83,10 @@ object F {
     /** Text and icons on [accent]. */
     val onAccent: Color get() = if (darkTheme && teal) Color(0xFF07231C) else Color.White
     val warn: Color get() = pick(0xFFE0592A, 0xFFF08A5D)
+    /** Soft background for things waiting on the user (bank SMS to review). */
+    val warnTint: Color get() = pick(0xFFFFF1E6, 0xFF35241A)
     val danger: Color get() = pick(0xFFB4441C, 0xFFF08A5D)
+    val dangerTint: Color get() = pick(0xFFFCE9E0, 0xFF3A2218)
     private val green get() = pick(0xFF157A3C, 0xFF5BD08A)
     private val red get() = pick(0xFFB4441C, 0xFFF08A5D)
     val income: Color get() = if (colorsSwapped) red else green
@@ -179,8 +184,8 @@ fun TabHeader(title: String, overline: String? = null, actions: @Composable RowS
 
 /** 44dp square white button holding an icon (header actions, back). */
 @Composable
-fun IconTile(icon: ImageVector, label: String, onClick: () -> Unit, badge: Int = 0, tint: Color = F.ink, background: Color = F.card) {
-    Box(Modifier.size(44.dp).clip(F.iconShape).background(background).clickable(onClickLabel = label, onClick = onClick), contentAlignment = Alignment.Center) {
+fun IconTile(icon: ImageVector, label: String, onClick: () -> Unit, badge: Int = 0, tint: Color = F.ink, background: Color = F.card, modifier: Modifier = Modifier) {
+    Box(modifier.size(44.dp).clip(F.iconShape).background(background).clickable(onClickLabel = label, onClick = onClick), contentAlignment = Alignment.Center) {
         Icon(icon, label, tint = tint, modifier = Modifier.size(20.dp))
         if (badge > 0) Box(
             Modifier.align(Alignment.TopEnd).padding(5.dp).size(16.dp).clip(CircleShape).background(F.warn),
@@ -192,6 +197,7 @@ fun IconTile(icon: ImageVector, label: String, onClick: () -> Unit, badge: Int =
 /**
  * A screen opened on top of the tabs: back tile + title, scrolling body, optional bottom action.
  * [scroll] = false when the body manages its own scrolling (lists).
+ * [add] puts a "+ label" button at the bottom right, within reach of the thumb.
  */
 @Composable
 fun SubScreen(
@@ -200,8 +206,10 @@ fun SubScreen(
     actions: @Composable RowScope.() -> Unit = {},
     bottom: (@Composable () -> Unit)? = null,
     scroll: Boolean = true,
+    add: Pair<String, () -> Unit>? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             IconTile(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"), onBack)
@@ -211,19 +219,29 @@ fun SubScreen(
         Column(
             Modifier.weight(1f).fillMaxWidth().then(if (scroll) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                 .padding(horizontal = if (scroll) F.gutter else 0.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             content()
-            if (scroll) Spacer(Modifier.height(24.dp))
+            if (scroll) Spacer(Modifier.height(if (add != null) 100.dp else 24.dp))
         }
         if (bottom != null) Box(Modifier.fillMaxWidth().background(F.page).padding(horizontal = F.gutter, vertical = 12.dp)) { bottom() }
+    }
+    if (add != null) Row(
+        Modifier.align(Alignment.BottomEnd).padding(end = F.gutter, bottom = 20.dp).height(56.dp)
+            .shadow(8.dp, RoundedCornerShape(18.dp)).clip(RoundedCornerShape(18.dp)).background(F.accent)
+            .clickable(onClick = add.second).padding(start = 16.dp, end = 20.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(Icons.Filled.Add, null, tint = F.onAccent, modifier = Modifier.size(22.dp))
+        Text(add.first, color = F.onAccent, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+    }
     }
 }
 
 // ───────────────────────── building blocks
 
 @Composable
-fun FCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, padding: Dp = 16.dp, content: @Composable ColumnScope.() -> Unit) {
+fun FCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, padding: Dp = 18.dp, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier.fillMaxWidth().clip(F.cardShape).background(F.card)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(padding),
@@ -311,13 +329,13 @@ fun FRow(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(vertical = 10.dp).heightIn(min = 40.dp),
+        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(vertical = 13.dp).heightIn(min = 44.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         leading?.invoke()
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(title, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (!subtitle.isNullOrEmpty()) Text(subtitle, color = F.muted, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (!subtitle.isNullOrEmpty()) Text(subtitle, color = F.muted, fontSize = 12.5.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         if (value != null) Text(value, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
         trailing?.invoke()
@@ -372,17 +390,17 @@ fun SheetOption(text: String, selected: Boolean = false, subtitle: String? = nul
     }
 }
 
-/** Ask before something that can't be undone. */
+/** Ask before something that can't be undone. Opens from the bottom so both buttons sit under the thumb. */
 @Composable
 fun Confirm(title: String, body: String, confirm: String, onDismiss: () -> Unit, danger: Boolean = true, onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = F.card, shape = F.heroShape,
-        title = { Text(title, color = F.ink, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp) },
-        text = { Text(body, color = F.muted, fontSize = 14.sp) },
-        confirmButton = { TextButton(onClick = { onDismiss(); onConfirm() }) { Text(confirm, color = if (danger) F.danger else F.accent, fontWeight = FontWeight.ExtraBold) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel"), color = F.ink, fontWeight = FontWeight.Bold) } },
-    )
+    Sheet(title, onDismiss, bottom = {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SecondaryButton(tr("Cancel"), onDismiss, Modifier.weight(1f))
+            PrimaryButton(confirm, { onDismiss(); onConfirm() }, Modifier.weight(1f), danger = danger)
+        }
+    }) {
+        Text(body, color = F.muted, fontSize = 14.sp, lineHeight = 20.sp)
+    }
 }
 
 /** Empty list message inside a card. */
@@ -396,6 +414,14 @@ fun EmptyCard(text: String, action: String? = null, onAction: (() -> Unit)? = nu
 
 @Composable
 fun Gap(h: Dp) = Spacer(Modifier.height(h))
+
+/** A horizontally scrolling row that runs past the screen's side margins, so it reads as scrollable. */
+fun Modifier.bleedScroll(state: androidx.compose.foundation.ScrollState): Modifier = layout { measurable, constraints ->
+    val extra = (F.gutter * 2).roundToPx()
+    val width = constraints.maxWidth + extra
+    val p = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+    layout(constraints.maxWidth, p.height) { p.place(-extra / 2, 0) }
+}.horizontalScroll(state).padding(horizontal = F.gutter)
 
 @Composable
 fun HGap(w: Dp) = Spacer(Modifier.width(w))

@@ -163,7 +163,8 @@ fun App(
                         passcode == "loading" || onboarded == "loading" -> Unit
                         locked && !passcode.isNullOrBlank() ->
                             if (newLayout) app.moneytracker.ui.fresh.FreshLock(passcode!!, onUnlocked) else LockScreen(passcode!!, onUnlocked)
-                        onboarded != "1" -> if (newLayout) app.moneytracker.ui.fresh.FreshWelcome() else OnboardingScreen()
+                        // First launch always uses the classic welcome screens; both layouts start after them.
+                        onboarded != "1" -> OnboardingScreen()
                         else -> {
                             LaunchedEffect(launchAction) {
                                 val a = launchAction ?: return@LaunchedEffect

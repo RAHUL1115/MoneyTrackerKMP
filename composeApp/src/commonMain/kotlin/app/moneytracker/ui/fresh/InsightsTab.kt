@@ -192,7 +192,7 @@ internal fun InsightsTab() {
         }
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             fun move(dir: Int) = when (span) {
                 Span.WEEK -> weekDay += 7 * dir
@@ -222,7 +222,7 @@ internal fun InsightsTab() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ChangeBadge(total, previousTotal, upIsGood = side != Side.SPENDING, against = against, signedValues = side == Side.NET)
                     HGap(8.dp)
-                    Text(currency.format(previousTotal), color = F.muted, fontSize = 12.sp, style = F.money, maxLines = 1)
+                    Text(currency.format(previousTotal), color = F.muted, fontSize = 12.5.sp, style = F.money, maxLines = 1)
                 }
                 Gap(16.dp)
                 val values = slots.map { s ->
@@ -269,7 +269,7 @@ internal fun InsightsTab() {
                     }
                 }
                 if (groupBy == GroupBy.TAG && parts.isNotEmpty()) Text(tr("An entry with several tags counts once for each tag."),
-                    Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.sp)
+                    Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.5.sp)
             }
 
             // The biggest single entries of the period.
@@ -296,7 +296,7 @@ internal fun InsightsTab() {
 @Composable
 private fun Stat(label: String, value: String, modifier: Modifier, color: androidx.compose.ui.graphics.Color = F.ink) {
     Column(modifier) {
-        Text(label, color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text(label, color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         Text(value, color = color, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
     }
 }
@@ -372,13 +372,13 @@ private fun PartRow(
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(part.name, Modifier.weight(1f, fill = false), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (pct != null) Text(if (pct == 0) "<1%" else "$pct%", Modifier.padding(start = 6.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    if (pct != null) Text(if (pct == 0) "<1%" else "$pct%", Modifier.padding(start = 6.dp), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                 }
                 val notes = listOfNotNull(
                     if (part.previous > 0) changeText(part.amount, part.previous) else null,
                     if (part.refunded > 0) tr("incl. {0} refunded", currency.format(part.refunded)) else null,
                 )
-                if (notes.isNotEmpty()) Text(notes.joinToString(" · "), color = F.muted, fontSize = 12.sp, maxLines = 1)
+                if (notes.isNotEmpty()) Text(notes.joinToString(" · "), color = F.muted, fontSize = 12.5.sp, maxLines = 1)
             }
             Text(currency.format(part.amount), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
             Icon(if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.padding(start = 4.dp).size(20.dp))
@@ -414,7 +414,7 @@ private fun EntryLine(r: ReportRow, accountName: Map<String, String>, catById: M
     ) {
         Column(Modifier.weight(1f)) {
             Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(listOfNotNull(r.date?.short(), accountName[r.accountId]).joinToString(" · "), color = F.muted, fontSize = 12.sp, maxLines = 1)
+            Text(listOfNotNull(r.date?.short(), accountName[r.accountId]).joinToString(" · "), color = F.muted, fontSize = 12.5.sp, maxLines = 1)
         }
         Spacer(Modifier.width(8.dp))
         Text((if (refund) "+" else "") + currency.format(kotlin.math.abs(r.amount)), color = if (refund) F.income else F.ink,
