@@ -71,8 +71,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Bumped by hand for each release and tagged v<versionName>. Kept literal so F-Droid builds from the
         // tag get the same version as GitHub and Play; versionCode must go up by at least 1 every release.
-        versionCode = 13
-        versionName = "0.2.0-beta1"
+        versionCode = 14
+        versionName = "0.2.0-beta2"
     }
     // Leave out the Google-encrypted dependency block: F-Droid rejects it and it is not needed elsewhere.
     dependenciesInfo {
