@@ -36,6 +36,13 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.sqldelight.android.driver)
         }
+        val androidInstrumentedTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.androidx.test.runner)
+                implementation(libs.androidx.test.junit)
+            }
+        }
         val androidUnitTest by getting {
             dependencies {
                 implementation(libs.sqldelight.sqlite.driver)
@@ -61,10 +68,11 @@ android {
         applicationId = "in.amrahul.moneytracker"
         minSdk = 24
         targetSdk = 36
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Bumped by hand for each release and tagged v<versionName>. Kept literal so F-Droid builds from the
         // tag get the same version as GitHub and Play; versionCode must go up by at least 1 every release.
-        versionCode = 10
-        versionName = "0.1.9"
+        versionCode = 11
+        versionName = "0.1.10"
     }
     // Leave out the Google-encrypted dependency block: F-Droid rejects it and it is not needed elsewhere.
     dependenciesInfo {

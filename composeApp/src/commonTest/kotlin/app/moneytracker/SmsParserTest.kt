@@ -48,6 +48,44 @@ class SmsParserTest {
         assertEquals("1007", p.accountDigits)
     }
 
+    @Test fun parsesPublicMultiBankFormats() {
+        for (example in PublicSmsFixtures.examples) {
+            val p = SmsParser.parse(example.sender, example.text)!!
+            val context = "${example.name}: ${example.source}"
+            assertEquals(example.bank, p.bank, context)
+            assertEquals(example.amount, p.amount, context)
+            assertEquals(example.digits, p.accountDigits, context)
+            assertEquals(example.instrument, p.instrument, context)
+            assertEquals(example.refund, p.isRefund, context)
+            assertEquals(example.refund, p.isCredit, context)
+        }
+    }
+
+    @Test fun recognizesBankFromSenderWithDltSuffixWithoutBankNameInBody() {
+        for ((sender, bank) in listOf(
+            "CP-HDFCBK-S" to "HDFC Bank", "AX-ICICIT-S" to "ICICI Bank",
+            "SBIUPI-S" to "SBI", "AX-AXISBK-S" to "Axis Bank",
+            "TX-KOTAKB-S" to "Kotak Bank", "VA-SLCBNK-S" to "slice",
+        )) {
+            assertEquals(bank, SmsParser.bankOf(sender, "Rs.250 spent on your credit card xx1234."), sender)
+        }
+    }
+
+    @Test fun instrumentIsIndependentOfCreditOrDebitDirection() {
+        val cases = listOf(
+            "Rs.250 spent on credit card xx1234 at SHOP." to SmsParser.Instrument.CREDIT_CARD,
+            "Rs.250 refunded to credit-card xx1234 at SHOP." to SmsParser.Instrument.CREDIT_CARD,
+            "Rs.250 credited to a/c xx1234 by ACME." to SmsParser.Instrument.BANK_ACCOUNT,
+            "Rs.250 spent using debit card xx1234 at SHOP." to SmsParser.Instrument.DEBIT_CARD,
+            "Rs.250 spent using card xx1234 at SHOP." to SmsParser.Instrument.CARD,
+            "Rs.250 debited from account xx1234 towards credit card payment." to SmsParser.Instrument.BANK_ACCOUNT,
+            "Rs.250 received from ACME." to null,
+        )
+        for ((sms, instrument) in cases) {
+            assertEquals(instrument, SmsParser.parse("AD-HDFCBK", sms)!!.instrument, sms)
+        }
+    }
+
     @Test fun ignoresOtpAndOffers() {
         assertNull(SmsParser.parse("VM-HDFCBK", "123456 is your OTP for txn of Rs 2,000 at AMAZON. Do not share."))
         assertNull(SmsParser.parse("VM-ICICIB", "Congratulations! You are eligible for a pre-approved loan of Rs 5,00,000"))

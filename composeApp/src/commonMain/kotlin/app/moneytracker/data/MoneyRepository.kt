@@ -646,8 +646,8 @@ class MoneyRepository(
 
     /**
      * Turns an incoming SMS into a pending suggestion. Returns null when the text
-     * isn't a money movement or is a duplicate. Account is matched by learned card digits / bank,
-     * then by account names containing the bank or the digits.
+     * isn't a money movement or is a duplicate. Explicit rules win; otherwise match the payment
+     * instrument and digits before learning / a unique bank name. Ambiguous accounts need review.
      */
     fun ingestMessage(source: String, sender: String, text: String, receivedAt: Long): Capture? {
         if (MessageRules.isBlocked(sender, text, MessageRules.lines(settingNow(Keys.SMS_BLOCKED_SENDERS)),
@@ -655,12 +655,7 @@ class MoneyRepository(
         val p = SmsParser.parse(sender, cleanMessage(text), mainDecimals()) ?: return null
         val tokens = SmsParser.tokens(p)
         val s = suggest(tokens)
-        val accounts = q.allAccounts().executeAsList()
-        val ruled = MessageRules.matchAccount(accounts.map { it.toDomain() }, sender, text)
-        val byName = accounts.firstOrNull { a ->
-            (p.accountDigits != null && a.name.contains(p.accountDigits)) ||
-                (p.bank != null && a.name.contains(p.bank.substringBefore(' '), ignoreCase = true))
-        }?.id
+        val accountId = MessageRules.suggestAccount(accountsNow(), groupsNow(), sender, text, p, s.accountId)
         val vendor = p.vendor.orEmpty()
         val capture = Capture(
             newId(), receivedAt, source, sender, text,
@@ -668,7 +663,7 @@ class MoneyRepository(
             amount = if (p.isRefund) -p.amount else p.amount,
             kind = if (p.isCredit && !p.isRefund) TxnKind.INCOME else TxnKind.EXPENSE,
             merchant = listOfNotNull(vendor.ifBlank { null }, p.bank?.let { "· $it" }).joinToString(" "),
-            accountId = ruled ?: s.accountId ?: byName,
+            accountId = accountId,
             status = CaptureStatus.PENDING,
         )
         if (!addCapture(capture)) return null
@@ -699,7 +694,8 @@ class MoneyRepository(
         val category = s?.categoryId?.takeIf { id -> q.allCategories().executeAsList().any { it.id == id && it.kind == wantedKind } }
         return TxnDraft(
             type, date,
-            c.accountId ?: s?.accountId ?: "", categoryId = category, amount = (c.amount ?: 0) * type.sign,
+            c.accountId ?: p?.let { MessageRules.suggestAccount(accountsNow(), groupsNow(), c.sender, c.text, it, s?.accountId) }.orEmpty(),
+            categoryId = category, amount = (c.amount ?: 0) * type.sign,
             note = p?.vendor.orEmpty(), currency = knownCurrency,
             origin = if (settingNow(Keys.SMS_SHOW_ORIGINAL) == "0") "" else c.text,
         )

@@ -1,0 +1,5 @@
+Fix SMS suggestions confusing bank accounts and credit cards from the same bank. Improve matching by payment instrument, account digits and sender, with safer handling of ambiguous messages. Recognize bank sender IDs ending in -S.
+
+Group all detected SMS alerts together, separate from Daily reminder and Quick add. Keep default-priority sound for incoming SMS alerts without a duplicate sound from the group summary.
+
+Add multi-bank SMS regression tests and Android notification checks.

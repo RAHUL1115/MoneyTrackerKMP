@@ -7,6 +7,8 @@ import kotlin.math.ln
  * microseconds per message. Returns null for anything that isn't a money movement (OTPs, offers…).
  */
 object SmsParser {
+    enum class Instrument { BANK_ACCOUNT, CREDIT_CARD, DEBIT_CARD, CARD }
+
     data class Parsed(
         val bank: String?,
         val amount: Long,            // minor units of [currencyCode] (or main currency when null)
@@ -16,6 +18,8 @@ object SmsParser {
         val vendor: String?,
         /** A credit that gives back earlier spending ("refund", "reversal") rather than income. */
         val isRefund: Boolean = false,
+        /** Payment instrument, separate from whether money was credited or debited. */
+        val instrument: Instrument? = null,
     )
 
     /** Sender-ID fragments (e.g. "VM-HDFCBK") and in-text names → display name. */
@@ -26,7 +30,7 @@ object SmsParser {
         "SCB" to "Standard Chartered", "SCBANK" to "Standard Chartered", "CITI" to "Citi", "AMEX" to "American Express",
         "HSBC" to "HSBC", "PAYTM" to "Paytm Payments Bank", "AIRBNK" to "Airtel Payments Bank", "IDBI" to "IDBI Bank",
         "BOI" to "Bank of India", "CBOI" to "Central Bank", "IOB" to "Indian Overseas Bank", "SIB" to "South Indian Bank",
-        "ONECRD" to "OneCard", "JUPITER" to "Jupiter", "FIMONEY" to "Fi", "SLICE" to "slice",
+        "ONECRD" to "OneCard", "JUPITER" to "Jupiter", "FIMONEY" to "Fi", "SLICE" to "slice", "SLCBNK" to "slice",
     )
 
     private val currencyTokens = mapOf(
@@ -71,12 +75,32 @@ object SmsParser {
         val credit = firstCredit < firstDebit
 
         return Parsed(bankOf(sender, text), amount, code, credit, digitsRe.find(text)?.groupValues?.get(1), vendorOf(text),
-            isRefund = credit && refundWords.any { it in lower })
+            isRefund = credit && refundWords.any { it in lower }, instrument = instrumentOf(text))
+    }
+
+    private val instrumentRe = Regex("""(?i)\b(?:credit[\s-]*card|debit[\s-]*card|card|a/c|acct|account|ac)\b""")
+
+    private fun instrumentOf(text: String): Instrument? {
+        // Use the instrument attached to the extracted digits, not a later mention of e.g.
+        // "towards credit card payment" in a bank-account debit message.
+        val digits = digitsRe.find(text)
+        val references = instrumentRe.findAll(text).toList()
+        val reference = if (digits == null) references.firstOrNull()
+            else references.lastOrNull { it.range.first <= digits.range.first }
+        val label = reference?.value?.lowercase() ?: return null
+        return when {
+            label.startsWith("credit") -> Instrument.CREDIT_CARD
+            label.startsWith("debit") -> Instrument.DEBIT_CARD
+            label == "card" -> Instrument.CARD
+            else -> Instrument.BANK_ACCOUNT
+        }
     }
 
     fun bankOf(sender: String, text: String): String? {
-        val id = sender.uppercase().substringAfterLast('-').filter { it.isLetterOrDigit() }
-        banks.firstOrNull { (k, _) -> id.startsWith(k) || (id.length in 5..8 && k in id) }?.let { return it.second }
+        // DLT IDs may include a final category suffix, e.g. CP-HDFCBK-S. Inspect the
+        // bank fragment rather than treating the last fragment ("S") as the sender.
+        val ids = sender.uppercase().split('-').map { part -> part.filter { it.isLetterOrDigit() } }
+        banks.firstOrNull { (k, _) -> ids.any { id -> id.startsWith(k) || (id.length in 5..8 && k in id) } }?.let { return it.second }
         val upper = text.uppercase()
         return banks.firstOrNull { (k, _) -> k.length >= 3 && Regex("""\b$k""").containsMatchIn(upper) }?.second
     }

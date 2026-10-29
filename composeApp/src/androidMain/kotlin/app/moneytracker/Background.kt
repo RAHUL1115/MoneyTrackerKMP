@@ -11,6 +11,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.media.AudioAttributes
+import android.provider.Settings
 import android.provider.Telephony
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
@@ -69,6 +71,7 @@ object Notifications {
     const val CH_DETECTED = "detected"
     private const val ID_REMINDER = 1
     private const val ID_QUICK = 2
+    internal const val ID_DETECTED_SUMMARY = 3
 
     fun createChannels(ctx: Context) {
         if (Build.VERSION.SDK_INT < 26) return
@@ -82,17 +85,20 @@ object Notifications {
         })
         nm.createNotificationChannel(NotificationChannel(CH_DETECTED, tr("Detected transactions"), NotificationManager.IMPORTANCE_DEFAULT).apply {
             description = tr("Alerts when a bank SMS looks like a transaction, whether it was saved automatically or is waiting for your review.")
+            setSound(Settings.System.DEFAULT_NOTIFICATION_URI, AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
         })
     }
 
     @android.annotation.SuppressLint("MissingPermission")
-    private fun post(ctx: Context, id: Int, n: android.app.Notification) {
+    private fun post(ctx: Context, id: Int, n: android.app.Notification, tag: String? = null) {
         if (Build.VERSION.SDK_INT >= 33 && ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
         createChannels(ctx)   // refreshes channel names in the current language
-        NotificationManagerCompat.from(ctx).notify(id, n)
+        NotificationManagerCompat.from(ctx).notify(tag, id, n)
     }
 
     fun showReminder(ctx: Context) = post(ctx, ID_REMINDER, NotificationCompat.Builder(ctx, CH_REMINDER)
+        .setGroup(CH_REMINDER)
         .setSmallIcon(R.drawable.ic_notification)
         .setContentTitle(tr("Recorded today's spending?"))
         .setContentText(tr("Tap to add anything you missed."))
@@ -114,6 +120,7 @@ object Notifications {
      * re-posts it through [QuickAddDismissReceiver] while the setting is on.
      */
     fun showQuickAdd(ctx: Context) = post(ctx, ID_QUICK, NotificationCompat.Builder(ctx, CH_QUICK)
+        .setGroup(CH_QUICK)
         .setSmallIcon(R.drawable.ic_notification)
         .setContentTitle(tr("Quick add")).setColor(0xFF0F766E.toInt())
         .setOngoing(true).setAutoCancel(false).setShowWhen(false).setPriority(NotificationCompat.PRIORITY_LOW)
@@ -134,11 +141,36 @@ object Notifications {
         showQuickAdd(ctx)
     }
 
-    fun showDetected(ctx: Context, id: Int, title: String, text: String) = post(ctx, 1000 + (id and 0xFFFF), NotificationCompat.Builder(ctx, CH_DETECTED)
-        .setSmallIcon(R.drawable.ic_notification)
-        .setContentTitle(title).setContentText(text)
-        .setContentIntent(Launch.pending(ctx, LaunchAction.INBOX))
-        .setAutoCancel(true).build())
+    fun showDetected(ctx: Context, id: String, title: String, text: String) {
+        post(ctx, 1000, detectedNotification(ctx, title, text), tag = id)
+        post(ctx, ID_DETECTED_SUMMARY, detectedSummary(ctx))
+    }
+
+    internal fun detectedNotification(ctx: Context, title: String, text: String): android.app.Notification =
+        NotificationCompat.Builder(ctx, CH_DETECTED)
+            .setSmallIcon(R.drawable.ic_notification)
+            // All SMS detections share a kind-based group, regardless of bank or instrument.
+            .setGroup(CH_DETECTED)
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setDefaults(NotificationCompat.DEFAULT_SOUND)
+            .setContentTitle(title).setContentText(text)
+            .setContentIntent(Launch.pending(ctx, LaunchAction.INBOX))
+            .setAutoCancel(true).build()
+
+    /** A shared summary makes Android bundle SMS alerts without bundling reminder / quick add. */
+    internal fun detectedSummary(ctx: Context): android.app.Notification =
+        NotificationCompat.Builder(ctx, CH_DETECTED)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(tr("Detected transactions"))
+            .setContentText(tr("Tap to review and add"))
+            .setContentIntent(Launch.pending(ctx, LaunchAction.INBOX))
+            .setGroup(CH_DETECTED).setGroupSummary(true)
+            // The individual incoming SMS alerts make sound, never the summary update.
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true).build()
 }
 
 // ───────────────────────── daily reminder
@@ -233,7 +265,7 @@ object Detected {
             c.kind?.name == "INCOME" -> tr("Received {0}", amount)
             else -> tr("Spent {0}", amount)
         }
-        Notifications.showDetected(ctx, c.id.hashCode(),
+        Notifications.showDetected(ctx, c.id,
             headline + c.merchant.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty(),
             if (saved) tr("Saved automatically") else tr("Tap to review and add"))
     }
