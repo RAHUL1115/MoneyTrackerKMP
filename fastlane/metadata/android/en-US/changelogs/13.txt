@@ -1,0 +1,1 @@
+Beta: try the new layout. Turn it on under More › Configuration › New layout, and MoneyTracker restarts with simpler screens: Home, Activity, Insights and Money tabs, with a big + to add an entry. Your entries, accounts and settings stay the same, and you can switch back to the classic layout any time in Settings.

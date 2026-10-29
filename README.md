@@ -158,7 +158,7 @@ composeApp/src/
 
 1. Bump `versionCode` (by at least 1) and `versionName` in `composeApp/build.gradle.kts`.
 2. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` with the release notes.
-3. Create a signed-off commit, tag `v<versionName>` (for example `v0.2.0`) and push the tag.
+3. Create a signed-off commit, tag `v<versionName>` (for example `v0.2.0`) and push the tag. A version with a suffix (`0.2.0-beta1`, tag `v0.2.0-beta1`) is published as a GitHub pre-release.
 
 CI builds the APK signed with the release key and publishes it as a GitHub release. The same tag, version and store text (`fastlane/metadata`) serve F-Droid, IzzyOnDroid and Google Play. Every distribution channel is intended to ship APKs signed with the same release key so users can move between them without reinstalling. See [Play Console notes](docs/play-console.md) for store setup.
 
