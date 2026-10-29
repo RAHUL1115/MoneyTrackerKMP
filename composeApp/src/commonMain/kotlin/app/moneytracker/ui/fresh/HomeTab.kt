@@ -151,14 +151,14 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
     val yesterdayRows = dayRows(yesterday)
     val monthSpent = totals(rows).expense
 
-    val soft = F.onAccent.copy(alpha = 0.8f)
+    val soft = F.muted
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(F.accent).padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 20.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(F.card).padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Column(Modifier.fillMaxWidth().clickable { onOpenTab(FreshTab.ACTIVITY) }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(tr("Spent today"), color = soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text(currency.format(totals(todayRows).expense), color = F.onAccent, fontSize = 44.sp, lineHeight = 46.sp,
+            Text(currency.format(totals(todayRows).expense), color = F.ink, fontSize = 44.sp, lineHeight = 46.sp,
                 fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
             Text(if (todayRows.isEmpty()) tr("Nothing yet") else entriesText(todayRows.size), color = soft, fontSize = 13.sp)
         }
@@ -169,15 +169,15 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
         }
         Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.Budget) }.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (budget == null) {
-                Text(tr("Set a monthly budget ›"), color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(tr("Set a monthly budget ›"), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             } else {
                 val left = budget.remaining
                 Row {
                     Text(if (left >= 0) tr("{0} left in budget", currency.format(left)) else tr("{0} over budget", currency.format(-left)),
-                        Modifier.weight(1f), color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+                        Modifier.weight(1f), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
                     Text(if (daysLeft == 1) tr("Last day ›") else tr("{0} days to go ›", daysLeft), color = soft, fontSize = 13.sp)
                 }
-                Bar(budget.ratio, fill = if (budget.ratio > 1f) F.warn else Color(0xFFFFB547), track = F.onAccent.copy(alpha = 0.18f), height = 6.dp)
+                Bar(budget.ratio, fill = if (budget.ratio > 1f) F.warn else F.accent, track = F.fill, height = 6.dp)
             }
         }
     }
@@ -185,10 +185,10 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
 
 @Composable
 private fun HeroFigure(label: String, value: String, meta: String, modifier: Modifier, onClick: () -> Unit) {
-    val soft = F.onAccent.copy(alpha = 0.8f)
+    val soft = F.muted
     Column(modifier.clickable(onClick = onClick), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, color = soft, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(value, color = F.onAccent, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+        Text(value, color = F.ink, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
         Text(meta, color = soft, fontSize = 12.sp, style = F.money, maxLines = 1)
     }
 }
@@ -203,11 +203,11 @@ private fun SmsWaiting() {
     if (pending.isEmpty()) return
     val sum = pending.sumOf { it.amount ?: 0L }
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(F.warnTint).clickable { nav.push(Screen.Inbox) }.padding(horizontal = 18.dp, vertical = 16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(F.card).clickable { nav.push(Screen.Inbox) }.padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(F.card), contentAlignment = Alignment.Center) {
-            Icon(Icons.Outlined.Sms, null, tint = F.warn, modifier = Modifier.size(18.dp))
+        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.Sms, null, tint = F.accent, modifier = Modifier.size(18.dp))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(if (pending.size == 1) tr("1 payment found in bank SMS") else tr("{0} payments found in bank SMS", pending.size),

@@ -117,8 +117,8 @@ internal fun AddTile(name: String, label: String, selected: Boolean, modifier: M
     val (bg, fg) = markColors(name)
     val shape = RoundedCornerShape(18.dp)
     Column(
-        modifier.height(70.dp).clip(shape).background(if (selected) bg else Color.Transparent)
-            .then(if (selected) Modifier.border(1.5.dp, fg, shape) else Modifier).clickable(onClick = onClick).padding(horizontal = 2.dp),
+        modifier.height(70.dp).clip(shape).background(if (selected) F.accentTint else Color.Transparent)
+            .then(if (selected) Modifier.border(1.5.dp, F.accent, shape) else Modifier).clickable(onClick = onClick).padding(horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
     ) {
         Box(Modifier.size(34.dp).clip(RoundedCornerShape(12.dp)).background(if (mark != null) F.fill else bg), contentAlignment = Alignment.Center) {
@@ -146,10 +146,10 @@ internal fun <T> AddGrid(items: List<T>, columns: Int = 4, cell: @Composable (T,
 @Composable
 internal fun AddChip(text: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier.height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) F.accent else F.card)
-            .border(1.dp, if (selected) F.accent else F.border, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp),
+        modifier.height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) F.accentTint else F.card)
+            .border(1.dp, if (selected) F.accentTint else F.border, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(text, color = if (selected) F.onAccent else F.ink, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+    ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
 }
 
 /** Filled text input with a placeholder. */

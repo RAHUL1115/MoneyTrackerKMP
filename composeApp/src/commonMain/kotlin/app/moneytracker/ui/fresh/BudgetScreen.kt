@@ -198,7 +198,7 @@ internal fun BudgetBody() {
                             color = if (over) F.expense else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
                     }
                     Gap(8.dp)
-                    Bar(line.ratio, Modifier.padding(start = 46.dp), fill = if (over || line.ratio > 0.9f) F.warn else F.accent, height = 6.dp)
+                    Bar(line.ratio, Modifier.padding(start = 46.dp), fill = if (over) F.warn else if (line.ratio > 0.9f) F.accent.copy(alpha = 0.55f) else F.accent, height = 6.dp)
                     Text(tr("{0} of {1}", currency.format(line.spent), currency.format(line.budget)), Modifier.padding(start = 46.dp, top = 6.dp),
                         color = F.muted, fontSize = 12.5.sp, style = F.money)
                 }

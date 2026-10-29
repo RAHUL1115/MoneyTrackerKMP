@@ -419,11 +419,11 @@ private fun ActList(
 @Composable
 internal fun ActChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.height(32.dp).clip(RoundedCornerShape(999.dp)).background(if (selected) F.ink else F.card)
+        Modifier.height(32.dp).clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.card)
             .then(if (selected) Modifier else Modifier.border(1.dp, F.border, RoundedCornerShape(999.dp)))
             .clickable(onClick = onClick).padding(horizontal = 11.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(text, color = if (selected) F.page else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+    ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
 }
 
 /** "Repeat · Rent, To mom · 1 Nov · −30,000": repeating entries still to come this period (not in the totals). */

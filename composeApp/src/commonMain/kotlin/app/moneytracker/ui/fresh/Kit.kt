@@ -82,15 +82,17 @@ object F {
     val accentTint: Color get() = if (teal) pick(0xFFE3F2EE, 0xFF173A31) else AccentTint
     /** Text and icons on [accent]. */
     val onAccent: Color get() = if (darkTheme && teal) Color(0xFF07231C) else Color.White
-    val warn: Color get() = pick(0xFFE0592A, 0xFFF08A5D)
+    /** Over budget and the like: one soft warm tone, used sparingly. */
+    val warn: Color get() = pick(0xFFC26B4E, 0xFFE59A7C)
     /** Soft background for things waiting on the user (bank SMS to review). */
     val warnTint: Color get() = pick(0xFFFFF1E6, 0xFF35241A)
     val danger: Color get() = pick(0xFFB4441C, 0xFFF08A5D)
     val dangerTint: Color get() = pick(0xFFFCE9E0, 0xFF3A2218)
     private val green get() = pick(0xFF157A3C, 0xFF5BD08A)
     private val red get() = pick(0xFFB4441C, 0xFFF08A5D)
+    // Money in is green; money out reads in plain ink so lists stay calm. Swapped colours keep their old meaning.
     val income: Color get() = if (colorsSwapped) red else green
-    val expense: Color get() = if (colorsSwapped) green else red
+    val expense: Color get() = if (colorsSwapped) green else ink
 
     val cardShape = RoundedCornerShape(20.dp)
     val heroShape = RoundedCornerShape(24.dp)
@@ -102,21 +104,9 @@ object F {
     val money = TextStyle(fontFeatureSettings = "tnum")
 }
 
-/** Soft tint + ink pairs for category / account marks, picked by name so a name keeps its colour. */
-private val markPalette = listOf(
-    0xFFFDEBD9 to 0xFF9A4A12, 0xFFE4ECFB to 0xFF2B4FA3, 0xFFE3F2EE to 0xFF0F5E4E, 0xFFF6E3F0 to 0xFF8A2D6B,
-    0xFFFFF2CC to 0xFF7A5A00, 0xFFE8E4FB to 0xFF4B3AA3, 0xFFE2F3E6 to 0xFF1E6B34, 0xFFFBE4E1 to 0xFF9C2F22,
-)
-private val markPaletteDark = listOf(
-    0xFF3A2A1A to 0xFFF2B27A, 0xFF1E2A44 to 0xFF9DB6F2, 0xFF173A31 to 0xFF7FD6BE, 0xFF3A1E31 to 0xFFE79BCB,
-    0xFF3A3218 to 0xFFF0D27A, 0xFF27223F to 0xFFB6A9F2, 0xFF1B3322 to 0xFF8ED9A2, 0xFF3D2220 to 0xFFF0A196,
-)
-
-fun markColors(name: String): Pair<Color, Color> {
-    val i = name.fold(7) { h, c -> h * 31 + c.code }.mod(markPalette.size)
-    val (bg, fg) = if (darkTheme) markPaletteDark[i] else markPalette[i]
-    return Color(bg) to Color(fg)
-}
+/** Category and account marks share one soft grey-green; the letters tell them apart. */
+@Suppress("UNUSED_PARAMETER")
+fun markColors(name: String): Pair<Color, Color> = pick(0xFFEEF1ED, 0xFF232927) to pick(0xFF46524D, 0xFFB7C2BD)
 
 /** Two-letter mark: "Food" → "FO", "Credit card" → "CC". */
 fun markText(name: String): String {
@@ -138,6 +128,14 @@ fun Mark(name: String, size: Dp = 36.dp, icon: ImageVector? = null) {
 }
 
 // ───────────────────────── toasts
+
+/**
+ * Set while a screen wants the keyboard to draw over its lower part instead of the app resizing around it
+ * (the entry editor: the keyboard covers its keypad and Save, and nothing else moves).
+ */
+object KeyboardOverlay {
+    var active by mutableStateOf(false)
+}
 
 /** A short message at the bottom of the screen, optionally with Undo. One at a time. */
 @Stable
@@ -282,18 +280,18 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
     ) { Text(text, color = if (danger) F.danger else F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
 }
 
-/** Rounded pill; filled with the accent when selected. */
+/** Rounded pill; soft accent tint when selected. */
 @Composable
 fun Pill(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, leading: ImageVector? = null) {
     Row(
         modifier.height(36.dp).clip(RoundedCornerShape(999.dp))
-            .background(if (selected) F.accent else F.card)
+            .background(if (selected) F.accentTint else F.card)
             .then(if (selected) Modifier else Modifier.border(1.dp, F.border, RoundedCornerShape(999.dp)))
             .clickable(onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        if (leading != null) Icon(leading, null, tint = if (selected) F.onAccent else F.ink, modifier = Modifier.size(16.dp))
-        Text(text, color = if (selected) F.onAccent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        if (leading != null) Icon(leading, null, tint = if (selected) F.accent else F.ink, modifier = Modifier.size(16.dp))
+        Text(text, color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 
@@ -356,13 +354,13 @@ fun Bar(fraction: Float, modifier: Modifier = Modifier, fill: Color = F.accent, 
 
 // ───────────────────────── sheets and dialogs
 
-/** Bottom sheet with a title; the body scrolls when tall. */
+/** Bottom sheet with a title; the body scrolls when tall. [half] opens a long list half-way; drag up for the rest. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Sheet(title: String, onDismiss: () -> Unit, bottom: (@Composable () -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+fun Sheet(title: String, onDismiss: () -> Unit, bottom: (@Composable () -> Unit)? = null, half: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = !half),
         containerColor = F.card, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp).padding(bottom = 16.dp)) {

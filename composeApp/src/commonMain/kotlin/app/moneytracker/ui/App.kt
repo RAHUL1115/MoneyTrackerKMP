@@ -158,7 +158,7 @@ fun App(
                 app.moneytracker.ui.fresh.LocalToaster provides toaster,
             ) {
                 // Content stays above the gesture bar and, when typing, above the keyboard.
-                Box(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
+                Box(Modifier.fillMaxSize().navigationBarsPadding().then(if (app.moneytracker.ui.fresh.KeyboardOverlay.active) Modifier else Modifier.imePadding())) {
                     when {
                         passcode == "loading" || onboarded == "loading" -> Unit
                         locked && !passcode.isNullOrBlank() ->

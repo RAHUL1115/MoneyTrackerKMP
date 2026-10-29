@@ -3,6 +3,7 @@
 package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.border
@@ -107,6 +108,7 @@ import app.moneytracker.ui.weekday
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import app.moneytracker.domain.DateRange
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
@@ -476,23 +478,39 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     }
 
     // ───────────── one screen for adding and editing
+    // Nothing here moves: every zone below the amount has a fixed height, and the keyboard draws over the keypad and
+    // Save instead of resizing the screen (past notes ride on a strip on top of it). Type and date change rarely, so
+    // they sit at the top; the amount, category, keypad and Save stay near the thumb.
 
+    DisposableEffect(Unit) { KeyboardOverlay.active = true; onDispose { KeyboardOverlay.active = false } }
     val e = f.existing
     val refundable = !f.isAdjustment && (f.type == DraftType.EXPENSE || f.type == DraftType.REFUND) && e?.transferGroupId == null
     val allPhotos = if (f.isAdjustment) emptyList() else f.existingPhotos.map { it.fileName } + f.newPhotos
     Box(Modifier.fillMaxSize().background(F.card).statusBarsPadding()) {
-        Column(Modifier.fillMaxSize().padding(horizontal = F.gutter).padding(top = 20.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            // Big amount in the spare space at the top; the hint shows a running result, the category, or what is missing.
+        Column(Modifier.fillMaxSize().padding(horizontal = F.gutter).padding(top = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconTile(Icons.Filled.Close, tr("Close"), { nav.back() }, background = F.page)
+                TypeTabs(f, Modifier.weight(1f))
+                Row(
+                    Modifier.height(44.dp).clip(F.iconShape).background(F.page).clickable { focus.clearFocus(); sheet = AddSheet.DATE }.padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(Icons.Outlined.CalendarToday, null, tint = F.ink, modifier = Modifier.size(16.dp))
+                    Text(dateLabel(f.date), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+            }
+            // The amount takes the spare space; its line has a fixed height and long sums shrink inside it.
             Column(
-                Modifier.weight(1f).heightIn(min = 96.dp).fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { feeTarget = false; focus.clearFocus() }
-                    .padding(horizontal = 52.dp),
-                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+                Modifier.weight(1f).fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { feeTarget = false; focus.clearFocus() },
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val amountText = shown(fmt, addExprShown(f.amountText))
+                Row(Modifier.height(58.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        shown(fmt, addExprShown(f.amountText)), Modifier.weight(1f, fill = false),
-                        color = if ((total ?: 0) > 0) F.ink else F.muted, fontSize = if (f.amountText.length > 10) 36.sp else 48.sp,
-                        fontWeight = FontWeight.ExtraBold, maxLines = 1, style = F.money,
+                        amountText, Modifier.weight(1f, fill = false),
+                        color = if ((total ?: 0) > 0) F.ink else F.muted,
+                        fontSize = when { amountText.length > 16 -> 30.sp; amountText.length > 11 -> 38.sp; else -> 48.sp },
+                        fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false, style = F.money,
                     )
                     currencyChip()
                 }
@@ -509,9 +527,12 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                         catLabel ?: tr("Pick a category"),
                     ).joinToString(" · ") to F.muted
                 }
-                Text(hint, color = color, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                Text(hint, Modifier.height(18.dp), color = color, fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
             }
 
+            // One fixed box for "what is it": two rows of categories, or From / To and the fee for a transfer.
+            Column(Modifier.fillMaxWidth().height(150.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (isTransfer) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccountBox(tr("FROM"), accountName(f.accountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.FROM }
@@ -548,10 +569,13 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                         }
                     }
                 }
+            } else {
+                Text(tr("Balance adjustment · {0}", tr(MODIFIED_BALANCE_NAME)), Modifier.fillMaxWidth().padding(top = 16.dp),
+                    color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
+            }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (!isTransfer) Row(
                         Modifier.widthIn(max = 168.dp).height(48.dp).clip(RoundedCornerShape(14.dp)).background(F.page)
                             .clickable { sheet = AddSheet.ACCOUNT }.padding(horizontal = 12.dp),
@@ -563,8 +587,6 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                         Icon(Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.size(14.dp))
                     }
                     noteField(Modifier.weight(1f))
-                }
-                noteSuggestions()
             }
 
             // Everything else about the entry: one chip each, each opening a small sheet. A chip shows its value once set.
@@ -593,18 +615,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 if (!f.isAdjustment) ExtraChip(if (bookmarked) tr("Bookmarked ★") else tr("Bookmark"), bookmarked) { focus.clearFocus(); sheet = AddSheet.BOOKMARK }
             }
 
-            // Entry type and date sit right above the keypad, within reach of the thumb.
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                TypeTabs(f, Modifier.weight(1f))
-                Row(
-                    Modifier.height(44.dp).clip(F.iconShape).background(F.page).clickable { focus.clearFocus(); sheet = AddSheet.DATE }.padding(horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(Icons.Outlined.CalendarToday, null, tint = F.ink, modifier = Modifier.size(16.dp))
-                    Text(dateLabel(f.date), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                }
-            }
-            if (!noteFocused) AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it })
+            AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it })
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (e != null) {
@@ -629,7 +640,11 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 }
             }
         }
-        IconTile(Icons.Filled.Close, tr("Close"), { nav.back() }, background = F.page, modifier = Modifier.padding(start = F.gutter, top = 20.dp))
+        // Past notes and the suggested category ride on a strip on top of the keyboard, so they push nothing.
+        if (noteFocused && (noteMatches.isNotEmpty() || suggestedCat != null)) Box(
+            Modifier.align(Alignment.BottomCenter).imePadding().fillMaxWidth().background(F.card)
+                .padding(horizontal = F.gutter, vertical = 8.dp),
+        ) { noteSuggestions() }
     }
 
     // ───────────── sheets and dialogs
@@ -715,8 +730,20 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 if (forTo) { f.toAccountId = a.id; sheet = AddSheet.NONE }
                 else { f.pickFrom(a); sheet = if (isTransfer && f.toAccountId == null) AddSheet.TO else AddSheet.NONE }
             }
-            Sheet(title, { sheet = AddSheet.NONE }) {
+            // Usual and recently used accounts first, so the half-open sheet usually holds the one you want.
+            val recentRange = remember { DateRange(repo.today().minus(DatePeriod(days = 30)), repo.today()) }
+            val recentTxns by remember(recentRange) { repo.txnsBetween(recentRange) }.collectAsState(emptyList())
+            val quick = (listOfNotNull(usual, current) + recentTxns.sortedByDescending { it.createdAt }
+                .map { if (forTo) it.toAccountId else it.accountId }).filterNotNull().distinct()
+                .mapNotNull { id -> list.firstOrNull { it.id == id && !it.hidden } }.take(4)
+            Sheet(title, { sheet = AddSheet.NONE }, half = true) {
                 if (list.isEmpty()) Text(tr("No accounts yet"), color = F.muted, fontSize = 14.sp)
+                if (quick.size > 1) {
+                    SectionLabel(tr("Usual and recent"))
+                    quick.forEach { a ->
+                        SheetOption(a.name, a.id == current, subtitle = if (a.id == usual) tr("Usual") else null, leading = { Mark(a.name, 32.dp) }) { pick(a) }
+                    }
+                }
                 val known = groups.map { it.id }.toSet()
                 val sections = groups.map { it.name to list.filter { a -> a.groupId == it.id } } + (tr("Other") to list.filter { it.groupId !in known })
                 sections.forEach { (name, items) ->
@@ -861,12 +888,11 @@ private fun TypeTabs(f: AddForm, modifier: Modifier) {
     Row(modifier.height(44.dp).clip(F.iconShape).background(F.page).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         tabs.forEach { (t, label) ->
             val on = t == selected
-            val ink = when (t) { DraftType.INCOME -> F.income; DraftType.TRANSFER -> F.accent; else -> F.expense }
             Box(
                 Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(10.dp)).background(if (on) F.card else Color.Transparent).clickable { f.pickType(t) },
                 contentAlignment = Alignment.Center,
             ) {
-                Text(label, color = if (on) ink else F.muted, fontSize = 14.sp, fontWeight = if (on) FontWeight.ExtraBold else FontWeight.Bold, maxLines = 1)
+                Text(label, color = if (on) F.ink else F.muted, fontSize = 13.5.sp, fontWeight = if (on) FontWeight.ExtraBold else FontWeight.Bold, maxLines = 1)
             }
         }
     }

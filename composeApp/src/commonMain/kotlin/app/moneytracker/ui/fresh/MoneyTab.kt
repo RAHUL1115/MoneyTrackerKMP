@@ -98,7 +98,7 @@ internal fun MoneyTab() {
     Column(Modifier.fillMaxSize()) {
         TabHeader(tr("Money")) {
             IconTile(Icons.Outlined.BarChart, tr("Net worth trend"), { trendOn = !trendOn },
-                tint = if (trendOn) F.onAccent else F.ink, background = if (trendOn) F.accent else F.card)
+                tint = if (trendOn) F.accent else F.ink, background = if (trendOn) F.accentTint else F.card)
             // A gear means app Settings everywhere, so this one says what it opens.
             HeaderButton(tr("Groups"), filled = false) { manage = true }
             IconTile(Icons.Outlined.Add, tr("Add account"), { nav.push(Screen.EditAccount()) })
@@ -193,13 +193,13 @@ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Bo
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.accent).padding(20.dp)) {
-        Text(tr("Net worth · in totals"), color = F.onAccent.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-        Text(currency.format(net), color = F.onAccent, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(20.dp)) {
+        Text(tr("Net worth · in totals"), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text(currency.format(net), color = F.ink, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
         Gap(12.dp)
         val share = if (assets + liabilities > 0) assets.toFloat() / (assets + liabilities) else 1f
-        Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(999.dp)).background(F.onAccent.copy(alpha = 0.25f))) {
-            if (share > 0f) Box(Modifier.weight(share).height(8.dp).background(F.onAccent))
+        Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(999.dp)).background(F.fill)) {
+            if (share > 0f) Box(Modifier.weight(share).height(8.dp).background(F.accent))
             if (share < 1f) Box(Modifier.weight(1f - share).height(8.dp))
         }
         Gap(10.dp)
@@ -229,9 +229,9 @@ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Bo
                 val change = points.last().second - points.first().second
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(tr("Last 6 months · {0} {1} since {2}", if (change >= 0) "▲" else "▼", currency.format(kotlin.math.abs(change)), monthShort(points.first().first.month)),
-                        Modifier.weight(1f), color = F.onAccent.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     Text(tr("Full trend ›"), Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.AccountsTrend) }.padding(4.dp),
-                        color = F.onAccent, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                        color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 }
                 Gap(8.dp)
                 MoneyBars(points.map { MoneyBar(monthShort(it.first.month), it.second) }, currency.decimals, onDark = true, height = 52.dp)
@@ -243,9 +243,9 @@ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Bo
 @Composable
 private fun Legend(label: String, value: String, alpha: Float) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(F.onAccent.copy(alpha = alpha)))
-        Text("  $label ", color = F.onAccent.copy(alpha = 0.8f), fontSize = 12.sp)
-        Text(value, color = F.onAccent, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+        Box(Modifier.size(8.dp).clip(CircleShape).background(F.accent.copy(alpha = alpha)))
+        Text("  $label ", color = F.muted, fontSize = 12.sp)
+        Text(value, color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
     }
 }
 

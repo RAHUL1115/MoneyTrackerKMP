@@ -293,9 +293,9 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
     val repo = LocalRepo.current
     val a = line.account
     val card = line.card
-    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.accent).padding(20.dp)) {
-        val on = F.onAccent
-        val soft = F.onAccent.copy(alpha = 0.8f)
+    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(20.dp)) {
+        val on = F.ink
+        val soft = F.muted
         Row {
             Text(listOf(line.group.type.moneyLabel, line.group.name).distinct().joinToString(" · ") + (a.currency?.let { " · $it" } ?: ""),
                 Modifier.weight(1f), color = soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -318,7 +318,7 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
             val limit = a.cardLimit
             if (limit != null && limit > 0) {
                 Gap(12.dp)
-                Bar(card.cycleSpend.toFloat() / limit, fill = on, track = on.copy(alpha = 0.25f), height = 6.dp)
+                Bar(card.cycleSpend.toFloat() / limit, fill = F.accent, track = F.fill, height = 6.dp)
                 Text(tr("{0} of {1} limit", fmt.format(card.cycleSpend), fmt.format(limit)), Modifier.padding(top = 4.dp), color = soft, fontSize = 12.sp)
             }
             val target = a.usageTarget
@@ -327,7 +327,7 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
                 val usage = cardUsage(history, a.cardSettlementDay ?: 1, today, a.usageTargetType == 2, excluded)
                 val met = usage.measured >= target
                 Gap(12.dp)
-                Bar(usage.thisCycle.toFloat() / target, fill = on, track = on.copy(alpha = 0.25f), height = 6.dp)
+                Bar(usage.thisCycle.toFloat() / target, fill = F.accent, track = F.fill, height = 6.dp)
                 Text(
                     (if (a.usageTargetType == 2) tr("Usage target {0} · this cycle {1} · 3-month avg. {2} {3}", fmt.format(target),
                         fmt.format(usage.thisCycle), fmt.format(usage.measured), if (met) "✓" else "✗")

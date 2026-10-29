@@ -228,8 +228,8 @@ private fun StepButton(icon: androidx.compose.ui.graphics.vector.ImageVector, la
 internal fun ChoiceChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         text,
-        Modifier.clip(RoundedCornerShape(999.dp)).background(if (selected) F.ink else F.fill).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
-        color = if (selected) F.page else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+        Modifier.clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.fill).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
+        color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
     )
 }
 
