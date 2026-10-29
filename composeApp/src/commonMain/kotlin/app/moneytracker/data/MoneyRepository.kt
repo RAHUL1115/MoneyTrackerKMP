@@ -151,6 +151,7 @@ class MoneyRepository(
         const val SEEDED = "seeded"
         const val AUTOCOMPLETE = "autocomplete"           // "0" = off; default on
         const val AUTOCOMPLETE_SINCE = "autocompleteSince" // epoch ms; notes used before this are not suggested ("Reset")
+        const val HABIT_ACCOUNT = "habitAccount"          // "0" = off; default on: new entries pre-select the account usually used
         const val TIME_INPUT = "timeInput"                // NONE | INPUT (ask for time) | LIST (ask and show it in lists)
         const val TIME_SORT = "timeSort"                  // DESC (default) | ASC: order of entries within a day
         const val SHOW_DESCRIPTION = "showDescription"    // "1" = description under the note in lists
@@ -303,16 +304,30 @@ class MoneyRepository(
 
     // ───────────────────────── autocomplete
 
-    data class NoteSuggestion(val note: String, val categoryId: String?, val accountId: String?, val kind: TxnKind)
+    /** [amount] is in minor units of [currency] (null = main), as it was entered. */
+    data class NoteSuggestion(val note: String, val categoryId: String?, val accountId: String?, val kind: TxnKind, val amount: Long, val currency: String?)
 
-    /** Past notes starting with [prefix], most recently used first, with the category/account used last time. */
+    /** Past notes starting with [prefix], most recently used first, with the category/account/amount used last time. */
     fun noteSuggestions(prefix: String): List<NoteSuggestion> {
         if (prefix.isBlank() || settingNow(Keys.AUTOCOMPLETE) == "0") return emptyList()
         val escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         val since = settingNow(Keys.AUTOCOMPLETE_SINCE)?.toLongOrNull() ?: 0L
         return q.noteSuggestions(escaped, since).executeAsList()
             .filter { !it.note.equals(prefix, ignoreCase = false) }
-            .map { NoteSuggestion(it.note, it.categoryId, it.accountId, TxnKind.valueOf(it.kind)) }
+            .map { NoteSuggestion(it.note, it.categoryId, it.accountId, TxnKind.valueOf(it.kind), it.amount ?: 0L, it.currency) }
+    }
+
+    /**
+     * The account usually used for this kind of entry: the most used with [categoryId] (or its sub-categories) in the
+     * last 90 days, else the most used for [kind] in the last 30. Only live, visible accounts; null when there's no
+     * history or the setting is off. A category's own default account is the caller's to prefer.
+     */
+    fun habitAccount(kind: TxnKind, categoryId: String?): String? {
+        if (settingNow(Keys.HABIT_ACCOUNT) == "0") return null
+        val usable = q.allAccounts().executeAsList().filter { it.hidden == 0L }.map { it.id }.toSet()
+        fun mostUsed(days: Int, category: String?) = q.habitAccounts(kind.name, today().toEpochDays().toLong() - days, category)
+            .executeAsList().firstOrNull { it.accountId in usable }?.accountId
+        return categoryId?.let { mostUsed(90, it) } ?: mostUsed(30, null)
     }
 
     fun resetAutocomplete() = putSetting(Keys.AUTOCOMPLETE_SINCE, now().toString())

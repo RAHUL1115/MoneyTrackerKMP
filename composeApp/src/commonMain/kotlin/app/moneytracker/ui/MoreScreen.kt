@@ -157,6 +157,7 @@ fun ConfigurationScreen() {
     val widgetOpacity by opt(Keys.WIDGET_OPACITY).collectAsState(null)
     val repeatTiming by opt(Keys.REPEAT_TIMING).collectAsState(null)
     val autocomplete by opt(Keys.AUTOCOMPLETE).collectAsState(null)
+    val habitAccount by opt(Keys.HABIT_ACCOUNT).collectAsState(null)
     val showDescription by remember(repo) { repo.flag(Keys.SHOW_DESCRIPTION) }.collectAsState(false)
     val noteButton by remember(repo) { repo.setting(Keys.NOTE_BUTTON) }.collectAsState(null)
     val symbolAfter by remember(repo) { repo.flag(Keys.SYMBOL_AFTER) }.collectAsState(false)
@@ -204,6 +205,9 @@ fun ConfigurationScreen() {
             }
             ConfigRow(tr("Reset autocomplete"), if (resetAutocompleteDone) tr("Done") else null) {
                 scope.launch { withContext(repo.io) { repo.resetAutocomplete() }; resetAutocompleteDone = true }
+            }
+            ConfigToggle(tr("Remember usual accounts"), tr("Pre-select the account you usually use; a category's preferred account comes first"), habitAccount != "0") {
+                put(Keys.HABIT_ACCOUNT, if (it) "1" else "0")
             }
             ConfigRow(tr("Input order"), choiceLabel(Keys.INPUT_ORDER, inputOrder)) { choice = Keys.INPUT_ORDER }
             ConfigRow(tr("Style"), choiceLabel(Keys.THEME, theme)) { choice = Keys.THEME }

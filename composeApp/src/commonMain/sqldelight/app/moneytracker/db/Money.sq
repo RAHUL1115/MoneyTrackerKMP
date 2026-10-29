@@ -435,15 +435,28 @@ allAccountNames:
 SELECT id, name FROM Account;
 
 -- ───────── v4
--- Past notes for autocomplete: newest use first, with the category/account last used with them.
+-- Past notes for autocomplete: newest use first, with the category/account/amount last used with them
+-- (bare columns come from the MAX(createdAt) row; the amount is as entered, positive even for a refund).
 noteSuggestions:
-SELECT note, categoryId, accountId, kind, MAX(createdAt) AS lastUsed
+SELECT note, categoryId, accountId, kind, ABS(COALESCE(originalAmount, amount)) AS amount, currency, MAX(createdAt) AS lastUsed
 FROM Txn
 WHERE deleted = 0 AND note != '' AND note LIKE :prefix || '%' ESCAPE '\' AND createdAt > :since
   AND kind IN ('INCOME', 'EXPENSE', 'TRANSFER_OUT')
 GROUP BY note
 ORDER BY lastUsed DESC
 LIMIT 6;
+
+-- Accounts most used for a kind of entry since a day (optionally only with a category or its sub-categories),
+-- most used first. Recurring and installment rows repeat a choice made once, and refunds aren't spending: left out.
+habitAccounts:
+SELECT accountId, COUNT(*) AS uses, MAX(createdAt) AS lastUsed
+FROM Txn
+WHERE deleted = 0 AND kind = :kind AND amount > 0 AND date >= :since
+  AND (:categoryId IS NULL OR categoryId = :categoryId OR categoryId IN (SELECT id FROM Category WHERE parentId = :categoryId))
+  AND recurringRuleId IS NULL AND installmentGroupId IS NULL
+GROUP BY accountId
+ORDER BY uses DESC, lastUsed DESC
+LIMIT 5;
 
 setAccountOrder:
 UPDATE Account SET sortOrder = ?, updatedAt = ? WHERE id = ?;

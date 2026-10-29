@@ -158,6 +158,19 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     var timeOfDay by remember { mutableStateOf(screen.preset?.timeOfDay ?: if (screen.txnId == null && timeOn) nowMinutes() else null) }
     var timePicker by remember { mutableStateOf(false) }
 
+    // The account usually used for this kind of entry (and category), unless one was chosen; a refund goes back
+    // where the spending came from. Keeps accountChosen false, so a category's preferred account still wins.
+    fun applyHabitAccount(category: String?) {
+        if (accountChosen) return
+        val kind = when (type) { DraftType.INCOME -> TxnKind.INCOME; DraftType.EXPENSE, DraftType.REFUND -> TxnKind.EXPENSE; DraftType.TRANSFER -> return }
+        val a = repo.habitAccount(kind, category)?.let { id -> accounts.firstOrNull { it.id == id } } ?: return
+        accountId = a.id
+        if (amountText.isEmpty() || currencyCode == null) currencyCode = a.currency
+    }
+    // New blank entries start on that account (before the first frame, like loading an edit below), so the
+    // account picker can be skipped. Account-first input asks for the account anyway.
+    remember { if (screen.txnId == null && screen.preset == null && !accountFirst) applyHabitAccount(null) }
+
     // Fill the form with the entry being edited (transfer pair / fee / installment plan, tags, photos) before the
     // first frame: a few indexed rows read in well under a millisecond, and loading later would flash the
     // new-entry defaults first.
@@ -322,6 +335,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                     // Refund → Expense keeps the (expense) category.
                     val sameCategories = t == DraftType.EXPENSE && type == DraftType.REFUND
                     type = t; if (!sameCategories) categoryId = null; if (t != DraftType.TRANSFER) toAccountId = null
+                    applyHabitAccount(categoryId)
                 }
             })
             Spacer(Modifier.height(12.dp))
@@ -408,6 +422,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                             Row(
                                 Modifier.clip(RoundedCornerShape(8.dp)).clickable {
                                     type = if (refund) DraftType.INCOME else DraftType.REFUND; categoryId = null
+                                    applyHabitAccount(null)
                                     if (panel == Panel.NONE) panel = Panel.CATEGORY
                                 }.padding(end = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -449,12 +464,20 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                                     categoryId = m.categoryId
                                 }
                                 if (!accountChosen && m.accountId != null && accountById[m.accountId] != null) { accountId = m.accountId; accountChosen = true }
+                                // The amount used last time, in its currency, unless one is already typed.
+                                if (amountText.isEmpty() && m.amount > 0 && (m.currency == null || currencies.containsKey(m.currency))) {
+                                    currencyCode = m.currency
+                                    amountText = (m.currency?.let { currencies[it]?.format } ?: currency).toInput(m.amount)
+                                }
                                 focus.clearFocus()
+                                if (amountText.isEmpty()) panel = Panel.AMOUNT else nextAfterAmount()
                             }.padding(horizontal = 12.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(m.note, Modifier.weight(1f), color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            val hint = if (type == DraftType.TRANSFER) null else m.categoryId?.let { catById[it]?.name }
+                            val amount = m.amount.takeIf { it > 0 }?.let { (m.currency?.let { c -> currencies[c]?.format } ?: currency).format(it) }
+                            val hint = listOfNotNull(if (type == DraftType.TRANSFER) null else m.categoryId?.let { catById[it]?.name }, amount)
+                                .joinToString(" · ").ifEmpty { null }
                             if (hint != null) Text(hint, color = SubtleText, fontSize = 12.sp, maxLines = 1)
                         }
                     }
@@ -588,8 +611,11 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                 categories.filter { it.kind == catKind }, useSubcategories, categoryId,
                 onPick = { c ->
                     categoryId = c.id
-                    // Category default account (or its main category's), unless the user already picked one.
-                    val default = defaultAccountFor(c.id, catById)?.let { id -> accounts.firstOrNull { it.id == id } }
+                    // Category's preferred account (or its main category's), else the one usually used with it,
+                    // unless the user already picked one.
+                    fun live(id: String?) = id?.let { accounts.firstOrNull { a -> a.id == it } }
+                    val default = live(defaultAccountFor(c.id, catById))
+                        ?: live(repo.habitAccount(if (catKind == CategoryKind.INCOME) TxnKind.INCOME else TxnKind.EXPENSE, c.id))
                     if (!accountChosen && default != null) {
                         accountId = default.id
                         if (amountText.isEmpty() || currencyCode == null) currencyCode = default.currency
