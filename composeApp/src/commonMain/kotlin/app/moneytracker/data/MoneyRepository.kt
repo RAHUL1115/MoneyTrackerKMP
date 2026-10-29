@@ -175,6 +175,7 @@ class MoneyRepository(
         const val SMS_IMPORT_DAYS = "smsImportDays"       // "Import SMS": how far back to read the inbox
         const val SMS_LAST_SCAN = "smsLastScan"           // epoch ms of the last catch-up read of the inbox
         const val ACCOUNTS_GROUPED = "accountsGrouped"    // "1" = account picker shows groups on the left, accounts on the right
+        const val UI_LAYOUT = "uiLayout"                  // CLASSIC (default) | NEW; read once at start, so a change needs a restart
     }
 
     fun setting(key: String): Flow<String?> = q.getSetting(key).asFlow().mapToOneOrNull(io)

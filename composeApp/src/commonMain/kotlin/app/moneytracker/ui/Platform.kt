@@ -58,6 +58,9 @@ interface PlatformServices {
     fun licenseText(id: String): String?
     /** Opens a web page in the browser (the app itself has no network access). */
     fun openUrl(url: String)
+
+    /** Closes the screens and opens the app again from the start (used after switching layouts). */
+    fun restartApp()
 }
 
 enum class BiometricStatus { AVAILABLE, NOT_ENROLLED, UNSUPPORTED }

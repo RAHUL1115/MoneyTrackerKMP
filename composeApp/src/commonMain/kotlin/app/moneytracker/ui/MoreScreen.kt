@@ -163,6 +163,7 @@ fun ConfigurationScreen() {
     val symbolAfter by remember(repo) { repo.flag(Keys.SYMBOL_AFTER) }.collectAsState(false)
     var resetAutocompleteDone by remember { mutableStateOf(false) }
     var timeDialog by remember { mutableStateOf(false) }
+    var layoutSwitch by remember { mutableStateOf(false) }
     // Widgets show colours, currency format and their own style; repaint them after any change.
     fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) }; platform.refreshWidgets() }
     fun setFlag(key: String, on: Boolean) = put(key, if (on) "1" else "0")
@@ -210,6 +211,7 @@ fun ConfigurationScreen() {
                 put(Keys.HABIT_ACCOUNT, if (it) "1" else "0")
             }
             ConfigRow(tr("Input order"), choiceLabel(Keys.INPUT_ORDER, inputOrder)) { choice = Keys.INPUT_ORDER }
+            ConfigToggle(tr("New layout"), tr("Simpler screens with bigger cards. MoneyTracker restarts to switch."), false) { if (it) layoutSwitch = true }
             ConfigRow(tr("Style"), choiceLabel(Keys.THEME, theme)) { choice = Keys.THEME }
             ConfigRow(tr("Accent colour"), tr(accentChoice.label)) { accentDialog = true }
             ConfigRow(tr("Language"), I18n.LANGUAGES.firstOrNull { it.first == language.orEmpty() }?.takeIf { it.first.isNotEmpty() }?.second ?: tr("Phone language")) { languageDialog = true }
@@ -238,6 +240,7 @@ fun ConfigurationScreen() {
         }
     }
 
+    if (layoutSwitch) app.moneytracker.ui.fresh.LayoutSwitchDialog(toNew = true) { layoutSwitch = false }
     if (locationDisclosure) {
         DisclosureDialog(tr("Save location"),
             tr("When you add a new entry, MoneyTracker saves where you are (latitude and longitude) with it. " +

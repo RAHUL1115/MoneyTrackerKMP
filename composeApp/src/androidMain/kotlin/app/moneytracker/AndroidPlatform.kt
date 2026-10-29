@@ -244,6 +244,13 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
         runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
 
+    override fun restartApp() {
+        // A fresh task with a new activity; the process (and the open database) stays.
+        MainActivity.skipLockOnce = true
+        activity.startActivity(Intent.makeRestartActivityTask(ComponentName(activity, MainActivity::class.java)))
+        activity.finish()
+    }
+
     override fun openMap(lat: Double, lng: Double) {
         runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:$lat,$lng?q=$lat,$lng"))) }
     }

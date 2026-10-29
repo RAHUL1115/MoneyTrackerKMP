@@ -104,6 +104,7 @@ fun App(
     launchAction: LaunchAction?,
     onLaunchHandled: () -> Unit,
     onDarkThemeChanged: (Boolean) -> Unit = {},
+    newLayout: Boolean = false,
 ) {
     // Style: follow the system unless Configuration pins light or dark.
     val themeSetting by remember(repo) { repo?.setting(Keys.THEME) ?: kotlinx.coroutines.flow.flowOf(null) }
@@ -136,6 +137,7 @@ fun App(
                 return@Surface
             }
             val stateHolder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+            val toaster = remember { app.moneytracker.ui.fresh.Toaster() }
             val currency by repo.currency.collectAsState(CurrencyFormat())
             val currencies by repo.currencies.collectAsState(emptyList())
             val passcode by remember(repo) { repo.setting(Keys.PASSCODE) }.collectAsState("loading")
@@ -152,13 +154,16 @@ fun App(
                 LocalPlatform provides platform,
                 LocalCurrencies provides currencies.associateBy { it.code },
                 LocalListPrefs provides ListPrefs(showTime = timeInput == "LIST", showDescription = showDescription),
+                app.moneytracker.ui.fresh.LocalNewLayout provides newLayout,
+                app.moneytracker.ui.fresh.LocalToaster provides toaster,
             ) {
                 // Content stays above the gesture bar and, when typing, above the keyboard.
                 Box(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
                     when {
                         passcode == "loading" || onboarded == "loading" -> Unit
-                        locked && !passcode.isNullOrBlank() -> LockScreen(passcode!!, onUnlocked)
-                        onboarded != "1" -> OnboardingScreen()
+                        locked && !passcode.isNullOrBlank() ->
+                            if (newLayout) app.moneytracker.ui.fresh.FreshLock(passcode!!, onUnlocked) else LockScreen(passcode!!, onUnlocked)
+                        onboarded != "1" -> if (newLayout) app.moneytracker.ui.fresh.FreshWelcome() else OnboardingScreen()
                         else -> {
                             LaunchedEffect(launchAction) {
                                 val a = launchAction ?: return@LaunchedEffect
@@ -186,12 +191,13 @@ fun App(
                             // Home stays composed (not drawn, not touchable, hidden from accessibility) under other
                             // screens, so going back shows it at once with its data already loaded instead of blank.
                             stateHolder.SaveableStateProvider("home") {
-                                Box(Modifier.fillMaxSize().then(if (top != null) Modifier.drawWithContent { }.clearAndSetSemantics { } else Modifier)) { Home() }
+                                Box(Modifier.fillMaxSize().then(if (top != null) Modifier.drawWithContent { }.clearAndSetSemantics { } else Modifier)) { if (newLayout) app.moneytracker.ui.fresh.FreshHome() else Home() }
                             }
                             if (top != null) stateHolder.SaveableStateProvider(keys.last()) {
                             // Takes every touch, so none reach Home underneath.
                             Box(Modifier.fillMaxSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }) {
-                            when (top) {
+                            val fresh = if (newLayout) app.moneytracker.ui.fresh.freshScreen(top) else null
+                            if (fresh != null) fresh() else when (top) {
                                 is Screen.EditTxn -> EditTxnScreen(top)
                                 is Screen.AccountDetail -> AccountDetailScreen(top.accountId)
                                 is Screen.EditAccount -> EditAccountScreen(top.accountId)
@@ -220,6 +226,7 @@ fun App(
                             }
                             }
                             }
+                            if (newLayout) app.moneytracker.ui.fresh.ToastHost(toaster, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
                             }
                         }
                     }

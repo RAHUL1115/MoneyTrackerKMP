@@ -34,6 +34,9 @@ class MainActivity : FragmentActivity() {
         val backup = AndroidBackupController(this, db, hashPin = platform::hashPin)
         backup.autoBackupIfDue()
         launchAction = Launch.parse(intent)
+        if (skipLockOnce) { skipLockOnce = false; locked = false }
+        // Layout is fixed for the life of this activity; Settings restarts the app to switch it.
+        val newLayout = db.repo?.settingNow(app.moneytracker.data.MoneyRepository.Keys.UI_LAYOUT) == "NEW"
         readSystemAccent()
 
         val back = object : OnBackPressedCallback(false) {
@@ -48,6 +51,7 @@ class MainActivity : FragmentActivity() {
                 locked = locked, onUnlocked = { locked = false },
                 launchAction = launchAction, onLaunchHandled = { launchAction = null },
                 onDarkThemeChanged = ::applySystemBars,
+                newLayout = newLayout,
             )
         }
     }
@@ -93,7 +97,11 @@ class MainActivity : FragmentActivity() {
         SummaryWidget.updateAll(this)
     }
 
-    companion object { private const val LOCK_AFTER_MS = 60_000L }
+    companion object {
+        private const val LOCK_AFTER_MS = 60_000L
+        /** Set just before a restart the user asked for, so the new activity doesn't ask for the passcode again. In-process only. */
+        @Volatile var skipLockOnce = false
+    }
 
     /** Transparent bars; icons dark on the light style, light on the dark style (whatever the phone's own mode). */
     private fun applySystemBars(dark: Boolean) {
