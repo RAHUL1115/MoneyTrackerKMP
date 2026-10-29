@@ -1,84 +1,172 @@
-# MoneyTracker (Kotlin Multiplatform + Compose Multiplatform)
+# MoneyTracker
 
-An offline personal-finance app for Android. All domain logic, the database and the UI live in `commonMain`, so iOS or desktop targets can be added later.
+**Track your money on your phone, without signing up or using a cloud service.**
 
-**Private by design:** no ads, no accounts, no analytics and no internet permission. Everything stays on your phone; see [PRIVACY.md](PRIVACY.md).
+MoneyTracker is a free, open-source personal-finance app for **Android 7.0 and newer**. Record expenses, income and transfers, manage bank accounts and credit cards, and see where your money goes. No ads, no sign-up, no analytics, and no internet permission.
 
-## Why MoneyTracker?
-MoneyTracker is an independent app inspired by the quick, calendar-style bookkeeping of Money Manager by Realbyte. If you've used it, you'll feel at home; if you haven't, you don't need to: just start adding entries.
+**[Download the latest APK](https://github.com/RAHUL1115/MoneyTrackerKMP/releases/latest)** · [Getting started](#getting-started) · [SMS detection](#bank-sms-detection) · [Backups](#back-up-your-data) · [For developers](#for-developers)
 
-- **Open source** under the GPL v3: anyone can read, check and improve the code.
-- **Fully offline:** no internet permission at all, no ads, no sign-up, no analytics.
-- **Fast daily bookkeeping:** keypad entry, Daily / Calendar / Monthly views, budgets and credit-card cycles.
-- **Smarter entry:** on-device bank-SMS detection that learns your categories, voice entry, and note-based category suggestions.
-- **Modern Android:** Material You accent from your wallpaper, dark mode, home-screen widgets, precise location tags.
-- **Easy to switch:** restores Money Manager backups (`.mmbak`) from Android and iPhone.
-- **79 languages**, including right-to-left scripts.
+## Download and install
 
-## Install
-Download the latest APK from [Releases](../../releases) and open it on your phone (allow installs from your browser or file manager when asked). Each release lists the APK's SHA-256 checksum.
+You do **not** need Android Studio or any developer tools to use the app.
+
+1. Open the [latest GitHub release](https://github.com/RAHUL1115/MoneyTrackerKMP/releases/latest) on your Android phone.
+2. Under **Assets**, download the file named **`MoneyTracker-v<version>.apk`**. Choose the APK, not GitHub's “Source code” ZIP or TAR files.
+3. Open the downloaded APK. If Android asks, allow your browser or file manager to **install unknown apps**, then continue with the installation. You can turn that permission off afterward.
+4. Open MoneyTracker and choose your currency.
+
+**Updating:** download and install a newer release APK over your existing release install. There is no need to uninstall first; uninstalling deletes the app's local data. Export a backup before updating or moving phones.
+
+**Optional download check:** releases include a matching `.apk.sha256` file. Compare its checksum with the SHA-256 of the downloaded APK to check that the file downloaded intact. Get both files from this repository's release page.
+
+## Getting started
+
+1. **Set up your accounts.** In **Accounts**, add the places you keep or owe money: cash, bank accounts, savings and credit cards. Put a credit card in the **Credit Cards** group, not Bank Accounts. Use balance adjustment if you need to set an existing balance.
+2. **Add your first entry.** From **Trans.**, tap **+**, choose **Expense**, **Income** or **Transfer**, and enter the amount, account and category. Add a note if useful, then save.
+3. **Check your spending.** Use **Daily**, **Calendar** and **Monthly** to browse entries. **Stats** shows spending by category. Set budgets from **More** when you are ready.
+4. **Make a backup.** Open **More › Backup › Export file** and save a copy somewhere outside the app.
+
+You can use MoneyTracker entirely by entering transactions yourself. SMS detection, notifications, location and other optional features can stay off.
+
+## What you can do
+
+- **Daily bookkeeping:** record income, expenses and transfers with a built-in keypad; copy entries or use bookmarks for repeat purchases.
+- **Accounts and cards:** see balances and net worth, track credit-card billing cycles and spending limits, link debit cards to bank accounts, and use different currencies per account.
+- **Budgets and reports:** set overall, category or sub-category budgets; explore monthly/yearly spending and search by note, tag, amount or date.
+- **Recurring payments:** schedule repeat entries with an end date or split credit-card spending into monthly installments.
+- **More detail when you need it:** notes, tags, receipt photos, optional location tags and voice entry.
+- **Faster access:** home-screen widgets, launcher shortcuts and Quick add buttons in the notification shade.
+- **Your preferences:** light/dark appearance, wallpaper-based accent colours, custom month start, passcode and biometric unlock, and 79 languages including right-to-left scripts.
+- **Import and export:** backup files, CSV and Excel (`.xlsx`), plus Money Manager (`.mmbak`) backup import.
+
+## Bank SMS detection
+
+MoneyTracker can read bank transaction SMS messages **on your phone** and suggest entries. Messages are not uploaded to a server.
+
+### Turn it on
+
+1. Open **More › Configuration › Bank SMS**.
+2. Enable **Detect bank SMS** and grant SMS permission when asked.
+3. Leave **Save automatically** off initially. New detected transactions wait under **More › Detected SMS**, where you can check the amount, account and category before adding them.
+4. Enable **Alert for detected messages** if you want a notification when a transaction is detected. Grant notification permission when asked.
+
+You can also import recent SMS messages from the Bank SMS settings, or use **Paste message** in the detected-transactions inbox.
+
+### Check which account is selected
+
+A bank can issue both a bank account and a credit card. MoneyTracker uses the message's account/card wording, identifying digits, configured rules and learned corrections to suggest the right one. For example, an HDFC credit-card spend should select your HDFC card, while an HDFC account debit should select your bank account—even when both messages use the same sender ID.
+
+For more precise matching, edit an account's **Bank messages** fields and enter identifying text such as `x1234`, optionally with a sender ID. Avoid a broad rule such as only the bank's name when several accounts share it. Corrections made when saving detected messages help future account/category suggestions.
+
+**Detection is an assistant, not a guarantee.** Bank formats vary, some messages are ambiguous, and not every message will be recognised. Review suggestions before saving. If you later turn on **Save automatically**, recognised-account transactions can be added without review; check the results regularly.
+
+### Notification groups
+
+There are three notification types, each with its own group and Android notification channel:
+
+| Type | What it does |
+| --- | --- |
+| **Detected transactions** | Bundles all detected-SMS alerts together, regardless of bank, account or card. Incoming SMS alerts use default priority and the notification sound; the group summary does not play a second sound. |
+| **Daily reminder** | Reminds you to record spending at your chosen time. |
+| **Quick add** | Keeps silent buttons for adding income, expenses or transfers in the notification shade. |
+
+Enable the reminder and Quick add in **More › Configuration**. Android's notification settings control each channel's sound and visibility. If SMS alerts are silent, check **Android Settings › Apps › MoneyTracker › Notifications › Detected transactions**, notification volume and Do Not Disturb. Device-specific menus may differ.
+
+## Back up your data
+
+**Your data lives on your phone. There is no cloud account or automatic cloud sync.**
+
+- **Automatic snapshots:** the app keeps the last 10 daily snapshots in its private storage. You can also use **More › Backup › Back up now**.
+- **A copy outside the app:** use **More › Backup › Export file** and choose where to save it. Keep an exported copy before uninstalling, resetting the phone or changing devices.
+- **Restore:** use **More › Backup › Restore file** and choose your backup. The app validates it and takes a snapshot of the current data before restoring.
+- **Spreadsheets:** use CSV or Excel export/import when you need to work with entries outside the app.
+
+**Uninstalling deletes the app's data and its internal snapshots. Only files you exported outside the app remain.** See the [privacy policy](PRIVACY.md) for storage and Android device-transfer details.
 
 ## Switching from Money Manager
-More › Backup › Restore file reads Money Manager backups (`.mmbak`) from Android and iPhone: accounts, entries, categories, budgets, repeats, settings and passcode come across. Your current data is snapshotted first, so a restore can be undone.
 
-## Features
-- **Entry:** income/expense/transfer with a custom keypad, category and account grids, transfer fees, card installments, repeat with end date, Save + Continue, copy, bookmarks (templates), tags, receipt photos, location, voice entry ("spent 250 on lunch"), and a learned category suggestion from the note.
-- **Views:** Daily, Calendar (tap a day for its list), Monthly with weeks, Total (budget, spending split, CSV export), Notes, Search (text/tag/amount/date range). Carry-over is optional.
-- **Stats:** monthly/yearly pie and list, drill-down into sub-categories.
-- **Accounts:** groups, net worth, per-account currency, credit-card cycle (payable/outstanding/upcoming), card spending limits, debit cards linked to banks, balance adjustment, restore deleted accounts.
-- **Budgets:** total, per category and per sub-category, from a month onward.
-- **Settings:** month start day with weekend shift, week start, start screen, card expenses at purchase vs payment, sub currencies with rates, tags, passcode + fingerprint, daily reminder, quick-add notification, bank-SMS detection, location.
-- **Data:** daily automatic snapshots, manual snapshots, full-file export/import, CSV and Excel (.xlsx) export and import, Money Manager (`.mmbak`) import. Schema migrations keep old backups restorable.
-- **Android extras:** home-screen widgets (month totals with add buttons, quick add, scrolling credit-card list), launcher shortcuts, notification quick add.
-- **SMS assistant:** regex parser for bank, amount, card digits and vendor, plus a tiny Naive Bayes learner stored in SQLite. Detected messages become suggestions in an inbox; nothing is saved without you, and each save teaches it. You can also paste a message.
+In Money Manager, export a backup file (`.mmbak`), then open **More › Backup › Restore file** in MoneyTracker and choose it. Backups from Money Manager on Android and iPhone are supported: accounts, entries, categories, budgets, repeats, settings and passcode can be imported.
 
-No ads, no network access, no cloud.
+Your current MoneyTracker data is snapshotted first, so the restore can be undone. Keep the original backup and check your balances and imported entries afterward. An imported passcode comes across too.
 
-## Run
+MoneyTracker is an independent app, not affiliated with Realbyte. You do not need to have used Money Manager to use it.
+
+## Privacy and help
+
+MoneyTracker itself has no internet permission, ads, sign-up or analytics. Everything stays on your phone unless you choose to export or share it. Camera, speech-recognition and map features use other apps on your phone; those apps have their own privacy policies. See [PRIVACY.md](PRIVACY.md).
+
+For in-app guidance, open **More › Help**. To report a bug or request a feature, [open an issue](https://github.com/RAHUL1115/MoneyTrackerKMP/issues). For SMS problems, include the app version and an example with account numbers, references, phone numbers and other personal details removed. Report security problems privately as described in [SECURITY.md](SECURITY.md).
+
+---
+
+## For developers
+
+The sections above are for people installing and using the app. The sections below cover building, testing and maintaining it.
+
+### Stack and supported target
+
+MoneyTracker uses **Kotlin Multiplatform + Compose Multiplatform**. The domain logic, SQLDelight database and UI live in `commonMain`; the currently configured target is Android. This shared structure allows iOS or desktop targets to be added later, but this repository does not currently provide those apps.
+
+The app stays offline: no network access, analytics, ads or proprietary dependencies. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making changes.
+
+### Build and test
+
+Open the repository in Android Studio with an Android SDK configured, or use the checked-in Gradle wrapper:
+
+```sh
+./gradlew :composeApp:assembleDebug          # build an APK
+./gradlew :composeApp:installDebug           # install on a connected device/emulator
+./gradlew :composeApp:testDebugUnitTest      # parser, domain and SQLite repository tests
+./gradlew :composeApp:assembleDebugAndroidTest  # build the instrumented-test APK
 ```
-./gradlew :composeApp:installDebug          # on a connected device or emulator
-./gradlew :composeApp:testDebugUnitTest     # domain + repository tests (in-memory SQLite)
-```
-Open the folder in Android Studio to run it on an emulator.
 
-## Layout
-```
+Debug APK: `composeApp/build/outputs/apk/debug/composeApp-debug.apk`.
+
+Debug builds use `in.amrahul.moneytracker.debug` and install separately from the release app. The public debug key must never sign a release. A debug install is not an update to a release install, and their data is separate.
+
+For Android notification tests and incoming-SMS smoke tests, follow [SMS detection test instructions](docs/sms-detection-tests.md). **Use a disposable test installation or the documented in-place `adb` commands:** Gradle's connected-test cleanup can uninstall the target app and remove its data.
+
+### Project layout
+
+```text
 composeApp/src/
   commonMain/
-    sqldelight/.../Money.sq      schema + all SQL (balances, report rows, budgets, recurring)
+    sqldelight/.../Money.sq      schema + SQL (balances, reports, budgets, recurring)
     kotlin/app/moneytracker/
-      domain/   Model.kt         entities, enums (TxnKind, AccountType, RepeatType), YearMonth
-                Rules.kt         periods (custom month start), recurrence, installments,
-                                 income/expense classification, card statement (FIFO), budgets, net worth
-                Money.kt         minor-unit money formatting and parsing
-      data/     MoneyRepository  writes (transfer pairs, fees, installments, recurring generation), flows
-                Backup.kt        BackupController contract + CSV exporter
-      ui/                        Compose screens: Transactions, Add/Edit, Stats & Budget, Accounts, More
-  androidMain/                   MainActivity, DatabaseManager (open/close/swap), AndroidBackupController
-  commonTest/ androidUnitTest/   tests
+      domain/                   entities, money rules, SMS parsing and matching
+      data/                     repository, backups and import/export
+      ui/                       Compose screens
+  androidMain/                  Android platform integrations, SMS receiver, notifications, widgets
+  commonTest/                   domain/parser tests and public-format SMS fixtures
+  androidUnitTest/              SQLite-backed repository tests
+  androidInstrumentedTest/      device notification tests and opt-in telephony smoke test
 ```
 
-## Core rules
+### Core rules
+
 - Amounts are `Long` minor units. A transaction's `kind` gives its sign: INCOME, TRANSFER_IN and ADJUST_UP add to the balance; EXPENSE, TRANSFER_OUT and ADJUST_DOWN subtract.
 - A transfer is two rows (OUT + IN) plus an optional fee row, all sharing `transferGroupId`. Delete removes all of them.
 - Installments (credit-card expenses) are N monthly rows sharing `installmentGroupId`. The first row takes the rounding remainder.
-- Recurring rules materialise on app start and after a save. Ids are deterministic (`rule_epochDay`), so a rule never creates duplicates. The end date is honoured.
-- Transfers into an account flagged "transfer counts as expense" (savings, investments) are expenses; transfers back out are income.
-- Credit card: the cycle starts on the settlement day. Payments settle the oldest charges first, giving overdue, statement due and current cycle.
+- Recurring rules materialise on app start and after a save. IDs are deterministic (`rule_epochDay`), so a rule never creates duplicates. The end date is honoured.
+- Transfers into an account flagged “transfer counts as expense” (savings, investments) are expenses; transfers back out are income.
+- Credit-card cycles start on the settlement day. Payments settle the oldest charges first, giving overdue, statement due and current cycle.
 - Budgets are monthly per main category (or a total) and take effect from a month onward.
-- Backup: daily automatic snapshots in app storage (10 kept), back up now, export or import through the system file picker, and CSV export. Restore validates the file and takes a safety snapshot first.
+- Schema changes need migrations so older backups remain restorable. Restore validates a file and takes a safety snapshot before replacing data.
 
-## Releasing
+### Releasing
+
 1. Bump `versionCode` (by at least 1) and `versionName` in `composeApp/build.gradle.kts`.
 2. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` with the release notes.
-3. Commit, tag `v<versionName>` (for example `v0.2.0`) and push the tag.
+3. Create a signed-off commit, tag `v<versionName>` (for example `v0.2.0`) and push the tag.
 
-CI then builds the APK signed with the release key and publishes it as a GitHub release. The same tag, version and store text (`fastlane/metadata`) serve F-Droid, IzzyOnDroid and Google Play, and every channel is meant to ship APKs signed with this one key (F-Droid through reproducible builds, Google Play by enrolling it as the app signing key), so users can move between them without reinstalling.
+CI builds the APK signed with the release key and publishes it as a GitHub release. The same tag, version and store text (`fastlane/metadata`) serve F-Droid, IzzyOnDroid and Google Play. Every distribution channel is intended to ship APKs signed with the same release key so users can move between them without reinstalling. See [Play Console notes](docs/play-console.md) for store setup.
 
-## Contributing and security
-Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+### Contributing and security
+
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md), including the DCO sign-off requirement. Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
-MoneyTracker is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License v3.0](LICENSE). It is distributed without any warranty. Bundled libraries are under the Apache License 2.0; the app lists them in More › About.
 
-"Money Manager" is a trademark of Realbyte Inc. This project is not affiliated with or endorsed by Realbyte; the name is used only to describe backup compatibility.
+MoneyTracker is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License v3.0](LICENSE). It is distributed without any warranty. Bundled libraries are under the Apache License 2.0; the app lists them in **More › About**.
+
+“Money Manager” is a trademark of Realbyte Inc. This project is not affiliated with or endorsed by Realbyte; the name is used only to describe backup compatibility.
