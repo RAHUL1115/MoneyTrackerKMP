@@ -1,0 +1,1 @@
+New layout (experimental): the Receipt entry screen now guides you through amount, category, account and note. One panel at the bottom switches between the keypad, categories, accounts and the keyboard, so the screen never jumps. Choose it under Settings › Adding entries › Entry screen.
