@@ -1,0 +1,1 @@
+Backups now always carry their passcode, so a restored backup opens with the passcode it was made with on any phone. New layout (experimental): income and positive balances are blue, and the entry screen gives date and time their own row with a steadier keypad that hides under the keyboard while you type a note.
