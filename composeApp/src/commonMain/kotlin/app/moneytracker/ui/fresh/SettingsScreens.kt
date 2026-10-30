@@ -2,6 +2,10 @@ package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -115,7 +119,8 @@ internal fun FreshSettings() {
     val snapshots by backup.localBackups.collectAsState()
 
     var query by rememberSaveable { mutableStateOf("") }
-    var open by rememberSaveable { mutableStateOf("look") }
+    // Each group opens on its own, so the group you tap never moves under your finger.
+    var open by rememberSaveable { mutableStateOf(listOf("look")) }
     var choice by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<String?>(null) }
     var accentSheet by remember { mutableStateOf(false) }
@@ -289,10 +294,10 @@ internal fun FreshSettings() {
                 QuickTile(Glyph.Lock, tr("Passcode"), if (passcodeOn) tr("On") else tr("Off"), Modifier.weight(1f)) { nav.push(Screen.Security) }
             }
             sections.forEach { sec ->
-                val isOpen = open == sec.id
+                val isOpen = sec.id in open
                 FCard(padding = 0.dp) {
                     Row(
-                        Modifier.fillMaxWidth().clickable { open = if (isOpen) "" else sec.id }.padding(horizontal = 16.dp, vertical = 14.dp),
+                        Modifier.fillMaxWidth().clickable { open = if (isOpen) open - sec.id else open + sec.id }.padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -302,8 +307,10 @@ internal fun FreshSettings() {
                         Icon(if (isOpen) Glyph.ChevronUp else Glyph.ChevronDown,
                             if (isOpen) tr("Collapse") else tr("Expand"), tint = F.muted)
                     }
-                    if (isOpen) Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)) {
-                        sec.rows.forEach { r -> Divider(); SettingRowView(r, null) }
+                    AnimatedVisibility(isOpen, enter = expandVertically(tween(200)), exit = shrinkVertically(tween(200))) {
+                        Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)) {
+                            sec.rows.forEach { r -> Divider(); SettingRowView(r, null) }
+                        }
                     }
                 }
             }

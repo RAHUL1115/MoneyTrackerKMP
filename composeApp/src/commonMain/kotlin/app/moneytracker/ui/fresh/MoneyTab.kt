@@ -2,6 +2,10 @@ package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -89,7 +95,7 @@ internal fun MoneyTab() {
     val today = repo.today()
 
     Column(Modifier.fillMaxSize()) {
-        TabHeader(tr("Money")) {
+        TabHeader(tr("Accounts")) {
             // A gear means app Settings everywhere, so this one says what it opens.
             HeaderButton(tr("Groups"), filled = false) { manage = true }
             IconTile(Glyph.Add, tr("Add account"), { nav.push(Screen.EditAccount()) })
@@ -135,7 +141,7 @@ internal fun MoneyTab() {
                 if (visible.isEmpty()) return@forEach
                 val isCard = group.type.isCreditCard
                 val counted = groupLines.filter { it.account.includeInTotals }
-                val total = if (isCard) -counted.sumOf { Fx.toMain(it.owed, it.account.currency?.let { c -> currencies[c] }, currency.decimals) }
+                val total = if (isCard) counted.sumOf { Fx.toMain(it.card?.let { c -> c.statementDue + c.overdue } ?: it.owed, it.account.currency?.let { c -> currencies[c] }, currency.decimals) }
                 else counted.sumOf {
                     val v = if (group.type.isDebitCard) it.balance else it.effectiveBalance
                     Fx.toMain(v, it.account.currency?.let { c -> currencies[c] }, currency.decimals)
@@ -147,17 +153,22 @@ internal fun MoneyTab() {
                         Modifier.fillMaxWidth().clickable { collapsed = if (open) collapsed + group.id else collapsed - group.id }.padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(group.name, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false))
-                        Text(" · ${visible.size}" + if (allHidden) " · " + tr("hidden") else "", Modifier.weight(1f), color = F.muted, fontSize = 13.sp, maxLines = 1)
-                        Text(currency.format(total), color = if (allHidden) F.muted else if (total < 0) F.expense else F.ink,
+                        // Name and count on the left, the total on the right.
+                        Row(Modifier.weight(1f).padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(group.name, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false))
+                            Text(" · ${visible.size}" + if (allHidden) " · " + tr("hidden") else "", color = F.muted, fontSize = 13.sp, maxLines = 1)
+                        }
+                        Text(currency.format(total), color = if (allHidden) F.muted else balanceTone(total, isCard),
                             fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
                         Icon(if (open) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted, modifier = Modifier.padding(start = 6.dp).size(20.dp))
                     }
-                    if (open) Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp)) {
-                        visible.forEachIndexed { i, l ->
-                            if (i > 0) Divider()
-                            AccountRow(l, today)
+                    AnimatedVisibility(open, enter = expandVertically(tween(200)), exit = shrinkVertically(tween(200))) {
+                        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp)) {
+                            visible.forEachIndexed { i, l ->
+                                if (i > 0) Divider()
+                                AccountRow(l, today)
+                            }
                         }
                     }
                 }
@@ -256,10 +267,10 @@ private fun AccountRow(l: AccountLine, today: LocalDate) {
         if (card != null) {
             val due = billDueDate(a, today)
             when {
-                card.overdue > 0 -> add(tr("{0} overdue", fmt.format(card.overdue)))
-                l.billDue > 0 && due != null -> add(tr("Bill {0} · due {1}", fmt.format(l.billDue), due.short()))
-                l.billDue > 0 -> add(tr("Bill {0}", fmt.format(l.billDue)))
-                else -> add(tr("Statement on day {0}", a.cardSettlementDay ?: 1))
+                card.overdue > 0 -> add(tr("Payable · {0} overdue", fmt.format(card.overdue)))
+                l.billDue > 0 && due != null -> add(tr("Payable · due {0}", due.short()))
+                l.billDue > 0 -> add(tr("Payable"))
+                else -> add(tr("Payable · statement on day {0}", a.cardSettlementDay ?: 1))
             }
         }
         if (l.group.type.isDebitCard) add(tr("Debit card"))
@@ -267,17 +278,22 @@ private fun AccountRow(l: AccountLine, today: LocalDate) {
         if (!a.includeInTotals) add(tr("Not in totals"))
         if (a.hidden) add(tr("Hidden"))
     }
-    val amount = if (card != null) -l.owed else if (l.group.type.isDebitCard) l.balance else l.effectiveBalance
+    // A card has two balances: payable from closed statements, and outstanding in the open cycle.
+    val amount = if (card != null) card.statementDue + card.overdue else if (l.group.type.isDebitCard) l.balance else l.effectiveBalance
     val dim = a.hidden
     Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.AccountDetail(a.id)) }.padding(vertical = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Every row is as tall as a two-line card row, so the list keeps one rhythm.
+        Row(Modifier.heightIn(min = 38.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(a.name + (a.currency?.let { "  ($it)" } ?: ""), color = if (dim) F.muted else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (meta.isNotEmpty()) Text(meta.joinToString(" · "), color = if (card != null && card.overdue > 0) F.danger else F.muted, fontSize = 12.sp, maxLines = 2)
             }
-            Text(fmt.format(amount), color = if (dim) F.muted else if (amount < 0) F.expense else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                style = F.money, maxLines = 1)
+            Column(Modifier.padding(start = 12.dp), horizontalAlignment = Alignment.End) {
+                Text(fmt.format(amount), color = if (dim) F.muted else if (card != null && card.overdue > 0) F.danger else balanceTone(amount, card != null),
+                    fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
+                if (card != null) Text(tr("Outstanding {0}", fmt.format(card.currentCycle + card.upcoming)), color = F.muted, fontSize = 12.sp, maxLines = 1)
+            }
         }
         val limit = a.cardLimit
         if (card != null && limit != null && limit > 0) {
@@ -365,3 +381,10 @@ private fun SmallTile(icon: androidx.compose.ui.graphics.vector.ImageVector, lab
 
 @Composable internal fun FreshAccountDetail(accountId: String) = AccountDetailBody(accountId)
 @Composable internal fun FreshEditAccount(accountId: String?) = AccountEditBody(accountId)
+
+/** Balances above zero are green and below zero red. A card balance is what you owe, so it stays ink. */
+private fun balanceTone(amount: Long, isCard: Boolean): Color = when {
+    isCard || amount == 0L -> F.ink
+    amount > 0 -> F.income
+    else -> F.expense
+}
