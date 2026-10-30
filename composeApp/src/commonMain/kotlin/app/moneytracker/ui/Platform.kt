@@ -11,10 +11,18 @@ const val PORTABLE_PIN_PREFIX = "s2:"
 
 fun isPortablePinHash(stored: String?) = stored?.startsWith(PORTABLE_PIN_PREFIX) == true
 
-/** Checks [pin] at the lock screen; on success an older install-only hash is saved again in the portable form. */
+/**
+ * Checks [pin] at the lock screen. The passcode from before a restore is accepted too, so a backup whose passcode
+ * can't be checked on this phone never locks you out; whichever matches becomes the passcode, in the portable form.
+ */
 fun PlatformServices.unlock(pin: String, stored: String, repo: MoneyRepository): Boolean {
-    if (!checkPin(pin, stored)) return false
-    if (!isPortablePinHash(stored)) repo.putSetting(MoneyRepository.Keys.PASSCODE, hashPin(pin))
+    val previous = repo.settingNow(MoneyRepository.Keys.PASSCODE_PREVIOUS)
+    when {
+        checkPin(pin, stored) -> if (!isPortablePinHash(stored)) repo.putSetting(MoneyRepository.Keys.PASSCODE, hashPin(pin))
+        !previous.isNullOrBlank() && checkPin(pin, previous) -> repo.putSetting(MoneyRepository.Keys.PASSCODE, hashPin(pin))
+        else -> return false
+    }
+    if (previous != null) repo.putSetting(MoneyRepository.Keys.PASSCODE_PREVIOUS, "")
     return true
 }
 
@@ -29,6 +37,8 @@ interface PlatformServices {
     fun hashPin(pin: String): String
     /** True when [pin] matches [stored], in either the portable form or an older install-only one. */
     fun checkPin(pin: String, stored: String): Boolean
+    /** An older install-only hash rewritten in the portable form (same PIN, no need to know it), or null if this install can't. */
+    fun portablePinHash(stored: String): String?
     /** Re-checked whenever the app returns to the foreground (e.g. after enrolling a fingerprint in Settings). */
     val biometricStatus: StateFlow<BiometricStatus>
     /** Opens the system screen for adding a fingerprint / face. */

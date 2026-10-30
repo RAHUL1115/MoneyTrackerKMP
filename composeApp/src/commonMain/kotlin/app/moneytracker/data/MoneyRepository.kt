@@ -141,6 +141,8 @@ class MoneyRepository(
         const val CURRENCY_DECIMALS = "currencyDecimals"
         const val CURRENCY_CODE = "currencyCode"
         const val PASSCODE = "passcodeHash"
+        /** The passcode in use before a restore, accepted once at the lock screen in case the backup's can't be checked here. */
+        const val PASSCODE_PREVIOUS = "passcodeHashBeforeRestore"
         const val BIOMETRIC = "biometric"
         const val REMINDER = "reminder"                   // "1" = daily reminder on
         const val REMINDER_TIME = "reminderTime"          // "HH:mm"

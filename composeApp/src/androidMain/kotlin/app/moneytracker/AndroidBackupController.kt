@@ -40,6 +40,7 @@ class AndroidBackupController(
     private val activity: ComponentActivity,
     private val db: DatabaseManager,
     private val hashPin: (String) -> String,
+    private val portablePinHash: (String) -> String?,
 ) : BackupController {
 
     private val dir = File(activity.filesDir, "backups").apply { mkdirs() }
@@ -307,21 +308,31 @@ class AndroidBackupController(
     }
 
     /**
-     * Passcodes saved before hashes carried their own salt only check out on the install that saved them. When the
-     * backup holds one that differs from this install's, this install's passcode (or none) stays, so a restore never locks you out.
+     * The backup's passcode comes along. Backups from before hashes carried their own salt hold one that only checks out
+     * with the salt of the install that made it: it is paired with this install's salt (right when the backup came from
+     * this phone), and the passcode in use until now is kept as a fallback, so a restore never locks you out.
      */
     private suspend fun keepWorkingPasscode(staged: File): String? {
         val key = MoneyRepository.Keys.PASSCODE
         val current = db.repo?.setting(key)?.first().orEmpty()
         val out = SQLiteDatabase.openDatabase(staged.path, null, SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+        fun put(k: String, v: String) = out.execSQL("INSERT OR REPLACE INTO Setting(key, value) VALUES (?, ?)", arrayOf(k, v))
         try {
             val restored = out.rawQuery("SELECT value FROM Setting WHERE key = ?", arrayOf(key))
                 .use { if (it.moveToFirst()) it.getString(0) else null }.orEmpty()
-            if (restored.isBlank() || isPortablePinHash(restored) || restored == current) return null
-            out.execSQL("INSERT OR REPLACE INTO Setting(key, value) VALUES (?, ?)", arrayOf(key, current))
+            put(MoneyRepository.Keys.PASSCODE_PREVIOUS, "")
+            if (restored.isBlank() || isPortablePinHash(restored)) return null
+            val portable = portablePinHash(restored)
+            if (portable == null) {
+                // This install never had a passcode, so the backup's can't be from here and can't be checked.
+                put(key, current)
+                return if (current.isBlank()) tr("The backup's passcode can't be used on this phone, so the passcode is off. Turn it on again under Passcode.")
+                else tr("The backup's passcode can't be used on this phone, so your current passcode stays")
+            }
+            put(key, portable)
+            if (current.isNotBlank() && current != restored) put(MoneyRepository.Keys.PASSCODE_PREVIOUS, portablePinHash(current) ?: current)
         } finally { out.close() }
-        return if (current.isBlank()) tr("The backup's passcode was set on another install, so the passcode is now off. Turn it on again under Passcode.")
-        else tr("The backup's passcode was set on another install, so your current passcode stays")
+        return null
     }
 
     private suspend fun exportRows(): List<List<String>> {

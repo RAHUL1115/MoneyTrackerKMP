@@ -33,6 +33,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -166,6 +167,8 @@ fun App(
                         // First launch always uses the classic welcome screens; both layouts start after them.
                         onboarded != "1" -> OnboardingScreen()
                         else -> {
+                            // You're in: a passcode that appears now (turned on, or brought by a restore) asks only after the next restart or a while away.
+                            if (locked) SideEffect { onUnlocked() }
                             LaunchedEffect(launchAction) {
                                 val a = launchAction ?: return@LaunchedEffect
                                 navigator.stack.clear()

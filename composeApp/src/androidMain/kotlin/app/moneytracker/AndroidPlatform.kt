@@ -108,6 +108,13 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
         return MessageDigest.isEqual(b64(derivePin(pin, salt)).toByteArray(), stored.toByteArray())
     }
 
+    override fun portablePinHash(stored: String): String? {
+        if (isPortablePinHash(stored)) return stored
+        // The older hash is the key itself, made with this install's salt; pairing the two makes it portable.
+        val salt = ctx.getSharedPreferences("security", Context.MODE_PRIVATE).getString("salt", null) ?: return null
+        return PORTABLE_PIN_PREFIX + salt + ":" + stored
+    }
+
     private fun derivePin(pin: String, salt: ByteArray): ByteArray =
         SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(PBEKeySpec(pin.toCharArray(), salt, 20_000, 256)).encoded
 

@@ -31,7 +31,13 @@ class MainActivity : FragmentActivity() {
         applySystemBars(dark = false)
         val db = (application as MoneyTrackerApp).database
         platform = AndroidPlatform(this)
-        val backup = AndroidBackupController(this, db, hashPin = platform::hashPin)
+        // Older passcode hashes only work with this install's salt; store them with it so backups carry the passcode.
+        db.repo?.let { repo ->
+            val hash = repo.settingNow(app.moneytracker.data.MoneyRepository.Keys.PASSCODE)
+            if (!hash.isNullOrBlank() && !app.moneytracker.ui.isPortablePinHash(hash))
+                platform.portablePinHash(hash)?.let { repo.putSetting(app.moneytracker.data.MoneyRepository.Keys.PASSCODE, it) }
+        }
+        val backup = AndroidBackupController(this, db, hashPin = platform::hashPin, portablePinHash = platform::portablePinHash)
         backup.autoBackupIfDue()
         launchAction = Launch.parse(intent)
         if (skipLockOnce) { skipLockOnce = false; locked = false }
