@@ -90,8 +90,6 @@ internal fun MoneyTab() {
 
     Column(Modifier.fillMaxSize()) {
         TabHeader(tr("Money")) {
-            IconTile(Glyph.Trend, tr("Net worth trend"), { trendOn = !trendOn },
-                tint = if (trendOn) F.accent else F.ink, background = if (trendOn) F.accentTint else F.card)
             // A gear means app Settings everywhere, so this one says what it opens.
             HeaderButton(tr("Groups"), filled = false) { manage = true }
             IconTile(Glyph.Add, tr("Add account"), { nav.push(Screen.EditAccount()) })
@@ -101,7 +99,7 @@ internal fun MoneyTab() {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            NetWorthHero(worth.net, worth.assets, worth.liabilities, trendOn)
+            NetWorthHero(worth.net, worth.assets, worth.liabilities, trendOn) { trendOn = !trendOn }
 
             // Card bills waiting to be paid.
             lines.filter { it.billDue > 0 && !it.account.hidden }
@@ -182,12 +180,16 @@ internal fun MoneyTab() {
 }
 
 @Composable
-private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Boolean) {
+/** Tapping the card opens or closes the last six months of net worth. */
+private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Boolean, onToggle: () -> Unit) {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(20.dp)) {
-        Text(tr("Net worth · in totals"), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).clickable(onClick = onToggle).padding(20.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(tr("Net worth · in totals"), Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Icon(if (trendOn) Glyph.ChevronUp else Glyph.ChevronDown, tr("Net worth trend"), tint = F.muted, modifier = Modifier.size(18.dp))
+        }
         Text(currency.format(net), color = F.ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
         Gap(12.dp)
         val share = if (assets + liabilities > 0) assets.toFloat() / (assets + liabilities) else 1f

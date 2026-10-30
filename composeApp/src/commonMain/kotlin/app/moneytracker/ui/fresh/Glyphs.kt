@@ -47,6 +47,7 @@ object Glyph {
     val Money by lazy { glyph("Money", rect(3f, 6f, 18f, 14f, 2f), "M3 10h18M16 15h2") }
 
     // Actions
+    val Filter by lazy { glyph("Filter", "M4 5h16l-6 7.5V19l-4 1.5v-8z") }
     val Search by lazy { glyph("Search", circle(11f, 11f, 7f), "m20 20-3.5-3.5") }
     val Settings by lazy {
         glyph(

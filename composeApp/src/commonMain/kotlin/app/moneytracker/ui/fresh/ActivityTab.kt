@@ -167,16 +167,16 @@ internal fun ActivityTab() {
 
     Column(Modifier.fillMaxSize()) {
         TabHeader(if (selecting) tr("Select") else tr("Activity")) {
-            IconTile(Glyph.Search, tr("Search and filter"), { nav.push(Screen.Search) })
-            // Bookmarks are saved entries: pick one to open it filled in, then check and save.
-            IconTile(Glyph.Star, tr("Bookmarks"), { nav.push(Screen.Templates) })
-            IconTile(Glyph.More, tr("More"), { moreSheet = true }, badge = pending.size)
-            when (view) {
-                ActView.LIST -> HeaderButton(if (selecting) tr("Done") else tr("Select"), filled = selecting) {
-                    if (selecting) endSelect() else selecting = true
-                }
-                ActView.NOTES -> HeaderButton(tr("Note"), filled = true, leading = Glyph.Add) { nav.push(Screen.EditNote()) }
-                else -> Unit
+            if (selecting) HeaderButton(tr("Done"), filled = true) { endSelect() }
+            else {
+                IconTile(Glyph.Search, tr("Search"), { nav.push(Screen.Search) })
+                // Bookmarks are saved entries: pick one to open it filled in, then check and save.
+                IconTile(Glyph.Star, tr("Bookmarks"), { nav.push(Screen.Templates) })
+                if (view == ActView.NOTES) HeaderButton(tr("Note"), filled = true, leading = Glyph.Add) { nav.push(Screen.EditNote()) }
+                else IconTile(Glyph.Filter, tr("Filter by category or account"), { filterSheet = true },
+                    tint = if (filter.isActive) F.accent else F.ink, background = if (filter.isActive) F.accentTint else F.card)
+                // Less frequent actions, Select among them, always last.
+                IconTile(Glyph.More, tr("More"), { moreSheet = true }, badge = pending.size)
             }
         }
         Segmented(ActView.entries.map { tr(it.title) }, view.ordinal, { view = ActView.entries[it] }, Modifier.padding(horizontal = F.gutter))
@@ -210,8 +210,8 @@ internal fun ActivityTab() {
     }
     if (monthPicker) MonthPickerDialog(ym, ps.labelFor(repo.today()), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
     if (filterSheet) FilterSheet(range, filter, onDismiss = { filterSheet = false }) { filter = it; filterSheet = false }
-    if (moreSheet) MoreSheet(pending.size, filter.isActive, onDismiss = { moreSheet = false }, onFilter = { moreSheet = false; filterSheet = true },
-        onClearFilter = { moreSheet = false; filter = TxnFilter() })
+    if (moreSheet) MoreSheet(pending.size, onDismiss = { moreSheet = false },
+        onSelect = if (view == ActView.LIST) ({ moreSheet = false; selecting = true }) else null)
 }
 
 @Composable
@@ -241,19 +241,17 @@ private fun ActFilterBar(filter: TxnFilter, catById: Map<String, Category>, acco
     }
 }
 
-/** Shortcuts the classic tab had in its top bar, and the category / account filter. */
+/** Select, and the shortcuts the classic tab had in its top bar. */
 @Composable
-private fun MoreSheet(pending: Int, filtered: Boolean, onDismiss: () -> Unit, onFilter: () -> Unit, onClearFilter: () -> Unit) {
+private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit)?) {
     val nav = LocalNavigator.current
     val repo = LocalRepo.current
     val platform = LocalPlatform.current
     val currency = LocalCurrency.current
     val backup = LocalBackup.current
     Sheet(tr("Activity"), onDismiss) {
-        SheetOption(tr("Filter by category or account"), selected = filtered, subtitle = if (filtered) tr("A filter is on") else null, onClick = onFilter)
-        if (filtered) SheetOption(tr("Clear filter"), onClick = onClearFilter)
+        if (onSelect != null) SheetOption(tr("Select entries"), subtitle = tr("Change or delete several at once"), onClick = onSelect)
         SheetOption(tr("Detected transactions"), subtitle = if (pending > 0) tr("{0} to review", pending) else null) { onDismiss(); nav.push(Screen.Inbox) }
-        SheetOption(tr("Bookmarks")) { onDismiss(); nav.push(Screen.Templates) }
         if (platform.voiceAvailable) SheetOption(tr("Voice input")) {
             onDismiss()
             platform.listen { text -> nav.push(Screen.EditTxn(preset = VoiceParser.parse(text, repo.today(), currency))) }
