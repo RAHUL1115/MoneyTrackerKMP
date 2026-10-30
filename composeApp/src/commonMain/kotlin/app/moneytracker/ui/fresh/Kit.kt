@@ -85,12 +85,12 @@ object F {
     /** Delete and overspending share the expense red, so the app has one red. */
     val danger: Color get() = pick(0xFFE5484D, 0xFFF87171)
     val dangerTint: Color get() = pick(0xFFFDECEC, 0xFF3A1F21)
-    private val green get() = pick(0xFF157A3C, 0xFF5BD08A)
+    private val blue get() = pick(0xFF2563EB, 0xFF60A5FA)
     // The same red as the classic layout, so spending looks the same in both.
     private val red get() = pick(0xFFE5484D, 0xFFF87171)
-    // Money in is green and money out is red. Swapped colours keep their old meaning.
-    val income: Color get() = if (colorsSwapped) red else green
-    val expense: Color get() = if (colorsSwapped) green else red
+    // Money in is blue and money out is red. Swapped colours keep their old meaning.
+    val income: Color get() = if (colorsSwapped) red else blue
+    val expense: Color get() = if (colorsSwapped) blue else red
 
     val cardShape = RoundedCornerShape(20.dp)
     val heroShape = RoundedCornerShape(24.dp)

@@ -141,7 +141,7 @@ internal fun MoneyBars(
     }
 }
 
-/** "▲ 12% vs Sep" style badge; green when the change is good. */
+/** "▲ 12% vs Sep" style badge; blue when the change is good. */
 @Composable
 internal fun ChangeBadge(current: Long, previous: Long, upIsGood: Boolean, against: String, signedValues: Boolean = false) {
     val usable = if (signedValues) previous != 0L else previous > 0L

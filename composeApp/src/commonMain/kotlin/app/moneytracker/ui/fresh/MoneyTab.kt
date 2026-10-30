@@ -382,7 +382,7 @@ private fun SmallTile(icon: androidx.compose.ui.graphics.vector.ImageVector, lab
 @Composable internal fun FreshAccountDetail(accountId: String) = AccountDetailBody(accountId)
 @Composable internal fun FreshEditAccount(accountId: String?) = AccountEditBody(accountId)
 
-/** Balances above zero are green and below zero red. A card balance is what you owe, so it stays ink. */
+/** Balances above zero are blue and below zero red. A card balance is what you owe, so it stays ink. */
 private fun balanceTone(amount: Long, isCard: Boolean): Color = when {
     isCard || amount == 0L -> F.ink
     amount > 0 -> F.income

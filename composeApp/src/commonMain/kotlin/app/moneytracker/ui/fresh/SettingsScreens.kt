@@ -70,7 +70,7 @@ private class SSection(val id: String, val title: String, val sub: String, val r
 /** Multiple-choice settings: stored value → label. The first option is the default. */
 private fun settingChoices(): Map<String, List<Pair<String, String>>> = mapOf(
     Keys.SWIPE to listOf("DATE" to tr("Change month"), "TAB" to tr("Change tab"), "NONE" to tr("Off")),
-    Keys.COLOR_SET to listOf("A" to tr("Income green, expense red"), "B" to tr("Income red, expense green")),
+    Keys.COLOR_SET to listOf("A" to tr("Income blue, expense red"), "B" to tr("Income red, expense blue")),
     Keys.TIME_INPUT to listOf("NONE" to tr("Off"), "INPUT" to tr("Record time"), "LIST" to tr("Record and show in lists")),
     Keys.TIME_SORT to listOf("DESC" to tr("Latest first"), "ASC" to tr("Earliest first")),
     Keys.INPUT_ORDER to listOf("AMOUNT" to tr("Amount first"), "ACCOUNT" to tr("Account first")),
@@ -164,7 +164,7 @@ internal fun FreshSettings() {
                 "layout classic old design screens restart experimental beta") { if (!it) layoutSwitch = true },
             pick(Keys.THEME, words = "style dark light night mode"),
             link(tr("Accent colour"), tr(accentChoice.label), "color colour accent wallpaper") { accentSheet = true },
-            pick(Keys.COLOR_SET, words = "color colour green red"),
+            pick(Keys.COLOR_SET, words = "color colour blue green red"),
             link(tr("Language"), language, "translate translation hindi") { languageSheet = true },
             pick(Keys.WIDGET_THEME, words = "home screen widget dark light"),
             pick(Keys.WIDGET_OPACITY, words = "home screen widget transparent opacity"),
