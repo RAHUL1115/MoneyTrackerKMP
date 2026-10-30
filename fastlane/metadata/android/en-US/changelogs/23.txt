@@ -1,0 +1,1 @@
+New layout (experimental): balance corrections no longer show in Home's Today and Yesterday lists; they stay on their account's page, as in Activity.
