@@ -92,7 +92,7 @@ internal fun addExprShown(text: String): String =
 internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val keys = listOf("7", "8", "9", "÷", "4", "5", "6", "×", "1", "2", "3", "−", ".", "0", "⌫", "+")
     val aria = mapOf("÷" to tr("Divide"), "×" to tr("Multiply"), "−" to tr("Minus"), "+" to tr("Plus"), "⌫" to tr("Delete digit"), "." to tr("Decimal point"))
-    Column(modifier.heightIn(min = 216.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         keys.chunked(4).forEach { row ->
             Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { k ->

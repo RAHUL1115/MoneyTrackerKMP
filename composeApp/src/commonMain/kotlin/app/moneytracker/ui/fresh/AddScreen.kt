@@ -3,6 +3,8 @@
 package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -52,6 +55,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -471,6 +475,8 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     // they sit at the top; the amount, category, keypad and Save stay near the thumb.
 
     DisposableEffect(Unit) { KeyboardOverlay.active = true; onDispose { KeyboardOverlay.active = false } }
+    // The keypad hides under the phone keyboard but keeps its space, so a shorter keyboard never shows half of it.
+    val imeUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val recentRange = remember { DateRange(today.minus(DatePeriod(days = 60)), today) }
     val recentTxns by remember(recentRange) { repo.txnsBetween(recentRange) }.collectAsState(emptyList())
     val e = f.existing
@@ -504,7 +510,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                     hasOp -> "= " + (total?.let { fmt.format(it) } ?: "…") to F.accent
                     f.isAdjustment -> (if (f.adjustUp) tr("Balance increase") else tr("Balance decrease")) to F.muted
                     isTransfer && f.accountId != null && f.accountId == f.toAccountId -> tr("Pick two different accounts") to F.danger
-                    isTransfer -> tr("Move money · {0}", f.date.long()) to F.muted
+                    isTransfer -> tr("Move money") to F.muted
                     else -> listOfNotNull(
                         if (e != null) tr("Editing") else null,
                         if (f.type == DraftType.REFUND) tr("Refund") else null,
@@ -576,13 +582,22 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             }
             }
 
+            // Date and time get a row of their own above the note, so they are easy to see and reach.
+            Row(Modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val day = "${f.date.weekday()} ${f.date.short()}"
+                FieldButton(
+                    if (f.date == today || f.date == today.minus(DatePeriod(days = 1))) "${dateLabel(f.date)}, $day" else day,
+                    Glyph.Calendar, accent = true, label = tr("Date"), modifier = Modifier.weight(1f),
+                ) { focus.clearFocus(); sheet = AddSheet.DATE }
+                if (timeOn) FieldButton(f.timeOfDay?.let { formatTime(it) } ?: tr("Add time"), Glyph.Clock, accent = false, label = tr("Time"), modifier = Modifier.widthIn(min = 116.dp)) {
+                    focus.clearFocus(); timePicker = true
+                }
+            }
+
             noteField(Modifier.fillMaxWidth())
 
             // Everything else about the entry: one chip each, each opening a small sheet. A chip shows its value once set.
             Row(Modifier.bleedScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DateChip(listOfNotNull(dateLabel(f.date), if (timeOn) f.timeOfDay?.let { formatTime(it) } else null).joinToString(" · ")) {
-                    focus.clearFocus(); sheet = AddSheet.DATE
-                }
                 if (refundable) ExtraChip(if (f.type == DraftType.REFUND) tr("Refund ✓") else tr("Refund"), f.type == DraftType.REFUND) {
                     val on = f.type != DraftType.REFUND
                     f.type = if (on) DraftType.REFUND else DraftType.INCOME
@@ -608,8 +623,11 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 ExtraChip(if (f.memo.isBlank()) tr("Description") else tr("Description ✓"), f.memo.isNotBlank()) { focus.clearFocus(); sheet = AddSheet.DESC }
             }
 
-            // The keypad takes the spare height, so taller phones get bigger keys instead of empty space.
-            AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it }, Modifier.weight(1f))
+            // Spare height sits between the chips and the keypad; on shorter screens the keypad gives some up.
+            Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Bottom)) {
+            Box(Modifier.weight(1f, fill = false).heightIn(min = 176.dp, max = 248.dp).fillMaxWidth()) {
+                if (!imeUp) AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it }, Modifier.fillMaxSize())
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (e != null) {
@@ -632,6 +650,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                     ) { Text(tr("Save & new"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
                     PrimaryButton(saveLabel, { save(false) }, Modifier.weight(1f).height(54.dp), enabled = ready)
                 }
+            }
             }
         }
         // Past notes and the suggested category ride on a strip on top of the keyboard, so they push nothing.
@@ -934,16 +953,17 @@ private fun SentencePill(text: String, accent: Boolean, missing: Boolean, modifi
     }
 }
 
-/** Date (and time) of the entry, first in the chip row so it sits within thumb reach. */
+/** Date or time of the entry: a field-height button with an icon, tinted for the date. */
 @Composable
-private fun DateChip(text: String, onClick: () -> Unit) {
+private fun FieldButton(text: String, icon: ImageVector, accent: Boolean, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Row(
-        Modifier.height(36.dp).clip(RoundedCornerShape(999.dp)).background(F.accentTint).clickable(onClickLabel = tr("Date and time"), onClick = onClick)
-            .padding(start = 11.dp, end = 14.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier.fillMaxHeight().clip(RoundedCornerShape(14.dp)).background(if (accent) F.accentTint else F.page)
+            .clickable(onClickLabel = label, onClick = onClick).padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(Glyph.Calendar, null, tint = F.accent, modifier = Modifier.size(15.dp))
-        Text(text, color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Icon(icon, null, tint = if (accent) F.accent else F.ink, modifier = Modifier.size(18.dp))
+        Text(text, color = if (accent) F.accent else F.ink, fontSize = 14.sp, fontWeight = if (accent) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

@@ -66,6 +66,7 @@ object Glyph {
     val Star by lazy { glyph("Star", "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z") }
     val Mic by lazy { glyph("Mic", rect(9f, 3f, 6f, 11f, 3f), "M5 11a7 7 0 0 0 14 0M12 18v3", width = 2f) }
     val Calendar by lazy { glyph("Calendar", "M4 6.5h16v13H4zM4 10.5h16M8 4v4M16 4v4", width = 2f) }
+    val Clock by lazy { glyph("Clock", "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 1 0 0-17M12 7.5V12l3 2", width = 2f) }
     val Card by lazy { glyph("Card", "M3.5 6.5h17v11h-17zM3.5 10h17M7 14.5h3") }
     val Note by lazy { glyph("Note", "M5 4.5h10l4 4v11H5zM15 4.5v4h4M8.5 12.5h7M8.5 16h4") }
     val Statement by lazy { glyph("Statement", "M6 3h9l4 4v14H6z", "M14 3v5h5M9 13h7M9 17h5") }
