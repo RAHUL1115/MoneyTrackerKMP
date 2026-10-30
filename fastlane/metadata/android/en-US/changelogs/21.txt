@@ -1,0 +1,1 @@
+New layout (experimental): choose the entry screen style under Settings › Adding entries › Entry screen. Sentence keeps "on Food from HDFC"; Receipt shows the amount over a card of category, account, date and time, and note rows.
