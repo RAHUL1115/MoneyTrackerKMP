@@ -138,8 +138,8 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
     val daysLeft = (today.daysUntil(range.endInclusive) + 1).coerceAtLeast(1)
     val daysGone = (range.start.daysUntil(today) + 1).coerceAtLeast(1)
 
-    // Entry counts skip the second half of a transfer, like the lists do.
-    fun dayRows(d: kotlinx.datetime.LocalDate) = recentRows.filter { it.date == d && it.kind != TxnKind.TRANSFER_IN }
+    // Entry counts skip the second half of a transfer and balance corrections, like the lists do.
+    fun dayRows(d: kotlinx.datetime.LocalDate) = recentRows.filter { it.date == d && it.kind != TxnKind.TRANSFER_IN && !it.kind.isAdjustment() }
     val todayRows = dayRows(today)
     val yesterdayRows = dayRows(yesterday)
     val monthSpent = totals(rows).expense
@@ -219,7 +219,8 @@ private fun RecentDays() {
     val txns by remember(range) { repo.txnsBetween(range) }.collectAsState(emptyList())
     val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
     val data = rememberActEntryData()
-    val shown = txns.filter { it.kind != TxnKind.TRANSFER_IN }
+    // Like Activity: each transfer once, and balance corrections only on their account's page.
+    val shown = txns.filter { it.kind != TxnKind.TRANSFER_IN && !it.kind.isAdjustment() }
     listOf(today to tr("Today"), yesterday to tr("Yesterday")).forEach { (day, title) ->
         val dayTxns = shown.filter { it.date == day }.sortedWith(compareByDescending<Txn> { it.timeOfDay ?: -1 }.thenByDescending { it.createdAt })
         if (dayTxns.isEmpty() && day != today) return@forEach
@@ -318,3 +319,5 @@ fun FreshLock(hash: String, onUnlocked: () -> Unit) {
 
 @Composable internal fun FreshInbox() = SmsReviewScreen()
 @Composable internal fun FreshMessageSettings() = SmsSettingsScreen()
+
+private fun TxnKind.isAdjustment() = this == TxnKind.ADJUST_UP || this == TxnKind.ADJUST_DOWN
