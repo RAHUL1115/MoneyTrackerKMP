@@ -1,0 +1,1 @@
+Beta 6 of the new layout (experimental). Tap the net worth card on Money to see the last six months. Activity's top bar is simpler: Search, Bookmarks, a Filter button and More, with Select now inside More. Turn it on under More › Configuration › New layout.
