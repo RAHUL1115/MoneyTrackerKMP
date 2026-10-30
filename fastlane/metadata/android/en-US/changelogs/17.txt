@@ -1,0 +1,1 @@
+Beta 5 of the new layout (experimental). Spending shows in the same red as the classic layout, with delete and over-budget using that one red too, while headline totals stay calm. Icons across the new layout are now thin line drawings that match each other, including the category icons. Turn it on under More › Configuration › New layout.
