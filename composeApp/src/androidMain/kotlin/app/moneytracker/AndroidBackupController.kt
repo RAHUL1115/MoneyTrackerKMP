@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import app.moneytracker.ui.isPortablePinHash
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.activity.ComponentActivity
@@ -112,10 +113,10 @@ class AndroidBackupController(
         // Photos belong to the deleted entries; the snapshot keeps only their names, so leave the files for re-import.
     }
 
-    override fun restoreLocal(name: String) = run(tr("Restored {0}", name)) {
+    override fun restoreLocal(name: String) = runWithMessage {
         val f = File(dir, name)
         DatabaseManager.validate(f)?.let { error(it) }
-        replaceDatabaseWith(f)
+        listOfNotNull(tr("Restored {0}", name), replaceDatabaseWith(f)).joinToString(". ")
     }
 
     override fun deleteLocal(name: String) = run(tr("Deleted")) { File(dir, name).delete(); refresh() }
@@ -248,7 +249,7 @@ class AndroidBackupController(
             ?: error(tr("Cannot read the selected file"))
         try {
             val ownProblem = DatabaseManager.validate(tmp)
-            if (ownProblem == null) { replaceDatabaseWith(tmp); return tr("Restored backup") }
+            if (ownProblem == null) return listOfNotNull(tr("Restored backup"), replaceDatabaseWith(tmp)).joinToString(". ")
             val tables = runCatching { SqliteRowSource.open(tmp).use { it.tables() } }.getOrNull() ?: error(ownProblem)
             return when {
                 MoneyManagerBackup.isMoneyManager(tables) -> restoreMoneyManager(tmp, ios = false)
@@ -287,10 +288,12 @@ class AndroidBackupController(
     }
 
     /** Safety snapshot first, then swap files while the database is closed. */
-    private suspend fun replaceDatabaseWith(source: File) {
+    /** Swaps in [source]; returns a note when the backup's passcode had to give way to this install's. */
+    private suspend fun replaceDatabaseWith(source: File): String? {
         snapshot("pre-restore")
         val staged = File(activity.cacheDir, "staged.$EXT")
         source.copyTo(staged, overwrite = true)
+        val note = keepWorkingPasscode(staged)
         withContext(Dispatchers.Main) {
             db.withClosed { target ->
                 File(target.path + "-wal").delete()
@@ -300,6 +303,25 @@ class AndroidBackupController(
             }
         }
         staged.delete()
+        return note
+    }
+
+    /**
+     * Passcodes saved before hashes carried their own salt only check out on the install that saved them. When the
+     * backup holds one that differs from this install's, this install's passcode (or none) stays, so a restore never locks you out.
+     */
+    private suspend fun keepWorkingPasscode(staged: File): String? {
+        val key = MoneyRepository.Keys.PASSCODE
+        val current = db.repo?.setting(key)?.first().orEmpty()
+        val out = SQLiteDatabase.openDatabase(staged.path, null, SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+        try {
+            val restored = out.rawQuery("SELECT value FROM Setting WHERE key = ?", arrayOf(key))
+                .use { if (it.moveToFirst()) it.getString(0) else null }.orEmpty()
+            if (restored.isBlank() || isPortablePinHash(restored) || restored == current) return null
+            out.execSQL("INSERT OR REPLACE INTO Setting(key, value) VALUES (?, ?)", arrayOf(key, current))
+        } finally { out.close() }
+        return if (current.isBlank()) tr("The backup's passcode was set on another install, so the passcode is now off. Turn it on again under Passcode.")
+        else tr("The backup's passcode was set on another install, so your current passcode stays")
     }
 
     private suspend fun exportRows(): List<List<String>> {

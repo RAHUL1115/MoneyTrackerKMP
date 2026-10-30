@@ -101,7 +101,7 @@ fun LockScreen(hash: String, onUnlocked: () -> Unit) {
     // Offer the biometric prompt straight away; the PIN pad stays underneath as the fallback.
     LaunchedEffect(canUseBiometric) { if (canUseBiometric) promptBiometric() }
     PinPad(tr("Enter passcode"), if (canUseBiometric) tr("or use your fingerprint / face") else null, error, onComplete = { pin ->
-        if (platform.hashPin(pin) == hash) { onUnlocked(); true }
+        if (platform.unlock(pin, hash, repo)) { onUnlocked(); true }
         else { attempts++; error = tr("Wrong passcode ({0})", attempts); false }
     }) {
         if (canUseBiometric) {
@@ -150,7 +150,7 @@ fun SecurityScreen() {
                 }
             }
             PinPad(tr("Enter current passcode"), null, error, onComplete = { pin ->
-                if (platform.hashPin(pin) != passcode) { error = tr("Wrong passcode"); false }
+                if (!platform.checkPin(pin, passcode.orEmpty())) { error = tr("Wrong passcode"); false }
                 else {
                     error = null
                     if (forOff) { turnOff(); step = PinStep.NONE } else { first = null; step = PinStep.NEW }

@@ -1,9 +1,22 @@
 package app.moneytracker.ui
 
+import app.moneytracker.data.MoneyRepository
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.StateFlow
+
+/** Passcode hashes that carry their own salt start with this, so a restored backup keeps a working passcode. */
+const val PORTABLE_PIN_PREFIX = "s2:"
+
+fun isPortablePinHash(stored: String?) = stored?.startsWith(PORTABLE_PIN_PREFIX) == true
+
+/** Checks [pin] at the lock screen; on success an older install-only hash is saved again in the portable form. */
+fun PlatformServices.unlock(pin: String, stored: String, repo: MoneyRepository): Boolean {
+    if (!checkPin(pin, stored)) return false
+    if (!isPortablePinHash(stored)) repo.putSetting(MoneyRepository.Keys.PASSCODE, hashPin(pin))
+    return true
+}
 
 /**
  * Device features the shared UI needs. Android implements it in androidMain; another platform
@@ -12,7 +25,10 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface PlatformServices {
     // security
+    /** A new hash for [pin], with its own salt inside, so it checks out on any install. */
     fun hashPin(pin: String): String
+    /** True when [pin] matches [stored], in either the portable form or an older install-only one. */
+    fun checkPin(pin: String, stored: String): Boolean
     /** Re-checked whenever the app returns to the foreground (e.g. after enrolling a fingerprint in Settings). */
     val biometricStatus: StateFlow<BiometricStatus>
     /** Opens the system screen for adding a fingerprint / face. */

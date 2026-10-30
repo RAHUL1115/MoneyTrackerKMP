@@ -61,6 +61,7 @@ import app.moneytracker.ui.LocalCurrencies
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalPlatform
+import app.moneytracker.ui.unlock
 import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.byMainCategory
@@ -270,7 +271,7 @@ fun FreshLock(hash: String, onUnlocked: () -> Unit) {
             else -> if (pin.length < PIN_LENGTH) {
                 pin += k
                 if (pin.length == PIN_LENGTH) {
-                    if (platform.hashPin(pin) == hash) onUnlocked()
+                    if (platform.unlock(pin, hash, repo)) onUnlocked()
                     else { attempts++; error = tr("Wrong passcode ({0}). Try again", attempts); pin = "" }
                 }
             }

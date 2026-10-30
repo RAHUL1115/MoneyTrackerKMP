@@ -21,6 +21,9 @@ import android.os.Build
 import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.util.Base64
+import app.moneytracker.ui.isPortablePinHash
+import app.moneytracker.ui.PORTABLE_PIN_PREFIX
+import java.security.MessageDigest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -85,16 +88,30 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
 
     // ───────────────────────── security
 
-    /** PBKDF2 with a per-install random salt kept in private prefs. */
+    /** PBKDF2 with a fresh random salt, stored with the hash as "s2:salt:key" so backups carry everything needed to check it. */
     override fun hashPin(pin: String): String {
-        val prefs = ctx.getSharedPreferences("security", Context.MODE_PRIVATE)
-        val salt = prefs.getString("salt", null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: ByteArray(16).also {
-            SecureRandom().nextBytes(it)
-            prefs.edit().putString("salt", Base64.encodeToString(it, Base64.NO_WRAP)).apply()
-        }
-        val key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(PBEKeySpec(pin.toCharArray(), salt, 20_000, 256))
-        return Base64.encodeToString(key.encoded, Base64.NO_WRAP)
+        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        return PORTABLE_PIN_PREFIX + b64(salt) + ":" + b64(derivePin(pin, salt))
     }
+
+    override fun checkPin(pin: String, stored: String): Boolean {
+        if (isPortablePinHash(stored)) {
+            val parts = stored.removePrefix(PORTABLE_PIN_PREFIX).split(':')
+            if (parts.size != 2) return false
+            val salt = runCatching { Base64.decode(parts[0], Base64.NO_WRAP) }.getOrNull() ?: return false
+            val key = runCatching { Base64.decode(parts[1], Base64.NO_WRAP) }.getOrNull() ?: return false
+            return MessageDigest.isEqual(derivePin(pin, salt), key)
+        }
+        // Older hashes used a salt kept only on this install, so they check out here and nowhere else.
+        val prefs = ctx.getSharedPreferences("security", Context.MODE_PRIVATE)
+        val salt = prefs.getString("salt", null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: return false
+        return MessageDigest.isEqual(b64(derivePin(pin, salt)).toByteArray(), stored.toByteArray())
+    }
+
+    private fun derivePin(pin: String, salt: ByteArray): ByteArray =
+        SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(PBEKeySpec(pin.toCharArray(), salt, 20_000, 256)).encoded
+
+    private fun b64(bytes: ByteArray) = Base64.encodeToString(bytes, Base64.NO_WRAP)
 
     private val biometricState = MutableStateFlow(readBiometricStatus())
     override val biometricStatus: StateFlow<BiometricStatus> = biometricState
