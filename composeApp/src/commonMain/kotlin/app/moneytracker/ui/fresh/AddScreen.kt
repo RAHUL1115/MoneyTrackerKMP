@@ -108,6 +108,9 @@ import kotlinx.datetime.minus
 
 private const val PHOTO_NOTICE_KEY = "photoNoticeShown"
 
+/** The row the receipt style's tray is filling. */
+private enum class Step { AMOUNT, CATEGORY, ACCOUNT, FROM, TO, NOTE }
+
 private enum class AddSheet { NONE, CATEGORY, ACCOUNT, FROM, TO, TAGS, REPEAT, CURRENCY, BOOKMARK, COPY, DATE, PHOTO, DESC, PLACE, ORIGIN }
 
 /** The entry being added or edited. Mirrors the classic editor's state and rules; only the screens differ. */
@@ -276,6 +279,8 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     var listening by remember { mutableStateOf(false) }
     val noteFocus = remember { FocusRequester() }
     var noteFocused by remember { mutableStateOf(false) }
+    var step by remember { mutableStateOf(Step.AMOUNT) }
+    var subOf by remember { mutableStateOf<String?>(null) }  // a main category whose sub-categories the tray shows
 
     // Keep the photo strip current; capture location once for new entries if the user enabled it.
     LaunchedEffect(f.existing?.id) { f.existing?.let { t -> repo.photos(t.id).collect { f.existingPhotos = it } } }
@@ -487,7 +492,124 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         ).joinToString(" · ") to F.muted
     }
 
-    // ───────────── the receipt style: amount over a card of rows, each opening its picker
+    // The keypad hides under the phone keyboard but keeps its space, so a shorter keyboard never shows half of it.
+    val imeUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+
+    // ───────────── the receipt style: amount over a card of rows, and one tray under them that follows the row
+    // being filled (keypad, categories, accounts, then the phone keyboard for the note). Picking moves on to the next
+    // empty row; tapping a row jumps to it. The tray keeps its height, so nothing above it ever moves.
+
+    val order = if (isTransfer) listOf(Step.AMOUNT, Step.FROM, Step.TO, Step.NOTE) else listOf(Step.AMOUNT, Step.CATEGORY, Step.ACCOUNT, Step.NOTE)
+    fun filled(st: Step) = when (st) {
+        // A pre-selected usual account still gets its turn; one picked by hand (or loaded for editing) is skipped.
+        Step.CATEGORY -> f.categoryId != null; Step.ACCOUNT, Step.FROM -> f.accountChosen; Step.TO -> f.toAccountId != null
+        else -> false
+    }
+    fun goTo(st: Step) {
+        subOf = null
+        if (st != Step.AMOUNT) feeTarget = false
+        step = st
+        if (st == Step.NOTE) noteFocus.requestFocus() else focus.clearFocus()
+    }
+    fun advance() {
+        val rest = order.drop(order.indexOf(step) + 1)
+        goTo(rest.firstOrNull { it == Step.NOTE || !filled(it) } ?: Step.NOTE)
+    }
+    // A tap on the note, or the keyboard closing, keeps the tray in step with it.
+    LaunchedEffect(noteFocused) { if (f.receipt && noteFocused) step = Step.NOTE }
+    var imeWasUp by remember { mutableStateOf(false) }
+    LaunchedEffect(imeUp) {
+        if (f.receipt && imeWasUp && !imeUp && step == Step.NOTE) { focus.clearFocus(); step = Step.AMOUNT }
+        imeWasUp = imeUp
+    }
+    LaunchedEffect(isTransfer) { if (f.receipt && step !in order) step = Step.AMOUNT }
+
+    @Composable
+    fun saveRow() {
+        val e = f.existing
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (e != null) {
+                Box(
+                    Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).background(F.dangerTint)
+                        .clickable(onClickLabel = tr("Delete entry")) { confirmDelete = true },
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Glyph.Delete, tr("Delete entry"), tint = F.danger) }
+                if (!f.isAdjustment) Box(
+                    Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).border(1.dp, F.border, RoundedCornerShape(18.dp))
+                        .clickable(onClickLabel = tr("Copy entry")) { sheet = AddSheet.COPY },
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Glyph.Copy, tr("Copy entry"), tint = F.ink, modifier = Modifier.size(20.dp)) }
+                PrimaryButton(tr("Save changes"), { save(false) }, Modifier.weight(1f).height(54.dp))
+            } else {
+                Box(
+                    Modifier.height(54.dp).clip(RoundedCornerShape(18.dp)).background(F.card).border(1.dp, F.border, RoundedCornerShape(18.dp))
+                        .clickable { save(true) }.padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Text(tr("Save & new"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
+                PrimaryButton(saveLabel, { save(false) }, Modifier.weight(1f).height(54.dp), enabled = ready)
+            }
+        }
+    }
+
+    @Composable
+    fun tray(modifier: Modifier) {
+        Column(modifier.fillMaxWidth().clip(F.cardShape).background(F.card)) {
+            val sub = subOf?.let { catById[it] }
+            Row(Modifier.fillMaxWidth().height(44.dp).background(F.page.copy(alpha = 0.5f)).padding(start = 16.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                val title = when (step) {
+                    Step.AMOUNT -> if (feeTarget) tr("Fee") else tr("Amount")
+                    Step.CATEGORY -> sub?.name ?: tr("Category")
+                    Step.ACCOUNT -> if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("Paid into") else tr("Pay from")
+                    Step.FROM -> tr("Move from"); Step.TO -> tr("Move to"); Step.NOTE -> tr("Note")
+                }
+                if (sub != null) Icon(Glyph.Back, tr("All categories"), tint = F.muted, modifier = Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).clickable { subOf = null }.padding(7.dp))
+                Text(title, Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Box(
+                    Modifier.height(32.dp).clip(RoundedCornerShape(10.dp)).background(F.accentTint)
+                        .clickable { if (step == Step.NOTE) { focus.clearFocus(); step = Step.AMOUNT } else advance() }.padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Text(if (step == Step.NOTE) tr("Done") else tr("Next ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+            }
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                when (step) {
+                    Step.AMOUNT -> AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it },
+                        Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 4.dp))
+                    Step.CATEGORY -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(10.dp)) {
+                        val mains = categories.filter { it.kind == f.catKind && it.parentId == null }
+                        val current = f.categoryId?.let { catById[it] }
+                        val subs = sub?.let { m -> categories.filter { it.parentId == m.id } }.orEmpty()
+                        if (sub != null) AddGrid(listOf(sub) + subs) { c, mod ->
+                            AddTile(c.name, if (c.id == sub.id) tr("Just {0}", c.name) else c.name, c.id == f.categoryId, mod, icon = categoryIcon(sub.name)) {
+                                f.pickCategory(c); advance()
+                            }
+                        } else AddGrid(mains) { m, mod ->
+                            AddTile(m.name, m.name, m.id == (current?.parentId ?: current?.id), mod, icon = categoryIcon(m.name)) {
+                                f.pickCategory(m)
+                                if (useSubcategories && categories.any { it.parentId == m.id }) subOf = m.id else advance()
+                            }
+                        }
+                        AddLink(tr("Edit categories ›"), Modifier.padding(top = 8.dp)) { nav.push(Screen.Categories(f.catKind)) }
+                    }
+                    Step.ACCOUNT, Step.FROM, Step.TO -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(10.dp)) {
+                        val forTo = step == Step.TO
+                        val current = if (forTo) f.toAccountId else f.accountId
+                        val list = accounts.filter { (!it.hidden || it.id == current) && (!forTo || it.id != f.accountId) }
+                        AddGrid(list, columns = 3) { a, mod ->
+                            AddTile(a.name, a.name, a.id == current, mod) {
+                                if (forTo) f.toAccountId = a.id else f.pickFrom(a)
+                                advance()
+                            }
+                        }
+                        AddLink(if (accounts.isEmpty()) tr("Add an account ›") else tr("Edit accounts ›"), Modifier.padding(top = 8.dp)) {
+                            nav.push(if (accounts.isEmpty()) Screen.EditAccount() else Screen.AccountList)
+                        }
+                    }
+                    Step.NOTE -> Unit  // the phone keyboard sits here
+                }
+            }
+        }
+    }
+
 
     @Composable
     fun receiptCard() {
@@ -497,7 +619,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             val amountText = shown(fmt, addExprShown(if (feeTarget) f.feeText.ifEmpty { "0" } else f.amountText))
             Row(
-                Modifier.fillMaxWidth().height(56.dp).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { feeTarget = false; focus.clearFocus() },
+                Modifier.fillMaxWidth().height(56.dp).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { feeTarget = false; goTo(Step.AMOUNT) },
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
@@ -508,11 +630,12 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 )
                 currencyChip()
             }
-            Box(Modifier.padding(top = 8.dp).fillMaxWidth().height(1.dp).background(F.border))
+            // The row being filled is underlined in the accent colour.
+            RowDivider(f.receipt && step == Step.AMOUNT, Modifier.padding(top = 8.dp))
             val current = f.categoryId?.let { catById[it] }
             if (isTransfer) {
-                ReceiptRow(Glyph.Card, accountName(f.accountId) ?: tr("Choose"), tr("From"), missing = f.accountId == null) { focus.clearFocus(); sheet = AddSheet.FROM }
-                ReceiptRow(Glyph.Swap, accountName(f.toAccountId) ?: tr("Choose"), tr("To"), missing = f.toAccountId == null) { focus.clearFocus(); sheet = AddSheet.TO }
+                ReceiptRow(Glyph.Card, accountName(f.accountId) ?: tr("Choose"), tr("From"), missing = f.accountId == null, active = step == Step.FROM) { goTo(Step.FROM) }
+                ReceiptRow(Glyph.Swap, accountName(f.toAccountId) ?: tr("Choose"), tr("To"), missing = f.toAccountId == null, active = step == Step.TO) { goTo(Step.TO) }
             } else if (f.isAdjustment) {
                 ReceiptRow(Glyph.Edit, tr(MODIFIED_BALANCE_NAME), tr("Adjustment"), onClick = null)
                 ReceiptRow(Glyph.Card, accountName(f.accountId) ?: tr("Choose"), tr("Account"), onClick = null)
@@ -520,10 +643,10 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 ReceiptRow(
                     categoryIcon(current?.let { catById[it.parentId ?: it.id]?.name ?: it.name }) ?: Glyph.More,
                     catLabel ?: tr("Pick a category"), if (f.type == DraftType.REFUND) tr("Refund for") else tr("Category"),
-                    accent = true, missing = catLabel == null,
-                ) { focus.clearFocus(); sheet = AddSheet.CATEGORY }
+                    accent = true, missing = catLabel == null, active = step == Step.CATEGORY,
+                ) { goTo(Step.CATEGORY) }
                 ReceiptRow(Glyph.Card, accountName(f.accountId) ?: tr("Choose"), if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("Into") else tr("Account"),
-                    missing = f.accountId == null) { focus.clearFocus(); sheet = AddSheet.ACCOUNT }
+                    missing = f.accountId == null, active = step == Step.ACCOUNT) { goTo(Step.ACCOUNT) }
             }
             // Date, with the time as its own button on the right.
             Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -545,9 +668,9 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                     Text(f.timeOfDay?.let { formatTime(it) } ?: tr("Add time"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 }
             }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(F.border))
+            RowDivider(false)
             Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                RowIcon(Glyph.Note, accent = false)
+                RowIcon(Glyph.Note, accent = step == Step.NOTE)
                 noteField(Modifier.weight(1f), background = Color.Transparent)
             }
         }
@@ -559,8 +682,6 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     // they sit at the top; the amount, category, keypad and Save stay near the thumb.
 
     DisposableEffect(Unit) { KeyboardOverlay.active = true; onDispose { KeyboardOverlay.active = false } }
-    // The keypad hides under the phone keyboard but keeps its space, so a shorter keyboard never shows half of it.
-    val imeUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val recentRange = remember { DateRange(today.minus(DatePeriod(days = 60)), today) }
     val recentTxns by remember(recentRange) { repo.txnsBetween(recentRange) }.collectAsState(emptyList())
     val e = f.existing
@@ -675,7 +796,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             Row(Modifier.bleedScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // The receipt has no room for the fee row, so a transfer's fee is a chip that points the keypad at it.
                 if (f.receipt && isTransfer) ExtraChip(if (f.feeText.isEmpty()) tr("Fee") else tr("Fee {0}", shown(fmt, addExprShown(f.feeText))), feeTarget || f.feeText.isNotEmpty()) {
-                    feeTarget = !feeTarget; focus.clearFocus()
+                    feeTarget = !feeTarget; goTo(Step.AMOUNT)
                 }
                 if (refundable) ExtraChip(if (f.type == DraftType.REFUND) tr("Refund ✓") else tr("Refund"), f.type == DraftType.REFUND) {
                     val on = f.type != DraftType.REFUND
@@ -705,31 +826,14 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
 
             // Spare height sits between the chips and the keypad; on shorter screens the keypad gives some up.
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Bottom)) {
+            if (f.receipt) {
+                saveRow()
+                tray(Modifier.weight(1f, fill = false).heightIn(min = 232.dp, max = 300.dp))
+            } else {
             Box(Modifier.weight(1f, fill = false).heightIn(min = 176.dp, max = 248.dp).fillMaxWidth()) {
                 if (!imeUp) AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it }, Modifier.fillMaxSize())
             }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (e != null) {
-                    Box(
-                        Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).background(F.dangerTint)
-                            .clickable(onClickLabel = tr("Delete entry")) { confirmDelete = true },
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(Glyph.Delete, tr("Delete entry"), tint = F.danger) }
-                    if (!f.isAdjustment) Box(
-                        Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).border(1.dp, F.border, RoundedCornerShape(18.dp))
-                            .clickable(onClickLabel = tr("Copy entry")) { sheet = AddSheet.COPY },
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(Glyph.Copy, tr("Copy entry"), tint = F.ink, modifier = Modifier.size(20.dp)) }
-                    PrimaryButton(tr("Save changes"), { save(false) }, Modifier.weight(1f).height(54.dp))
-                } else {
-                    Box(
-                        Modifier.height(54.dp).clip(RoundedCornerShape(18.dp)).background(F.card).border(1.dp, F.border, RoundedCornerShape(18.dp))
-                            .clickable { save(true) }.padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) { Text(tr("Save & new"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
-                    PrimaryButton(saveLabel, { save(false) }, Modifier.weight(1f).height(54.dp), enabled = ready)
-                }
+            saveRow()
             }
             }
         }
@@ -1050,6 +1154,14 @@ private fun FieldButton(text: String, icon: ImageVector, accent: Boolean, label:
 /** Resting colour of the extra chips: white on the receipt's grey page, grey on the sentence's white one. */
 private val LocalChipRest = staticCompositionLocalOf<Color?> { null }
 
+/** Hairline under a receipt row, thicker and in the accent when the row is being filled. Always 2dp tall, so nothing moves. */
+@Composable
+private fun RowDivider(active: Boolean, modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().height(2.dp), contentAlignment = Alignment.BottomStart) {
+        Box(Modifier.fillMaxWidth().height(if (active) 2.dp else 1.dp).background(if (active) F.accent else F.border))
+    }
+}
+
 /** Icon tile at the start of a receipt row. */
 @Composable
 private fun RowIcon(icon: ImageVector, accent: Boolean) {
@@ -1060,18 +1172,18 @@ private fun RowIcon(icon: ImageVector, accent: Boolean) {
 
 /** One receipt row: icon, value, what it is, and a chevron when it opens a picker. Rows are divided by a hairline. */
 @Composable
-private fun ReceiptRow(icon: ImageVector, value: String, label: String, accent: Boolean = false, missing: Boolean = false, onClick: (() -> Unit)?) {
+private fun ReceiptRow(icon: ImageVector, value: String, label: String, accent: Boolean = false, missing: Boolean = false, active: Boolean = false, onClick: (() -> Unit)?) {
     Row(
         Modifier.fillMaxWidth().height(52.dp).then(if (onClick != null) Modifier.clickable(onClickLabel = label, onClick = onClick) else Modifier),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        RowIcon(icon, accent)
+        RowIcon(icon, accent || active)
         Text(value, Modifier.weight(1f), color = if (missing) F.muted else F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(label, color = F.muted, fontSize = 13.sp)
-        if (onClick != null) Icon(Glyph.ChevronRight, null, tint = F.muted, modifier = Modifier.size(16.dp))
+        Text(label, color = if (active) F.accent else F.muted, fontSize = 13.sp, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
+        if (onClick != null) Icon(Glyph.ChevronRight, null, tint = if (active) F.accent else F.muted, modifier = Modifier.size(16.dp))
     }
-    Box(Modifier.fillMaxWidth().height(1.dp).background(F.border))
+    RowDivider(active)
 }
 
 /** One "more about this entry" chip: soft pill, tinted once it holds a value. */
