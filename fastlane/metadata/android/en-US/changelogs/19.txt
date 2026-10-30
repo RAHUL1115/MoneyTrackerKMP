@@ -1,0 +1,1 @@
+Fixes a passcode that stopped working after restoring a backup on another install; restoring now keeps your current passcode if the backup's one can't be checked. New layout (experimental): Money is now Accounts, balances show green or red, cards show payable and outstanding, and Settings sections no longer jump when opened.
