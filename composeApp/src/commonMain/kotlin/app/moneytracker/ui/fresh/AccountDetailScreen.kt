@@ -12,12 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -136,19 +130,19 @@ internal fun AccountDetailBody(accountId: String) {
         val addEntry = { nav.push(Screen.EditTxn(preset = TxnDraft(DraftType.EXPENSE, today, accountId, amount = 0))) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (isCredit) {
-                ActionTile(Icons.Outlined.CreditCard, if (line.billDue > 0) tr("Pay bill") else tr("Paid ✓"), primary = line.billDue > 0) {
+                ActionTile(Glyph.Card, if (line.billDue > 0) tr("Pay bill") else tr("Paid ✓"), primary = line.billDue > 0) {
                     if (line.owed > 0) sheet = "pay"
                     else toaster.show(tr("Nothing to pay. The next statement closes on {0}.", Periods.cardCycle(today, acct.cardSettlementDay ?: 1).endInclusive.short()))
                 }
-                ActionTile(Icons.Outlined.Add, tr("Add entry"), onClick = addEntry)
-                ActionTile(Icons.Outlined.Tune, tr("Adjust"), onClick = { sheet = "adjust" })
-                ActionTile(Icons.AutoMirrored.Outlined.ReceiptLong, tr("Statement"), selected = statement, onClick = { statement = !statement })
+                ActionTile(Glyph.Add, tr("Add entry"), onClick = addEntry)
+                ActionTile(Glyph.Edit, tr("Adjust"), onClick = { sheet = "adjust" })
+                ActionTile(Glyph.Statement, tr("Statement"), selected = statement, onClick = { statement = !statement })
             } else {
-                ActionTile(Icons.Outlined.Add, tr("Add entry"), primary = true, onClick = addEntry)
-                ActionTile(Icons.Outlined.SwapHoriz, tr("Transfer"), onClick = {
+                ActionTile(Glyph.Add, tr("Add entry"), primary = true, onClick = addEntry)
+                ActionTile(Glyph.Swap, tr("Transfer"), onClick = {
                     nav.push(Screen.EditTxn(preset = TxnDraft(DraftType.TRANSFER, today, accountId, amount = 0)))
                 })
-                ActionTile(Icons.Outlined.Tune, tr("Adjust balance"), onClick = { sheet = "adjust" })
+                ActionTile(Glyph.Edit, tr("Adjust balance"), onClick = { sheet = "adjust" })
             }
         }
 
@@ -400,7 +394,7 @@ private fun EntryRow(t: Txn, accountName: Map<String, String>, catById: Map<Stri
             if (meta.isNotEmpty()) Text(meta, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(fmt.format(value, showSign = true), color = if (incoming) F.income else F.ink,
+            Text(fmt.format(value, showSign = true), color = if (incoming) F.income else if (t.kind == TxnKind.EXPENSE) F.expense else F.ink,
                 fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
             if (running != null) Text(fmt.format(running), color = F.muted, fontSize = 11.sp, style = F.money, maxLines = 1)
         }

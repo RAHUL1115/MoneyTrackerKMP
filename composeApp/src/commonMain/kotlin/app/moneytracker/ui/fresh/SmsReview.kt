@@ -15,10 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ContentPaste
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -111,7 +107,7 @@ internal fun SmsReviewScreen() {
     val ready = d != null && d.amount != 0L && d.accountId in accountNames
     SubScreen(
         tr("Bank messages"), nav::pop,
-        actions = { IconTile(Icons.Outlined.Settings, tr("Bank SMS settings"), { nav.push(Screen.MessageSettings) }) },
+        actions = { IconTile(Glyph.Settings, tr("Bank SMS settings"), { nav.push(Screen.MessageSettings) }) },
         bottom = if (current == null) null else ({
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GreyButton(tr("Dismiss")) { dismiss(current) }
@@ -131,7 +127,7 @@ internal fun SmsReviewScreen() {
             FCard(padding = 24.dp) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(Modifier.size(56.dp).clip(CircleShape).background(F.accentTint), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.Check, null, tint = F.accent, modifier = Modifier.size(28.dp))
+                        Icon(Glyph.Check, null, tint = F.accent, modifier = Modifier.size(28.dp))
                     }
                     Text(if (added > 0) tr("All caught up") else tr("Nothing to review"), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
                     Text(
@@ -151,7 +147,7 @@ internal fun SmsReviewScreen() {
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SmallAction(tr("Paste a message"), Modifier.weight(1f), Icons.Outlined.ContentPaste) { pasting = true }
+            SmallAction(tr("Paste a message"), Modifier.weight(1f), Glyph.Paste) { pasting = true }
             SmallAction(tr("Import last {0} days", days), Modifier.weight(1f)) { if (capture) import() else disclosure = { import() } }
         }
         val others = captures.filter { it.id != current?.id }
@@ -165,7 +161,7 @@ internal fun SmsReviewScreen() {
                             c.merchant.ifBlank { c.sender.ifBlank { tr("Pasted message") } },
                             subtitle = "${c.sender.ifBlank { tr("Pasted") }} · ${whenLabel(c.receivedAt)}",
                             value = c.amount?.let { a -> if (app.moneytracker.domain.isRefund(c.kind, a)) currency.format(-a, showSign = true) else currency.format(a) },
-                            valueColor = if (c.kind == TxnKind.INCOME || app.moneytracker.domain.isRefund(c.kind, c.amount)) F.income else F.ink,
+                            valueColor = if (c.kind == TxnKind.INCOME || app.moneytracker.domain.isRefund(c.kind, c.amount)) F.income else if (c.kind == TxnKind.EXPENSE) F.expense else F.ink,
                             onClick = { focusId = c.id },
                         )
                     }
@@ -224,7 +220,7 @@ private fun ReviewCard(c: Capture, d: TxnDraft?, amountText: String, ready: Bool
         Column {
             Text(if (refund) tr("We'll add a refund") else if (d?.type == DraftType.INCOME) tr("We'll add income") else tr("We'll add"),
                 color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-            Text(amountText, color = if (refund || d?.type == DraftType.INCOME) F.income else F.ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, style = F.money)
+            Text(amountText, color = if (refund || d?.type == DraftType.INCOME) F.income else if (d?.type == DraftType.EXPENSE) F.expense else F.ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, style = F.money)
         }
         Column {
             Divider()

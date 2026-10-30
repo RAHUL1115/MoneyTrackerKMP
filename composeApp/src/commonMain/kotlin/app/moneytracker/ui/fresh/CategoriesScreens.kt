@@ -8,11 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -102,8 +97,8 @@ internal fun FreshCategories(kind: CategoryKind) {
                                 Text(meta, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
-                        ArrowButton(Icons.Outlined.KeyboardArrowUp, tr("Move {0} up", c.name), at > 0) { move(-1) }
-                        ArrowButton(Icons.Outlined.KeyboardArrowDown, tr("Move {0} down", c.name), at < siblings.lastIndex) { move(1) }
+                        ArrowButton(Glyph.ChevronUp, tr("Move {0} up", c.name), at > 0) { move(-1) }
+                        ArrowButton(Glyph.ChevronDown, tr("Move {0} down", c.name), at < siblings.lastIndex) { move(1) }
                     }
                 }
             }
@@ -173,7 +168,7 @@ private fun CategorySheet(
             if (!isNew) Box(
                 Modifier.size(52.dp).clip(F.buttonShape).clickable(onClickLabel = tr("Delete category"), onClick = onDelete),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Outlined.Delete, tr("Delete category"), tint = F.danger) }
+            ) { Icon(Glyph.Delete, tr("Delete category"), tint = F.danger) }
             PrimaryButton(if (isNew) tr("Add category") else tr("Save changes"), enabled = trimmed.isNotEmpty() && !duplicate, modifier = Modifier.weight(1f), onClick = {
                 onSave(c.copy(id = c.id.ifEmpty { newId() }, name = trimmed, parentId = parentId, defaultAccountId = defaultAccount))
             })

@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -205,7 +202,7 @@ internal fun MoneySwitchRow(title: String, hint: String?, checked: Boolean, onCh
 @Composable
 internal fun PeriodStepper(label: String, onPrev: () -> Unit, onNext: () -> Unit, onLabel: (() -> Unit)? = null, sub: String? = null) {
     Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
-        StepButton(Icons.AutoMirrored.Filled.KeyboardArrowLeft, tr("Previous"), onPrev)
+        StepButton(Glyph.ChevronLeft, tr("Previous"), onPrev)
         Column(
             Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).then(if (onLabel != null) Modifier.clickable(onClick = onLabel) else Modifier).padding(vertical = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -213,7 +210,7 @@ internal fun PeriodStepper(label: String, onPrev: () -> Unit, onNext: () -> Unit
             Text(label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             if (sub != null) Text(sub, color = F.muted, fontSize = 11.sp, maxLines = 1)
         }
-        StepButton(Icons.AutoMirrored.Filled.KeyboardArrowRight, tr("Next"), onNext)
+        StepButton(Glyph.ChevronRight, tr("Next"), onNext)
     }
 }
 
@@ -236,7 +233,7 @@ internal fun ChoiceChip(text: String, selected: Boolean, onClick: () -> Unit) {
 /** Circular-ish percent badge (used for budget use). */
 @Composable
 internal fun PercentRing(percent: Int, over: Boolean, size: Dp = 56.dp) {
-    val color = if (over) F.warn else F.accent
+    val color = if (over) F.danger else F.accent
     Box(Modifier.size(size), contentAlignment = Alignment.Center) {
         androidx.compose.foundation.Canvas(Modifier.size(size)) {
             val stroke = this.size.minDimension * 0.12f

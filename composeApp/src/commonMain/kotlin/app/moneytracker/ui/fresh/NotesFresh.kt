@@ -19,9 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -159,7 +156,7 @@ internal fun FreshEditNote(noteId: String?) {
                 Modifier.height(44.dp).clip(F.iconShape).background(if (pinned) F.accentTint else F.card).clickable { pinned = !pinned }.padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(Icons.Outlined.PushPin, null, tint = if (pinned) F.accent else F.ink, modifier = Modifier.size(18.dp))
+                Icon(Glyph.Pin, null, tint = if (pinned) F.accent else F.ink, modifier = Modifier.size(18.dp))
                 Text(if (pinned) tr("Pinned") else tr("Pin"), color = if (pinned) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         },
@@ -169,7 +166,7 @@ internal fun FreshEditNote(noteId: String?) {
                     Modifier.size(52.dp).clip(F.buttonShape).background(F.danger.copy(alpha = 0.12f))
                         .clickable(onClickLabel = tr("Delete note")) { confirmDelete = true },
                     contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Outlined.Delete, tr("Delete note"), tint = F.danger) }
+                ) { Icon(Glyph.Delete, tr("Delete note"), tint = F.danger) }
                 PrimaryButton(
                     when { isNew && !filled -> tr("Write something first"); isNew -> tr("Save note"); else -> tr("Save changes") },
                     onClick = ::save, modifier = Modifier.weight(1f), enabled = filled || !isNew,

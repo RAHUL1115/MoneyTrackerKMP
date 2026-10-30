@@ -14,12 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ListAlt
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,15 +59,15 @@ private fun BottomBar(selected: FreshTab, onSelect: (FreshTab) -> Unit, onAdd: (
     Box(Modifier.fillMaxWidth().background(F.card)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(F.border))
         Row(Modifier.fillMaxWidth().height(68.dp).padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceAround) {
-            NavItem(FreshTab.HOME, Icons.Outlined.Home, selected, onSelect)
-            NavItem(FreshTab.ACTIVITY, Icons.AutoMirrored.Outlined.ListAlt, selected, onSelect)
+            NavItem(FreshTab.HOME, Glyph.Home, selected, onSelect)
+            NavItem(FreshTab.ACTIVITY, Glyph.Activity, selected, onSelect)
             Box(
                 Modifier.offset(y = (-18).dp).size(58.dp).shadow(8.dp, RoundedCornerShape(20.dp))
                     .clip(RoundedCornerShape(20.dp)).background(F.accent).clickable(onClickLabel = tr("Add entry"), onClick = onAdd),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Filled.Add, tr("Add entry"), tint = F.onAccent, modifier = Modifier.size(28.dp)) }
-            NavItem(FreshTab.INSIGHTS, Icons.Outlined.PieChart, selected, onSelect)
-            NavItem(FreshTab.MONEY, Icons.Outlined.AccountBalanceWallet, selected, onSelect)
+            ) { Icon(Glyph.Add, tr("Add entry"), tint = F.onAccent, modifier = Modifier.size(28.dp)) }
+            NavItem(FreshTab.INSIGHTS, Glyph.Insights, selected, onSelect)
+            NavItem(FreshTab.MONEY, Glyph.Money, selected, onSelect)
         }
     }
 }

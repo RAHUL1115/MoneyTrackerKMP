@@ -12,10 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -94,7 +90,7 @@ internal fun FreshBackup() {
             val s = status
             val failed = s != null && s.startsWith("Failed")
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(if (failed) Icons.Outlined.ErrorOutline else Icons.Outlined.CheckCircle, null,
+                Icon(if (failed) Glyph.Error else Glyph.Done, null,
                     tint = if (failed) F.danger else F.accent, modifier = Modifier.size(18.dp))
                 Text(
                     s ?: local.firstOrNull()?.let { tr("Last snapshot: {0}", snapshotWhen(it.name, today)) } ?: tr("No snapshots yet."),
@@ -148,7 +144,7 @@ internal fun FreshBackup() {
                         }
                         StgTextButton(tr("Restore"), { restoring = b })
                         Box(Modifier.size(40.dp).clip(F.iconShape).clickable(onClickLabel = tr("Delete snapshot")) { deleting = b }, contentAlignment = Alignment.Center) {
-                            Icon(Icons.Outlined.Delete, tr("Delete snapshot"), tint = F.muted, modifier = Modifier.size(20.dp))
+                            Icon(Glyph.Delete, tr("Delete snapshot"), tint = F.muted, modifier = Modifier.size(20.dp))
                         }
                     }
                 }

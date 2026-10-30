@@ -16,10 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -115,7 +111,7 @@ internal fun ActivityMonthsView(
                             Text(currency.format(-(mt.expense)), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money)
                             Text(tr("Net {0}", currency.format(mt.net)), color = F.muted, fontSize = 11.sp, style = F.money)
                         }
-                        Icon(if (isOpen) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.size(20.dp))
+                        Icon(if (isOpen) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted, modifier = Modifier.size(20.dp))
                     }
                     if (isOpen) Column(Modifier.padding(start = 16.dp, bottom = 10.dp)) {
                         val range = ps.month(month)
@@ -184,7 +180,7 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(Icons.Outlined.Description, null, tint = F.ink, modifier = Modifier.size(16.dp))
+                Icon(Glyph.Note, null, tint = F.ink, modifier = Modifier.size(16.dp))
                 Text(tr("Excel"), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         }

@@ -24,27 +24,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Restaurant
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Chair
-import androidx.compose.material.icons.outlined.Checkroom
-import androidx.compose.material.icons.outlined.FitnessCenter
-import androidx.compose.material.icons.outlined.MedicalServices
-import androidx.compose.material.icons.outlined.HealthAndSafety
-import androidx.compose.material.icons.outlined.Movie
-import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.Payments
-import androidx.compose.material.icons.outlined.CardGiftcard
-import androidx.compose.material.icons.outlined.Savings
-import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.ShoppingBag
-import androidx.compose.material.icons.outlined.Flight
-import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -63,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.shadow
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -104,13 +82,15 @@ object F {
     val warn: Color get() = pick(0xFFC26B4E, 0xFFE59A7C)
     /** Soft background for things waiting on the user (bank SMS to review). */
     val warnTint: Color get() = pick(0xFFFFF1E6, 0xFF35241A)
-    val danger: Color get() = pick(0xFFB4441C, 0xFFF08A5D)
-    val dangerTint: Color get() = pick(0xFFFCE9E0, 0xFF3A2218)
+    /** Delete and overspending share the expense red, so the app has one red. */
+    val danger: Color get() = pick(0xFFE5484D, 0xFFF87171)
+    val dangerTint: Color get() = pick(0xFFFDECEC, 0xFF3A1F21)
     private val green get() = pick(0xFF157A3C, 0xFF5BD08A)
-    private val red get() = pick(0xFFB4441C, 0xFFF08A5D)
-    // Money in is green; money out reads in plain ink so lists stay calm. Swapped colours keep their old meaning.
+    // The same red as the classic layout, so spending looks the same in both.
+    private val red get() = pick(0xFFE5484D, 0xFFF87171)
+    // Money in is green and money out is red. Swapped colours keep their old meaning.
     val income: Color get() = if (colorsSwapped) red else green
-    val expense: Color get() = if (colorsSwapped) green else ink
+    val expense: Color get() = if (colorsSwapped) green else red
 
     val cardShape = RoundedCornerShape(20.dp)
     val heroShape = RoundedCornerShape(24.dp)
@@ -131,24 +111,24 @@ fun categoryIcon(name: String?): ImageVector? {
     val n = name?.lowercase() ?: return null
     fun has(vararg words: String) = words.any { it in n }
     return when {
-        has("food", "grocer", "eat", "restaurant", "lunch", "dinner", "breakfast", "snack", "drink", "beverage") -> Icons.Outlined.Restaurant
-        has("travel", "transport", "fuel", "petrol", "car", "taxi", "cab", "bus", "train", "metro", "subway") -> Icons.Outlined.DirectionsCar
-        has("household", "furniture", "appliance") -> Icons.Outlined.Chair
-        has("rent", "house", "home") -> Icons.Outlined.Home
-        has("bill", "utilit", "electric", "water", "gas") -> Icons.AutoMirrored.Outlined.ReceiptLong
-        has("cloth", "apparel", "fashion", "shoe") -> Icons.Outlined.Checkroom
-        has("gym", "fitness", "sport", "workout") -> Icons.Outlined.FitnessCenter
-        has("medic", "health", "doctor", "pharma", "hospital") -> Icons.Outlined.MedicalServices
-        has("insur") -> Icons.Outlined.HealthAndSafety
-        has("entertain", "movie", "fun", "game") -> Icons.Outlined.Movie
-        has("recharge", "phone", "mobile", "internet", "wifi") -> Icons.Outlined.PhoneAndroid
-        has("salary", "wage", "pay") -> Icons.Outlined.Payments
-        has("bonus", "gift") -> Icons.Outlined.CardGiftcard
-        has("cashback", "refund", "interest", "saving") -> Icons.Outlined.Savings
-        has("educat", "school", "course", "book") -> Icons.Outlined.School
-        has("shop") -> Icons.Outlined.ShoppingBag
-        has("trip", "holiday", "flight") -> Icons.Outlined.Flight
-        has("other", "misc") -> Icons.Outlined.MoreHoriz
+        has("food", "grocer", "eat", "restaurant", "lunch", "dinner", "breakfast", "snack", "drink", "beverage") -> Glyph.Food
+        has("travel", "transport", "fuel", "petrol", "car", "taxi", "cab", "bus", "train", "metro", "subway") -> Glyph.Travel
+        has("household", "furniture", "appliance") -> Glyph.Household
+        has("rent", "house", "home") -> Glyph.Rent
+        has("bill", "utilit", "electric", "water", "gas") -> Glyph.Bills
+        has("cloth", "apparel", "fashion", "shoe") -> Glyph.Clothes
+        has("gym", "fitness", "sport", "workout") -> Glyph.Gym
+        has("medic", "health", "doctor", "pharma", "hospital") -> Glyph.Medical
+        has("insur") -> Glyph.Insurance
+        has("entertain", "movie", "fun", "game") -> Glyph.Entertainment
+        has("recharge", "phone", "mobile", "internet", "wifi") -> Glyph.Recharge
+        has("salary", "wage", "pay") -> Glyph.Salary
+        has("bonus", "gift") -> Glyph.Bonus
+        has("cashback", "refund", "interest", "saving") -> Glyph.Cashback
+        has("educat", "school", "course", "book") -> Glyph.School
+        has("shop") -> Glyph.Shopping
+        has("trip", "holiday", "flight") -> Glyph.Flight
+        has("other", "misc") -> Glyph.More
         else -> null
     }
 }
@@ -255,7 +235,7 @@ fun SubScreen(
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconTile(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"), onBack)
+            IconTile(Glyph.Back, tr("Back"), onBack)
             Text(title, Modifier.weight(1f), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             actions()
         }
@@ -275,7 +255,7 @@ fun SubScreen(
             .clickable(onClick = add.second).padding(start = 16.dp, end = 20.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(Icons.Filled.Add, null, tint = F.onAccent, modifier = Modifier.size(22.dp))
+        Icon(Glyph.Add, null, tint = F.onAccent, modifier = Modifier.size(22.dp))
         Text(add.first, color = F.onAccent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
     }
@@ -382,7 +362,7 @@ fun FRow(
         }
         if (value != null) Text(value, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
         trailing?.invoke()
-        if (chevron && onClick != null && trailing == null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = F.muted, modifier = Modifier.size(20.dp))
+        if (chevron && onClick != null && trailing == null) Icon(Glyph.ChevronRight, null, tint = F.muted, modifier = Modifier.size(20.dp))
     }
 }
 

@@ -12,14 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.MarkEmailUnread
-import androidx.compose.material.icons.outlined.Restore
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -292,9 +284,9 @@ internal fun FreshSettings() {
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 val last = snapshots.firstOrNull()?.let { snapshotWhen(it.name, repo.today()) } ?: tr("Not yet")
-                QuickTile(Icons.Outlined.Restore, tr("Backup"), last, Modifier.weight(1f)) { nav.push(Screen.Backup) }
-                QuickTile(Icons.Outlined.MarkEmailUnread, tr("Bank SMS"), if (capture) tr("On") else tr("Off"), Modifier.weight(1f)) { nav.push(Screen.MessageSettings) }
-                QuickTile(Icons.Outlined.Lock, tr("Passcode"), if (passcodeOn) tr("On") else tr("Off"), Modifier.weight(1f)) { nav.push(Screen.Security) }
+                QuickTile(Glyph.Backup, tr("Backup"), last, Modifier.weight(1f)) { nav.push(Screen.Backup) }
+                QuickTile(Glyph.Message, tr("Bank SMS"), if (capture) tr("On") else tr("Off"), Modifier.weight(1f)) { nav.push(Screen.MessageSettings) }
+                QuickTile(Glyph.Lock, tr("Passcode"), if (passcodeOn) tr("On") else tr("Off"), Modifier.weight(1f)) { nav.push(Screen.Security) }
             }
             sections.forEach { sec ->
                 val isOpen = open == sec.id
@@ -307,7 +299,7 @@ internal fun FreshSettings() {
                             Text(sec.title, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                             Text(sec.sub, color = F.muted, fontSize = 12.sp)
                         }
-                        Icon(if (isOpen) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                        Icon(if (isOpen) Glyph.ChevronUp else Glyph.ChevronDown,
                             if (isOpen) tr("Collapse") else tr("Expand"), tint = F.muted)
                     }
                     if (isOpen) Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)) {
@@ -435,7 +427,7 @@ private fun SearchBox(value: String, onChange: (String) -> Unit) {
         Modifier.fillMaxWidth().height(48.dp).clip(F.buttonShape).background(F.card).padding(start = 14.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(Icons.Outlined.Search, null, tint = F.muted, modifier = Modifier.size(20.dp))
+        Icon(Glyph.Search, null, tint = F.muted, modifier = Modifier.size(20.dp))
         Box(Modifier.weight(1f)) {
             if (value.isEmpty()) Text(tr("Search settings, e.g. dark, pin, export"), color = F.muted, fontSize = 14.sp, maxLines = 1)
             BasicTextField(value, onChange, Modifier.fillMaxWidth(), singleLine = true,
@@ -444,7 +436,7 @@ private fun SearchBox(value: String, onChange: (String) -> Unit) {
         if (value.isNotEmpty()) Box(
             Modifier.size(40.dp).clip(CircleShape).clickable(onClickLabel = tr("Clear search")) { onChange("") },
             contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Outlined.Close, tr("Clear search"), tint = F.muted, modifier = Modifier.size(18.dp)) }
+        ) { Icon(Glyph.Close, tr("Clear search"), tint = F.muted, modifier = Modifier.size(18.dp)) }
     }
 }
 

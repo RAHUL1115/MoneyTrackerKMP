@@ -15,13 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -97,11 +90,11 @@ internal fun MoneyTab() {
 
     Column(Modifier.fillMaxSize()) {
         TabHeader(tr("Money")) {
-            IconTile(Icons.Outlined.BarChart, tr("Net worth trend"), { trendOn = !trendOn },
+            IconTile(Glyph.Trend, tr("Net worth trend"), { trendOn = !trendOn },
                 tint = if (trendOn) F.accent else F.ink, background = if (trendOn) F.accentTint else F.card)
             // A gear means app Settings everywhere, so this one says what it opens.
             HeaderButton(tr("Groups"), filled = false) { manage = true }
-            IconTile(Icons.Outlined.Add, tr("Add account"), { nav.push(Screen.EditAccount()) })
+            IconTile(Glyph.Add, tr("Add account"), { nav.push(Screen.EditAccount()) })
         }
         val (lines, worth) = summary ?: return@Column
         Column(
@@ -161,7 +154,7 @@ internal fun MoneyTab() {
                         Text(" · ${visible.size}" + if (allHidden) " · " + tr("hidden") else "", Modifier.weight(1f), color = F.muted, fontSize = 13.sp, maxLines = 1)
                         Text(currency.format(total), color = if (allHidden) F.muted else if (total < 0) F.expense else F.ink,
                             fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
-                        Icon(if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.padding(start = 6.dp).size(20.dp))
+                        Icon(if (open) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted, modifier = Modifier.padding(start = 6.dp).size(20.dp))
                     }
                     if (open) Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp)) {
                         visible.forEachIndexed { i, l ->
@@ -327,13 +320,13 @@ private fun ManageSheet(lines: List<AccountLine>, onDismiss: () -> Unit) {
                     Text(g.name, color = if (hidden) F.muted else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(tr("{0} · {1} accounts", g.type.moneyLabel, inGroup.size) + if (hidden) " · " + tr("hidden") else "", color = F.muted, fontSize = 12.sp)
                 }
-                if (inGroup.isNotEmpty()) SmallTile(if (hidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, if (hidden) tr("Show {0}", g.name) else tr("Hide {0}", g.name)) {
+                if (inGroup.isNotEmpty()) SmallTile(if (hidden) Glyph.EyeOff else Glyph.Eye, if (hidden) tr("Show {0}", g.name) else tr("Hide {0}", g.name)) {
                     val before = inGroup.associate { it.id to it.hidden }
                     io { inGroup.forEach { repo.setAccountHidden(it.id, !hidden) } }
                     toaster.show(if (hidden) tr("{0} shown", g.name) else tr("{0} hidden", g.name)) { io { before.forEach { (id, h) -> repo.setAccountHidden(id, h) } } }
                 }
-                SmallTile(Icons.Filled.KeyboardArrowUp, tr("Move {0} up", g.name), enabled = i > 0) { move(-1) }
-                SmallTile(Icons.Filled.KeyboardArrowDown, tr("Move {0} down", g.name), enabled = i < groups.lastIndex) { move(1) }
+                SmallTile(Glyph.ChevronUp, tr("Move {0} up", g.name), enabled = i > 0) { move(-1) }
+                SmallTile(Glyph.ChevronDown, tr("Move {0} down", g.name), enabled = i < groups.lastIndex) { move(1) }
             }
         }
         Gap(8.dp)
@@ -344,7 +337,7 @@ private fun ManageSheet(lines: List<AccountLine>, onDismiss: () -> Unit) {
         if (deleted.isNotEmpty()) {
             Divider()
             FRow(tr("Deleted accounts ({0})", deleted.size), null, chevron = false, onClick = { showDeleted = !showDeleted }, trailing = {
-                Icon(if (showDeleted) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, tint = F.muted)
+                Icon(if (showDeleted) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted)
             })
             if (showDeleted) deleted.forEach { a ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {

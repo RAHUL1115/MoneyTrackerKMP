@@ -15,11 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -182,13 +177,13 @@ internal fun InsightsTab() {
 
     Column(Modifier.fillMaxSize()) {
         TabHeader(tr("Insights")) {
-            IconTile(Icons.Outlined.FileDownload, tr("Export to Excel"), { backup.exportExcel() })
+            IconTile(Glyph.Download, tr("Export to Excel"), { backup.exportExcel() })
             Pill(when (span) {
                 Span.WEEK -> tr("Week")
                 Span.MONTH -> monthShort(ym.month) + " " + ym.year
                 Span.YEAR -> ym.year.toString()
                 Span.CUSTOM -> tr("Custom")
-            }, selected = false, onClick = { periodSheet = true }, modifier = Modifier.padding(top = 4.dp), leading = Icons.Outlined.DateRange)
+            }, selected = false, onClick = { periodSheet = true }, modifier = Modifier.padding(top = 4.dp), leading = Glyph.Calendar)
         }
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter),
@@ -381,7 +376,7 @@ private fun PartRow(
                 if (notes.isNotEmpty()) Text(notes.joinToString(" · "), color = F.muted, fontSize = 12.sp, maxLines = 1)
             }
             Text(currency.format(part.amount), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
-            Icon(if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.padding(start = 4.dp).size(20.dp))
+            Icon(if (open) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted, modifier = Modifier.padding(start = 4.dp).size(20.dp))
         }
         Gap(8.dp)
         Bar(part.amount.coerceAtLeast(0).toFloat() / top, Modifier.padding(start = 46.dp), fill = if (income) F.income else F.accent, height = 6.dp)
@@ -417,7 +412,7 @@ private fun EntryLine(r: ReportRow, accountName: Map<String, String>, catById: M
             Text(listOfNotNull(r.date?.short(), accountName[r.accountId]).joinToString(" · "), color = F.muted, fontSize = 12.sp, maxLines = 1)
         }
         Spacer(Modifier.width(8.dp))
-        Text((if (refund) "+" else "") + currency.format(kotlin.math.abs(r.amount)), color = if (refund) F.income else F.ink,
+        Text((if (refund) "+" else "") + currency.format(kotlin.math.abs(r.amount)), color = when { refund || r.kind == TxnKind.INCOME -> F.income; r.kind == TxnKind.EXPENSE -> F.expense; else -> F.ink },
             fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
     }
 }

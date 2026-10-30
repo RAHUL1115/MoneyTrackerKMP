@@ -24,16 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Backspace
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Autorenew
-import androidx.compose.material.icons.outlined.Fingerprint
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Savings
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Sms
-import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -107,7 +97,7 @@ internal fun HomeTab(onOpenTab: (FreshTab) -> Unit) {
     val greeting = when (hour) { in 5..11 -> tr("Good morning"); in 12..16 -> tr("Good afternoon"); else -> tr("Good evening") }
     Column(Modifier.fillMaxSize().background(F.page).verticalScroll(rememberScrollState())) {
         TabHeader(greeting, overline = "${today.weekday()}, ${today.short()}") {
-            IconTile(Icons.Outlined.Settings, tr("Settings"), { nav.push(Screen.Configuration) })
+            IconTile(Glyph.Settings, tr("Settings"), { nav.push(Screen.Configuration) })
         }
         Column(Modifier.padding(horizontal = F.gutter).padding(top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
             SpendingHero(onOpenTab)
@@ -176,7 +166,7 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
                         Modifier.weight(1f), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
                     Text(if (daysLeft == 1) tr("Last day ›") else tr("{0} days to go ›", daysLeft), color = soft, fontSize = 13.sp)
                 }
-                Bar(budget.ratio, fill = if (budget.ratio > 1f) F.warn else F.accent, track = F.fill, height = 6.dp)
+                Bar(budget.ratio, fill = if (budget.ratio > 1f) F.danger else F.accent, track = F.fill, height = 6.dp)
             }
         }
     }
@@ -204,7 +194,7 @@ private fun SmsWaiting() {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {
-            Icon(Icons.Outlined.Sms, null, tint = F.accent, modifier = Modifier.size(18.dp))
+            Icon(Glyph.Message, null, tint = F.accent, modifier = Modifier.size(18.dp))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(if (pending.size == 1) tr("1 payment found in bank SMS") else tr("{0} payments found in bank SMS", pending.size),
@@ -212,7 +202,7 @@ private fun SmsWaiting() {
             Text(listOfNotNull(if (sum > 0) currency.format(sum) else null, tr("tap to add them")).joinToString(" · "),
                 color = F.muted, fontSize = 12.sp, style = F.money, maxLines = 1)
         }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = F.muted, modifier = Modifier.size(20.dp))
+        Icon(Glyph.ChevronRight, null, tint = F.muted, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -242,7 +232,7 @@ private fun RecentDays() {
                         if (t.income > 0) "+" + currency.format(t.income) else null,
                         if (t.expense > 0) "−" + currency.format(t.expense) else null,
                     ).joinToString(" · "),
-                    color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money,
+                    color = if (t.expense > 0) F.expense else F.income, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money,
                 )
             }
             // An empty day is just its heading with "Nothing yet"; no empty card.
@@ -291,7 +281,7 @@ fun FreshLock(hash: String, onUnlocked: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(F.accent), contentAlignment = Alignment.Center) {
-            Icon(Icons.Outlined.Lock, null, tint = F.onAccent, modifier = Modifier.size(30.dp))
+            Icon(Glyph.Lock, null, tint = F.onAccent, modifier = Modifier.size(30.dp))
         }
         Text(tr("Unlock MoneyTracker"), color = F.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Text(
@@ -314,8 +304,8 @@ fun FreshLock(hash: String, onUnlocked: () -> Unit) {
                         contentAlignment = Alignment.Center,
                     ) {
                         when (k) {
-                            "bio" -> Icon(Icons.Outlined.Fingerprint, tr("Unlock with biometrics"), tint = F.accent, modifier = Modifier.size(30.dp))
-                            "del" -> Icon(Icons.AutoMirrored.Filled.Backspace, tr("Delete digit"), tint = F.ink)
+                            "bio" -> Icon(Glyph.Fingerprint, tr("Unlock with biometrics"), tint = F.accent, modifier = Modifier.size(30.dp))
+                            "del" -> Icon(Glyph.Backspace, tr("Delete digit"), tint = F.ink)
                             else -> Text(k, color = F.ink, fontSize = 21.sp, fontWeight = FontWeight.Medium)
                         }
                     }

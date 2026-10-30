@@ -24,9 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Backspace
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -109,7 +106,7 @@ internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (k == "⌫") Icon(Icons.AutoMirrored.Outlined.Backspace, aria[k], tint = F.ink, modifier = Modifier.size(24.dp))
+                        if (k == "⌫") Icon(Glyph.Backspace, aria[k], tint = F.ink, modifier = Modifier.size(24.dp))
                         else Text(k, color = if (op) F.accent else F.ink, fontSize = if (op) 21.sp else 22.sp, fontWeight = FontWeight.Medium)
                     }
                 }
@@ -225,7 +222,7 @@ internal fun AddPhotoViewer(files: List<String>, start: Int, onRemove: (Int) -> 
             }
             Row(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(44.dp).clip(F.iconShape).clickable(onClickLabel = tr("Close photo"), onClick = onDismiss), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.Close, tr("Close photo"), tint = Color.White)
+                    Icon(Glyph.Close, tr("Close photo"), tint = Color.White)
                 }
                 Text(tr("Receipt {0} of {1}", pager.currentPage + 1, files.size), Modifier.weight(1f).padding(start = 8.dp),
                     color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)

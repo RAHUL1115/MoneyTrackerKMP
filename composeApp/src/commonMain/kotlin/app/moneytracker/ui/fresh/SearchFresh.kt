@@ -20,11 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -141,12 +136,12 @@ internal fun FreshSearch() {
 
     Column(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconTile(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"), { nav.pop() })
+            IconTile(Glyph.Back, tr("Back"), { nav.pop() })
             Row(
                 Modifier.weight(1f).height(44.dp).clip(F.iconShape).background(F.card).border(2.dp, F.accent, F.iconShape).padding(start = 12.dp, end = 6.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(Icons.Outlined.Search, null, tint = F.muted, modifier = Modifier.size(18.dp))
+                Icon(Glyph.Search, null, tint = F.muted, modifier = Modifier.size(18.dp))
                 Box(Modifier.weight(1f)) {
                     if (text.isEmpty()) Text(tr("Note, category, account or #tag"), color = F.muted, fontSize = 14.sp, maxLines = 1)
                     BasicTextField(text, { text = it }, Modifier.fillMaxWidth(), singleLine = true,
@@ -155,7 +150,7 @@ internal fun FreshSearch() {
                 if (text.isNotEmpty()) Box(
                     Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(F.page).clickable(onClickLabel = tr("Clear search text")) { text = "" },
                     contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Filled.Close, tr("Clear search text"), tint = F.muted, modifier = Modifier.size(16.dp)) }
+                ) { Icon(Glyph.Close, tr("Clear search text"), tint = F.muted, modifier = Modifier.size(16.dp)) }
             }
         }
         LazyColumn(
@@ -194,7 +189,7 @@ internal fun FreshSearch() {
                             ) {
                                 Text(if (dates == SearchDates.ALL) tr("All time") else "${range.start.searchLabel()} – ${range.endInclusive.searchLabel()}".takeIf { dates != SearchDates.CUSTOM || from != null || to != null } ?: tr("Custom"),
                                     color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-                                Icon(Icons.Filled.KeyboardArrowDown, null, tint = F.ink, modifier = Modifier.size(16.dp))
+                                Icon(Glyph.ChevronDown, null, tint = F.ink, modifier = Modifier.size(16.dp))
                             }
                         }
                     }

@@ -27,20 +27,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.PhotoCamera
-import androidx.compose.material.icons.outlined.StarOutline
-import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -432,7 +418,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                     Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(if (listening) F.accent else F.fill)
                         .clickable(onClickLabel = tr("Say the entry, e.g. 200 fuel")) { focus.clearFocus(); listen() },
                     contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Outlined.Mic, tr("Say the entry, e.g. 200 fuel"), tint = if (listening) F.onAccent else F.muted, modifier = Modifier.size(16.dp)) }
+                ) { Icon(Glyph.Mic, tr("Say the entry, e.g. 200 fuel"), tint = if (listening) F.onAccent else F.muted, modifier = Modifier.size(16.dp)) }
             }) else null,
         )
     }
@@ -475,7 +461,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         ) {
             // Quiet: only the code, so it doesn't compete with the amount.
             Text(f.currencyCode ?: tr("Main"), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Icon(Icons.Filled.KeyboardArrowDown, tr("Currency"), tint = F.muted, modifier = Modifier.size(16.dp))
+            Icon(Glyph.ChevronDown, tr("Currency"), tint = F.muted, modifier = Modifier.size(16.dp))
         }
     }
 
@@ -494,7 +480,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     Box(Modifier.fillMaxSize().background(F.card).statusBarsPadding()) {
         Column(Modifier.fillMaxSize().padding(horizontal = F.gutter).padding(top = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconTile(Icons.Filled.Close, tr("Close"), { nav.back() }, background = F.page)
+                IconTile(Glyph.Close, tr("Close"), { nav.back() }, background = F.page)
                 TypeTabs(f, Modifier.weight(1f))
             }
             // The amount has a fixed zone; its line has a fixed height and long sums shrink inside it.
@@ -539,7 +525,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                         Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(F.page)
                             .clickable(onClickLabel = tr("Swap accounts")) { val a = f.accountId; f.accountId = f.toAccountId; f.toAccountId = a },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Outlined.SwapHoriz, tr("Swap accounts"), tint = F.accent, modifier = Modifier.size(18.dp)) }
+                    ) { Icon(Glyph.Swap, tr("Swap accounts"), tint = F.accent, modifier = Modifier.size(18.dp)) }
                     AccountBox(tr("TO"), accountName(f.toAccountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.TO }
                 }
                 Row(
@@ -631,12 +617,12 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                         Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).background(F.dangerTint)
                             .clickable(onClickLabel = tr("Delete entry")) { confirmDelete = true },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Outlined.Delete, tr("Delete entry"), tint = F.danger) }
+                    ) { Icon(Glyph.Delete, tr("Delete entry"), tint = F.danger) }
                     if (!f.isAdjustment) Box(
                         Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).border(1.dp, F.border, RoundedCornerShape(18.dp))
                             .clickable(onClickLabel = tr("Copy entry")) { sheet = AddSheet.COPY },
                         contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Outlined.ContentCopy, tr("Copy entry"), tint = F.ink, modifier = Modifier.size(20.dp)) }
+                    ) { Icon(Glyph.Copy, tr("Copy entry"), tint = F.ink, modifier = Modifier.size(20.dp)) }
                     PrimaryButton(tr("Save changes"), { save(false) }, Modifier.weight(1f).height(54.dp))
                 } else {
                     Box(
@@ -944,7 +930,7 @@ private fun SentencePill(text: String, accent: Boolean, missing: Boolean, modifi
         }
         Text(text, Modifier.weight(1f, fill = false), color = ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Icon(Icons.Filled.KeyboardArrowDown, null, tint = ink, modifier = Modifier.size(16.dp))
+        Icon(Glyph.ChevronDown, null, tint = ink, modifier = Modifier.size(16.dp))
     }
 }
 
@@ -956,7 +942,7 @@ private fun DateChip(text: String, onClick: () -> Unit) {
             .padding(start = 11.dp, end = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(Icons.Outlined.CalendarToday, null, tint = F.accent, modifier = Modifier.size(15.dp))
+        Icon(Glyph.Calendar, null, tint = F.accent, modifier = Modifier.size(15.dp))
         Text(text, color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }

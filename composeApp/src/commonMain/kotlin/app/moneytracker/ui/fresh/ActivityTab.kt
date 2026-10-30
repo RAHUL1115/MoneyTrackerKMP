@@ -22,19 +22,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Autorenew
-import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.PhotoCamera
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.StarOutline
-import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -180,15 +167,15 @@ internal fun ActivityTab() {
 
     Column(Modifier.fillMaxSize()) {
         TabHeader(if (selecting) tr("Select") else tr("Activity")) {
-            IconTile(Icons.Outlined.Search, tr("Search and filter"), { nav.push(Screen.Search) })
+            IconTile(Glyph.Search, tr("Search and filter"), { nav.push(Screen.Search) })
             // Bookmarks are saved entries: pick one to open it filled in, then check and save.
-            IconTile(Icons.Outlined.StarOutline, tr("Bookmarks"), { nav.push(Screen.Templates) })
-            IconTile(Icons.Outlined.MoreHoriz, tr("More"), { moreSheet = true }, badge = pending.size)
+            IconTile(Glyph.Star, tr("Bookmarks"), { nav.push(Screen.Templates) })
+            IconTile(Glyph.More, tr("More"), { moreSheet = true }, badge = pending.size)
             when (view) {
                 ActView.LIST -> HeaderButton(if (selecting) tr("Done") else tr("Select"), filled = selecting) {
                     if (selecting) endSelect() else selecting = true
                 }
-                ActView.NOTES -> HeaderButton(tr("Note"), filled = true, leading = Icons.Filled.Add) { nav.push(Screen.EditNote()) }
+                ActView.NOTES -> HeaderButton(tr("Note"), filled = true, leading = Glyph.Add) { nav.push(Screen.EditNote()) }
                 else -> Unit
             }
         }
@@ -249,7 +236,7 @@ private fun ActFilterBar(filter: TxnFilter, catById: Map<String, Category>, acco
         Text(tr("Filter: {0}", names.joinToString(", ")), Modifier.weight(1f), color = F.accent, fontSize = 13.sp,
             fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Box(Modifier.size(40.dp).clip(CircleShape).clickable(onClickLabel = tr("Clear filter"), onClick = onClear), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Close, tr("Clear filter"), tint = F.accent, modifier = Modifier.size(18.dp))
+            Icon(Glyph.Close, tr("Clear filter"), tint = F.accent, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -281,10 +268,10 @@ private fun MoreSheet(pending: Int, filtered: Boolean, onDismiss: () -> Unit, on
 @Composable
 internal fun ActPeriodSwitch(label: String, onPrev: () -> Unit, onNext: () -> Unit, onLabel: () -> Unit, tile: Boolean = false, minWidth: Int = 112) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        ArrowButton(Icons.AutoMirrored.Filled.KeyboardArrowLeft, tr("Previous"), tile, onPrev)
+        ArrowButton(Glyph.ChevronLeft, tr("Previous"), tile, onPrev)
         Text(label, Modifier.widthIn(min = minWidth.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = onLabel).padding(horizontal = 4.dp, vertical = 8.dp),
             color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 1)
-        ArrowButton(Icons.AutoMirrored.Filled.KeyboardArrowRight, tr("Next"), tile, onNext)
+        ArrowButton(Glyph.ChevronRight, tr("Next"), tile, onNext)
     }
 }
 
@@ -442,12 +429,12 @@ private fun UpcomingRepeats(pending: List<Pair<app.moneytracker.domain.Recurring
     }
     FCard(onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Mark(tr("Repeat"), 36.dp, icon = Icons.Outlined.Autorenew)
+            Mark(tr("Repeat"), 36.dp, icon = Glyph.Repeat)
             Column(Modifier.weight(1f)) {
                 Text(tr("Coming up · {0}", "${first.dayOfMonth} ${monthShort(first.monthNumber)}"), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 Text(names.joinToString(", "), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(currency.format(sum, showSign = true), color = if (sum >= 0) F.income else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money)
+            Text(currency.format(sum, showSign = true), color = if (sum >= 0) F.income else F.expense, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money)
         }
     }
 }
@@ -525,16 +512,16 @@ internal fun ActEntryRow(
         ) { if (selected) Text("✓", color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
         val markSize = if (compact) 32.dp else 40.dp
         when {
-            transfer -> Mark(tr("Transfer"), markSize, icon = Icons.Outlined.SwapHoriz)
-            adjust -> Mark(catName, markSize, icon = Icons.Outlined.Tune)
+            transfer -> Mark(tr("Transfer"), markSize, icon = Glyph.Swap)
+            adjust -> Mark(catName, markSize, icon = Glyph.Edit)
             else -> Mark(mainCategoryName(txn.categoryId, data.catById), markSize)
         }
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(title, Modifier.weight(1f, fill = false), color = F.ink, fontSize = if (compact) 14.sp else 14.sp, fontWeight = FontWeight.Medium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (txn.id in data.photos) Icon(Icons.Outlined.PhotoCamera, tr("Has a photo"), tint = F.muted, modifier = Modifier.size(14.dp))
-                if (txn.lat != null) Icon(Icons.Outlined.LocationOn, tr("Has a location"), tint = F.muted, modifier = Modifier.size(14.dp))
+                if (txn.id in data.photos) Icon(Glyph.Camera, tr("Has a photo"), tint = F.muted, modifier = Modifier.size(14.dp))
+                if (txn.lat != null) Icon(Glyph.Place, tr("Has a location"), tint = F.muted, modifier = Modifier.size(14.dp))
             }
             if (meta.isNotEmpty()) Text(meta, Modifier.padding(top = 3.dp), color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (prefs.showDescription && txn.memo.isNotBlank()) Text(txn.memo, color = F.muted, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -546,6 +533,7 @@ internal fun ActEntryRow(
         val color = when {
             plus -> F.income
             adjust -> F.muted
+            flow == Flow.EXPENSE -> F.expense
             else -> F.ink
         }
         val prefix = when {
@@ -676,7 +664,7 @@ private fun SelectionPanel(selected: List<Txn>, onDone: () -> Unit, modifier: Mo
 private fun androidx.compose.foundation.layout.RowScope.PanelButton(text: String, enabled: Boolean, danger: Boolean = false, onClick: () -> Unit) {
     Box(
         Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp))
-            .background(if (danger) F.warn else F.page.copy(alpha = 0.14f))
+            .background(if (danger) F.danger else F.page.copy(alpha = 0.14f))
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
