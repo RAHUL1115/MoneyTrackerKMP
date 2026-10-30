@@ -158,6 +158,7 @@ class MoneyRepository(
         const val TIME_SORT = "timeSort"                  // DESC (default) | ASC: order of entries within a day
         const val SHOW_DESCRIPTION = "showDescription"    // "1" = description under the note in lists
         const val INPUT_ORDER = "inputOrder"              // AMOUNT (default) | ACCOUNT: which picker opens first
+        const val ENTRY_STYLE = "entryStyle"              // SENTENCE (default) | RECEIPT: entry screen of the new layout
         const val COLOR_SET = "colorSet"                  // A (income green, expense red) | B (swapped)
         const val SYMBOL_AFTER = "symbolAfter"            // "1" = "1,000.00 ₹"
         const val SWIPE = "swipe"                         // DATE (default) | TAB | NONE: horizontal swipe on Trans.

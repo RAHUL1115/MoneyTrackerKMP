@@ -168,10 +168,12 @@ internal fun AddInput(
     number: Boolean = false,
     fieldModifier: Modifier = Modifier,
     trailing: (@Composable () -> Unit)? = null,
+    background: Color = F.page,
 ) {
     Row(
-        modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(F.page)
-            .padding(start = 12.dp, end = if (trailing != null) 8.dp else 12.dp),
+        modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(background)
+            // Without a fill (inside a receipt row) the text lines up with the rows' values.
+            .padding(start = if (background == Color.Transparent) 0.dp else 12.dp, end = if (trailing != null) 8.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.weight(1f).padding(vertical = 10.dp)) {

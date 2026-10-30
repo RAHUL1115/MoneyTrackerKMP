@@ -74,6 +74,7 @@ private fun settingChoices(): Map<String, List<Pair<String, String>>> = mapOf(
     Keys.TIME_INPUT to listOf("NONE" to tr("Off"), "INPUT" to tr("Record time"), "LIST" to tr("Record and show in lists")),
     Keys.TIME_SORT to listOf("DESC" to tr("Latest first"), "ASC" to tr("Earliest first")),
     Keys.INPUT_ORDER to listOf("AMOUNT" to tr("Amount first"), "ACCOUNT" to tr("Account first")),
+    Keys.ENTRY_STYLE to listOf("SENTENCE" to tr("Sentence: on Food from HDFC"), "RECEIPT" to tr("Receipt: a card of rows")),
     Keys.THEME to listOf("SYSTEM" to tr("Follow system"), "LIGHT" to tr("Light"), "DARK" to tr("Dark")),
     Keys.REPEAT_TIMING to listOf("ON_DATE" to tr("On the date"), "MONTH_START" to tr("On the first day of the month")),
     Keys.WIDGET_THEME to listOf("SYSTEM" to tr("Follow system"), "LIGHT" to tr("Light"), "DARK" to tr("Dark")),
@@ -85,7 +86,7 @@ private fun settingChoices(): Map<String, List<Pair<String, String>>> = mapOf(
 
 private fun choiceTitle(key: String): String = when (key) {
     Keys.SWIPE -> tr("Swipe left / right"); Keys.COLOR_SET -> tr("Income / expense colours"); Keys.TIME_INPUT -> tr("Time input")
-    Keys.TIME_SORT -> tr("Order within a day"); Keys.INPUT_ORDER -> tr("Input order"); Keys.THEME -> tr("Theme")
+    Keys.TIME_SORT -> tr("Order within a day"); Keys.INPUT_ORDER -> tr("Input order"); Keys.ENTRY_STYLE -> tr("Entry screen"); Keys.THEME -> tr("Theme")
     Keys.REPEAT_TIMING -> tr("Repeat entries are added"); Keys.WIDGET_THEME -> tr("Widget style"); Keys.WIDGET_OPACITY -> tr("Widget background")
     Keys.WEEKEND_SHIFT -> tr("Start date on a weekend"); Keys.WEEK_START -> tr("Week starts on"); else -> tr("Start view")
 }
@@ -93,7 +94,7 @@ private fun choiceTitle(key: String): String = when (key) {
 private val STORED_KEYS = listOf(
     Keys.LANGUAGE, Keys.CARRY_OVER, Keys.CARD_AT_PAYMENT, Keys.REMINDER, Keys.QUICK_ADD_NOTIFICATION, Keys.CAPTURE_ENABLED, Keys.LOCATION,
     Keys.USE_SUBCATEGORIES, Keys.PASSCODE, Keys.REMINDER_TIME, Keys.START_SCREEN, Keys.SWIPE, Keys.COLOR_SET, Keys.TIME_INPUT, Keys.TIME_SORT,
-    Keys.INPUT_ORDER, Keys.THEME, Keys.WIDGET_THEME, Keys.WIDGET_OPACITY, Keys.REPEAT_TIMING, Keys.AUTOCOMPLETE, Keys.HABIT_ACCOUNT,
+    Keys.INPUT_ORDER, Keys.ENTRY_STYLE, Keys.THEME, Keys.WIDGET_THEME, Keys.WIDGET_OPACITY, Keys.REPEAT_TIMING, Keys.AUTOCOMPLETE, Keys.HABIT_ACCOUNT,
     Keys.SHOW_DESCRIPTION, Keys.NOTE_BUTTON, Keys.SYMBOL_AFTER,
 )
 
@@ -184,6 +185,7 @@ internal fun FreshSettings() {
             link(tr("Sub currencies"), currencies.joinToString(", ") { it.code }.ifEmpty { null }, "currency dollar exchange rate foreign") { nav.push(Screen.Currencies) },
         )),
         SSection("adding", tr("Adding entries"), tr("Order, suggestions, time, location"), listOf(
+            pick(Keys.ENTRY_STYLE, words = "add entry screen style sentence receipt layout"),
             pick(Keys.INPUT_ORDER, words = "keypad form"),
             toggle(tr("Remember usual accounts"), v[Keys.HABIT_ACCOUNT] != "0",
                 tr("Pre-select the account you usually use; a category's preferred account comes first"), "default account preselect habit") {

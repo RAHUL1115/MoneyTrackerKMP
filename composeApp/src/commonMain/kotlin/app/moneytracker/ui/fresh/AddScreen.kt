@@ -35,6 +35,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -112,6 +114,8 @@ private enum class AddSheet { NONE, CATEGORY, ACCOUNT, FROM, TO, TAGS, REPEAT, C
 @Stable
 private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: CurrencyFormat, val currencies: Map<String, Currency>, timeOn: Boolean) {
     val accountFirst = repo.settingNow(Keys.INPUT_ORDER) == "ACCOUNT"
+    /** Entry screen style: the sentence ("on Food from HDFC") or a receipt card of rows. */
+    val receipt = repo.settingNow(Keys.ENTRY_STYLE) == "RECEIPT"
     var existing by mutableStateOf<Txn?>(null)
     // Balance adjustments edit as Increase / Decrease; picking a type turns one into a normal entry.
     var adjustUp by mutableStateOf(true)
@@ -413,9 +417,9 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     // ───────────── pieces shared by both screens
 
     @Composable
-    fun noteField(modifier: Modifier = Modifier) {
+    fun noteField(modifier: Modifier = Modifier, background: Color = F.page) {
         AddInput(
-            f.note, { f.note = it }, tr("Note"), modifier,
+            f.note, { f.note = it }, tr("Note"), modifier, background = background,
             fieldModifier = Modifier.focusRequester(noteFocus).onFocusChanged { noteFocused = it.isFocused },
             trailing = if (platform.voiceAvailable) ({
                 Box(
@@ -469,6 +473,86 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         }
     }
 
+    // The line under the amount: an error, the sum of a calculation, or what the entry is.
+    fun amountHint(): Pair<String, Color> = when {
+        f.error != null -> f.error!! to F.danger
+        Calc.hasOperator(f.amountText) -> "= " + (total?.let { fmt.format(it) } ?: "…") to F.accent
+        f.isAdjustment -> (if (f.adjustUp) tr("Balance increase") else tr("Balance decrease")) to F.muted
+        isTransfer && f.accountId != null && f.accountId == f.toAccountId -> tr("Pick two different accounts") to F.danger
+        isTransfer -> tr("Move money") to F.muted
+        else -> listOfNotNull(
+            if (f.existing != null) tr("Editing") else null,
+            if (f.type == DraftType.REFUND) tr("Refund") else null,
+            catLabel ?: tr("Pick a category"),
+        ).joinToString(" · ") to F.muted
+    }
+
+    // ───────────── the receipt style: amount over a card of rows, each opening its picker
+
+    @Composable
+    fun receiptCard() {
+        Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).padding(horizontal = 16.dp).padding(top = 14.dp, bottom = 2.dp)) {
+            val (hint, hintColor) = amountHint()
+            Text(hint, Modifier.height(18.dp), color = hintColor, fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val amountText = shown(fmt, addExprShown(if (feeTarget) f.feeText.ifEmpty { "0" } else f.amountText))
+            Row(
+                Modifier.fillMaxWidth().height(56.dp).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { feeTarget = false; focus.clearFocus() },
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    (if (feeTarget) tr("Fee") + " " else "") + amountText, Modifier.weight(1f, fill = false),
+                    color = if (feeTarget) F.accent else if ((total ?: 0) > 0) F.ink else F.muted,
+                    fontSize = when { amountText.length > 16 -> 26.sp; amountText.length > 11 -> 32.sp; else -> 40.sp },
+                    fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, style = F.money,
+                )
+                currencyChip()
+            }
+            Box(Modifier.padding(top = 8.dp).fillMaxWidth().height(1.dp).background(F.border))
+            val current = f.categoryId?.let { catById[it] }
+            if (isTransfer) {
+                ReceiptRow(Glyph.Card, accountName(f.accountId) ?: tr("Choose"), tr("From"), missing = f.accountId == null) { focus.clearFocus(); sheet = AddSheet.FROM }
+                ReceiptRow(Glyph.Swap, accountName(f.toAccountId) ?: tr("Choose"), tr("To"), missing = f.toAccountId == null) { focus.clearFocus(); sheet = AddSheet.TO }
+            } else if (f.isAdjustment) {
+                ReceiptRow(Glyph.Edit, tr(MODIFIED_BALANCE_NAME), tr("Adjustment"), onClick = null)
+                ReceiptRow(Glyph.Card, accountName(f.accountId) ?: tr("Choose"), tr("Account"), onClick = null)
+            } else {
+                ReceiptRow(
+                    categoryIcon(current?.let { catById[it.parentId ?: it.id]?.name ?: it.name }) ?: Glyph.More,
+                    catLabel ?: tr("Pick a category"), if (f.type == DraftType.REFUND) tr("Refund for") else tr("Category"),
+                    accent = true, missing = catLabel == null,
+                ) { focus.clearFocus(); sheet = AddSheet.CATEGORY }
+                ReceiptRow(Glyph.Card, accountName(f.accountId) ?: tr("Choose"), if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("Into") else tr("Account"),
+                    missing = f.accountId == null) { focus.clearFocus(); sheet = AddSheet.ACCOUNT }
+            }
+            // Date, with the time as its own button on the right.
+            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    Modifier.weight(1f).fillMaxHeight().clickable(onClickLabel = tr("Date")) { focus.clearFocus(); sheet = AddSheet.DATE },
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    RowIcon(Glyph.Calendar, accent = false)
+                    val day = "${f.date.weekday()} ${f.date.short()}"
+                    Text(if (f.date == today || f.date == today.minus(DatePeriod(days = 1))) "${dateLabel(f.date)}, $day" else day,
+                        color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (timeOn) Row(
+                    Modifier.height(34.dp).clip(RoundedCornerShape(10.dp)).background(F.page)
+                        .clickable(onClickLabel = tr("Time")) { focus.clearFocus(); timePicker = true }.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(Glyph.Clock, null, tint = F.ink, modifier = Modifier.size(15.dp))
+                    Text(f.timeOfDay?.let { formatTime(it) } ?: tr("Add time"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                }
+            }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(F.border))
+            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                RowIcon(Glyph.Note, accent = false)
+                noteField(Modifier.weight(1f), background = Color.Transparent)
+            }
+        }
+    }
+
     // ───────────── one screen for adding and editing
     // Nothing here moves: every zone below the amount has a fixed height, and the keyboard draws over the keypad and
     // Save instead of resizing the screen (past notes ride on a strip on top of it). Type and date change rarely, so
@@ -483,121 +567,116 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     // Like the classic layout, a refund is money coming in, so it sits on the Income tab (with expense categories).
     val refundable = !f.isAdjustment && (f.type == DraftType.INCOME || f.type == DraftType.REFUND) && e?.transferGroupId == null
     val allPhotos = if (f.isAdjustment) emptyList() else f.existingPhotos.map { it.fileName } + f.newPhotos
-    Box(Modifier.fillMaxSize().background(F.card).statusBarsPadding()) {
+    Box(Modifier.fillMaxSize().background(if (f.receipt) F.page else F.card).statusBarsPadding()) {
         Column(Modifier.fillMaxSize().padding(horizontal = F.gutter).padding(top = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconTile(Glyph.Close, tr("Close"), { nav.back() }, background = F.page)
-                TypeTabs(f, Modifier.weight(1f))
+                IconTile(Glyph.Close, tr("Close"), { nav.back() }, background = if (f.receipt) F.card else F.page)
+                TypeTabs(f, Modifier.weight(1f), onPage = f.receipt)
             }
-            // The amount has a fixed zone; its line has a fixed height and long sums shrink inside it.
-            Column(
-                Modifier.height(112.dp).fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { feeTarget = false; focus.clearFocus() },
-                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-            ) {
-                val amountText = shown(fmt, addExprShown(f.amountText))
-                Row(Modifier.height(58.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        amountText, Modifier.weight(1f, fill = false),
-                        color = if ((total ?: 0) > 0) F.ink else F.muted,
-                        fontSize = when { amountText.length > 16 -> 26.sp; amountText.length > 11 -> 30.sp; else -> 36.sp },
-                        fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, style = F.money,
-                    )
-                    currencyChip()
-                }
-                val hasOp = Calc.hasOperator(f.amountText)
-                val (hint, color) = when {
-                    f.error != null -> f.error!! to F.danger
-                    hasOp -> "= " + (total?.let { fmt.format(it) } ?: "…") to F.accent
-                    f.isAdjustment -> (if (f.adjustUp) tr("Balance increase") else tr("Balance decrease")) to F.muted
-                    isTransfer && f.accountId != null && f.accountId == f.toAccountId -> tr("Pick two different accounts") to F.danger
-                    isTransfer -> tr("Move money") to F.muted
-                    else -> listOfNotNull(
-                        if (e != null) tr("Editing") else null,
-                        if (f.type == DraftType.REFUND) tr("Refund") else null,
-                        catLabel ?: tr("Pick a category"),
-                    ).joinToString(" · ") to F.muted
-                }
-                Text(hint, Modifier.height(18.dp), color = color, fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-            }
-
-            // One fixed box for "what is it": the entry as a sentence ("on Food from HDFC") with recent categories under it,
-            // or From / To and the fee for a transfer. Its height never changes, so switching type moves nothing.
-            Column(Modifier.fillMaxWidth().height(104.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            if (isTransfer) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AccountBox(tr("FROM"), accountName(f.accountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.FROM }
-                    Box(
-                        Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(F.page)
-                            .clickable(onClickLabel = tr("Swap accounts")) { val a = f.accountId; f.accountId = f.toAccountId; f.toAccountId = a },
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(Glyph.Swap, tr("Swap accounts"), tint = F.accent, modifier = Modifier.size(18.dp)) }
-                    AccountBox(tr("TO"), accountName(f.toAccountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.TO }
-                }
-                Row(
-                    Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (feeTarget) F.accentTint else F.page)
-                        .clickable { feeTarget = !feeTarget; focus.clearFocus() }.padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            if (f.receipt) receiptCard() else {
+                // The amount has a fixed zone; its line has a fixed height and long sums shrink inside it.
+                Column(
+                    Modifier.height(112.dp).fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { feeTarget = false; focus.clearFocus() },
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
                 ) {
-                    Text(tr("Fee, saved as an expense"), Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                    Text(if (f.feeText.isEmpty()) shown(fmt, "0") else shown(fmt, addExprShown(f.feeText)),
-                        color = if (f.feeText.isEmpty()) F.muted else F.ink, fontSize = 14.sp, style = F.money)
-                }
-            } else if (!f.isAdjustment) {
-                val current = f.categoryId?.let { catById[it] }
-                val selectedMain = current?.parentId ?: current?.id
-                Row(Modifier.height(44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(when (f.type) { DraftType.INCOME -> tr("for"); DraftType.REFUND -> tr("refund for"); else -> tr("on") }, color = F.muted, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                    SentencePill(catLabel?.let { catById[f.categoryId]?.name } ?: tr("Category"), accent = true, missing = catLabel == null,
-                        icon = categoryIcon(current?.let { catById[selectedMain]?.name ?: it.name }), modifier = Modifier.widthIn(max = 150.dp)) {
-                        focus.clearFocus(); sheet = AddSheet.CATEGORY
+                    val amountText = shown(fmt, addExprShown(f.amountText))
+                    Row(Modifier.height(58.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            amountText, Modifier.weight(1f, fill = false),
+                            color = if ((total ?: 0) > 0) F.ink else F.muted,
+                            fontSize = when { amountText.length > 16 -> 26.sp; amountText.length > 11 -> 30.sp; else -> 36.sp },
+                            fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, style = F.money,
+                        )
+                        currencyChip()
                     }
-                    Text(if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("into") else tr("from"), color = F.muted, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                    SentencePill(accountName(f.accountId) ?: tr("Account"), accent = false, missing = f.accountId == null, modifier = Modifier.weight(1f, fill = false)) {
-                        focus.clearFocus(); sheet = AddSheet.ACCOUNT
-                    }
+                    val (hint, color) = amountHint()
+                    Text(hint, Modifier.height(18.dp), color = color, fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                 }
-                // Recently used categories, one tap each; the chosen one is always among them.
-                val mains = categories.filter { it.kind == f.catKind && it.parentId == null }
-                val used = recentTxns.sortedByDescending { it.createdAt }.mapNotNull { t -> t.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } }
-                val recent = (used + mains.map { it.id }).distinct().mapNotNull { id -> mains.firstOrNull { it.id == id } }.take(5)
-                    .let { r -> if (selectedMain == null || r.any { it.id == selectedMain } || mains.none { it.id == selectedMain }) r else r.dropLast(1) + mains.first { it.id == selectedMain } }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    recent.forEach { c ->
-                        val on = c.id == selectedMain
+
+                // One fixed box for "what is it": the entry as a sentence ("on Food from HDFC") with recent categories under it,
+                // or From / To and the fee for a transfer. Its height never changes, so switching type moves nothing.
+                Column(Modifier.fillMaxWidth().height(104.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (isTransfer) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AccountBox(tr("FROM"), accountName(f.accountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.FROM }
                         Box(
-                            Modifier.size(44.dp).clip(CircleShape).background(if (on) F.accent else F.page)
-                                .clickable(onClickLabel = c.name) { f.pickCategory(c); if (f.accountId == null) sheet = AddSheet.ACCOUNT },
+                            Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(F.page)
+                                .clickable(onClickLabel = tr("Swap accounts")) { val a = f.accountId; f.accountId = f.toAccountId; f.toAccountId = a },
                             contentAlignment = Alignment.Center,
-                        ) {
-                            val icon = categoryIcon(c.name)
-                            if (icon != null) Icon(icon, c.name, tint = if (on) F.onAccent else F.muted, modifier = Modifier.size(20.dp))
-                            else Text(markText(c.name), color = if (on) F.onAccent else F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        ) { Icon(Glyph.Swap, tr("Swap accounts"), tint = F.accent, modifier = Modifier.size(18.dp)) }
+                        AccountBox(tr("TO"), accountName(f.toAccountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.TO }
+                    }
+                    Row(
+                        Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (feeTarget) F.accentTint else F.page)
+                            .clickable { feeTarget = !feeTarget; focus.clearFocus() }.padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(tr("Fee, saved as an expense"), Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        Text(if (f.feeText.isEmpty()) shown(fmt, "0") else shown(fmt, addExprShown(f.feeText)),
+                            color = if (f.feeText.isEmpty()) F.muted else F.ink, fontSize = 14.sp, style = F.money)
+                    }
+                } else if (!f.isAdjustment) {
+                    val current = f.categoryId?.let { catById[it] }
+                    val selectedMain = current?.parentId ?: current?.id
+                    Row(Modifier.height(44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(when (f.type) { DraftType.INCOME -> tr("for"); DraftType.REFUND -> tr("refund for"); else -> tr("on") }, color = F.muted, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                        SentencePill(catLabel?.let { catById[f.categoryId]?.name } ?: tr("Category"), accent = true, missing = catLabel == null,
+                            icon = categoryIcon(current?.let { catById[selectedMain]?.name ?: it.name }), modifier = Modifier.widthIn(max = 150.dp)) {
+                            focus.clearFocus(); sheet = AddSheet.CATEGORY
+                        }
+                        Text(if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("into") else tr("from"), color = F.muted, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                        SentencePill(accountName(f.accountId) ?: tr("Account"), accent = false, missing = f.accountId == null, modifier = Modifier.weight(1f, fill = false)) {
+                            focus.clearFocus(); sheet = AddSheet.ACCOUNT
                         }
                     }
+                    // Recently used categories, one tap each; the chosen one is always among them.
+                    val mains = categories.filter { it.kind == f.catKind && it.parentId == null }
+                    val used = recentTxns.sortedByDescending { it.createdAt }.mapNotNull { t -> t.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } }
+                    val recent = (used + mains.map { it.id }).distinct().mapNotNull { id -> mains.firstOrNull { it.id == id } }.take(5)
+                        .let { r -> if (selectedMain == null || r.any { it.id == selectedMain } || mains.none { it.id == selectedMain }) r else r.dropLast(1) + mains.first { it.id == selectedMain } }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        recent.forEach { c ->
+                            val on = c.id == selectedMain
+                            Box(
+                                Modifier.size(44.dp).clip(CircleShape).background(if (on) F.accent else F.page)
+                                    .clickable(onClickLabel = c.name) { f.pickCategory(c); if (f.accountId == null) sheet = AddSheet.ACCOUNT },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                val icon = categoryIcon(c.name)
+                                if (icon != null) Icon(icon, c.name, tint = if (on) F.onAccent else F.muted, modifier = Modifier.size(20.dp))
+                                else Text(markText(c.name), color = if (on) F.onAccent else F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                } else {
+                    Text(tr("Balance adjustment · {0}", tr(MODIFIED_BALANCE_NAME)), Modifier.fillMaxWidth().padding(top = 16.dp),
+                        color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
                 }
-            } else {
-                Text(tr("Balance adjustment · {0}", tr(MODIFIED_BALANCE_NAME)), Modifier.fillMaxWidth().padding(top = 16.dp),
-                    color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
-            }
-            }
-
-            // Date and time get a row of their own above the note, so they are easy to see and reach.
-            Row(Modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val day = "${f.date.weekday()} ${f.date.short()}"
-                FieldButton(
-                    if (f.date == today || f.date == today.minus(DatePeriod(days = 1))) "${dateLabel(f.date)}, $day" else day,
-                    Glyph.Calendar, accent = true, label = tr("Date"), modifier = Modifier.weight(1f),
-                ) { focus.clearFocus(); sheet = AddSheet.DATE }
-                if (timeOn) FieldButton(f.timeOfDay?.let { formatTime(it) } ?: tr("Add time"), Glyph.Clock, accent = false, label = tr("Time"), modifier = Modifier.widthIn(min = 116.dp)) {
-                    focus.clearFocus(); timePicker = true
                 }
-            }
 
-            noteField(Modifier.fillMaxWidth())
+                // Date and time get a row of their own above the note, so they are easy to see and reach.
+                Row(Modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val day = "${f.date.weekday()} ${f.date.short()}"
+                    FieldButton(
+                        if (f.date == today || f.date == today.minus(DatePeriod(days = 1))) "${dateLabel(f.date)}, $day" else day,
+                        Glyph.Calendar, accent = true, label = tr("Date"), modifier = Modifier.weight(1f),
+                    ) { focus.clearFocus(); sheet = AddSheet.DATE }
+                    if (timeOn) FieldButton(f.timeOfDay?.let { formatTime(it) } ?: tr("Add time"), Glyph.Clock, accent = false, label = tr("Time"), modifier = Modifier.widthIn(min = 116.dp)) {
+                        focus.clearFocus(); timePicker = true
+                    }
+                }
+
+                noteField(Modifier.fillMaxWidth())
+            }
 
             // Everything else about the entry: one chip each, each opening a small sheet. A chip shows its value once set.
+            CompositionLocalProvider(LocalChipRest provides if (f.receipt) F.card else F.page) {
             Row(Modifier.bleedScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // The receipt has no room for the fee row, so a transfer's fee is a chip that points the keypad at it.
+                if (f.receipt && isTransfer) ExtraChip(if (f.feeText.isEmpty()) tr("Fee") else tr("Fee {0}", shown(fmt, addExprShown(f.feeText))), feeTarget || f.feeText.isNotEmpty()) {
+                    feeTarget = !feeTarget; focus.clearFocus()
+                }
                 if (refundable) ExtraChip(if (f.type == DraftType.REFUND) tr("Refund ✓") else tr("Refund"), f.type == DraftType.REFUND) {
                     val on = f.type != DraftType.REFUND
                     f.type = if (on) DraftType.REFUND else DraftType.INCOME
@@ -622,6 +701,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 }
                 ExtraChip(if (f.memo.isBlank()) tr("Description") else tr("Description ✓"), f.memo.isNotBlank()) { focus.clearFocus(); sheet = AddSheet.DESC }
             }
+            }
 
             // Spare height sits between the chips and the keypad; on shorter screens the keypad gives some up.
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Bottom)) {
@@ -644,7 +724,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                     PrimaryButton(tr("Save changes"), { save(false) }, Modifier.weight(1f).height(54.dp))
                 } else {
                     Box(
-                        Modifier.height(54.dp).clip(RoundedCornerShape(18.dp)).border(1.dp, F.border, RoundedCornerShape(18.dp))
+                        Modifier.height(54.dp).clip(RoundedCornerShape(18.dp)).background(F.card).border(1.dp, F.border, RoundedCornerShape(18.dp))
                             .clickable { save(true) }.padding(horizontal = 16.dp),
                         contentAlignment = Alignment.Center,
                     ) { Text(tr("Save & new"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
@@ -899,14 +979,14 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
 
 /** Expense / Income / Transfer; a refund sits on Expense, an adjustment has none selected. */
 @Composable
-private fun TypeTabs(f: AddForm, modifier: Modifier) {
+private fun TypeTabs(f: AddForm, modifier: Modifier, onPage: Boolean = false) {
     val tabs = listOf(DraftType.EXPENSE to tr("Expense"), DraftType.INCOME to tr("Income"), DraftType.TRANSFER to tr("Transfer"))
     val selected = if (f.isAdjustment) null else if (f.type == DraftType.REFUND) DraftType.INCOME else f.type
-    Row(modifier.height(44.dp).clip(F.iconShape).background(F.page).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(modifier.height(44.dp).clip(F.iconShape).background(if (onPage) F.card else F.page).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         tabs.forEach { (t, label) ->
             val on = t == selected
             Box(
-                Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(10.dp)).background(if (on) F.card else Color.Transparent).clickable { f.pickType(t) },
+                Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(10.dp)).background(if (on) (if (onPage) F.page else F.card) else Color.Transparent).clickable { f.pickType(t) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(label, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
@@ -967,11 +1047,38 @@ private fun FieldButton(text: String, icon: ImageVector, accent: Boolean, label:
     }
 }
 
+/** Resting colour of the extra chips: white on the receipt's grey page, grey on the sentence's white one. */
+private val LocalChipRest = staticCompositionLocalOf<Color?> { null }
+
+/** Icon tile at the start of a receipt row. */
+@Composable
+private fun RowIcon(icon: ImageVector, accent: Boolean) {
+    Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(if (accent) F.accentTint else F.page), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = if (accent) F.accent else F.muted, modifier = Modifier.size(18.dp))
+    }
+}
+
+/** One receipt row: icon, value, what it is, and a chevron when it opens a picker. Rows are divided by a hairline. */
+@Composable
+private fun ReceiptRow(icon: ImageVector, value: String, label: String, accent: Boolean = false, missing: Boolean = false, onClick: (() -> Unit)?) {
+    Row(
+        Modifier.fillMaxWidth().height(52.dp).then(if (onClick != null) Modifier.clickable(onClickLabel = label, onClick = onClick) else Modifier),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        RowIcon(icon, accent)
+        Text(value, Modifier.weight(1f), color = if (missing) F.muted else F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, color = F.muted, fontSize = 13.sp)
+        if (onClick != null) Icon(Glyph.ChevronRight, null, tint = F.muted, modifier = Modifier.size(16.dp))
+    }
+    Box(Modifier.fillMaxWidth().height(1.dp).background(F.border))
+}
+
 /** One "more about this entry" chip: soft pill, tinted once it holds a value. */
 @Composable
 private fun ExtraChip(text: String, set: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.height(36.dp).clip(RoundedCornerShape(999.dp)).background(if (set) F.accentTint else F.page).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        Modifier.height(36.dp).clip(RoundedCornerShape(999.dp)).background(if (set) F.accentTint else LocalChipRest.current ?: F.page).clickable(onClick = onClick).padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = if (set) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
