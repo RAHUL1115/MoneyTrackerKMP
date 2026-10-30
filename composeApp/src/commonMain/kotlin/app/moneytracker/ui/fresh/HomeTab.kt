@@ -93,8 +93,11 @@ import kotlinx.datetime.toLocalDateTime
 
 // ───────────────────────── Home tab
 
+/** Every Home card keeps its content this far from its edge, so text lines up down the screen. */
+private val CARD_INSET = 18.dp
+
 // Home is a quick look for the one or two times a day the app is opened: what went out today, yesterday and this month,
-// bank SMS waiting to be added, one-tap Quick add, and today's and yesterday's entries.
+// bank SMS waiting to be added, and today's and yesterday's entries.
 @Composable
 internal fun HomeTab(onOpenTab: (FreshTab) -> Unit) {
     val repo = LocalRepo.current
@@ -109,12 +112,11 @@ internal fun HomeTab(onOpenTab: (FreshTab) -> Unit) {
         Column(Modifier.padding(horizontal = F.gutter).padding(top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
             SpendingHero(onOpenTab)
             SmsWaiting()
-            QuickAdd()
             RecentDays()
             Text(tr("See everything in Activity ›"),
                 Modifier.align(Alignment.CenterHorizontally).height(44.dp).clip(F.iconShape).background(F.card)
                     .clickable { onOpenTab(FreshTab.ACTIVITY) }.padding(horizontal = 20.dp).wrapContentHeight(),
-                color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -153,28 +155,25 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
 
     val soft = F.muted
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(F.card).padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(horizontal = CARD_INSET, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column(Modifier.fillMaxWidth().clickable { onOpenTab(FreshTab.ACTIVITY) }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(tr("Spent today"), color = soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text(currency.format(totals(todayRows).expense), color = F.ink, fontSize = 44.sp, lineHeight = 46.sp,
-                fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
-            Text(if (todayRows.isEmpty()) tr("Nothing yet") else entriesText(todayRows.size), color = soft, fontSize = 13.sp)
+        Column(Modifier.fillMaxWidth().clickable { onOpenTab(FreshTab.ACTIVITY) }, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(tr("Spent today"), color = soft, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text(currency.format(totals(todayRows).expense), color = F.ink, fontSize = 34.sp, lineHeight = 42.sp,
+                fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            HeroFigure(tr("Yesterday"), currency.format(totals(yesterdayRows).expense), entriesText(yesterdayRows.size), Modifier.weight(1f)) { onOpenTab(FreshTab.ACTIVITY) }
-            HeroFigure(tr("{0} so far", tr(actMonthNames[ym.month - 1])), currency.format(monthSpent),
-                tr("≈ {0} a day", currency.format(monthSpent / daysGone)), Modifier.weight(1f)) { onOpenTab(FreshTab.INSIGHTS) }
+            HeroFigure(tr("Yesterday"), currency.format(totals(yesterdayRows).expense), Modifier.weight(1f)) { onOpenTab(FreshTab.ACTIVITY) }
+            HeroFigure(tr("{0} so far", tr(actMonthNames[ym.month - 1])), currency.format(monthSpent), Modifier.weight(1f)) { onOpenTab(FreshTab.INSIGHTS) }
         }
-        Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.Budget) }.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (budget == null) {
-                Text(tr("Set a monthly budget ›"), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            } else {
+        // The budget line shows once a budget is set; setting one lives on the Budget screen.
+        if (budget != null) Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.Budget) }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            run {
                 val left = budget.remaining
                 Row {
                     Text(if (left >= 0) tr("{0} left in budget", currency.format(left)) else tr("{0} over budget", currency.format(-left)),
-                        Modifier.weight(1f), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+                        Modifier.weight(1f), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
                     Text(if (daysLeft == 1) tr("Last day ›") else tr("{0} days to go ›", daysLeft), color = soft, fontSize = 13.sp)
                 }
                 Bar(budget.ratio, fill = if (budget.ratio > 1f) F.warn else F.accent, track = F.fill, height = 6.dp)
@@ -184,12 +183,10 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
 }
 
 @Composable
-private fun HeroFigure(label: String, value: String, meta: String, modifier: Modifier, onClick: () -> Unit) {
-    val soft = F.muted
+private fun HeroFigure(label: String, value: String, modifier: Modifier, onClick: () -> Unit) {
     Column(modifier.clickable(onClick = onClick), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(label, color = soft, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(value, color = F.ink, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
-        Text(meta, color = soft, fontSize = 12.sp, style = F.money, maxLines = 1)
+        Text(label, color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(value, color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
     }
 }
 
@@ -203,7 +200,7 @@ private fun SmsWaiting() {
     if (pending.isEmpty()) return
     val sum = pending.sumOf { it.amount ?: 0L }
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(F.card).clickable { nav.push(Screen.Inbox) }.padding(horizontal = 18.dp, vertical = 16.dp),
+        Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).clickable { nav.push(Screen.Inbox) }.padding(horizontal = CARD_INSET, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {
@@ -211,69 +208,11 @@ private fun SmsWaiting() {
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(if (pending.size == 1) tr("1 payment found in bank SMS") else tr("{0} payments found in bank SMS", pending.size),
-                color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(listOfNotNull(if (sum > 0) currency.format(sum) else null, tr("tap to add them")).joinToString(" · "),
-                color = F.muted, fontSize = 12.5.sp, style = F.money, maxLines = 1)
+                color = F.muted, fontSize = 12.sp, style = F.money, maxLines = 1)
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = F.muted, modifier = Modifier.size(20.dp))
-    }
-}
-
-/** Bookmarks as one-tap chips: an entry for today, with Undo. Bookmarks without an amount open the editor. */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun QuickAdd() {
-    val repo = LocalRepo.current
-    val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
-    val toaster = LocalToaster.current
-    val currency = LocalCurrency.current
-    val scope = rememberCoroutineScope()
-    val templates by repo.templates.collectAsState(emptyList())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val accountName by repo.accountNames.collectAsState(emptyMap())
-
-    fun draftOf(t: Template) = TxnDraft(t.type, repo.today(), t.accountId.orEmpty(), t.toAccountId, t.categoryId, t.amount, note = t.note, memo = t.memo)
-    fun tap(t: Template) {
-        val d = draftOf(t)
-        val complete = d.amount > 0 && d.accountId in accountName && (d.type != DraftType.TRANSFER || d.toAccountId in accountName)
-        if (!complete) { nav.push(Screen.EditTxn(preset = d)); return }
-        scope.launch {
-            val id = withContext(repo.io) { repo.create(d).also { repo.learnFromDraft(d) } }
-            platform.refreshWidgets()
-            toaster.show(tr("{0} {1} added to today", t.name, currency.format(t.amount))) {
-                scope.launch { withContext(repo.io) { repo.txn(id)?.let { repo.delete(it) } }; platform.refreshWidgets() }
-            }
-        }
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(tr("Quick add"), Modifier.weight(1f), color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(tr("Manage"), Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.Templates) }.padding(6.dp),
-                color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        }
-        if (templates.isEmpty()) {
-            Text(tr("Open an entry and tap ☆ to keep it here. One tap then logs it for today."),
-                Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 13.sp)
-            return@Column
-        }
-        // Chips run edge to edge so the row reads as scrollable.
-        Row(Modifier.bleedScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            templates.forEach { t ->
-                val markName = if (t.type == DraftType.TRANSFER) tr("Transfer") else t.categoryId?.let { mainCategoryName(it, catById) } ?: t.name
-                Row(
-                    Modifier.height(52.dp).clip(RoundedCornerShape(999.dp)).background(F.card)
-                        .combinedClickable(onClickLabel = tr("Add {0}", t.name), onLongClick = { nav.push(Screen.Templates) }) { tap(t) }
-                        .padding(start = 8.dp, end = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Box(Modifier.clip(CircleShape)) { Mark(markName, 32.dp, icon = if (t.type == DraftType.TRANSFER) Icons.Outlined.SwapHoriz else null) }
-                    Text(t.name, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                    if (t.amount > 0) Text(currency.format(t.amount), color = F.muted, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
-                }
-            }
-        }
     }
 }
 
@@ -294,20 +233,20 @@ private fun RecentDays() {
         val dayTxns = shown.filter { it.date == day }.sortedWith(compareByDescending<Txn> { it.timeOfDay ?: -1 }.thenByDescending { it.createdAt })
         if (dayTxns.isEmpty() && day != today) return@forEach
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(title, Modifier.weight(1f), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(title, Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 val t = totals(rows.filter { it.date == day })
-                if (t.expense > 0 || t.income > 0) Text(
+                if (dayTxns.isEmpty()) Text(tr("Nothing yet"), color = F.muted, fontSize = 13.sp)
+                else if (t.expense > 0 || t.income > 0) Text(
                     listOfNotNull(
                         if (t.income > 0) "+" + currency.format(t.income) else null,
                         if (t.expense > 0) "−" + currency.format(t.expense) else null,
                     ).joinToString(" · "),
-                    color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, style = F.money,
+                    color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money,
                 )
             }
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(F.card).padding(horizontal = 18.dp, vertical = 4.dp)) {
-                if (dayTxns.isEmpty()) Text(tr("Nothing added today yet. Tap + below to add one."),
-                    Modifier.padding(vertical = 18.dp), color = F.muted, fontSize = 14.sp)
+            // An empty day is just its heading with "Nothing yet"; no empty card.
+            if (dayTxns.isNotEmpty()) Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).padding(horizontal = CARD_INSET, vertical = 4.dp)) {
                 dayTxns.forEachIndexed { i, txn ->
                     if (i > 0) Divider()
                     ActEntryRow(txn, data) { nav.push(Screen.EditTxn(txnId = txn.id)) }
@@ -354,7 +293,7 @@ fun FreshLock(hash: String, onUnlocked: () -> Unit) {
         Box(Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(F.accent), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.Lock, null, tint = F.onAccent, modifier = Modifier.size(30.dp))
         }
-        Text(tr("Unlock MoneyTracker"), color = F.ink, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+        Text(tr("Unlock MoneyTracker"), color = F.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Text(
             error ?: if (canUseBiometric) tr("Enter passcode or use your fingerprint / face") else tr("Enter passcode"),
             color = if (error != null) F.danger else F.muted, fontSize = 14.sp,
@@ -377,7 +316,7 @@ fun FreshLock(hash: String, onUnlocked: () -> Unit) {
                         when (k) {
                             "bio" -> Icon(Icons.Outlined.Fingerprint, tr("Unlock with biometrics"), tint = F.accent, modifier = Modifier.size(30.dp))
                             "del" -> Icon(Icons.AutoMirrored.Filled.Backspace, tr("Delete digit"), tint = F.ink)
-                            else -> Text(k, color = F.ink, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                            else -> Text(k, color = F.ink, fontSize = 21.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }

@@ -215,14 +215,14 @@ internal fun InsightsTab() {
             // Hero: total, change, trend, daily average.
             FCard {
                 Text(when (side) { Side.SPENDING -> tr("Spent {0}", phrase); Side.INCOME -> tr("Earned {0}", phrase); Side.NET -> tr("Net {0}", phrase) },
-                    color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 Text(currency.format(total), color = if (side == Side.NET) (if (total < 0) F.expense else F.income) else F.ink,
-                    fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+                    fontSize = 26.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
                 Gap(6.dp)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ChangeBadge(total, previousTotal, upIsGood = side != Side.SPENDING, against = against, signedValues = side == Side.NET)
                     HGap(8.dp)
-                    Text(currency.format(previousTotal), color = F.muted, fontSize = 12.5.sp, style = F.money, maxLines = 1)
+                    Text(currency.format(previousTotal), color = F.muted, fontSize = 12.sp, style = F.money, maxLines = 1)
                 }
                 Gap(16.dp)
                 val values = slots.map { s ->
@@ -253,7 +253,7 @@ internal fun InsightsTab() {
             val parts = parts(groupBy, rows, previousRows, flow, catById, accountName, tagNames, range, side == Side.INCOME, nav)
             val partsTotal = parts.sumOf { it.amount.coerceAtLeast(0) }
             FCard {
-                Text(if (side == Side.INCOME) tr("Income by") else tr("Spending by"), color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(if (side == Side.INCOME) tr("Income by") else tr("Spending by"), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                 Gap(10.dp)
                 PillRow { GroupBy.entries.forEach { g -> Pill(tr(g.label), g == groupBy, { groupBy = g; openKey = null }) } }
                 Gap(6.dp)
@@ -269,7 +269,7 @@ internal fun InsightsTab() {
                     }
                 }
                 if (groupBy == GroupBy.TAG && parts.isNotEmpty()) Text(tr("An entry with several tags counts once for each tag."),
-                    Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.5.sp)
+                    Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.sp)
             }
 
             // The biggest single entries of the period.
@@ -296,8 +296,8 @@ internal fun InsightsTab() {
 @Composable
 private fun Stat(label: String, value: String, modifier: Modifier, color: androidx.compose.ui.graphics.Color = F.ink) {
     Column(modifier) {
-        Text(label, color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-        Text(value, color = color, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+        Text(label, color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        Text(value, color = color, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
     }
 }
 
@@ -371,28 +371,28 @@ private fun PartRow(
             HGap(12.dp)
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(part.name, Modifier.weight(1f, fill = false), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (pct != null) Text(if (pct == 0) "<1%" else "$pct%", Modifier.padding(start = 6.dp), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                    Text(part.name, Modifier.weight(1f, fill = false), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (pct != null) Text(if (pct == 0) "<1%" else "$pct%", Modifier.padding(start = 6.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
                 val notes = listOfNotNull(
                     if (part.previous > 0) changeText(part.amount, part.previous) else null,
                     if (part.refunded > 0) tr("incl. {0} refunded", currency.format(part.refunded)) else null,
                 )
-                if (notes.isNotEmpty()) Text(notes.joinToString(" · "), color = F.muted, fontSize = 12.5.sp, maxLines = 1)
+                if (notes.isNotEmpty()) Text(notes.joinToString(" · "), color = F.muted, fontSize = 12.sp, maxLines = 1)
             }
-            Text(currency.format(part.amount), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+            Text(currency.format(part.amount), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
             Icon(if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.padding(start = 4.dp).size(20.dp))
         }
         Gap(8.dp)
         Bar(part.amount.coerceAtLeast(0).toFloat() / top, Modifier.padding(start = 46.dp), fill = if (income) F.income else F.accent, height = 6.dp)
     }
     if (open) Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(horizontal = 12.dp, vertical = 8.dp)) {
-        Text(tr("Top entries").uppercase(), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+        Text(tr("Top entries").uppercase(), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
         part.entries.sortedByDescending { it.amount }.take(3).forEach { r -> EntryLine(r, accountName, catById) }
         if (part.seeAll != null) Text(
             if (groupBy == GroupBy.ACCOUNT) tr("Open account ›") else tr("See all {0} entries ›", part.entries.size),
             Modifier.padding(top = 4.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = part.seeAll).padding(vertical = 6.dp),
-            color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+            color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium,
         )
     }
 }
@@ -413,12 +413,12 @@ private fun EntryLine(r: ReportRow, accountName: Map<String, String>, catById: M
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(listOfNotNull(r.date?.short(), accountName[r.accountId]).joinToString(" · "), color = F.muted, fontSize = 12.5.sp, maxLines = 1)
+            Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(listOfNotNull(r.date?.short(), accountName[r.accountId]).joinToString(" · "), color = F.muted, fontSize = 12.sp, maxLines = 1)
         }
         Spacer(Modifier.width(8.dp))
         Text((if (refund) "+" else "") + currency.format(kotlin.math.abs(r.amount)), color = if (refund) F.income else F.ink,
-            fontSize = 14.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+            fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
     }
 }
 

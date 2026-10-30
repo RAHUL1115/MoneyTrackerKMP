@@ -66,7 +66,7 @@ internal fun FreshCategories(kind: CategoryKind) {
             kinds.indexOf(shown), { shown = kinds[it] },
         )
         Text(tr("Tap a category to rename it, move it under another or set its usual account. Arrows change the order on the Add screen."),
-            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.5.sp)
+            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp)
         val list = flattenCategories(categories.filter { it.kind == shown }).filter { useSubcategories || it.parentId == null }
         if (list.isEmpty()) EmptyCard(tr("No categories yet."), tr("Add category")) { editing = Category("", "", shown, null, categories.size) }
         else FCard(padding = 0.dp) {
@@ -97,9 +97,9 @@ internal fun FreshCategories(kind: CategoryKind) {
                         ) {
                             Mark(c.name, if (c.parentId != null) 26.dp else 34.dp)
                             Column(Modifier.weight(1f)) {
-                                Text(c.name, color = F.ink, fontSize = if (c.parentId != null) 14.sp else 15.sp,
-                                    fontWeight = if (c.parentId != null) FontWeight.SemiBold else FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(meta, color = F.muted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(c.name, color = F.ink, fontSize = if (c.parentId != null) 14.sp else 14.sp,
+                                    fontWeight = if (c.parentId != null) FontWeight.Medium else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(meta, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                         ArrowButton(Icons.Outlined.KeyboardArrowUp, tr("Move {0} up", c.name), at > 0) { move(-1) }

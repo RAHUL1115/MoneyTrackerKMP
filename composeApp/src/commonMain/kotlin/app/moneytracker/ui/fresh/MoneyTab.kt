@@ -128,13 +128,13 @@ internal fun MoneyTab() {
                                     due != null -> tr("{0} bill · due {1}", l.account.name, due.short())
                                     else -> tr("{0} bill", l.account.name)
                                 },
-                                color = if (overdue) F.danger else F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                color = if (overdue) F.danger else F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             )
-                            Text(fmt.format(l.billDue), color = F.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
-                            if (l.account.cardAutoPay) Text(tr("Auto-pay is on"), color = F.muted, fontSize = 12.5.sp)
+                            Text(fmt.format(l.billDue), color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
+                            if (l.account.cardAutoPay) Text(tr("Auto-pay is on"), color = F.muted, fontSize = 12.sp)
                         }
                         Text(tr("Pay bill"), Modifier.clip(RoundedCornerShape(12.dp)).background(F.accent).padding(horizontal = 14.dp, vertical = 10.dp),
-                            color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                            color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -156,11 +156,11 @@ internal fun MoneyTab() {
                         Modifier.fillMaxWidth().clickable { collapsed = if (open) collapsed + group.id else collapsed - group.id }.padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(group.name, color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        Text(group.name, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false))
                         Text(" · ${visible.size}" + if (allHidden) " · " + tr("hidden") else "", Modifier.weight(1f), color = F.muted, fontSize = 13.sp, maxLines = 1)
                         Text(currency.format(total), color = if (allHidden) F.muted else if (total < 0) F.expense else F.ink,
-                            fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+                            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
                         Icon(if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.padding(start = 6.dp).size(20.dp))
                     }
                     if (open) Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp)) {
@@ -178,7 +178,7 @@ internal fun MoneyTab() {
                 Text(
                     if (showHidden) tr("Hide {0} hidden accounts", hiddenCount) else tr("{0} hidden accounts ({1}) · Show", hiddenCount, groupsWithHidden),
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { showHidden = !showHidden }.padding(vertical = 12.dp, horizontal = 4.dp),
-                    color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 2,
+                    color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 2,
                 )
             }
             Gap(24.dp)
@@ -194,8 +194,8 @@ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Bo
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(20.dp)) {
-        Text(tr("Net worth · in totals"), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-        Text(currency.format(net), color = F.ink, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+        Text(tr("Net worth · in totals"), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(currency.format(net), color = F.ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
         Gap(12.dp)
         val share = if (assets + liabilities > 0) assets.toFloat() / (assets + liabilities) else 1f
         Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(999.dp)).background(F.fill)) {
@@ -229,12 +229,12 @@ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Bo
                 val change = points.last().second - points.first().second
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(tr("Last 6 months · {0} {1} since {2}", if (change >= 0) "▲" else "▼", currency.format(kotlin.math.abs(change)), monthShort(points.first().first.month)),
-                        Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(tr("Full trend ›"), Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.AccountsTrend) }.padding(4.dp),
-                        color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                        color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
                 Gap(8.dp)
-                MoneyBars(points.map { MoneyBar(monthShort(it.first.month), it.second) }, currency.decimals, onDark = true, height = 52.dp)
+                MoneyBars(points.map { MoneyBar(monthShort(it.first.month), it.second) }, currency.decimals, height = 52.dp)
             }
         }
     }
@@ -245,7 +245,7 @@ private fun Legend(label: String, value: String, alpha: Float) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(F.accent.copy(alpha = alpha)))
         Text("  $label ", color = F.muted, fontSize = 12.sp)
-        Text(value, color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+        Text(value, color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
     }
 }
 
@@ -277,11 +277,11 @@ private fun AccountRow(l: AccountLine, today: LocalDate) {
     Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.AccountDetail(a.id)) }.padding(vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(a.name + (a.currency?.let { "  ($it)" } ?: ""), color = if (dim) F.muted else F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                Text(a.name + (a.currency?.let { "  ($it)" } ?: ""), color = if (dim) F.muted else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (meta.isNotEmpty()) Text(meta.joinToString(" · "), color = if (card != null && card.overdue > 0) F.danger else F.muted, fontSize = 12.sp, maxLines = 2)
             }
-            Text(fmt.format(amount), color = if (dim) F.muted else if (amount < 0) F.expense else F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+            Text(fmt.format(amount), color = if (dim) F.muted else if (amount < 0) F.expense else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium,
                 style = F.money, maxLines = 1)
         }
         val limit = a.cardLimit
@@ -324,8 +324,8 @@ private fun ManageSheet(lines: List<AccountLine>, onDismiss: () -> Unit) {
             }
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(g.name, color = if (hidden) F.muted else F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(tr("{0} · {1} accounts", g.type.moneyLabel, inGroup.size) + if (hidden) " · " + tr("hidden") else "", color = F.muted, fontSize = 12.5.sp)
+                    Text(g.name, color = if (hidden) F.muted else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(tr("{0} · {1} accounts", g.type.moneyLabel, inGroup.size) + if (hidden) " · " + tr("hidden") else "", color = F.muted, fontSize = 12.sp)
                 }
                 if (inGroup.isNotEmpty()) SmallTile(if (hidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, if (hidden) tr("Show {0}", g.name) else tr("Hide {0}", g.name)) {
                     val before = inGroup.associate { it.id to it.hidden }
@@ -352,7 +352,7 @@ private fun ManageSheet(lines: List<AccountLine>, onDismiss: () -> Unit) {
                     Text(tr("Restore"), Modifier.clip(RoundedCornerShape(10.dp)).clickable {
                         io { repo.restoreAccount(a.id) }
                         toaster.show(tr("{0} restored to its group", a.name)) { io { repo.deleteAccount(a.id) } }
-                    }.padding(horizontal = 10.dp, vertical = 8.dp), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }.padding(horizontal = 10.dp, vertical = 8.dp), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }

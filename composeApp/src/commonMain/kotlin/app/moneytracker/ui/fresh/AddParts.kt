@@ -2,6 +2,10 @@
 
 package app.moneytracker.ui.fresh
 
+import androidx.compose.ui.graphics.vector.ImageVector
+
+import androidx.compose.foundation.layout.fillMaxHeight
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -83,18 +87,21 @@ internal fun addSettle(text: String, currency: CurrencyFormat): String =
 internal fun addExprShown(text: String): String =
     if (text.isEmpty()) "0" else text.map { if (it in Calc.OPS) " $it " else it.toString() }.joinToString("")
 
-/** 4 × 4 calculator keypad; long-press ⌫ clears. Digits sit on the page; only the operators are tinted. */
+/**
+ * 4 × 4 calculator keypad; long-press ⌫ clears. Digits sit on the page and the operators are teal glyphs.
+ * Pass a weighted [modifier] to let the keys share the spare height (never shorter than 48dp).
+ */
 @Composable
-internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String) -> Unit, keyHeight: Dp = 52.dp) {
+internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val keys = listOf("7", "8", "9", "÷", "4", "5", "6", "×", "1", "2", "3", "−", ".", "0", "⌫", "+")
     val aria = mapOf("÷" to tr("Divide"), "×" to tr("Multiply"), "−" to tr("Minus"), "+" to tr("Plus"), "⌫" to tr("Delete digit"), "." to tr("Decimal point"))
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(modifier.heightIn(min = 216.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         keys.chunked(4).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { k ->
                     val op = k in Calc.OPS
                     Box(
-                        Modifier.weight(1f).height(keyHeight).clip(RoundedCornerShape(18.dp)).background(if (op) F.accentTint else Color.Transparent)
+                        Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(18.dp))
                             .combinedClickable(
                                 onClickLabel = aria[k] ?: k,
                                 onLongClick = if (k == "⌫") ({ onChange("") }) else null,
@@ -103,7 +110,7 @@ internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String
                         contentAlignment = Alignment.Center,
                     ) {
                         if (k == "⌫") Icon(Icons.AutoMirrored.Outlined.Backspace, aria[k], tint = F.ink, modifier = Modifier.size(24.dp))
-                        else Text(k, color = if (op) F.accent else F.ink, fontSize = if (op) 24.sp else 26.sp, fontWeight = FontWeight.SemiBold)
+                        else Text(k, color = if (op) F.accent else F.ink, fontSize = if (op) 21.sp else 22.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -113,7 +120,7 @@ internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String
 
 /** Category or account tile: coloured mark over the name. No outline at rest; the chosen one is tinted with a thin ring. */
 @Composable
-internal fun AddTile(name: String, label: String, selected: Boolean, modifier: Modifier = Modifier, mark: String? = null, onClick: () -> Unit) {
+internal fun AddTile(name: String, label: String, selected: Boolean, modifier: Modifier = Modifier, mark: String? = null, icon: ImageVector? = null, onClick: () -> Unit) {
     val (bg, fg) = markColors(name)
     val shape = RoundedCornerShape(18.dp)
     Column(
@@ -121,11 +128,12 @@ internal fun AddTile(name: String, label: String, selected: Boolean, modifier: M
             .then(if (selected) Modifier.border(1.5.dp, F.accent, shape) else Modifier).clickable(onClick = onClick).padding(horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
     ) {
-        Box(Modifier.size(34.dp).clip(RoundedCornerShape(12.dp)).background(if (mark != null) F.fill else bg), contentAlignment = Alignment.Center) {
-            Text(mark ?: markText(name), color = if (mark != null) F.muted else fg, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+        Box(Modifier.size(34.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) F.card else if (mark != null) F.fill else bg), contentAlignment = Alignment.Center) {
+            if (icon != null) Icon(icon, null, tint = if (selected) F.accent else fg, modifier = Modifier.size(18.dp))
+            else Text(mark ?: markText(name), color = if (mark != null) F.muted else fg, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(6.dp))
-        Text(label, color = F.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(label, color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
@@ -149,7 +157,7 @@ internal fun AddChip(text: String, selected: Boolean, modifier: Modifier = Modif
         modifier.height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) F.accentTint else F.card)
             .border(1.dp, if (selected) F.accentTint else F.border, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+    ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
 
 /** Filled text input with a placeholder. */
@@ -186,7 +194,7 @@ internal fun AddInput(
 @Composable
 internal fun AddLink(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) =
     Text(text, modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(vertical = 6.dp, horizontal = 2.dp),
-        color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
 
 @Composable
 internal fun AddTimePicker(initial: Int, onDismiss: () -> Unit, onClear: () -> Unit, onPick: (Int) -> Unit) {
@@ -195,7 +203,7 @@ internal fun AddTimePicker(initial: Int, onDismiss: () -> Unit, onClear: () -> U
         onDismissRequest = onDismiss,
         containerColor = F.card, shape = F.heroShape,
         text = { androidx.compose.material3.TimePicker(state) },
-        confirmButton = { TextButton(onClick = { onPick(state.hour * 60 + state.minute) }) { Text(tr("OK"), color = F.accent, fontWeight = FontWeight.ExtraBold) } },
+        confirmButton = { TextButton(onClick = { onPick(state.hour * 60 + state.minute) }) { Text(tr("OK"), color = F.accent, fontWeight = FontWeight.SemiBold) } },
         dismissButton = {
             Row {
                 TextButton(onClick = onClear) { Text(tr("No time"), color = F.ink) }
@@ -220,8 +228,8 @@ internal fun AddPhotoViewer(files: List<String>, start: Int, onRemove: (Int) -> 
                     Icon(Icons.Filled.Close, tr("Close photo"), tint = Color.White)
                 }
                 Text(tr("Receipt {0} of {1}", pager.currentPage + 1, files.size), Modifier.weight(1f).padding(start = 8.dp),
-                    color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                TextButton(onClick = { onRemove(pager.currentPage) }) { Text(tr("Remove"), color = Color.White, fontWeight = FontWeight.Bold) }
+                    color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                TextButton(onClick = { onRemove(pager.currentPage) }) { Text(tr("Remove"), color = Color.White, fontWeight = FontWeight.Medium) }
             }
         }
     }

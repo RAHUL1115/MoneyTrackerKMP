@@ -37,7 +37,7 @@ internal fun StgSwitch(checked: Boolean, onChange: (Boolean) -> Unit) = Switch(
 /** Label above a field or a group of chips inside a sheet. */
 @Composable
 internal fun StgLabel(text: String) =
-    Text(text.uppercase(), Modifier.padding(top = 10.dp, bottom = 6.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
+    Text(text.uppercase(), Modifier.padding(top = 10.dp, bottom = 6.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
 
 /** Wrapping chips, one selected. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -73,5 +73,5 @@ internal fun StgTextButton(text: String, onClick: () -> Unit, color: Color = F.a
     Text(
         text,
         Modifier.clip(F.iconShape).border(1.dp, F.border, F.iconShape).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
-        color = color, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+        color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium,
     )

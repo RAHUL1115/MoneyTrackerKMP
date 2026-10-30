@@ -86,16 +86,16 @@ internal fun ActivityCalendarView(
                     ActPeriodSwitch(ym.actLongLabel(), onPrev, onNext, onPickMonth, tile = true, minWidth = 150)
                     Text(buildAnnotatedString {
                         append(tr("Out") + " ")
-                        withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.ExtraBold)) { append(currency.format(t.expense)) }
+                        withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.SemiBold)) { append(currency.format(t.expense)) }
                         append(" · " + tr("In") + " ")
-                        withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.ExtraBold)) { append(currency.format(t.income)) }
-                    }, color = F.muted, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, style = F.money)
+                        withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.SemiBold)) { append(currency.format(t.income)) }
+                    }, color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, style = F.money)
                 }
             }
             Gap(8.dp)
             Row(Modifier.fillMaxWidth()) {
                 (0 until 7).map { DayOfWeek.entries[(weekStart.ordinal + it) % 7] }.forEach { dow ->
-                    Text(tr(weekdayShort[dow.ordinal]), Modifier.weight(1f), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(tr(weekdayShort[dow.ordinal]), Modifier.weight(1f), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
                 }
             }
             Gap(6.dp)
@@ -116,7 +116,7 @@ internal fun ActivityCalendarView(
                                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp),
                                 ) {
                                     val label = if (d.dayOfMonth == 1 && range.start.dayOfMonth != 1) "${d.dayOfMonth}/${d.monthNumber}" else d.dayOfMonth.toString()
-                                    Text(label, color = when { on -> F.onAccent; d > today -> F.muted; else -> F.ink }, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Text(label, color = when { on -> F.onAccent; d > today -> F.muted; else -> F.ink }, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                     val amt = when {
                                         out > 0 -> compact(out, currency.decimals)
                                         out < 0 -> "+" + compact(-out, currency.decimals)
@@ -124,7 +124,7 @@ internal fun ActivityCalendarView(
                                         else -> ""
                                     }
                                     Text(amt, color = when { on -> F.onAccent.copy(alpha = 0.8f); out < 0 -> F.income; out > 0 -> F.expense; else -> F.muted },
-                                        fontSize = 9.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, style = F.money)
+                                        fontSize = 9.5.sp, fontWeight = FontWeight.Medium, maxLines = 1, style = F.money)
                                 }
                             }
                         }
@@ -162,9 +162,9 @@ private fun DayCard(day: LocalDate, today: LocalDate, onAdd: () -> Unit) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 10.dp)) {
             Row(Modifier.fillMaxWidth().height(42.dp), verticalAlignment = Alignment.CenterVertically) {
                 val label = (if (day == today) tr("Today") + ", " else day.weekday() + " ") + "${day.dayOfMonth} ${tr(actMonthNames[day.monthNumber - 1])}"
-                Text(label, Modifier.weight(1f), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                Text(label, Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Text(tr("+ Add on this day"), Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onAdd).padding(6.dp),
-                    color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
             if (visible.isEmpty()) Text(tr("Nothing recorded on this day."), Modifier.padding(top = 6.dp, bottom = 4.dp), color = F.muted, fontSize = 13.sp)
             visible.forEach { t ->

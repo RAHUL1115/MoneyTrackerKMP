@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -180,6 +181,8 @@ internal fun ActivityTab() {
     Column(Modifier.fillMaxSize()) {
         TabHeader(if (selecting) tr("Select") else tr("Activity")) {
             IconTile(Icons.Outlined.Search, tr("Search and filter"), { nav.push(Screen.Search) })
+            // Bookmarks are saved entries: pick one to open it filled in, then check and save.
+            IconTile(Icons.Outlined.StarOutline, tr("Bookmarks"), { nav.push(Screen.Templates) })
             IconTile(Icons.Outlined.MoreHoriz, tr("More"), { moreSheet = true }, badge = pending.size)
             when (view) {
                 ActView.LIST -> HeaderButton(if (selecting) tr("Done") else tr("Select"), filled = selecting) {
@@ -231,7 +234,7 @@ internal fun HeaderButton(text: String, filled: Boolean, leading: ImageVector? =
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (leading != null) Icon(leading, null, tint = if (filled) F.onAccent else F.ink, modifier = Modifier.size(18.dp))
-        Text(text, color = if (filled) F.onAccent else F.ink, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+        Text(text, color = if (filled) F.onAccent else F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -244,7 +247,7 @@ private fun ActFilterBar(filter: TxnFilter, catById: Map<String, Category>, acco
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(tr("Filter: {0}", names.joinToString(", ")), Modifier.weight(1f), color = F.accent, fontSize = 13.sp,
-            fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Box(Modifier.size(40.dp).clip(CircleShape).clickable(onClickLabel = tr("Clear filter"), onClick = onClear), contentAlignment = Alignment.Center) {
             Icon(Icons.Filled.Close, tr("Clear filter"), tint = F.accent, modifier = Modifier.size(18.dp))
         }
@@ -280,7 +283,7 @@ internal fun ActPeriodSwitch(label: String, onPrev: () -> Unit, onNext: () -> Un
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         ArrowButton(Icons.AutoMirrored.Filled.KeyboardArrowLeft, tr("Previous"), tile, onPrev)
         Text(label, Modifier.widthIn(min = minWidth.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = onLabel).padding(horizontal = 4.dp, vertical = 8.dp),
-            color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, maxLines = 1)
+            color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 1)
         ArrowButton(Icons.AutoMirrored.Filled.KeyboardArrowRight, tr("Next"), tile, onNext)
     }
 }
@@ -310,8 +313,8 @@ internal fun ActSummary(income: Long, expense: Long, modifier: Modifier = Modifi
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.SummaryCell(label: String, value: String, color: Color) {
     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, color = F.muted, fontSize = 12.5.sp)
-        Text(value, color = color, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+        Text(label, color = F.muted, fontSize = 12.sp)
+        Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
     }
 }
 
@@ -370,8 +373,8 @@ private fun ActList(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     ActSummary(t.income, t.expense)
                     if (carry != null) Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-                        Text(tr("Carried over {0}", currency.format(carry)), Modifier.weight(1f), color = F.muted, fontSize = 12.5.sp, style = F.money)
-                        Text(tr("Balance {0}", currency.format(carry + t.net)), color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, style = F.money)
+                        Text(tr("Carried over {0}", currency.format(carry)), Modifier.weight(1f), color = F.muted, fontSize = 12.sp, style = F.money)
+                        Text(tr("Balance {0}", currency.format(carry + t.net)), color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, style = F.money)
                     }
                 }
             }
@@ -380,7 +383,7 @@ private fun ActList(
                 FCard(padding = 24.dp) {
                     Text(
                         if (kind == ActKind.MOVED) tr("No transfers in {0}", tr(actMonthNames[ym.month - 1])) else tr("Nothing recorded in {0}", tr(actMonthNames[ym.month - 1])),
-                        Modifier.fillMaxWidth(), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center,
+                        Modifier.fillMaxWidth(), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
                     )
                     Text(tr("Change the filter or add an entry with +."), Modifier.fillMaxWidth().padding(top = 6.dp), color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
                 }
@@ -389,14 +392,14 @@ private fun ActList(
                 item(key = "d$date") {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-                            Text(date.actDayLabel(today), Modifier.weight(1f), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                            Text(date.actDayLabel(today), Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             val dt = dayTotals[date]
                             if (dt != null) Text(
                                 listOfNotNull(
                                     if (dt.income > 0) "+" + currency.format(dt.income) else null,
                                     if (dt.expense > 0) currency.format(-(dt.expense)) else null,
                                 ).joinToString(" · "),
-                                color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, style = F.money,
+                                color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, style = F.money,
                             )
                         }
                         Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).padding(horizontal = 18.dp)) {
@@ -423,7 +426,7 @@ internal fun ActChip(text: String, selected: Boolean, onClick: () -> Unit) {
             .then(if (selected) Modifier else Modifier.border(1.dp, F.border, RoundedCornerShape(999.dp)))
             .clickable(onClick = onClick).padding(horizontal = 11.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+    ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
 
 /** "Repeat · Rent, To mom · 1 Nov · −30,000": repeating entries still to come this period (not in the totals). */
@@ -441,10 +444,10 @@ private fun UpcomingRepeats(pending: List<Pair<app.moneytracker.domain.Recurring
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Mark(tr("Repeat"), 36.dp, icon = Icons.Outlined.Autorenew)
             Column(Modifier.weight(1f)) {
-                Text(tr("Coming up · {0}", "${first.dayOfMonth} ${monthShort(first.monthNumber)}"), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
-                Text(names.joinToString(", "), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(tr("Coming up · {0}", "${first.dayOfMonth} ${monthShort(first.monthNumber)}"), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(names.joinToString(", "), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(currency.format(sum, showSign = true), color = if (sum >= 0) F.income else F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, style = F.money)
+            Text(currency.format(sum, showSign = true), color = if (sum >= 0) F.income else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money)
         }
     }
 }
@@ -519,7 +522,7 @@ internal fun ActEntryRow(
             Modifier.size(22.dp).clip(RoundedCornerShape(7.dp)).background(if (selected) F.accent else F.card)
                 .border(2.dp, if (selected) F.accent else F.border, RoundedCornerShape(7.dp)),
             contentAlignment = Alignment.Center,
-        ) { if (selected) Text("✓", color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold) }
+        ) { if (selected) Text("✓", color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
         val markSize = if (compact) 32.dp else 40.dp
         when {
             transfer -> Mark(tr("Transfer"), markSize, icon = Icons.Outlined.SwapHoriz)
@@ -528,15 +531,15 @@ internal fun ActEntryRow(
         }
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, Modifier.weight(1f, fill = false), color = F.ink, fontSize = if (compact) 14.sp else 15.sp, fontWeight = FontWeight.SemiBold,
+                Text(title, Modifier.weight(1f, fill = false), color = F.ink, fontSize = if (compact) 14.sp else 14.sp, fontWeight = FontWeight.Medium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (txn.id in data.photos) Icon(Icons.Outlined.PhotoCamera, tr("Has a photo"), tint = F.muted, modifier = Modifier.size(14.dp))
                 if (txn.lat != null) Icon(Icons.Outlined.LocationOn, tr("Has a location"), tint = F.muted, modifier = Modifier.size(14.dp))
             }
-            if (meta.isNotEmpty()) Text(meta, Modifier.padding(top = 3.dp), color = F.muted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (prefs.showDescription && txn.memo.isNotBlank()) Text(txn.memo, color = F.muted, fontSize = 12.5.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (meta.isNotEmpty()) Text(meta, Modifier.padding(top = 3.dp), color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (prefs.showDescription && txn.memo.isNotBlank()) Text(txn.memo, color = F.muted, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             val tags = data.tags[txn.id].orEmpty()
-            if (tags.isNotEmpty()) Text(tags.joinToString(" ") { "#$it" }, color = F.accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (tags.isNotEmpty()) Text(tags.joinToString(" ") { "#$it" }, color = F.accent, fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         val flow = classify(txn.toReportRow(data.flags))
         val plus = txn.isRefund || flow == Flow.INCOME
@@ -553,9 +556,9 @@ internal fun ActEntryRow(
         Column(horizontalAlignment = Alignment.End) {
             val foreign = txn.currency?.let { currencies[it] }
             if (foreign != null && txn.originalAmount != null) {
-                Text(prefix + foreign.format.format(abs(txn.originalAmount)), color = color, fontSize = if (compact) 14.sp else 15.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+                Text(prefix + foreign.format.format(abs(txn.originalAmount)), color = color, fontSize = if (compact) 14.sp else 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
                 Text(currency.format(abs(txn.amount)), color = F.muted, fontSize = 11.sp, style = F.money, maxLines = 1)
-            } else Text(prefix + currency.format(abs(txn.amount)), color = color, fontSize = if (compact) 14.sp else 15.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+            } else Text(prefix + currency.format(abs(txn.amount)), color = color, fontSize = if (compact) 14.sp else 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
         }
     }
 }
@@ -602,7 +605,7 @@ private fun SelectionPanel(selected: List<Txn>, onDone: () -> Unit, modifier: Mo
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(if (n == 0) tr("Tap entries to select them") else tr("{0} selected · {1}", n, currency.format(net, showSign = true)),
-            Modifier.padding(start = 4.dp), color = F.page, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Modifier.padding(start = 4.dp), color = F.page, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             PanelButton(tr("Date"), n > 0) { sheet = "date" }
             PanelButton(tr("Category"), n > 0) { sheet = "category" }
@@ -677,7 +680,7 @@ private fun androidx.compose.foundation.layout.RowScope.PanelButton(text: String
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, color = (if (danger) Color.White else F.page).copy(alpha = if (enabled) 1f else 0.45f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = (if (danger) Color.White else F.page).copy(alpha = if (enabled) 1f else 0.45f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -696,11 +699,11 @@ internal fun ActOptionGrid(options: List<ActOption>) {
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         if (o.mark != null) Box(Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {
-                            Text(o.mark, color = F.accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                            Text(o.mark, color = F.accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                         } else Mark(o.markName, 30.dp)
                         Column(Modifier.weight(1f)) {
-                            Text(o.label, color = F.ink, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            if (o.sub.isNotEmpty()) Text(o.sub, color = F.muted, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(o.label, color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (o.sub.isNotEmpty()) Text(o.sub, color = F.muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }

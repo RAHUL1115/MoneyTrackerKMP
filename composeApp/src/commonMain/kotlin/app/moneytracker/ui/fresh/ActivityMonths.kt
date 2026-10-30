@@ -87,10 +87,10 @@ internal fun ActivityMonthsView(
             ActPeriodSwitch(year.toString(), { onPick(ym.plus(-12)) }, { onPick(ym.plus(12)) }, onPickMonth, minWidth = 48)
             Text(buildAnnotatedString {
                 append(tr("Out") + " ")
-                withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.ExtraBold)) { append(currency.format(yt.expense)) }
+                withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.SemiBold)) { append(currency.format(yt.expense)) }
                 append(" · " + tr("In") + " ")
-                withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.ExtraBold)) { append(currency.format(yt.income)) }
-            }, Modifier.weight(1f), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, style = F.money,
+                withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.SemiBold)) { append(currency.format(yt.income)) }
+            }, Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, style = F.money,
                 textAlign = androidx.compose.ui.text.style.TextAlign.End, maxLines = 1)
         }
         MonthTotal(ym, ps)
@@ -107,13 +107,13 @@ internal fun ActivityMonthsView(
                     ) {
                         Box(Modifier.width(6.dp).height(32.dp).clip(RoundedCornerShape(999.dp)).background(if (m == ym.month) F.accent else Color.Transparent))
                         Column(Modifier.weight(1f)) {
-                            Text(tr(actMonthNames[m - 1]) + if (month == todayLabel) " · " + tr("now") else "", color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Text(tr(actMonthNames[m - 1]) + if (month == todayLabel) " · " + tr("now") else "", color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             Text(if (mt.income > 0) tr("In {0}", currency.format(mt.income)) else tr("No income"),
-                                color = if (mt.income > 0) F.income else F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, style = F.money)
+                                color = if (mt.income > 0) F.income else F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, style = F.money)
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text(currency.format(-(mt.expense)), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, style = F.money)
-                            Text(tr("Net {0}", currency.format(mt.net)), color = F.muted, fontSize = 11.5.sp, style = F.money)
+                            Text(currency.format(-(mt.expense)), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money)
+                            Text(tr("Net {0}", currency.format(mt.net)), color = F.muted, fontSize = 11.sp, style = F.money)
                         }
                         Icon(if (isOpen) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, tint = F.muted, modifier = Modifier.size(20.dp))
                     }
@@ -129,11 +129,11 @@ internal fun ActivityMonthsView(
                             ) {
                                 val label = if (w.start == w.endInclusive) "${w.start.dayOfMonth} ${monthShort(w.start.monthNumber)}"
                                     else "${w.start.dayOfMonth} ${monthShort(w.start.monthNumber)} – ${w.endInclusive.dayOfMonth} ${monthShort(w.endInclusive.monthNumber)}"
-                                Text(label, Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                if (wt.income > 0) Text("+" + currency.format(wt.income), color = F.income, fontSize = 13.sp, fontWeight = FontWeight.Bold, style = F.money)
+                                Text(label, Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                if (wt.income > 0) Text("+" + currency.format(wt.income), color = F.income, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money)
                                 Text(
                                     if (ahead && wt.expense == 0L) tr("Upcoming") else currency.format(-(wt.expense)),
-                                    color = if (ahead) F.muted else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, style = F.money,
+                                    color = if (ahead) F.muted else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money,
                                 )
                             }
                         }
@@ -176,8 +176,8 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
     FCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(tr("TOTAL"), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
-                Text(ym.actLongLabel(), color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                Text(tr("TOTAL"), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(ym.actLongLabel(), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
             }
             Row(
                 Modifier.height(36.dp).clip(RoundedCornerShape(12.dp)).background(F.page).clickable(onClickLabel = tr("Export data to Excel")) { backup.exportExcel() }
@@ -185,7 +185,7 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(Icons.Outlined.Description, null, tint = F.ink, modifier = Modifier.size(16.dp))
-                Text(tr("Excel"), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(tr("Excel"), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         }
         Gap(12.dp)
@@ -201,11 +201,11 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
                     if (budget == null) tr("No budget for this month")
                     else if (budget.remaining >= 0) tr("Budget · {0} left", currency.format(budget.remaining))
                     else tr("Budget · {0} over", currency.format(-budget.remaining)),
-                    Modifier.weight(1f), color = F.ink, fontSize = 13.5.sp, fontWeight = FontWeight.Bold,
+                    Modifier.weight(1f), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium,
                 )
                 Text(
                     if (budget == null) tr("Set one ›") else tr("{0}% of {1} ›", (budget.ratio * 100).toInt(), currency.format(budget.budget)),
-                    color = F.accent, fontSize = 13.5.sp, fontWeight = FontWeight.Bold,
+                    color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium,
                 )
             }
             Bar(budget?.ratio ?: 0f, fill = if ((budget?.ratio ?: 0f) > 1f) F.danger else F.accent, height = 6.dp)
@@ -226,7 +226,7 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
             text, Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                 .background(when (good) { true -> F.income.copy(alpha = 0.12f); false -> F.expense.copy(alpha = 0.12f); null -> F.page })
                 .padding(horizontal = 10.dp, vertical = 8.dp),
-            color = when (good) { true -> F.income; false -> F.expense; null -> F.muted }, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+            color = when (good) { true -> F.income; false -> F.expense; null -> F.muted }, fontSize = 12.sp, fontWeight = FontWeight.Medium,
         )
     }
 }
@@ -236,9 +236,9 @@ private fun SplitRow(title: String, sub: String, value: String) {
     Divider()
     Row(Modifier.fillMaxWidth().heightIn(min = 40.dp).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(title, color = F.ink, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-            Text(sub, color = F.muted, fontSize = 11.5.sp)
+            Text(title, color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text(sub, color = F.muted, fontSize = 11.sp)
         }
-        Text(value, color = F.ink, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, style = F.money)
+        Text(value, color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money)
     }
 }

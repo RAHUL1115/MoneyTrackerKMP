@@ -211,7 +211,7 @@ fun ConfigurationScreen() {
                 put(Keys.HABIT_ACCOUNT, if (it) "1" else "0")
             }
             ConfigRow(tr("Input order"), choiceLabel(Keys.INPUT_ORDER, inputOrder)) { choice = Keys.INPUT_ORDER }
-            ConfigToggle(tr("New layout"), tr("Simpler screens with bigger cards. MoneyTracker restarts to switch."), false) { if (it) layoutSwitch = true }
+            ConfigToggle(tr("New layout (experimental)"), tr("Simpler screens, still being tested. MoneyTracker restarts to switch."), false) { if (it) layoutSwitch = true }
             ConfigRow(tr("Style"), choiceLabel(Keys.THEME, theme)) { choice = Keys.THEME }
             ConfigRow(tr("Accent colour"), tr(accentChoice.label)) { accentDialog = true }
             ConfigRow(tr("Language"), I18n.LANGUAGES.firstOrNull { it.first == language.orEmpty() }?.takeIf { it.first.isNotEmpty() }?.second ?: tr("Phone language")) { languageDialog = true }

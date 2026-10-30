@@ -87,7 +87,7 @@ private fun NavItem(tab: FreshTab, icon: ImageVector, selected: FreshTab, onSele
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
-        Text(tr(tab.title), color = color, fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold)
+        Text(tr(tab.title), color = color, fontSize = 12.sp, fontWeight = if (on) FontWeight.Medium else FontWeight.Medium)
     }
 }
 

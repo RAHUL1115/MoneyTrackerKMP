@@ -148,9 +148,9 @@ internal fun FreshSearch() {
             ) {
                 Icon(Icons.Outlined.Search, null, tint = F.muted, modifier = Modifier.size(18.dp))
                 Box(Modifier.weight(1f)) {
-                    if (text.isEmpty()) Text(tr("Note, category, account or #tag"), color = F.muted, fontSize = 15.sp, maxLines = 1)
+                    if (text.isEmpty()) Text(tr("Note, category, account or #tag"), color = F.muted, fontSize = 14.sp, maxLines = 1)
                     BasicTextField(text, { text = it }, Modifier.fillMaxWidth(), singleLine = true,
-                        textStyle = TextStyle(color = F.ink, fontSize = 15.sp), cursorBrush = SolidColor(F.accent))
+                        textStyle = TextStyle(color = F.ink, fontSize = 14.sp), cursorBrush = SolidColor(F.accent))
                 }
                 if (text.isNotEmpty()) Box(
                     Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(F.page).clickable(onClickLabel = tr("Clear search text")) { text = "" },
@@ -193,7 +193,7 @@ internal fun FreshSearch() {
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 Text(if (dates == SearchDates.ALL) tr("All time") else "${range.start.searchLabel()} – ${range.endInclusive.searchLabel()}".takeIf { dates != SearchDates.CUSTOM || from != null || to != null } ?: tr("Custom"),
-                                    color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                    color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
                                 Icon(Icons.Filled.KeyboardArrowDown, null, tint = F.ink, modifier = Modifier.size(16.dp))
                             }
                         }
@@ -202,12 +202,12 @@ internal fun FreshSearch() {
             }
             if (active) item(key = "count") {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (results.size == 1) tr("1 entry") else tr("{0} entries", results.size), Modifier.weight(1f), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(if (results.size == 1) tr("1 entry") else tr("{0} entries", results.size), Modifier.weight(1f), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     Text(buildAnnotatedString {
                         append(tr("in") + " ")
-                        withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.Bold)) { append(currency.format(earned)) }
+                        withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.Medium)) { append(currency.format(earned)) }
                         append(" · " + tr("out") + " ")
-                        withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.Bold)) { append(currency.format(spent)) }
+                        withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.Medium)) { append(currency.format(spent)) }
                     }, color = F.muted, fontSize = 13.sp, style = F.money)
                 }
             }
@@ -215,7 +215,7 @@ internal fun FreshSearch() {
                 Text(tr("Type a word or pick a filter to find entries."), Modifier.fillMaxWidth().padding(16.dp), color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
             } else if (results.isEmpty()) item(key = "none") {
                 FCard(padding = 24.dp) {
-                    Text(tr("No matches"), Modifier.fillMaxWidth(), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
+                    Text(tr("No matches"), Modifier.fillMaxWidth(), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
                     Text(tr("Try fewer words, another date range, or clear the filters."), Modifier.fillMaxWidth().padding(top = 6.dp),
                         color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
                 }
@@ -232,7 +232,7 @@ internal fun FreshSearch() {
             Box(
                 Modifier.height(52.dp).clip(F.buttonShape).background(F.card).clickable(onClick = ::clear).padding(horizontal = 20.dp),
                 contentAlignment = Alignment.Center,
-            ) { Text(tr("Clear"), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+            ) { Text(tr("Clear"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
             PrimaryButton(tr("Apply filter to Activity"), ::applyToActivity, Modifier.weight(1f))
         }
     }
@@ -269,7 +269,7 @@ internal fun FreshSearch() {
 
 @Composable
 private fun FieldLabel(text: String, modifier: Modifier = Modifier) =
-    Text(text.uppercase(), modifier, color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+    Text(text.uppercase(), modifier, color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
 
 @Composable
 private fun AmountField(label: String, value: String, placeholder: String, modifier: Modifier, onChange: (String) -> Unit) {

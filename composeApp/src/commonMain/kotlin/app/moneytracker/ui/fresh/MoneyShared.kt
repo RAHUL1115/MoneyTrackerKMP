@@ -134,11 +134,11 @@ internal fun MoneyBars(
                 Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).then(if (onTap != null) Modifier.clickable { onTap(i) } else Modifier),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(compactAmount(b.value, decimals), color = if (on) ink else soft, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(compactAmount(b.value, decimals), color = if (on) ink else soft, fontSize = 10.sp, fontWeight = FontWeight.Medium, maxLines = 1)
                 val h = (abs(b.value).toFloat() / max * height.value).coerceAtLeast(4f)
                 Box(Modifier.padding(top = 2.dp).fillMaxWidth(0.7f).height(h.dp).clip(RoundedCornerShape(6.dp)).background(fill))
                 Text(b.label, Modifier.padding(top = 4.dp), color = if (on) ink else soft, fontSize = 11.sp,
-                    fontWeight = if (on) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Clip, textAlign = TextAlign.Center)
+                    fontWeight = if (on) FontWeight.Medium else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Clip, textAlign = TextAlign.Center)
             }
         }
     }
@@ -154,7 +154,7 @@ internal fun ChangeBadge(current: Long, previous: Long, upIsGood: Boolean, again
     }
     val fg = when (good) { null -> F.muted; true -> F.income; false -> F.expense }
     Text(text, Modifier.clip(RoundedCornerShape(999.dp)).background(if (good == null) F.fill else fg.copy(alpha = 0.12f)).padding(horizontal = 10.dp, vertical = 4.dp),
-        color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        color = fg, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
 }
 
 /** Labelled text box in the new layout's style. */
@@ -164,18 +164,18 @@ internal fun MoneyTextField(
     placeholder: String = "", keyboard: KeyboardType = KeyboardType.Text, singleLine: Boolean = true,
 ) {
     Column(modifier) {
-        Text(label.uppercase(), Modifier.padding(start = 4.dp, bottom = 6.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp,
+        Text(label.uppercase(), Modifier.padding(start = 4.dp, bottom = 6.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
         BasicTextField(
             value, onChange, singleLine = singleLine, minLines = if (singleLine) 1 else 2,
-            textStyle = TextStyle(color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
+            textStyle = TextStyle(color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium),
             cursorBrush = SolidColor(F.accent),
             keyboardOptions = KeyboardOptions(keyboardType = keyboard),
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner ->
                 Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(horizontal = 18.dp, vertical = 16.dp),
                     contentAlignment = Alignment.CenterStart) {
-                    if (value.isEmpty() && placeholder.isNotEmpty()) Text(placeholder, color = F.muted, fontSize = 16.sp)
+                    if (value.isEmpty() && placeholder.isNotEmpty()) Text(placeholder, color = F.muted, fontSize = 15.sp)
                     inner()
                 }
             },
@@ -188,8 +188,8 @@ internal fun MoneyTextField(
 internal fun MoneySwitchRow(title: String, hint: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(title, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            if (hint != null) Text(hint, color = F.muted, fontSize = 12.5.sp)
+            Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            if (hint != null) Text(hint, color = F.muted, fontSize = 12.sp)
         }
         Switch(
             checked, onChange,
@@ -210,7 +210,7 @@ internal fun PeriodStepper(label: String, onPrev: () -> Unit, onNext: () -> Unit
             Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).then(if (onLabel != null) Modifier.clickable(onClick = onLabel) else Modifier).padding(vertical = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(label, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+            Text(label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             if (sub != null) Text(sub, color = F.muted, fontSize = 11.sp, maxLines = 1)
         }
         StepButton(Icons.AutoMirrored.Filled.KeyboardArrowRight, tr("Next"), onNext)
@@ -229,7 +229,7 @@ internal fun ChoiceChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         text,
         Modifier.clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.fill).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
-        color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+        color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1,
     )
 }
 
@@ -247,7 +247,7 @@ internal fun PercentRing(percent: Int, over: Boolean, size: Dp = 56.dp) {
             drawArc(color, -90f, 360f * (percent.coerceIn(0, 100) / 100f), false, tl, sz,
                 style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
         }
-        Text("$percent%", color = F.ink, fontSize = (size.value * 0.24f).sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+        Text("$percent%", color = F.ink, fontSize = (size.value * 0.24f).sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 

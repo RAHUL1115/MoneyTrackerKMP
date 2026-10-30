@@ -171,10 +171,10 @@ internal fun AccountDetailBody(accountId: String) {
                 }
                 Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(c.range.label(), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        Text(status, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text(c.range.label(), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(status, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
-                    Text(fmt.format(c.charged), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, style = F.money)
+                    Text(fmt.format(c.charged), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money)
                 }
             }
         }
@@ -219,9 +219,9 @@ internal fun AccountDetailBody(accountId: String) {
                 txns.groupBy { it.date }.forEach { (date, day) ->
                     FCard(padding = 0.dp) {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(date.long(), Modifier.weight(1f), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                            Text(date.long(), Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             val net = day.sumOf { it.signedAccountValue }
-                            Text(fmt.format(net, showSign = true), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, style = F.money)
+                            Text(fmt.format(net, showSign = true), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, style = F.money)
                         }
                         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 4.dp)) {
                             day.forEachIndexed { i, t ->
@@ -247,9 +247,9 @@ internal fun AccountDetailBody(accountId: String) {
                         history.filter { it.date <= r.endInclusive }.sumOf { it.signedAccountValue }, if (yearly) null else YearMonth(ym.year, i + 1))
                 }
                 FCard(padding = 0.dp) {
-                    Text(tr("Balance"), Modifier.padding(start = 16.dp, top = 14.dp), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("Balance"), Modifier.padding(start = 16.dp, top = 14.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     LineChart(sums.map { it.balance }, sums.map { if (yearly) it.label.takeLast(2) else it.label.take(1) }, color = F.accent)
-                    Text(tr("In / out"), Modifier.padding(start = 16.dp, top = 4.dp), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                    Text(tr("In / out"), Modifier.padding(start = 16.dp, top = 4.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     PairBarChart(sums.map { it.deposit }, sums.map { it.withdrawal }, sums.map { if (yearly) it.label.takeLast(2) else it.label.take(1) },
                         colorA = F.income, colorB = F.expense)
                     Gap(8.dp)
@@ -266,12 +266,12 @@ internal fun AccountDetailBody(accountId: String) {
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(p.label, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                                    Text(p.range.label(), color = F.muted, fontSize = 12.5.sp)
+                                    Text(p.label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                    Text(p.range.label(), color = F.muted, fontSize = 12.sp)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text("+" + fmt.format(p.deposit), color = F.income, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, style = F.money)
-                                    Text(fmt.format(-(p.withdrawal)), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, style = F.money)
+                                    Text("+" + fmt.format(p.deposit), color = F.income, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money)
+                                    Text(fmt.format(-(p.withdrawal)), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money)
                                     Text(tr("Balance {0}", fmt.format(p.balance)), color = F.muted, fontSize = 11.sp, style = F.money)
                                 }
                             }
@@ -298,7 +298,7 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
         val soft = F.muted
         Row {
             Text(listOf(line.group.type.moneyLabel, line.group.name).distinct().joinToString(" · ") + (a.currency?.let { " · $it" } ?: ""),
-                Modifier.weight(1f), color = soft, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Modifier.weight(1f), color = soft, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (card != null) Text(tr("Cycle {0}", Periods.cardCycle(today, a.cardSettlementDay ?: 1).label()), color = soft, fontSize = 12.sp, maxLines = 1)
         }
         Gap(8.dp)
@@ -306,12 +306,12 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
             Row {
                 Column(Modifier.weight(1f)) {
                     Text(tr("Balance payable"), color = soft, fontSize = 12.sp)
-                    Text(fmt.format(line.billDue), color = on, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
-                    if (card.overdue > 0) Text(tr("incl. {0} overdue", fmt.format(card.overdue)), color = on, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(fmt.format(line.billDue), color = on, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
+                    if (card.overdue > 0) Text(tr("incl. {0} overdue", fmt.format(card.overdue)), color = on, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                     Text(tr("Not yet billed"), color = soft, fontSize = 12.sp)
-                    Text(fmt.format(card.currentCycle + card.upcoming), color = on, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+                    Text(fmt.format(card.currentCycle + card.upcoming), color = on, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
                     Text(tr("Spent this cycle {0}", fmt.format(card.cycleSpend)), color = soft, fontSize = 11.sp, maxLines = 1)
                 }
             }
@@ -333,12 +333,12 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
                         fmt.format(usage.thisCycle), fmt.format(usage.measured), if (met) "✓" else "✗")
                     else tr("Usage target {0} · this cycle {1} · last month {2} {3}", fmt.format(target),
                         fmt.format(usage.thisCycle), fmt.format(usage.measured), if (met) "✓" else "✗")),
-                    Modifier.padding(top = 4.dp), color = on, fontSize = 12.sp, fontWeight = if (met) FontWeight.Normal else FontWeight.Bold,
+                    Modifier.padding(top = 4.dp), color = on, fontSize = 12.sp, fontWeight = if (met) FontWeight.Normal else FontWeight.Medium,
                 )
             }
         } else {
             Text(tr("Balance"), color = soft, fontSize = 12.sp)
-            Text(fmt.format(line.balance), color = on, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1)
+            Text(fmt.format(line.balance), color = on, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
             if (line.effectiveBalance != line.balance && !line.group.type.isDebitCard)
                 Text(tr("{0} after debit card spends", fmt.format(line.effectiveBalance)), color = soft, fontSize = 12.sp)
         }
@@ -351,22 +351,22 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
 
 @Composable
 private fun RowScope.ActionTile(icon: ImageVector, label: String, primary: Boolean = false, selected: Boolean = false, onClick: () -> Unit) {
-    val bg = when { primary -> F.accent; selected -> F.ink; else -> F.card }
-    val fg = when { primary -> F.onAccent; selected -> F.page; else -> F.ink }
+    val bg = when { primary -> F.accent; selected -> F.accentTint; else -> F.card }
+    val fg = when { primary -> F.onAccent; selected -> F.accent; else -> F.ink }
     Column(
         Modifier.weight(1f).clip(F.buttonShape).background(bg).clickable(onClick = onClick).padding(vertical = 12.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Icon(icon, null, tint = fg, modifier = Modifier.size(20.dp))
-        Text(label, color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(label, color = fg, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 private fun MiniTotal(label: String, value: String, color: Color, modifier: Modifier) {
     Column(modifier.clip(RoundedCornerShape(14.dp)).background(F.card).padding(horizontal = 12.dp, vertical = 10.dp)) {
-        Text(label, color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -396,12 +396,12 @@ private fun EntryRow(t: Txn, accountName: Map<String, String>, catById: Map<Stri
     val incoming = value > 0
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(title, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (meta.isNotEmpty()) Text(meta, color = F.muted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (meta.isNotEmpty()) Text(meta, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(fmt.format(value, showSign = true), color = if (incoming) F.income else F.ink,
-                fontSize = 15.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+                fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
             if (running != null) Text(fmt.format(running), color = F.muted, fontSize = 11.sp, style = F.money, maxLines = 1)
         }
     }
@@ -470,7 +470,7 @@ private fun PaySheet(line: AccountLine, fmt: CurrencyFormat, today: LocalDate, o
             if (due != null) ChoiceChip(tr("Due date, {0}", due.short()), date == due) { date = due }
         }
         Gap(8.dp)
-        Text(tr("Recorded as a transfer from {0} to {1}, so it isn't counted as spending.", fromName ?: "…", a.name), color = F.muted, fontSize = 12.5.sp)
+        Text(tr("Recorded as a transfer from {0} to {1}, so it isn't counted as spending.", fromName ?: "…", a.name), color = F.muted, fontSize = 12.sp)
     }
 }
 
@@ -520,7 +520,7 @@ private fun AdjustSheet(line: AccountLine, fmt: CurrencyFormat, onDismiss: () ->
             Text(
                 tr("The {0} changes from {1} to {2}. Would you like to record the {3} difference as {4}?", currentLabel, fmt.format(shown), fmt.format(parsed ?: 0),
                     fmt.format(kotlin.math.abs(diff)), if (increase) tr("income") else tr("an expense")),
-                color = F.ink, fontSize = 15.sp,
+                color = F.ink, fontSize = 14.sp,
             )
             Gap(6.dp)
             Text(tr("If not, the difference is only registered on this account and stays out of your reports."), color = F.muted, fontSize = 13.sp)

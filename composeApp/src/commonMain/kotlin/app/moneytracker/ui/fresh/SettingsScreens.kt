@@ -163,8 +163,8 @@ internal fun FreshSettings() {
 
     val sections = listOf(
         SSection("look", tr("Appearance"), tr("Layout, theme, colours, language, widgets"), listOf(
-            toggle(tr("New layout"), true, tr("Turn off to go back to the classic layout. MoneyTracker restarts to switch."),
-                "layout classic old design screens restart") { if (!it) layoutSwitch = true },
+            toggle(tr("New layout (experimental)"), true, tr("Still being tested. Turn off to go back to the classic layout; MoneyTracker restarts to switch."),
+                "layout classic old design screens restart experimental beta") { if (!it) layoutSwitch = true },
             pick(Keys.THEME, words = "style dark light night mode"),
             link(tr("Accent colour"), tr(accentChoice.label), "color colour accent wallpaper") { accentSheet = true },
             pick(Keys.COLOR_SET, words = "color colour green red"),
@@ -277,9 +277,9 @@ internal fun FreshSettings() {
                 terms.all { it in text }
             }
             Text(if (found.size == 1) tr("1 setting found") else tr("{0} settings found", found.size),
-                Modifier.padding(start = 4.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Modifier.padding(start = 4.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             if (found.isEmpty()) FCard {
-                Text(tr("No settings match “{0}”", query.trim()), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text(tr("No settings match “{0}”", query.trim()), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Text(tr("Try a simpler word, like theme, currency, backup or SMS."), Modifier.padding(top = 4.dp), color = F.muted, fontSize = 13.sp)
             } else FCard(padding = 0.dp) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
@@ -304,8 +304,8 @@ internal fun FreshSettings() {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(sec.title, color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text(sec.sub, color = F.muted, fontSize = 12.5.sp)
+                            Text(sec.title, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                            Text(sec.sub, color = F.muted, fontSize = 12.sp)
                         }
                         Icon(if (isOpen) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
                             if (isOpen) tr("Collapse") else tr("Expand"), tint = F.muted)
@@ -315,7 +315,7 @@ internal fun FreshSettings() {
                     }
                 }
             }
-            Text(tr("Tap a setting to change it. Changes save right away."), Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.5.sp)
+            Text(tr("Tap a setting to change it. Changes save right away."), Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp)
         }
     }
 
@@ -412,7 +412,7 @@ private fun EditValueSheet(key: String, startDay: Int, reminderTime: String?, on
     }) {
         StgField(text, { text = if (key == Keys.REMINDER_TIME) it.take(5) else it }, number = key != Keys.CURRENCY_SYMBOL && key != Keys.REMINDER_TIME, error = !valid)
         if (key == Keys.CURRENCY_DECIMALS) Text(tr("Set decimal places before entering data; existing amounts are not converted."),
-            Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.5.sp)
+            Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.sp)
     }
 }
 
@@ -437,9 +437,9 @@ private fun SearchBox(value: String, onChange: (String) -> Unit) {
     ) {
         Icon(Icons.Outlined.Search, null, tint = F.muted, modifier = Modifier.size(20.dp))
         Box(Modifier.weight(1f)) {
-            if (value.isEmpty()) Text(tr("Search settings, e.g. dark, pin, export"), color = F.muted, fontSize = 15.sp, maxLines = 1)
+            if (value.isEmpty()) Text(tr("Search settings, e.g. dark, pin, export"), color = F.muted, fontSize = 14.sp, maxLines = 1)
             BasicTextField(value, onChange, Modifier.fillMaxWidth(), singleLine = true,
-                textStyle = TextStyle(color = F.ink, fontSize = 15.sp), cursorBrush = SolidColor(F.accent))
+                textStyle = TextStyle(color = F.ink, fontSize = 14.sp), cursorBrush = SolidColor(F.accent))
         }
         if (value.isNotEmpty()) Box(
             Modifier.size(40.dp).clip(CircleShape).clickable(onClickLabel = tr("Clear search")) { onChange("") },
@@ -454,7 +454,7 @@ private fun QuickTile(icon: ImageVector, title: String, value: String, modifier:
         Box(Modifier.size(32.dp).clip(F.iconShape).background(F.accentTint), contentAlignment = Alignment.Center) {
             Icon(icon, null, tint = F.accent, modifier = Modifier.size(18.dp))
         }
-        Text(title, Modifier.padding(top = 8.dp), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-        Text(value, color = F.muted, fontSize = 12.5.sp, maxLines = 1)
+        Text(title, Modifier.padding(top = 8.dp), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        Text(value, color = F.muted, fontSize = 12.sp, maxLines = 1)
     }
 }

@@ -93,7 +93,7 @@ internal fun BudgetSummaryCard(ym: YearMonth) {
             PercentRing((total.ratio * 100).roundToInt(), total.ratio > 1f, 52.dp)
             HGap(14.dp)
             Column(Modifier.weight(1f)) {
-                Text(tr("{0} budget", ym.label()), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(tr("{0} budget", ym.label()), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
                 val left = if (total.remaining >= 0) tr("{0} left of {1}", currency.format(total.remaining), currency.format(total.budget))
                     else tr("{0} over {1}", currency.format(-total.remaining), currency.format(total.budget))
                 val overText = when (over.size) {
@@ -101,9 +101,9 @@ internal fun BudgetSummaryCard(ym: YearMonth) {
                     1 -> tr("{0} is over", catById[over[0].categoryId]?.name ?: "")
                     else -> tr("{0} categories over", over.size)
                 }
-                Text(listOfNotNull(left, overText).joinToString(" · "), color = F.muted, fontSize = 12.5.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(listOfNotNull(left, overText).joinToString(" · "), color = F.muted, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
-            Text(tr("Budget ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Budget ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -160,16 +160,16 @@ internal fun BudgetBody() {
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(if (total != null) tr("Total budget {0}", currency.format(total.budget)) else tr("No total budget"),
-                            Modifier.weight(1f, fill = false), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                        Text(" · " + tr("Edit"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Modifier.weight(1f, fill = false), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+                        Text(" · " + tr("Edit"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     }
                     if (total != null) Text(
                         if (total.remaining >= 0) tr("{0} left", currency.format(total.remaining)) else tr("{0} over", currency.format(-total.remaining)),
-                        color = if (total.remaining >= 0) F.ink else F.expense, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, style = F.money, maxLines = 1,
-                    ) else Text(tr("Set one for {0}", ym.label()), color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                        color = if (total.remaining >= 0) F.ink else F.expense, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1,
+                    ) else Text(tr("Set one for {0}", ym.label()), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
                     Text(tr("Spent {0} · {1} was {2}", currency.format(b.spent), monthShort(ym.plus(-1).month), currency.format(before.spent)),
-                        color = F.muted, fontSize = 12.5.sp, maxLines = 1)
-                    if (total != null && explicit == null) Text(tr("Sum of the category budgets"), color = F.muted, fontSize = 12.5.sp)
+                        color = F.muted, fontSize = 12.sp, maxLines = 1)
+                    if (total != null && explicit == null) Text(tr("Sum of the category budgets"), color = F.muted, fontSize = 12.sp)
                 }
             }
             if (totalOpen) {
@@ -193,14 +193,14 @@ internal fun BudgetBody() {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Mark(catById[line.categoryId]?.name ?: name, 34.dp)
                         HGap(12.dp)
-                        Text(name, Modifier.weight(1f), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(name, Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(if (over) tr("{0} over", currency.format(-line.remaining)) else tr("{0} left", currency.format(line.remaining)),
-                            color = if (over) F.expense else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+                            color = if (over) F.expense else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
                     }
                     Gap(8.dp)
                     Bar(line.ratio, Modifier.padding(start = 46.dp), fill = if (over) F.warn else if (line.ratio > 0.9f) F.accent.copy(alpha = 0.55f) else F.accent, height = 6.dp)
                     Text(tr("{0} of {1}", currency.format(line.spent), currency.format(line.budget)), Modifier.padding(start = 46.dp, top = 6.dp),
-                        color = F.muted, fontSize = 12.5.sp, style = F.money)
+                        color = F.muted, fontSize = 12.sp, style = F.money)
                 }
                 if (isOpen) Column(
                     Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(12.dp),
@@ -215,7 +215,7 @@ internal fun BudgetBody() {
                         val range = ps.month(ym)
                         Text(tr("See {0} entries ›", catById[main]?.name ?: name),
                             Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.StatsDetail(main, false, range.start, range.endInclusive, catById[main]?.name ?: name)) }
-                                .padding(vertical = 6.dp), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                .padding(vertical = 6.dp), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -224,7 +224,7 @@ internal fun BudgetBody() {
             tr("Category budgets add up to {0}{1}. Tap a category to change its amount or see its entries. Budgets apply from the selected month onward.",
                 currency.format(lines.filter { catById[it.categoryId]?.parentId == null }.sumOf { it.budget }),
                 if (explicit != null) " " + tr("of your {0} total", currency.format(explicit)) else ""),
-            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.5.sp,
+            Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp,
         )
         FCard(padding = 4.dp) {
             Column(Modifier.padding(horizontal = 12.dp)) {

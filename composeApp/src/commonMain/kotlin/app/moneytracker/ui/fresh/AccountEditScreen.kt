@@ -118,7 +118,7 @@ internal fun AccountEditBody(accountId: String?) {
 
     SubScreen(if (accountId == null) tr("Add account") else tr("Edit account"), nav::pop, bottom = {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            error?.let { Text(it, color = F.danger, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+            error?.let { Text(it, color = F.danger, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
             PrimaryButton(if (accountId == null) tr("Add account") else tr("Save account"), ::save)
         }
     }) {
@@ -126,7 +126,7 @@ internal fun AccountEditBody(accountId: String?) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 MoneyTextField(tr("Name"), name, { name = it; error = null })
                 Column {
-                    Text(tr("Group").uppercase(), Modifier.padding(start = 4.dp, bottom = 8.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
+                    Text(tr("Group").uppercase(), Modifier.padding(start = 4.dp, bottom = 8.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         groups.forEach { g -> ChoiceChip(g.name, g.id == groupId) { groupId = g.id; error = null } }
                     }

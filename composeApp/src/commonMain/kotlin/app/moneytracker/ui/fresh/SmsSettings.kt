@@ -90,10 +90,10 @@ internal fun SmsSettingsScreen() {
         ) {
             Mark(tr("Detected messages"), 38.dp, icon = Icons.Outlined.Sms)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(tr("Detected messages"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(if (pending.isEmpty()) tr("Nothing waiting") else tr("{0} waiting for review", pending.size), color = F.muted, fontSize = 12.5.sp)
+                Text(tr("Detected messages"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Text(if (pending.isEmpty()) tr("Nothing waiting") else tr("{0} waiting for review", pending.size), color = F.muted, fontSize = 12.sp)
             }
-            Text(tr("Review ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Review ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
         FCard {
             Text(tr("Bank messages are read on this phone only. Nothing is uploaded. Detection is an assistant, so check suggestions before saving."),
@@ -119,8 +119,8 @@ internal fun SmsSettingsScreen() {
                     "0" -> tr("Not kept on entries"); "2" -> tr("Shown only while editing an entry"); else -> tr("Always shown in entry details")
                 }
                 Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(tr("Original message on entries"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text(origHint, Modifier.padding(bottom = 6.dp), color = F.muted, fontSize = 12.5.sp)
+                    Text(tr("Original message on entries"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(origHint, Modifier.padding(bottom = 6.dp), color = F.muted, fontSize = 12.sp)
                     val opts = listOf("0" to tr("Hide"), "2" to tr("While editing"), "1" to tr("Show"))
                     val selected = opts.indexOfFirst { it.first == (showOriginal ?: "1") }.coerceAtLeast(0)
                     Segmented(opts.map { it.second }, selected, { put(Keys.SMS_SHOW_ORIGINAL, opts[it].first) }, Modifier.height(48.dp))
@@ -129,9 +129,9 @@ internal fun SmsSettingsScreen() {
         }
 
         FCard {
-            Text(tr("Import older messages"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Import older messages"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Text(tr("Reads bank messages already in your SMS inbox into Detected messages. Pick how many days back."),
-                Modifier.padding(top = 3.dp), color = F.muted, fontSize = 12.5.sp)
+                Modifier.padding(top = 3.dp), color = F.muted, fontSize = 12.sp)
             val presets = listOf(7, 30, 90, 180)
             val opts = presets.map { tr("{0} days", it) } + (if (days in presets) tr("Other") else tr("{0} days", days))
             val sel = presets.indexOf(days).let { if (it < 0) presets.size else it }
@@ -141,7 +141,7 @@ internal fun SmsSettingsScreen() {
 
         FCard(padding = 0.dp) {
             Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-                Text(tr("Filters").uppercase(), Modifier.padding(top = 12.dp, bottom = 2.dp), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
+                Text(tr("Filters").uppercase(), Modifier.padding(top = 12.dp, bottom = 2.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
                 listOf(
                     Triple(Keys.SMS_BLOCKED_SENDERS, tr("Blocked numbers"), tr("Messages from these senders are ignored")) to blockedSenders,
                     Triple(Keys.SMS_BLOCKED_PHRASES, tr("Blocked words"), tr("Messages containing these are ignored")) to blockedPhrases,
@@ -157,7 +157,7 @@ internal fun SmsSettingsScreen() {
             }
         }
         Text(tr("Content-filter words are removed before a message is read, which helps when a bank adds text that confuses the amount or shop name."),
-            color = F.muted, fontSize = 12.5.sp, modifier = Modifier.padding(horizontal = 4.dp))
+            color = F.muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 4.dp))
     }
 
     disclosure?.let { action ->
@@ -174,7 +174,7 @@ internal fun SmsSettingsScreen() {
                 text, { text = it.filter(Char::isDigit).take(3) },
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, F.border, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 12.dp),
                 singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = TextStyle(color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold), cursorBrush = SolidColor(F.accent),
+                textStyle = TextStyle(color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium), cursorBrush = SolidColor(F.accent),
             )
         }
     }
@@ -187,8 +187,8 @@ private fun SwitchLine(label: String, hint: String?, checked: Boolean, dimmed: B
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            if (hint != null) Text(hint, color = F.muted, fontSize = 12.5.sp)
+            Text(label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            if (hint != null) Text(hint, color = F.muted, fontSize = 12.sp)
         }
         SmsSwitch(checked)
     }
@@ -209,8 +209,8 @@ private fun FilterLine(key: String, label: String, hint: String, value: String?,
         Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable(onClick = onToggle).padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1f)) {
-                Text(label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(hint, color = F.muted, fontSize = 12.5.sp)
+                Text(label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Text(hint, color = F.muted, fontSize = 12.sp)
             }
             val summary = when {
                 open -> tr("Close")
@@ -218,16 +218,16 @@ private fun FilterLine(key: String, label: String, hint: String, value: String?,
                 items.size > 2 -> tr("{0} items ›", items.size)
                 else -> items.joinToString(", ") + " ›"
             }
-            Text(summary, Modifier.widthIn(max = 130.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(summary, Modifier.widthIn(max = 130.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (open) {
             var text by remember(key) { mutableStateOf(value.orEmpty()) }
             Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SmsTextArea(text, { text = it })
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("One per line."), Modifier.weight(1f), color = F.muted, fontSize = 12.5.sp)
+                    Text(tr("One per line."), Modifier.weight(1f), color = F.muted, fontSize = 12.sp)
                     Text(tr("Save"), Modifier.clip(RoundedCornerShape(10.dp)).background(F.accent).clickable { onSave(text) }.padding(horizontal = 14.dp, vertical = 9.dp),
-                        color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                        color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

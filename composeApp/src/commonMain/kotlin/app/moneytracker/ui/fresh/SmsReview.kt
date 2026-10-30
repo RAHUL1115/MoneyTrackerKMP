@@ -133,7 +133,7 @@ internal fun SmsReviewScreen() {
                     Box(Modifier.size(56.dp).clip(CircleShape).background(F.accentTint), contentAlignment = Alignment.Center) {
                         Icon(Icons.Outlined.Check, null, tint = F.accent, modifier = Modifier.size(28.dp))
                     }
-                    Text(if (added > 0) tr("All caught up") else tr("Nothing to review"), color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(if (added > 0) tr("All caught up") else tr("Nothing to review"), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
                     Text(
                         when {
                             added == 1 -> tr("1 entry added to Activity. New bank messages will show up here.")
@@ -145,7 +145,7 @@ internal fun SmsReviewScreen() {
                     )
                     if (!capture) {
                         Text(tr("Bank SMS settings"), Modifier.clip(RoundedCornerShape(12.dp)).background(F.fill).clickable { nav.push(Screen.MessageSettings) }
-                            .padding(horizontal = 14.dp, vertical = 10.dp), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            .padding(horizontal = 14.dp, vertical = 10.dp), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -173,7 +173,7 @@ internal fun SmsReviewScreen() {
             }
         }
         Text(tr("Your corrections teach the matcher: the account and category you pick are suggested next time for messages like this."),
-            color = F.muted, fontSize = 12.5.sp, modifier = Modifier.padding(horizontal = 4.dp))
+            color = F.muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 4.dp))
     }
 
     if (pasting) PasteSheet(onDismiss = { pasting = false }) { c -> pasting = false; focusId = c.id; toaster.show(tr("Message read · review it above")) }
@@ -215,16 +215,16 @@ private fun ReviewCard(c: Capture, d: TxnDraft?, amountText: String, ready: Bool
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(c.sender.ifBlank { tr("Pasted") }, Modifier.clip(RoundedCornerShape(8.dp)).background(F.fill).padding(horizontal = 10.dp, vertical = 5.dp),
-                color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-            Text(whenLabel(c.receivedAt), Modifier.weight(1f), color = F.muted, fontSize = 12.5.sp)
-            if (total > 1) Text(tr("{0} of {1}", position, total), color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(whenLabel(c.receivedAt), Modifier.weight(1f), color = F.muted, fontSize = 12.sp)
+            if (total > 1) Text(tr("{0} of {1}", position, total), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
         Text(c.text, Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(F.page).padding(horizontal = 12.dp, vertical = 10.dp),
             color = F.ink, fontSize = 13.sp, lineHeight = 19.sp)
         Column {
             Text(if (refund) tr("We'll add a refund") else if (d?.type == DraftType.INCOME) tr("We'll add income") else tr("We'll add"),
-                color = F.muted, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
-            Text(amountText, color = if (refund || d?.type == DraftType.INCOME) F.income else F.ink, fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, style = F.money)
+                color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(amountText, color = if (refund || d?.type == DraftType.INCOME) F.income else F.ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, style = F.money)
         }
         Column {
             Divider()
@@ -240,8 +240,8 @@ private fun ReviewCard(c: Capture, d: TxnDraft?, amountText: String, ready: Bool
 @Composable
 private fun DetailLine(label: String, value: String, muted: Boolean) {
     Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-        Text(value, Modifier.weight(1f).padding(start = 12.dp), color = if (muted) F.muted else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+        Text(label, color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(value, Modifier.weight(1f).padding(start = 12.dp), color = if (muted) F.muted else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium,
             textAlign = TextAlign.End, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -249,7 +249,7 @@ private fun DetailLine(label: String, value: String, muted: Boolean) {
 @Composable
 private fun GreyButton(text: String, onClick: () -> Unit) {
     Box(Modifier.height(54.dp).clip(F.buttonShape).background(F.card).border(1.dp, F.border, F.buttonShape).clickable(onClick = onClick).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-        Text(text, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -260,7 +260,7 @@ private fun SmallAction(text: String, modifier: Modifier, icon: androidx.compose
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
     ) {
         if (icon != null) Icon(icon, null, tint = F.ink, modifier = Modifier.size(18.dp))
-        Text(text, Modifier.padding(start = 6.dp), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(text, Modifier.padding(start = 6.dp), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -287,7 +287,7 @@ private fun PasteSheet(onDismiss: () -> Unit, onRead: (Capture) -> Unit) {
     ) {
         Text(tr("Paste a bank SMS about a payment. It is read on this phone only."), color = F.muted, fontSize = 13.sp)
         SmsTextArea(text, { text = it; error = false }, minHeight = 120.dp)
-        if (error) Text(tr("That doesn't look like a payment message (or it was already added)."), color = F.danger, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        if (error) Text(tr("That doesn't look like a payment message (or it was already added)."), color = F.danger, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }
 

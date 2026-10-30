@@ -89,7 +89,7 @@ internal fun ActivityNotesView() {
     ) {
         if (list.isEmpty()) item {
             FCard(padding = 28.dp) {
-                Text(tr("No notes yet"), Modifier.fillMaxWidth(), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
+                Text(tr("No notes yet"), Modifier.fillMaxWidth(), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
                 Text(tr("Tap + Note to jot something down, like a bill to pay or a plan for the month."), Modifier.fillMaxWidth().padding(top = 6.dp),
                     color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
             }
@@ -101,13 +101,13 @@ internal fun ActivityNotesView() {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(n.title.ifBlank { tr("Untitled") }, Modifier.weight(1f), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold,
+                    Text(n.title.ifBlank { tr("Untitled") }, Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (n.pinned) Text(tr("Pinned"), Modifier.clip(RoundedCornerShape(999.dp)).background(F.accentTint).padding(horizontal = 8.dp, vertical = 3.dp),
-                        color = F.accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                        color = F.accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 }
-                if (n.content.isNotBlank()) Text(n.content, color = F.ink.copy(alpha = 0.8f), fontSize = 13.5.sp, lineHeight = 19.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                Text((if (n.pinned) tr("Pinned") + " · " else "") + noteDate(n.createdAt).noteLabel(today), color = F.muted, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                if (n.content.isNotBlank()) Text(n.content, color = F.ink.copy(alpha = 0.8f), fontSize = 13.sp, lineHeight = 19.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text((if (n.pinned) tr("Pinned") + " · " else "") + noteDate(n.createdAt).noteLabel(today), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -160,7 +160,7 @@ internal fun FreshEditNote(noteId: String?) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(Icons.Outlined.PushPin, null, tint = if (pinned) F.accent else F.ink, modifier = Modifier.size(18.dp))
-                Text(if (pinned) tr("Pinned") else tr("Pin"), color = if (pinned) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(if (pinned) tr("Pinned") else tr("Pin"), color = if (pinned) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         },
         bottom = {
@@ -182,24 +182,24 @@ internal fun FreshEditNote(noteId: String?) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box {
-                if (title.isEmpty()) Text(tr("Title"), color = F.muted, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                if (title.isEmpty()) Text(tr("Title"), color = F.muted, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 BasicTextField(title, { title = it }, Modifier.fillMaxWidth(), singleLine = true,
-                    textStyle = TextStyle(color = F.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold), cursorBrush = SolidColor(F.accent))
+                    textStyle = TextStyle(color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold), cursorBrush = SolidColor(F.accent))
             }
             Box {
-                if (content.isEmpty()) Text(tr("Write something…"), color = F.muted, fontSize = 15.sp)
+                if (content.isEmpty()) Text(tr("Write something…"), color = F.muted, fontSize = 14.sp)
                 BasicTextField(content, { content = it }, Modifier.fillMaxWidth().heightIn(min = 300.dp),
-                    textStyle = TextStyle(color = F.ink, fontSize = 15.sp, lineHeight = 23.sp), cursorBrush = SolidColor(F.accent))
+                    textStyle = TextStyle(color = F.ink, fontSize = 14.sp, lineHeight = 23.sp), cursorBrush = SolidColor(F.accent))
             }
             val o = original
             Text(
                 if (o == null) tr("New · today") else tr("Last edited {0}", LocalDate.fromEpochDays((o.updatedAt / DAY_MS).toInt()).noteLabel(repo.today())),
-                color = F.muted, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold,
+                color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium,
             )
         }
         FCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Colour"), Modifier.weight(1f), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(tr("Colour"), Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     noteTints.indices.forEach { i ->
                         Box(

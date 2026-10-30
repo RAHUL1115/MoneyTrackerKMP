@@ -25,6 +25,24 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Chair
+import androidx.compose.material.icons.outlined.Checkroom
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.HealthAndSafety
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.CardGiftcard
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.Flight
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -108,6 +126,33 @@ object F {
 @Suppress("UNUSED_PARAMETER")
 fun markColors(name: String): Pair<Color, Color> = pick(0xFFEEF1ED, 0xFF232927) to pick(0xFF46524D, 0xFFB7C2BD)
 
+/** A line icon for common category names ("Food", "Travel", "Bills"…), or null to show the letters instead. */
+fun categoryIcon(name: String?): ImageVector? {
+    val n = name?.lowercase() ?: return null
+    fun has(vararg words: String) = words.any { it in n }
+    return when {
+        has("food", "grocer", "eat", "restaurant", "lunch", "dinner", "breakfast", "snack", "drink", "beverage") -> Icons.Outlined.Restaurant
+        has("travel", "transport", "fuel", "petrol", "car", "taxi", "cab", "bus", "train", "metro", "subway") -> Icons.Outlined.DirectionsCar
+        has("household", "furniture", "appliance") -> Icons.Outlined.Chair
+        has("rent", "house", "home") -> Icons.Outlined.Home
+        has("bill", "utilit", "electric", "water", "gas") -> Icons.AutoMirrored.Outlined.ReceiptLong
+        has("cloth", "apparel", "fashion", "shoe") -> Icons.Outlined.Checkroom
+        has("gym", "fitness", "sport", "workout") -> Icons.Outlined.FitnessCenter
+        has("medic", "health", "doctor", "pharma", "hospital") -> Icons.Outlined.MedicalServices
+        has("insur") -> Icons.Outlined.HealthAndSafety
+        has("entertain", "movie", "fun", "game") -> Icons.Outlined.Movie
+        has("recharge", "phone", "mobile", "internet", "wifi") -> Icons.Outlined.PhoneAndroid
+        has("salary", "wage", "pay") -> Icons.Outlined.Payments
+        has("bonus", "gift") -> Icons.Outlined.CardGiftcard
+        has("cashback", "refund", "interest", "saving") -> Icons.Outlined.Savings
+        has("educat", "school", "course", "book") -> Icons.Outlined.School
+        has("shop") -> Icons.Outlined.ShoppingBag
+        has("trip", "holiday", "flight") -> Icons.Outlined.Flight
+        has("other", "misc") -> Icons.Outlined.MoreHoriz
+        else -> null
+    }
+}
+
 /** Two-letter mark: "Food" → "FO", "Credit card" → "CC". */
 fun markText(name: String): String {
     val words = name.trim().split(' ', '/', '-', '&').filter { it.isNotBlank() }
@@ -123,7 +168,7 @@ fun Mark(name: String, size: Dp = 36.dp, icon: ImageVector? = null) {
     val (bg, fg) = markColors(name)
     Box(Modifier.size(size).clip(RoundedCornerShape(size * 0.31f)).background(bg), contentAlignment = Alignment.Center) {
         if (icon != null) Icon(icon, null, tint = fg, modifier = Modifier.size(size * 0.5f))
-        else Text(markText(name), color = fg, fontSize = (size.value * 0.33f).sp, fontWeight = FontWeight.ExtraBold)
+        else Text(markText(name), color = fg, fontSize = (size.value * 0.33f).sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -159,9 +204,9 @@ fun ToastHost(toaster: Toaster, modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(16.dp)).background(F.ink).padding(start = 16.dp, end = 8.dp).height(52.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(t.message, Modifier.weight(1f), color = F.page, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(t.message, Modifier.weight(1f), color = F.page, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
         if (t.undo != null) TextButton(onClick = { t.undo.invoke(); toaster.dismiss() }) {
-            Text(tr("Undo"), color = F.accentTint, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+            Text(tr("Undo"), color = F.accentTint, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         }
     }
 }
@@ -174,7 +219,7 @@ fun TabHeader(title: String, overline: String? = null, actions: @Composable RowS
     Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter).padding(top = 18.dp, bottom = 8.dp).height(52.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             if (overline != null) Text(overline, color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Text(title, color = F.ink, fontSize = if (overline != null) 22.sp else 26.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, color = F.ink, fontSize = if (overline != null) 20.sp else 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), content = actions)
     }
@@ -188,7 +233,7 @@ fun IconTile(icon: ImageVector, label: String, onClick: () -> Unit, badge: Int =
         if (badge > 0) Box(
             Modifier.align(Alignment.TopEnd).padding(5.dp).size(16.dp).clip(CircleShape).background(F.warn),
             contentAlignment = Alignment.Center,
-        ) { Text(if (badge > 9) "9+" else badge.toString(), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold) }
+        ) { Text(if (badge > 9) "9+" else badge.toString(), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.SemiBold) }
     }
 }
 
@@ -211,7 +256,7 @@ fun SubScreen(
     Column(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             IconTile(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"), onBack)
-            Text(title, Modifier.weight(1f), color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, Modifier.weight(1f), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             actions()
         }
         Column(
@@ -231,7 +276,7 @@ fun SubScreen(
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(Icons.Filled.Add, null, tint = F.onAccent, modifier = Modifier.size(22.dp))
-        Text(add.first, color = F.onAccent, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+        Text(add.first, color = F.onAccent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
     }
 }
@@ -251,16 +296,16 @@ fun FCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, padding:
 @Composable
 fun CardTitle(title: String, action: String? = null, onAction: (() -> Unit)? = null) {
     Row(Modifier.fillMaxWidth().height(36.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, Modifier.weight(1f), color = F.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(title, Modifier.weight(1f), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
         if (action != null && onAction != null) Text(action, Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onAction).padding(6.dp),
-            color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }
 
 /** Small grey label above a group of rows. */
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier) =
-    Text(text.uppercase(), modifier.padding(start = 4.dp, top = 8.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
+    Text(text.uppercase(), modifier.padding(start = 4.dp, top = 8.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
 
 /** The one main action at the bottom of a screen or sheet. */
 @Composable
@@ -269,7 +314,7 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     Box(
         modifier.fillMaxWidth().height(52.dp).clip(F.buttonShape).background(bg).clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Text(text, color = if (enabled) F.onAccent else F.muted, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold) }
+    ) { Text(text, color = if (enabled) F.onAccent else F.muted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
 }
 
 @Composable
@@ -277,7 +322,7 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
     Box(
         modifier.fillMaxWidth().height(52.dp).clip(F.buttonShape).background(F.card).border(1.dp, F.border, F.buttonShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Text(text, color = if (danger) F.danger else F.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+    ) { Text(text, color = if (danger) F.danger else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
 }
 
 /** Rounded pill; soft accent tint when selected. */
@@ -291,7 +336,7 @@ fun Pill(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifie
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (leading != null) Icon(leading, null, tint = if (selected) F.accent else F.ink, modifier = Modifier.size(16.dp))
-        Text(text, color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(text, color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
 
@@ -309,7 +354,7 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mod
             Box(
                 Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(11.dp)).background(if (on) F.card else Color.Transparent).clickable { onSelect(i) },
                 contentAlignment = Alignment.Center,
-            ) { Text(o, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.ExtraBold else FontWeight.SemiBold, maxLines = 1) }
+            ) { Text(o, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1) }
         }
     }
 }
@@ -332,10 +377,10 @@ fun FRow(
     ) {
         leading?.invoke()
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(title, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (!subtitle.isNullOrEmpty()) Text(subtitle, color = F.muted, fontSize = 12.5.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (!subtitle.isNullOrEmpty()) Text(subtitle, color = F.muted, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
-        if (value != null) Text(value, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, style = F.money, maxLines = 1)
+        if (value != null) Text(value, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
         trailing?.invoke()
         if (chevron && onClick != null && trailing == null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = F.muted, modifier = Modifier.size(20.dp))
     }
@@ -364,7 +409,7 @@ fun Sheet(title: String, onDismiss: () -> Unit, bottom: (@Composable () -> Unit)
         containerColor = F.card, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp).padding(bottom = 16.dp)) {
-            Text(title, color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(bottom = 12.dp))
+            Text(title, color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 12.dp))
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp), content = content)
             if (bottom != null) { Spacer(Modifier.height(12.dp)); bottom() }
         }
@@ -381,10 +426,10 @@ fun SheetOption(text: String, selected: Boolean = false, subtitle: String? = nul
     ) {
         leading?.invoke()
         Column(Modifier.weight(1f)) {
-            Text(text, color = F.ink, fontSize = 15.sp, fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold)
+            Text(text, color = F.ink, fontSize = 14.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
             if (subtitle != null) Text(subtitle, color = F.muted, fontSize = 12.sp)
         }
-        if (selected) Text("✓", color = F.accent, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+        if (selected) Text("✓", color = F.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -397,7 +442,7 @@ fun Confirm(title: String, body: String, confirm: String, onDismiss: () -> Unit,
             PrimaryButton(confirm, { onDismiss(); onConfirm() }, Modifier.weight(1f), danger = danger)
         }
     }) {
-        Text(body, color = F.muted, fontSize = 14.sp, lineHeight = 20.sp)
+        Text(body, color = F.muted, fontSize = 14.sp, lineHeight = 18.sp)
     }
 }
 
