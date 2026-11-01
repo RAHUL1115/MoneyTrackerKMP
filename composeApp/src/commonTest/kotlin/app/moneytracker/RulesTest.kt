@@ -100,7 +100,7 @@ class RulesTest {
     }
 
     @Test fun overpaymentIsKeptAsCredit() {
-        // MM shows what's left after every charge is covered in "Outst. balance" as a credit, not zero.
+        // What's left after every charge is covered shows in "Outst. balance" as a credit, not zero.
         val txns = listOf(t(TxnKind.EXPENSE, "2026-03-12", 300), t(TxnKind.TRANSFER_IN, "2026-03-01", 1000))
         val s = cardStatus(txns, 10, d("2026-03-15"))
         assertEquals(0, s.statementDue + s.currentCycle + s.overdue + s.upcoming)

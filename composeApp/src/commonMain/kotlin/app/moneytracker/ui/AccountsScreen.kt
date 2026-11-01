@@ -141,7 +141,7 @@ fun AccountsTab() {
                     Column(Modifier.padding(top = 10.dp).card()) {
                         if (isCard) {
                             val payable = counted.sumOf { (it.card?.statementDue ?: 0) + (it.card?.overdue ?: 0) }
-                            // Like MM, a card in credit offsets the others' outstanding.
+                            // A card in credit offsets the others' outstanding.
                             val outstanding = counted.sumOf { it.card?.outstanding ?: 0 }
                             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.Bottom) {
                                 GroupName(group.name, Modifier.weight(1f))
@@ -186,7 +186,7 @@ fun AccountsTab() {
                                 if (card != null) {
                                     Text(fmt.format(card.statementDue + card.overdue), Modifier.width(120.dp), textAlign = TextAlign.End,
                                         color = if (card.overdue > 0) ExpenseColor else Ink, style = RowAmountStyle)
-                                    // In credit: MM shows the amount unsigned in the income colour.
+                                    // In credit: the amount shows unsigned in the income colour.
                                     Text(fmt.format(kotlin.math.abs(card.outstanding)), Modifier.width(120.dp), textAlign = TextAlign.End,
                                         color = if (card.outstanding < 0) IncomeColor else Ink, style = RowAmountStyle)
                                 } else {

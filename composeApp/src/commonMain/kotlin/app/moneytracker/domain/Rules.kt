@@ -238,7 +238,7 @@ data class CardStatus(
     val credit: Long = 0,
 ) {
     val totalOwed get() = statementDue + currentCycle + overdue
-    /** MM's "Outst. balance": open-cycle and later charges, less any credit (negative = in credit). */
+    /** "Outst. balance": open-cycle and later charges, less any credit (negative = in credit). */
     val outstanding get() = currentCycle + upcoming - credit
 }
 

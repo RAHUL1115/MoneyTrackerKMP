@@ -292,7 +292,7 @@ private fun AccountRow(l: AccountLine, today: LocalDate) {
             Column(Modifier.padding(start = 12.dp), horizontalAlignment = Alignment.End) {
                 Text(fmt.format(amount), color = if (dim) F.muted else if (card != null && card.overdue > 0) F.danger else balanceTone(amount, card != null),
                     fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
-                // Overpaid: what's left after every charge is covered shows as a credit, as in Money Manager.
+                // Overpaid: what's left after every charge is covered shows as a credit.
                 if (card != null) {
                     if (card.outstanding < 0) Text(tr("In credit {0}", fmt.format(-card.outstanding)), color = if (dim) F.muted else F.income, fontSize = 12.sp, maxLines = 1)
                     else Text(tr("Outstanding {0}", fmt.format(card.outstanding)), color = F.muted, fontSize = 12.sp, maxLines = 1)
