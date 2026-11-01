@@ -1,5 +1,6 @@
 package app.moneytracker.ui.fresh
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -77,13 +80,13 @@ internal fun ActivityMonthsView(
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter).padding(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             ActPeriodSwitch(year.toString(), { onPick(ym.plus(-12)) }, { onPick(ym.plus(12)) }, onPickMonth, minWidth = 48)
             Text(buildAnnotatedString {
                 append(tr("Out") + " ")
-                withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.SemiBold)) { append(currency.format(yt.expense)) }
+                withStyle(SpanStyle(color = F.ink, fontWeight = FontWeight.SemiBold)) { append(currency.format(yt.expense)) }
                 append(" · " + tr("In") + " ")
                 withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.SemiBold)) { append(currency.format(yt.income)) }
             }, Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, style = F.money,
@@ -118,7 +121,7 @@ internal fun ActivityMonthsView(
                         Periods.weeks(range, ps.weekStart).reversed().forEach { w ->
                             val wt = totals(byMonth[m].orEmpty().filter { it.date!! in w })
                             val ahead = w.start > repo.today()
-                            Divider()
+                            DashedDivider()
                             Row(
                                 Modifier.fillMaxWidth().heightIn(min = 36.dp).clickable { onOpenList(month) },
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -129,7 +132,9 @@ internal fun ActivityMonthsView(
                                 if (wt.income > 0) Text("+" + currency.format(wt.income), color = F.income, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money)
                                 Text(
                                     if (ahead && wt.expense == 0L) tr("Upcoming") else currency.format(-(wt.expense)),
-                                    color = if (ahead) F.muted else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money,
+                                    // Red, or blue for a week that brought in more than went out.
+                                    color = when { ahead -> F.muted; wt.income > wt.expense -> F.income; else -> F.expense },
+                                    fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money,
                                 )
                             }
                         }
@@ -184,9 +189,9 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
                 Text(tr("Excel"), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         }
-        Gap(12.dp)
+        Gap(16.dp)
         ActSummary(t.income, t.expense, background = F.page)
-        Gap(12.dp)
+        Gap(16.dp)
         Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                 .clickable { if (budget != null) nav.push(Screen.BudgetDetail(ym.key)) else nav.push(Screen.Budget) }.padding(vertical = 4.dp),
@@ -204,13 +209,13 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
                     color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium,
                 )
             }
-            Bar(budget?.ratio ?: 0f, fill = if ((budget?.ratio ?: 0f) > 1f) F.danger else F.accent, height = 6.dp)
+            Bar(budget?.ratio ?: 0f, fill = if ((budget?.ratio ?: 0f) > 1f) F.warn else F.accent, height = 6.dp)
         }
-        Gap(8.dp)
+        Gap(16.dp)
         SplitRow(tr("Cash & bank"), tr("Spent from accounts"), currency.format(otherExpense))
         SplitRow(tr("Cards"), tr("Spent on credit cards"), currency.format(cardExpense))
         SplitRow(tr("Saved / set aside"), tr("Moved to savings and investments"), currency.format(saved))
-        Gap(8.dp)
+        Gap(16.dp)
         val diff = t.expense - prevExpense
         val prevName = tr(actMonthNames[ym.plus(-1).month - 1])
         val (text, good) = when {
@@ -224,6 +229,16 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             color = when (good) { true -> F.income; false -> F.expense; null -> F.muted }, fontSize = 12.sp, fontWeight = FontWeight.Medium,
         )
+    }
+}
+
+/** Hairline between weeks, dashed so it reads lighter than the month dividers. */
+@Composable
+private fun DashedDivider() {
+    val color = F.border
+    Canvas(Modifier.fillMaxWidth().height(1.dp)) {
+        drawLine(color, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), strokeWidth = size.height,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
     }
 }
 

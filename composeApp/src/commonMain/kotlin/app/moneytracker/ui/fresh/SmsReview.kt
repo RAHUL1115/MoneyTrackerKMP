@@ -29,6 +29,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -107,20 +111,20 @@ internal fun SmsReviewScreen() {
     val ready = d != null && d.amount != 0L && d.accountId in accountNames
     SubScreen(
         tr("Bank messages"), nav::pop,
+        subtitle = tr("{0} to review · read on this phone only", captures.size),
         actions = { IconTile(Glyph.Settings, tr("Bank SMS settings"), { nav.push(Screen.MessageSettings) }) },
         bottom = if (current == null) null else ({
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GreyButton(tr("Dismiss")) { dismiss(current) }
                 GreyButton(tr("Edit")) { d?.let { nav.push(Screen.EditTxn(preset = it, captureId = current.id)) } }
-                PrimaryButton(
+                AddButton(
                     if (ready) tr("Add {0}", amountText) else tr("Review and add"),
                     onClick = { d?.let { if (ready) add(current, it) else nav.push(Screen.EditTxn(preset = it, captureId = current.id)) } },
-                    modifier = Modifier.weight(1f).height(54.dp), enabled = d != null,
+                    modifier = Modifier.weight(1f), enabled = d != null,
                 )
             }
         }),
     ) {
-        Text(tr("{0} to review · read on this phone only", captures.size), color = F.muted, fontSize = 13.sp, modifier = Modifier.padding(start = 4.dp))
         if (current != null) {
             ReviewCard(current, d, amountText, ready, position = captures.indexOf(current) + 1, total = captures.size)
         } else {
@@ -205,8 +209,18 @@ private fun ReviewCard(c: Capture, d: TxnDraft?, amountText: String, ready: Bool
     val catById by repo.categoryById.collectAsState(emptyMap())
     val accountName by repo.accountNames.collectAsState(emptyMap())
     val refund = d?.type == DraftType.REFUND
+    val near = F.track
+    val far = F.border
+    // Two slim edges under the card hint at the messages still waiting behind it.
     Column(
-        Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(18.dp),
+        Modifier.padding(bottom = if (total > 1) 12.dp else 0.dp).fillMaxWidth()
+            .drawBehind {
+                if (total > 1) {
+                    drawRoundRect(far, Offset(8.dp.toPx(), 28.dp.toPx()), Size(size.width - 16.dp.toPx(), size.height - 16.dp.toPx()), CornerRadius(16.dp.toPx()))
+                    drawRoundRect(near, Offset(4.dp.toPx(), 14.dp.toPx()), Size(size.width - 8.dp.toPx(), size.height - 8.dp.toPx()), CornerRadius(20.dp.toPx()))
+                }
+            }
+            .clip(F.heroShape).background(F.card).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -235,7 +249,7 @@ private fun ReviewCard(c: Capture, d: TxnDraft?, amountText: String, ready: Bool
 
 @Composable
 private fun DetailLine(label: String, value: String, muted: Boolean) {
-    Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         Text(value, Modifier.weight(1f).padding(start = 12.dp), color = if (muted) F.muted else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium,
             textAlign = TextAlign.End, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -244,9 +258,21 @@ private fun DetailLine(label: String, value: String, muted: Boolean) {
 
 @Composable
 private fun GreyButton(text: String, onClick: () -> Unit) {
-    Box(Modifier.height(54.dp).clip(F.buttonShape).background(F.card).border(1.dp, F.border, F.buttonShape).clickable(onClick = onClick).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.height(54.dp).clip(ReviewButtonShape).background(F.card).clickable(onClick = onClick).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
         Text(text, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
+}
+
+/** The review bar's buttons are a little rounder than the rest, so the three read as one group. */
+private val ReviewButtonShape = RoundedCornerShape(18.dp)
+
+/** [PrimaryButton] in the review bar's shape. */
+@Composable
+private fun AddButton(text: String, onClick: () -> Unit, modifier: Modifier, enabled: Boolean) {
+    Box(
+        modifier.height(54.dp).clip(ReviewButtonShape).background(if (enabled) F.accent else F.fill).clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, color = if (enabled) F.onAccent else F.muted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
 }
 
 @Composable

@@ -34,6 +34,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -98,12 +105,12 @@ internal fun MoneyTab() {
         TabHeader(tr("Accounts")) {
             // A gear means app Settings everywhere, so this one says what it opens.
             HeaderButton(tr("Groups"), filled = false) { manage = true }
-            IconTile(Glyph.Add, tr("Add account"), { nav.push(Screen.EditAccount()) })
+            IconTile(Glyph.Add, tr("Add account"), { nav.push(Screen.EditAccount()) }, tint = F.accent, background = F.accentTint)
         }
         val (lines, worth) = summary ?: return@Column
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             NetWorthHero(worth.net, worth.assets, worth.liabilities, trendOn) { trendOn = !trendOn }
 
@@ -130,8 +137,9 @@ internal fun MoneyTab() {
                             Text(fmt.format(l.billDue), color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
                             if (l.account.cardAutoPay) Text(tr("Auto-pay is on"), color = F.muted, fontSize = 12.sp)
                         }
-                        Text(tr("Pay bill"), Modifier.clip(RoundedCornerShape(12.dp)).background(F.accent).padding(horizontal = 14.dp, vertical = 10.dp),
-                            color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Box(Modifier.height(40.dp).clip(RoundedCornerShape(12.dp)).background(F.accentTint).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                            Text(tr("Pay bill"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
 
@@ -177,11 +185,23 @@ internal fun MoneyTab() {
             val hiddenCount = lines.count { it.account.hidden }
             if (hiddenCount > 0) {
                 val groupsWithHidden = lines.filter { it.account.hidden }.map { it.group.name }.distinct().joinToString(", ")
-                Text(
-                    if (showHidden) tr("Hide {0} hidden accounts", hiddenCount) else tr("{0} hidden accounts ({1}) · Show", hiddenCount, groupsWithHidden),
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { showHidden = !showHidden }.padding(vertical = 12.dp, horizontal = 4.dp),
-                    color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 2,
-                )
+                // A quiet dashed button: hidden accounts are there, but not asking for attention.
+                val dash = F.switchOff
+                Box(
+                    Modifier.fillMaxWidth().heightIn(min = 40.dp).clip(F.iconShape)
+                        .drawBehind {
+                            val w = 1.dp.toPx()
+                            drawRoundRect(dash, topLeft = Offset(w / 2, w / 2), size = Size(size.width - w, size.height - w), cornerRadius = CornerRadius(14.dp.toPx()),
+                                style = Stroke(w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))))
+                        }
+                        .clickable { showHidden = !showHidden }.padding(vertical = 10.dp, horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        if (showHidden) tr("Hide {0} hidden accounts", hiddenCount) else tr("{0} hidden accounts ({1}) · Show", hiddenCount, groupsWithHidden),
+                        color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 2, textAlign = TextAlign.Center,
+                    )
+                }
             }
             Gap(24.dp)
         }
@@ -204,14 +224,15 @@ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Bo
         Text(currency.format(net), color = F.ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
         Gap(12.dp)
         val share = if (assets + liabilities > 0) assets.toFloat() / (assets + liabilities) else 1f
-        Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(999.dp)).background(F.fill)) {
+        // Assets in the accent, liabilities in a quiet grey, a small gap between them.
+        Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(999.dp)), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             if (share > 0f) Box(Modifier.weight(share).height(8.dp).background(F.accent))
-            if (share < 1f) Box(Modifier.weight(1f - share).height(8.dp))
+            if (share < 1f) Box(Modifier.weight(1f - share).height(8.dp).background(liabilityTone))
         }
         Gap(10.dp)
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Legend(tr("Assets"), currency.format(assets), 1f)
-            Legend(tr("Liabilities"), currency.format(liabilities), 0.35f)
+            Legend(tr("Assets"), currency.format(assets), F.accent)
+            Legend(tr("Liabilities"), currency.format(liabilities), liabilityTone)
         }
         if (trendOn) {
             val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
@@ -247,9 +268,9 @@ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Bo
 }
 
 @Composable
-private fun Legend(label: String, value: String, alpha: Float) {
+private fun Legend(label: String, value: String, dot: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(F.accent.copy(alpha = alpha)))
+        Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
         Text("  $label ", color = F.muted, fontSize = 12.sp)
         Text(value, color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
     }
@@ -385,6 +406,9 @@ private fun SmallTile(icon: androidx.compose.ui.graphics.vector.ImageVector, lab
 
 @Composable internal fun FreshAccountDetail(accountId: String) = AccountDetailBody(accountId)
 @Composable internal fun FreshEditAccount(accountId: String?) = AccountEditBody(accountId)
+
+/** Liabilities on the net-worth bar: a quiet grey next to the accent. */
+private val liabilityTone: Color get() = Color(if (app.moneytracker.ui.darkTheme) 0xFF3D4642 else 0xFFD5DBD8)
 
 /** Balances above zero are blue and below zero red. A card balance is what you owe, so it stays ink. */
 private fun balanceTone(amount: Long, isCard: Boolean): Color = when {

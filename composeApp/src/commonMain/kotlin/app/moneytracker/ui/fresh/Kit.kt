@@ -1,5 +1,9 @@
 package app.moneytracker.ui.fresh
 
+import androidx.compose.foundation.selection.toggleable
+
+import androidx.compose.foundation.layout.offset
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,6 +76,10 @@ object F {
     val line: Color get() = pick(0xFFECEEEA, 0xFF2A302D)
     val border: Color get() = pick(0xFFE3E6E2, 0xFF333A36)
     val fill: Color get() = pick(0xFFEEF0EC, 0xFF252B28)
+    /** Track of segmented controls and progress bars. */
+    val track: Color get() = pick(0xFFE6E8E4, 0xFF2A302D)
+    /** A switch that is off. */
+    val switchOff: Color get() = pick(0xFFC9CFCC, 0xFF46504B)
     private val teal get() = accentChoice == AccentChoice.TEAL || (accentChoice == AccentChoice.SYSTEM && app.moneytracker.ui.systemAccent == null)
     /** Primary actions, selection, the hero card. */
     val accent: Color get() = if (teal) pick(0xFF0F5E4E, 0xFF4FC2A6) else Accent
@@ -96,8 +104,8 @@ object F {
     val heroShape = RoundedCornerShape(24.dp)
     val buttonShape = RoundedCornerShape(16.dp)
     val iconShape = RoundedCornerShape(14.dp)
-    /** Side margin of every screen. */
-    val gutter = 16.dp
+    /** Side margin of every screen: small, so cards use nearly the full width. */
+    val gutter = 8.dp
 
     val money = TextStyle(fontFeatureSettings = "tnum")
 }
@@ -179,15 +187,23 @@ val LocalToaster = compositionLocalOf { Toaster() }
 fun ToastHost(toaster: Toaster, modifier: Modifier = Modifier) {
     val t = toaster.current ?: return
     LaunchedEffect(t.id) { delay(if (t.undo != null) 5000 else 2500); if (toaster.current?.id == t.id) toaster.dismiss() }
+    val shape = RoundedCornerShape(14.dp)
     Row(
-        modifier.padding(horizontal = F.gutter, vertical = 12.dp).fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp)).background(F.ink).padding(start = 16.dp, end = 8.dp).height(52.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier.padding(horizontal = F.gutter, vertical = 12.dp).fillMaxWidth().shadow(10.dp, shape)
+            .clip(shape).background(F.ink).heightIn(min = 50.dp).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(t.message, Modifier.weight(1f), color = F.page, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        if (t.undo != null) TextButton(onClick = { t.undo.invoke(); toaster.dismiss() }) {
-            Text(tr("Undo"), color = F.accentTint, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        }
+        Text(t.message, Modifier.weight(1f), color = F.page, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        // Undo is a small chip; × closes the toast early.
+        if (t.undo != null) Box(
+            Modifier.height(32.dp).clip(RoundedCornerShape(8.dp)).background(F.page.copy(alpha = 0.14f))
+                .clickable(onClickLabel = tr("Undo")) { t.undo.invoke(); toaster.dismiss() }.padding(horizontal = 10.dp),
+            contentAlignment = Alignment.Center,
+        ) { Text(tr("Undo"), color = pick(0xFF8FE0C4, 0xFF0F5E4E), fontWeight = FontWeight.SemiBold, fontSize = 13.sp) }
+        Box(
+            Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).clickable(onClickLabel = tr("Close")) { toaster.dismiss() },
+            contentAlignment = Alignment.Center,
+        ) { Icon(Glyph.Close, tr("Close"), tint = F.page.copy(alpha = 0.8f), modifier = Modifier.size(16.dp)) }
     }
 }
 
@@ -227,6 +243,8 @@ fun SubScreen(
     title: String,
     onBack: () -> Unit,
     actions: @Composable RowScope.() -> Unit = {},
+    /** A muted line under the title (e.g. "2 to review"). */
+    subtitle: String? = null,
     bottom: (@Composable () -> Unit)? = null,
     scroll: Boolean = true,
     add: Pair<String, () -> Unit>? = null,
@@ -234,9 +252,12 @@ fun SubScreen(
 ) {
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter).padding(top = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconTile(Glyph.Back, tr("Back"), onBack)
-            Text(title, Modifier.weight(1f), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.weight(1f)) {
+                Text(title, color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (subtitle != null) Text(subtitle, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             actions()
         }
         Column(
@@ -298,9 +319,10 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
 }
 
 @Composable
-fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, danger: Boolean = false) {
+fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, danger: Boolean = false, filled: Boolean = false) {
     Box(
-        modifier.fillMaxWidth().height(52.dp).clip(F.buttonShape).background(F.card).border(1.dp, F.border, F.buttonShape).clickable(onClick = onClick),
+        modifier.fillMaxWidth().height(52.dp).clip(F.buttonShape).background(if (filled) F.page else F.card)
+            .then(if (filled) Modifier else Modifier.border(1.dp, F.border, F.buttonShape)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = if (danger) F.danger else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
 }
@@ -309,10 +331,10 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
 @Composable
 fun Pill(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, leading: ImageVector? = null) {
     Row(
-        modifier.height(36.dp).clip(RoundedCornerShape(999.dp))
+        modifier.height(34.dp).clip(RoundedCornerShape(999.dp))
             .background(if (selected) F.accentTint else F.card)
             .then(if (selected) Modifier else Modifier.border(1.dp, F.border, RoundedCornerShape(999.dp)))
-            .clickable(onClick = onClick).padding(horizontal = 14.dp),
+            .clickable(onClick = onClick).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (leading != null) Icon(leading, null, tint = if (selected) F.accent else F.ink, modifier = Modifier.size(16.dp))
@@ -323,16 +345,16 @@ fun Pill(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifie
 /** Horizontally scrolling row of pills. */
 @Composable
 fun PillRow(content: @Composable RowScope.() -> Unit) =
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), content = content)
 
 /** Segmented switch (Week / Month / Year, Expense / Income / Transfer). */
 @Composable
 fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().height(44.dp).clip(F.iconShape).background(F.fill).padding(4.dp)) {
+    Row(modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp)).background(F.track).padding(4.dp)) {
         options.forEachIndexed { i, o ->
             val on = i == selected
             Box(
-                Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(11.dp)).background(if (on) F.card else Color.Transparent).clickable { onSelect(i) },
+                Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(10.dp)).background(if (on) F.card else Color.Transparent).clickable { onSelect(i) },
                 contentAlignment = Alignment.Center,
             ) { Text(o, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1) }
         }
@@ -352,7 +374,7 @@ fun FRow(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(vertical = 13.dp).heightIn(min = 44.dp),
+        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).heightIn(min = 52.dp).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         leading?.invoke()
@@ -366,12 +388,24 @@ fun FRow(
     }
 }
 
+/** On/off switch: 46×28, teal when on, a clear grey when off. */
+@Composable
+fun FSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?) {
+    val x by androidx.compose.animation.core.animateDpAsState(if (checked) 21.dp else 3.dp, label = "switch")
+    Box(
+        Modifier.size(46.dp, 28.dp).clip(RoundedCornerShape(999.dp)).background(if (checked) F.accent else F.switchOff)
+            .then(if (onChange != null) Modifier.toggleable(checked, onValueChange = onChange, role = androidx.compose.ui.semantics.Role.Switch) else Modifier),
+    ) {
+        Box(Modifier.offset(x = x, y = 3.dp).size(22.dp).clip(CircleShape).background(Color.White))
+    }
+}
+
 @Composable
 fun Divider() = Box(Modifier.fillMaxWidth().height(1.dp).background(F.line))
 
 /** Progress bar on a card or the hero (pass track/fill for the hero's white-on-green look). */
 @Composable
-fun Bar(fraction: Float, modifier: Modifier = Modifier, fill: Color = F.accent, track: Color = F.fill, height: Dp = 8.dp) {
+fun Bar(fraction: Float, modifier: Modifier = Modifier, fill: Color = F.accent, track: Color = F.track, height: Dp = 8.dp) {
     Box(modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(999.dp)).background(track)) {
         Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxSize().clip(RoundedCornerShape(999.dp)).background(fill))
     }
@@ -382,13 +416,13 @@ fun Bar(fraction: Float, modifier: Modifier = Modifier, fill: Color = F.accent, 
 /** Bottom sheet with a title; the body scrolls when tall. [half] opens a long list half-way; drag up for the rest. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Sheet(title: String, onDismiss: () -> Unit, bottom: (@Composable () -> Unit)? = null, half: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+fun Sheet(title: String, onDismiss: () -> Unit, bottom: (@Composable () -> Unit)? = null, half: Boolean = false, radius: Dp = 24.dp, content: @Composable ColumnScope.() -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = !half),
-        containerColor = F.card, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        containerColor = F.card, shape = RoundedCornerShape(topStart = radius, topEnd = radius),
     ) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp).padding(bottom = 16.dp)) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
             Text(title, color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 12.dp))
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp), content = content)
             if (bottom != null) { Spacer(Modifier.height(12.dp)); bottom() }
@@ -416,9 +450,9 @@ fun SheetOption(text: String, selected: Boolean = false, subtitle: String? = nul
 /** Ask before something that can't be undone. Opens from the bottom so both buttons sit under the thumb. */
 @Composable
 fun Confirm(title: String, body: String, confirm: String, onDismiss: () -> Unit, danger: Boolean = true, onConfirm: () -> Unit) {
-    Sheet(title, onDismiss, bottom = {
+    Sheet(title, onDismiss, radius = 28.dp, bottom = {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SecondaryButton(tr("Cancel"), onDismiss, Modifier.weight(1f))
+            SecondaryButton(tr("Cancel"), onDismiss, Modifier.weight(1f), filled = true)
             PrimaryButton(confirm, { onDismiss(); onConfirm() }, Modifier.weight(1f), danger = danger)
         }
     }) {

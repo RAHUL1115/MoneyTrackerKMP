@@ -262,13 +262,26 @@ private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit
     }
 }
 
-/** ‹ October 2026 ›; tapping the label opens the month picker. */
+/** ‹ October 2026 ›; tapping the label opens the month picker. [under] spreads the arrows to the edges with it below the label. */
 @Composable
-internal fun ActPeriodSwitch(label: String, onPrev: () -> Unit, onNext: () -> Unit, onLabel: () -> Unit, tile: Boolean = false, minWidth: Int = 112) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        ArrowButton(Glyph.ChevronLeft, tr("Previous"), tile, onPrev)
-        Text(label, Modifier.widthIn(min = minWidth.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = onLabel).padding(horizontal = 4.dp, vertical = 8.dp),
+internal fun ActPeriodSwitch(
+    label: String, onPrev: () -> Unit, onNext: () -> Unit, onLabel: () -> Unit, tile: Boolean = false, minWidth: Int = 112,
+    under: (@Composable () -> Unit)? = null,
+) {
+    val labelText = @Composable { m: Modifier ->
+        Text(label, m.clip(RoundedCornerShape(10.dp)).clickable(onClick = onLabel).padding(horizontal = 4.dp, vertical = 8.dp),
             color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 1)
+    }
+    if (under != null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+        ArrowButton(Glyph.ChevronLeft, tr("Previous"), tile, onPrev)
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            labelText(Modifier.widthIn(min = minWidth.dp))
+            under()
+        }
+        ArrowButton(Glyph.ChevronRight, tr("Next"), tile, onNext)
+    } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        ArrowButton(Glyph.ChevronLeft, tr("Previous"), tile, onPrev)
+        labelText(Modifier.widthIn(min = minWidth.dp))
         ArrowButton(Glyph.ChevronRight, tr("Next"), tile, onNext)
     }
 }
@@ -344,7 +357,7 @@ private fun ActList(
         LazyColumn(
             Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = F.gutter, end = F.gutter, bottom = if (selecting) 140.dp else 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item(key = "period") {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -407,9 +420,9 @@ private fun ActList(
 @Composable
 internal fun ActChip(text: String, selected: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.height(32.dp).clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.card)
+        Modifier.height(34.dp).clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.card)
             .then(if (selected) Modifier else Modifier.border(1.dp, F.border, RoundedCornerShape(999.dp)))
-            .clickable(onClick = onClick).padding(horizontal = 11.dp),
+            .clickable(onClick = onClick).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }

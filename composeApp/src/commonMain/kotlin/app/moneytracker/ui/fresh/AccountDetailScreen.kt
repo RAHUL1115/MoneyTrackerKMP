@@ -118,7 +118,7 @@ internal fun AccountDetailBody(accountId: String) {
     if (monthPicker) MonthPickerDialog(ym, YearMonth.of(today), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
 
     SubScreen(acct?.name ?: tr("Account"), nav::pop, actions = {
-        if (acct != null) Pill(tr("Edit"), false, { nav.push(Screen.EditAccount(accountId)) })
+        if (acct != null) HeaderTextTile(tr("Edit")) { nav.push(Screen.EditAccount(accountId)) }
     }) {
         if (line == null || acct == null) {
             if (summary != null) EmptyCard(tr("This account was deleted or can't be found."))
@@ -193,9 +193,9 @@ internal fun AccountDetailBody(accountId: String) {
             if (acct.hidden) add(tr("Hidden from lists and pickers"))
         }
         if (notes.isNotEmpty()) Column(
-            Modifier.fillMaxWidth().clip(F.cardShape).background(F.fill).clickable { nav.push(Screen.EditAccount(accountId)) }.padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(F.card).clickable { nav.push(Screen.EditAccount(accountId)) }.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) { notes.forEach { Text(it, color = F.muted, fontSize = 13.sp) } }
+        ) { notes.forEach { Text(it, color = F.ink, fontSize = 13.sp) } }
 
         Segmented(DetailTab.entries.map { tr(it.label) }, tab.ordinal, { tab = DetailTab.entries[it] })
         when (tab) {

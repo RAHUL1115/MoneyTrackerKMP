@@ -1,11 +1,16 @@
 package app.moneytracker.ui.fresh
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -16,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -74,7 +80,8 @@ internal fun FreshRepeats() {
     val timingLabel = timingOptions().firstOrNull { it.first == (timing ?: "ON_DATE") }?.second ?: timingOptions().first().second
 
     SubScreen(tr("Repeat entries"), nav::pop, add = tr("New repeat") to addNew) {
-        FCard {
+        // The summary is the screen's hero, so it gets the hero's rounder corners.
+        Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(18.dp)) {
             val next = rules.minOfOrNull { it.nextDate }
             Text(next?.let { tr("Next run · {0}", it.long()) } ?: tr("Nothing scheduled"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -93,11 +100,13 @@ internal fun FreshRepeats() {
                 tr("Spending") to rules.filter { it.kind == TxnKind.EXPENSE },
                 tr("Transfers") to rules.filter { it.kind == TxnKind.TRANSFER_OUT },
             ).filter { it.second.isNotEmpty() }.forEach { (title, list) ->
-                SectionLabel("$title · ${currency.format(list.sumOf { main(it) })}")
                 FCard(padding = 0.dp) {
-                    Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-                        list.forEachIndexed { i, r ->
-                            if (i > 0) Divider()
+                    Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
+                        // The group's title sits inside its card, above a hairline.
+                        Text("$title · ${currency.format(list.sumOf { main(it) })}".uppercase(), Modifier.padding(top = 14.dp, bottom = 8.dp),
+                            color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
+                        list.forEach { r ->
+                            Divider()
                             RuleRow(r, main(r), accountName, catById) { editing = r }
                         }
                     }
@@ -154,11 +163,11 @@ private fun RuleRow(r: RecurringRule, mainAmount: Long, accountName: Map<String,
     val transfer = r.kind == TxnKind.TRANSFER_OUT
     val refund = isRefund(r.kind, r.amount)
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 64.dp).padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        if (transfer) Mark(tr("Transfer"), icon = Glyph.Swap) else Mark(mainCategoryName(r.categoryId, catById))
-        Column(Modifier.weight(1f)) {
+        if (transfer) Mark(tr("Transfer"), 38.dp, icon = Glyph.Swap) else Mark(mainCategoryName(r.categoryId, catById), 38.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(ruleName(r, catById), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (r.memo.isNotBlank()) Text("  " + r.memo, Modifier.weight(1f, fill = false), color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -207,8 +216,12 @@ private fun RuleSheet(
     val kindLabel = when (rule.kind) { TxnKind.INCOME -> tr("Income"); TxnKind.EXPENSE -> tr("Expense"); else -> tr("Transfer") }
 
     Sheet(ruleName(rule, catById), onDismiss, bottom = {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SecondaryButton(tr("Stop rule"), onStop, Modifier.weight(1f), danger = true)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Stopping is destructive but secondary: red text on a soft red, only as wide as its words.
+            Box(
+                Modifier.height(52.dp).clip(F.buttonShape).background(F.dangerTint).clickable(onClick = onStop).padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) { Text(tr("Stop rule"), color = F.danger, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
             PrimaryButton(tr("Save changes"), enabled = ok, modifier = Modifier.weight(1f), onClick = {
                 onSave(rule.copy(amount = parsed?.let { it * sign } ?: rule.amount, note = note.trim(), memo = memo.trim(), accountId = accountId,
                     toAccountId = if (transfer) toAccountId else null, categoryId = if (transfer) null else categoryId,
@@ -240,7 +253,7 @@ private fun RuleSheet(
             if (parsed != null && parsed > 0) tr("{0} {1}, next on {2}", fmt.format(parsed), tr(repeat.label).lowercase(), next.long()) +
                 (end?.let { ", " + tr("last by {0}", "${it.short()} ${it.year}") } ?: ", " + tr("with no end date")) + "."
             else tr("Enter an amount."),
-            Modifier.padding(top = 8.dp), color = F.muted, fontSize = 13.sp,
+            Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(F.page).padding(12.dp), color = F.muted, fontSize = 13.sp,
         )
     }
     DatePickerHost(picking == "next", next, { picking = null }, { d -> d?.let { next = it } })

@@ -146,8 +146,8 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
 
     val soft = F.muted
     Column(
-        Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(horizontal = CARD_INSET, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Column(Modifier.fillMaxWidth().clickable { onOpenTab(FreshTab.ACTIVITY) }, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(tr("Spent today"), color = soft, fontSize = 13.sp, fontWeight = FontWeight.Medium)
@@ -167,7 +167,7 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
                         Modifier.weight(1f), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
                     Text(if (daysLeft == 1) tr("Last day ›") else tr("{0} days to go ›", daysLeft), color = soft, fontSize = 13.sp)
                 }
-                Bar(budget.ratio, fill = if (budget.ratio > 1f) F.danger else F.accent, track = F.fill, height = 6.dp)
+                Bar(budget.ratio, fill = if (budget.ratio > 1f) F.warn else F.accent, track = F.track, height = 6.dp)
             }
         }
     }
@@ -280,10 +280,10 @@ fun FreshLock(hash: String, onUnlocked: () -> Unit) {
     }
     Column(
         Modifier.fillMaxSize().background(F.page).statusBarsPadding().padding(horizontal = 32.dp).padding(top = 72.dp, bottom = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Box(Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(F.accent), contentAlignment = Alignment.Center) {
-            Icon(Glyph.Lock, null, tint = F.onAccent, modifier = Modifier.size(30.dp))
+            Icon(Glyph.Lock, null, tint = F.onAccent, modifier = Modifier.size(28.dp))
         }
         Text(tr("Unlock MoneyTracker"), color = F.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
         Text(

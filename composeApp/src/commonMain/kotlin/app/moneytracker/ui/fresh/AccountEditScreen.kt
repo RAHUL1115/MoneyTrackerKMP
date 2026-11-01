@@ -1,6 +1,12 @@
 package app.moneytracker.ui.fresh
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -127,8 +133,8 @@ internal fun AccountEditBody(accountId: String?) {
                 MoneyTextField(tr("Name"), name, { name = it; error = null })
                 Column {
                     Text(tr("Group").uppercase(), Modifier.padding(start = 4.dp, bottom = 8.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        groups.forEach { g -> ChoiceChip(g.name, g.id == groupId) { groupId = g.id; error = null } }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        groups.forEach { g -> Pill(g.name, g.id == groupId, { groupId = g.id; error = null }) }
                     }
                 }
                 if (currencies.isNotEmpty()) FRow(tr("Currency"), value = currencyLabel(accountCurrency), onClick = { sheet = "currency" })
@@ -149,22 +155,32 @@ internal fun AccountEditBody(accountId: String?) {
                 }
             }
             Gap(4.dp)
-            FRow(tr("Bill paid from"), value = others.firstOrNull { it.id == paymentAccountId }?.name ?: tr("Choose"), onClick = { sheet = "payFrom" })
+            FRow(tr("Bill paid from"), value = others.firstOrNull { it.id == paymentAccountId }?.name ?: tr("Choose"), valueColor = F.accent, onClick = { sheet = "payFrom" })
             if (targetText.isNotBlank()) FRow(tr("Target compared with"), value = if (targetType == 2) tr("3 months average") else tr("Previous month"),
-                onClick = { sheet = "basis" })
+                valueColor = F.accent, onClick = { sheet = "basis" })
         }
         if (debit) FCard(padding = 4.dp) {
             Column(Modifier.padding(horizontal = 12.dp)) {
                 FRow(tr("Linked bank account"), tr("Card spends come out of this account"), value = others.firstOrNull { it.id == paymentAccountId }?.name ?: tr("Choose"),
-                    onClick = { sheet = "payFrom" })
+                    valueColor = F.accent, onClick = { sheet = "payFrom" })
             }
         }
-        FCard {
-            MoneySwitchRow(tr("Include in totals"), tr("Counts toward net worth"), includeInTotals) { includeInTotals = it }
-            MoneySwitchRow(tr("Transfers in count as expense"),
-                tr("Turn this on for savings, investments or loans so money moved there shows in your spending."), transferAsExpense) { transferAsExpense = it }
-            MoneySwitchRow(tr("Hide from lists"), tr("History and balance stay"), hidden) { hidden = it }
-            if (credit) MoneySwitchRow(tr("Bill is auto-paid"), null, autoPay) { autoPay = it }
+        // Switches as a list: at least 58 tall each, a line between them.
+        FCard(padding = 4.dp) {
+            Column(Modifier.padding(horizontal = 12.dp)) {
+                SwitchSlot { MoneySwitchRow(tr("Include in totals"), tr("Counts toward net worth"), includeInTotals) { includeInTotals = it } }
+                Divider()
+                SwitchSlot {
+                    MoneySwitchRow(tr("Transfers in count as expense"),
+                        tr("Turn this on for savings, investments or loans so money moved there shows in your spending."), transferAsExpense) { transferAsExpense = it }
+                }
+                Divider()
+                SwitchSlot { MoneySwitchRow(tr("Hide from lists"), tr("History and balance stay"), hidden) { hidden = it } }
+                if (credit) {
+                    Divider()
+                    SwitchSlot { MoneySwitchRow(tr("Bill is auto-paid"), null, autoPay) { autoPay = it } }
+                }
+            }
         }
         FCard {
             SectionLabel(tr("Bank messages · helps SMS detection pick this account"), Modifier.padding(bottom = 8.dp))
@@ -173,7 +189,11 @@ internal fun AccountEditBody(accountId: String?) {
                 MoneyTextField(tr("Sender ID"), smsSender, { smsSender = it }, placeholder = tr("Optional"))
             }
         }
-        if (accountId != null) SecondaryButton(tr("Delete account"), { confirmDelete = true }, danger = true)
+        // Destructive, so red text alone rather than a button.
+        if (accountId != null) Box(
+            Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(F.iconShape).clickable { confirmDelete = true },
+            contentAlignment = Alignment.Center,
+        ) { Text(tr("Delete account"), color = F.danger, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
     }
 
     when (sheet) {
@@ -206,3 +226,7 @@ internal fun AccountEditBody(accountId: String?) {
         }
     }
 }
+
+@Composable
+private fun SwitchSlot(content: @Composable () -> Unit) =
+    Box(Modifier.fillMaxWidth().heightIn(min = 58.dp), contentAlignment = Alignment.CenterStart) { content() }

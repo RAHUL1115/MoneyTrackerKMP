@@ -1,23 +1,31 @@
 package app.moneytracker.ui.fresh
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -26,13 +34,7 @@ import androidx.compose.ui.unit.sp
 // Small pieces shared by the Settings, Categories, Repeats and Backup screens of the new layout.
 
 @Composable
-internal fun StgSwitch(checked: Boolean, onChange: (Boolean) -> Unit) = Switch(
-    checked, onChange,
-    colors = SwitchDefaults.colors(
-        checkedTrackColor = F.accent, checkedThumbColor = F.onAccent, checkedBorderColor = F.accent,
-        uncheckedTrackColor = F.fill, uncheckedBorderColor = F.border, uncheckedThumbColor = F.muted,
-    ),
-)
+internal fun StgSwitch(checked: Boolean, onChange: (Boolean) -> Unit) = FSwitch(checked, onChange)
 
 /** Label above a field or a group of chips inside a sheet. */
 @Composable
@@ -43,7 +45,7 @@ internal fun StgLabel(text: String) =
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun <T> StgChips(options: List<T>, selected: T?, label: (T) -> String, onPick: (T) -> Unit) {
-    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         options.forEach { o -> Pill(label(o), o == selected, { onPick(o) }) }
     }
 }
@@ -54,24 +56,33 @@ internal fun StgField(
     number: Boolean = false, error: Boolean = false, singleLine: Boolean = true,
 ) = Column {
     if (label != null) StgLabel(label)
-    OutlinedTextField(
-        value, onChange, Modifier.fillMaxWidth(), singleLine = singleLine, isError = error,
-        placeholder = placeholder?.let { { Text(it, color = F.muted) } },
+    // White field with a hairline, like the entry editor's; the hairline turns accent while typing and red on a mistake.
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val shape = RoundedCornerShape(12.dp)
+    val textStyle = LocalTextStyle.current.copy(color = F.ink)
+    BasicTextField(
+        value, onChange, Modifier.fillMaxWidth(), singleLine = singleLine, minLines = if (singleLine) 1 else 2,
+        textStyle = textStyle, cursorBrush = SolidColor(F.accent), interactionSource = interaction,
         keyboardOptions = KeyboardOptions(keyboardType = if (number) KeyboardType.Decimal else KeyboardType.Text),
-        shape = F.iconShape,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = F.accent, unfocusedBorderColor = F.border, cursorColor = F.accent,
-            focusedTextColor = F.ink, unfocusedTextColor = F.ink, focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-            errorBorderColor = F.danger,
-        ),
+        decorationBox = { inner ->
+            Box(
+                Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(shape).background(F.card)
+                    .border(1.dp, when { error -> F.danger; focused -> F.accent; else -> F.border }, shape)
+                    .padding(horizontal = 12.dp, vertical = 11.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (value.isEmpty() && placeholder != null) Text(placeholder, style = textStyle, color = F.muted)
+                inner()
+            }
+        },
     )
 }
 
-/** Small outlined text button inside a row ("Restore", "Turn on"). */
+/** Small filled text button inside a row ("Restore", "Turn on"): 32 tall, radius 10, on the page grey. */
 @Composable
 internal fun StgTextButton(text: String, onClick: () -> Unit, color: Color = F.accent) =
-    Text(
-        text,
-        Modifier.clip(F.iconShape).border(1.dp, F.border, F.iconShape).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
-        color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-    )
+    Box(
+        Modifier.heightIn(min = 32.dp).clip(RoundedCornerShape(10.dp)).background(F.page).clickable(onClick = onClick).padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }

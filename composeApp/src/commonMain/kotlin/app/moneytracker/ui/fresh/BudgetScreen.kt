@@ -2,7 +2,11 @@ package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -90,7 +94,7 @@ internal fun BudgetSummaryCard(ym: YearMonth) {
     val over = b.categoryLines.filter { it.remaining < 0 }
     FCard(onClick = { nav.push(Screen.Budget) }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            PercentRing((total.ratio * 100).roundToInt(), total.ratio > 1f, 52.dp)
+            PercentRing((total.ratio * 100).roundToInt(), total.ratio > 1f, 40.dp, textSize = 52 * 0.24f)
             HGap(14.dp)
             Column(Modifier.weight(1f)) {
                 Text(tr("{0} budget", ym.label()), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
@@ -146,7 +150,7 @@ internal fun BudgetBody() {
     if (monthPicker) MonthPickerDialog(ym, ps.labelFor(repo.today()), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
 
     SubScreen(tr("Budget · {0}", from), nav::pop, actions = {
-        Pill(tr("+ Category"), selected = false, onClick = { adding = true })
+        HeaderTextTile(tr("+ Category")) { adding = true }
     }) {
         PeriodStepper(ym.label(), { periodKey = ym.plus(-1).key }, { periodKey = ym.plus(1).key }, onLabel = { monthPicker = true })
 
@@ -155,8 +159,8 @@ internal fun BudgetBody() {
         val explicit = b.budgets[TOTAL_BUDGET]
         FCard {
             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable { totalOpen = !totalOpen }, verticalAlignment = Alignment.CenterVertically) {
-                PercentRing(total?.let { (it.ratio * 100).roundToInt() } ?: 0, (total?.ratio ?: 0f) > 1f, 60.dp)
-                HGap(14.dp)
+                PercentRing(total?.let { (it.ratio * 100).roundToInt() } ?: 0, (total?.ratio ?: 0f) > 1f, 84.dp, textSize = 60 * 0.24f)
+                HGap(16.dp)
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(if (total != null) tr("Total budget {0}", currency.format(total.budget)) else tr("No total budget"),
@@ -191,31 +195,30 @@ internal fun BudgetBody() {
                 val over = line.remaining < 0
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { open = if (isOpen) null else line.categoryId }.padding(vertical = 12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Mark(catById[line.categoryId]?.name ?: name, 34.dp)
-                        HGap(12.dp)
+                        Mark(catById[line.categoryId]?.name ?: name, 28.dp)
+                        HGap(10.dp)
                         Text(name, Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(if (over) tr("{0} over", currency.format(-line.remaining)) else tr("{0} left", currency.format(line.remaining)),
                             color = if (over) F.expense else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, style = F.money, maxLines = 1)
                     }
                     Gap(8.dp)
-                    Bar(line.ratio, Modifier.padding(start = 46.dp), fill = if (over) F.danger else if (line.ratio > 0.9f) F.accent.copy(alpha = 0.55f) else F.accent, height = 6.dp)
-                    Text(tr("{0} of {1}", currency.format(line.spent), currency.format(line.budget)), Modifier.padding(start = 46.dp, top = 6.dp),
+                    Bar(line.ratio, Modifier.padding(start = 38.dp), fill = if (over) F.danger else if (line.ratio > 0.9f) F.accent.copy(alpha = 0.55f) else F.accent, height = 8.dp)
+                    Text(tr("{0} of {1}", currency.format(line.spent), currency.format(line.budget)), Modifier.padding(start = 38.dp, top = 6.dp),
                         color = F.muted, fontSize = 12.sp, style = F.money)
                 }
-                if (isOpen) Column(
-                    Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    AmountEditor(tr("Monthly amount · from {0} onward", from), line.budget, onRemove = { open = null; set(line.categoryId, 0) }) {
+                // Editor sits under the name, in line with the bar.
+                if (isOpen) Column(Modifier.fillMaxWidth().padding(start = 38.dp, bottom = 14.dp)) {
+                    AmountEditor(tr("Monthly amount · from {0} onward", from), line.budget, onRemove = { open = null; set(line.categoryId, 0) }, link = {
+                        val cat = catById[line.categoryId]
+                        if (cat != null) {
+                            val main = cat.parentId ?: cat.id
+                            val range = ps.month(ym)
+                            Text(tr("See {0} entries ›", catById[main]?.name ?: name),
+                                Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.StatsDetail(main, false, range.start, range.endInclusive, catById[main]?.name ?: name)) }
+                                    .padding(vertical = 6.dp), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }) {
                         open = null; set(line.categoryId, it)
-                    }
-                    val cat = catById[line.categoryId]
-                    if (cat != null) {
-                        val main = cat.parentId ?: cat.id
-                        val range = ps.month(ym)
-                        Text(tr("See {0} entries ›", catById[main]?.name ?: name),
-                            Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.StatsDetail(main, false, range.start, range.endInclusive, catById[main]?.name ?: name)) }
-                                .padding(vertical = 6.dp), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -248,8 +251,12 @@ internal fun BudgetBody() {
         }) {
             Text(tr("Applies from {0} onward.", ym.label()), color = F.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 4.dp))
             if (options.isEmpty()) Text(tr("Every category already has a budget."), color = F.muted, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
-            options.forEach { c ->
-                SheetOption(categoryPath(c.id, catById), picked == c.id, leading = { Mark(c.name, 32.dp) }) { picked = c.id }
+            // Three columns of tiles; the picked one gets an accent outline.
+            options.chunked(3).forEach { row ->
+                Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { c -> CategoryTile(categoryPath(c.id, catById), c.name, picked == c.id, Modifier.weight(1f)) { picked = c.id } }
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
             }
             Gap(8.dp)
             MoneyTextField(tr("Monthly amount"), amount, { amount = it }, placeholder = currency.format(0), keyboard = KeyboardType.Decimal)
@@ -257,18 +264,41 @@ internal fun BudgetBody() {
     }
 }
 
-/** Amount box with Save, and Remove when there is something to remove. */
+/** Amount box with a compact Save beside it; [link] on the left and Remove (red text) on the right below. */
 @Composable
-private fun AmountEditor(label: String, initial: Long?, onRemove: (() -> Unit)?, onSave: (Long) -> Unit) {
+private fun AmountEditor(label: String, initial: Long?, onRemove: (() -> Unit)?, link: (@Composable () -> Unit)? = null, onSave: (Long) -> Unit) {
     val currency = LocalCurrency.current
     var text by remember(initial) { mutableStateOf(initial?.let { currency.toInput(it) }.orEmpty()) }
     val value = if (text.isBlank()) 0L else currency.parse(text)
+    val enabled = value != null && (value > 0 || onRemove != null)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MoneyTextField(label, text, { text = it }, keyboard = KeyboardType.Decimal, placeholder = currency.format(0))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (onRemove != null) SecondaryButton(tr("Remove budget"), onRemove, Modifier.weight(1f), danger = true)
-            PrimaryButton(tr("Save"), { if (value != null) { if (value == 0L) onRemove?.invoke() else onSave(value) } }, Modifier.weight(1f),
-                enabled = value != null && (value > 0 || onRemove != null))
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MoneyTextField(label, text, { text = it }, Modifier.weight(1f), keyboard = KeyboardType.Decimal, placeholder = currency.format(0))
+            Box(
+                Modifier.height(44.dp).clip(RoundedCornerShape(10.dp)).background(if (enabled) F.accent else F.fill)
+                    .clickable(enabled = enabled) { if (value != null) { if (value == 0L) onRemove?.invoke() else onSave(value) } }.padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) { Text(tr("Save"), color = if (enabled) F.onAccent else F.muted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
         }
+        if (link != null || onRemove != null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) { link?.invoke() }
+            if (onRemove != null) Text(tr("Remove budget"),
+                Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onRemove).padding(horizontal = 10.dp, vertical = 8.dp),
+                color = F.danger, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+/** A category in the add-budget sheet: mark and name in a white tile, outlined in the accent when picked. */
+@Composable
+private fun CategoryTile(label: String, markName: String, picked: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier.height(48.dp).clip(shape).background(if (picked) F.accentTint else F.card)
+            .border(if (picked) 2.dp else 1.dp, if (picked) F.accent else F.border, shape).clickable(onClick = onClick).padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Mark(markName, 26.dp)
+        Text(label, color = if (picked) F.accent else F.ink, fontSize = 14.sp, fontWeight = if (picked) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

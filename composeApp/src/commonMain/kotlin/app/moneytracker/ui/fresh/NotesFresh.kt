@@ -82,7 +82,7 @@ internal fun ActivityNotesView() {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = F.gutter, end = F.gutter, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (list.isEmpty()) item {
             FCard(padding = 28.dp) {
@@ -94,7 +94,7 @@ internal fun ActivityNotesView() {
         items(list, key = { it.id }) { n ->
             Column(
                 Modifier.fillMaxWidth().clip(F.cardShape).background(noteColor(n.color)).clickable { nav.push(Screen.EditNote(n.id)) }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -175,8 +175,8 @@ internal fun FreshEditNote(noteId: String?) {
         },
     ) {
         Column(
-            Modifier.fillMaxWidth().heightIn(min = 420.dp).clip(F.cardShape).background(noteColor(color)).padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            Modifier.fillMaxWidth().heightIn(min = 420.dp).clip(F.cardShape).background(noteColor(color)).padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Box {
                 if (title.isEmpty()) Text(tr("Title"), color = F.muted, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)

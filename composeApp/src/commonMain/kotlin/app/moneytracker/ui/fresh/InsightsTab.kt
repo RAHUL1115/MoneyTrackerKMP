@@ -3,6 +3,7 @@ package app.moneytracker.ui.fresh
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -229,9 +230,8 @@ internal fun InsightsTab() {
                 MoneyBars(slots.mapIndexed { i, s -> MoneyBar(s.label, values[i]) }, currency.decimals, highlight = highlight,
                     signed = side == Side.NET, onTap = { i -> slots[i].open?.invoke() })
                 Gap(14.dp)
-                Divider()
-                Gap(12.dp)
-                Row {
+                // Daily average and projection as two soft tiles.
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Stat(tr("Daily average"), currency.format(dailyAverage), Modifier.weight(1f))
                     when {
                         side == Side.NET -> Stat(tr("Saved of income"), if (t.income > 0) "${t.net * 100 / t.income}%" else "–", Modifier.weight(1f))
@@ -248,9 +248,14 @@ internal fun InsightsTab() {
             val parts = parts(groupBy, rows, previousRows, flow, catById, accountName, tagNames, range, side == Side.INCOME, nav)
             val partsTotal = parts.sumOf { it.amount.coerceAtLeast(0) }
             FCard {
-                Text(if (side == Side.INCOME) tr("Income by") else tr("Spending by"), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Gap(10.dp)
-                PillRow { GroupBy.entries.forEach { g -> Pill(tr(g.label), g == groupBy, { groupBy = g; openKey = null }) } }
+                // Title with the Category / Account / Tag switch beside it.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (side == Side.INCOME) tr("Income by") else tr("Spending by"), Modifier.weight(1f), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        GroupBy.entries.forEach { g -> GroupPill(tr(g.label), g == groupBy) { groupBy = g; openKey = null } }
+                    }
+                }
                 Gap(6.dp)
                 if (parts.isEmpty()) Text(
                     if (side == Side.INCOME) tr("No income recorded {0}.", phrase) else tr("Nothing spent {0} yet. Entries you add will show up here.", phrase),
@@ -288,9 +293,18 @@ internal fun InsightsTab() {
     }
 }
 
+/** Small unbordered pill for the breakdown switch: page grey, accent tint when selected. */
+@Composable
+private fun GroupPill(text: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.height(30.dp).clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.page).clickable(onClick = onClick).padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
+}
+
 @Composable
 private fun Stat(label: String, value: String, modifier: Modifier, color: androidx.compose.ui.graphics.Color = F.ink) {
-    Column(modifier) {
+    Column(modifier.clip(RoundedCornerShape(12.dp)).background(F.page).padding(horizontal = 10.dp, vertical = 8.dp)) {
         Text(label, color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
         Text(value, color = color, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
     }
@@ -362,8 +376,8 @@ private fun PartRow(
     val pct = if (total > 0 && part.amount > 0) (part.amount * 100.0 / total).roundToInt() else null
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onTap).padding(vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Mark(if (groupBy == GroupBy.TAG && part.key != NO_TAG) "# ${part.name}" else part.name, 34.dp)
-            HGap(12.dp)
+            Mark(if (groupBy == GroupBy.TAG && part.key != NO_TAG) "# ${part.name}" else part.name, 28.dp)
+            HGap(10.dp)
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(part.name, Modifier.weight(1f, fill = false), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -379,7 +393,7 @@ private fun PartRow(
             Icon(if (open) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted, modifier = Modifier.padding(start = 4.dp).size(20.dp))
         }
         Gap(8.dp)
-        Bar(part.amount.coerceAtLeast(0).toFloat() / top, Modifier.padding(start = 46.dp), fill = if (income) F.income else F.accent, height = 6.dp)
+        Bar(part.amount.coerceAtLeast(0).toFloat() / top, Modifier.padding(start = 38.dp), fill = if (income) F.income else F.accent, height = 6.dp)
     }
     if (open) Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(horizontal = 12.dp, vertical = 8.dp)) {
         Text(tr("Top entries").uppercase(), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)

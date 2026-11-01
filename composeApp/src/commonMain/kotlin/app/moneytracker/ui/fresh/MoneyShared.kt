@@ -1,5 +1,7 @@
 package app.moneytracker.ui.fresh
 
+import androidx.compose.foundation.border
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -118,7 +120,7 @@ internal fun MoneyBars(
     val max = bars.maxOf { abs(it.value) }.coerceAtLeast(1)
     val ink = if (onDark) F.onAccent else F.ink
     val soft = if (onDark) F.onAccent.copy(alpha = 0.75f) else F.muted
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
         bars.forEachIndexed { i, b ->
             val on = i == highlight
             val base = if (signed && b.value < 0) F.expense else if (signed) F.income else color
@@ -133,7 +135,7 @@ internal fun MoneyBars(
             ) {
                 Text(compactAmount(b.value, decimals), color = if (on) ink else soft, fontSize = 10.sp, fontWeight = FontWeight.Medium, maxLines = 1)
                 val h = (abs(b.value).toFloat() / max * height.value).coerceAtLeast(4f)
-                Box(Modifier.padding(top = 2.dp).fillMaxWidth(0.7f).height(h.dp).clip(RoundedCornerShape(6.dp)).background(fill))
+                Box(Modifier.padding(top = 2.dp).fillMaxWidth().height(h.dp).clip(RoundedCornerShape(7.dp)).background(fill))
                 Text(b.label, Modifier.padding(top = 4.dp), color = if (on) ink else soft, fontSize = 11.sp,
                     fontWeight = if (on) FontWeight.Medium else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Clip, textAlign = TextAlign.Center)
             }
@@ -150,7 +152,7 @@ internal fun ChangeBadge(current: Long, previous: Long, upIsGood: Boolean, again
         "${if (pct < 0) "▼" else if (pct > 0) "▲" else "="} ${abs(pct)}% " + tr("vs {0}", against) to (if (pct == 0) null else (pct > 0) == upIsGood)
     }
     val fg = when (good) { null -> F.muted; true -> F.income; false -> F.expense }
-    Text(text, Modifier.clip(RoundedCornerShape(999.dp)).background(if (good == null) F.fill else fg.copy(alpha = 0.12f)).padding(horizontal = 10.dp, vertical = 4.dp),
+    Text(text, Modifier.clip(RoundedCornerShape(8.dp)).background(if (good == null) F.fill else fg.copy(alpha = 0.12f)).padding(horizontal = 10.dp, vertical = 4.dp),
         color = fg, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
 }
 
@@ -170,7 +172,8 @@ internal fun MoneyTextField(
             keyboardOptions = KeyboardOptions(keyboardType = keyboard),
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner ->
-                Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(horizontal = 18.dp, vertical = 16.dp),
+                Box(Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(12.dp)).background(F.card).border(1.dp, F.border, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 11.dp),
                     contentAlignment = Alignment.CenterStart) {
                     if (value.isEmpty() && placeholder.isNotEmpty()) Text(placeholder, color = F.muted, fontSize = 15.sp)
                     inner()
@@ -188,13 +191,7 @@ internal fun MoneySwitchRow(title: String, hint: String?, checked: Boolean, onCh
             Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             if (hint != null) Text(hint, color = F.muted, fontSize = 12.sp)
         }
-        Switch(
-            checked, onChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = F.onAccent, checkedTrackColor = F.accent, checkedBorderColor = F.accent,
-                uncheckedThumbColor = F.muted, uncheckedTrackColor = F.fill, uncheckedBorderColor = F.border,
-            ),
-        )
+        FSwitch(checked, null)
     }
 }
 
@@ -230,9 +227,9 @@ internal fun ChoiceChip(text: String, selected: Boolean, onClick: () -> Unit) {
     )
 }
 
-/** Circular-ish percent badge (used for budget use). */
+/** Circular-ish percent badge (used for budget use). [textSize] keeps the label's size when the ring grows. */
 @Composable
-internal fun PercentRing(percent: Int, over: Boolean, size: Dp = 56.dp) {
+internal fun PercentRing(percent: Int, over: Boolean, size: Dp = 56.dp, textSize: Float = size.value * 0.24f) {
     val color = if (over) F.danger else F.accent
     Box(Modifier.size(size), contentAlignment = Alignment.Center) {
         androidx.compose.foundation.Canvas(Modifier.size(size)) {
@@ -240,11 +237,19 @@ internal fun PercentRing(percent: Int, over: Boolean, size: Dp = 56.dp) {
             val d = this.size.minDimension - stroke
             val tl = androidx.compose.ui.geometry.Offset(stroke / 2, stroke / 2)
             val sz = androidx.compose.ui.geometry.Size(d, d)
-            drawArc(F.fill, 0f, 360f, false, tl, sz, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+            drawArc(F.track, 0f, 360f, false, tl, sz, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
             drawArc(color, -90f, 360f * (percent.coerceIn(0, 100) / 100f), false, tl, sz,
                 style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
         }
-        Text("$percent%", color = F.ink, fontSize = (size.value * 0.24f).sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text("$percent%", color = F.ink, fontSize = textSize.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    }
+}
+
+/** Text action in a screen header ("Edit", "+ Category"): the same white 44dp tile as [IconTile], with words. */
+@Composable
+internal fun HeaderTextTile(text: String, onClick: () -> Unit) {
+    Box(Modifier.height(44.dp).clip(F.iconShape).background(F.card).clickable(onClick = onClick).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+        Text(text, color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
 

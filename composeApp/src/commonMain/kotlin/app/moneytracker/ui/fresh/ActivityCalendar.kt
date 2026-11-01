@@ -80,13 +80,13 @@ internal fun ActivityCalendarView(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter).padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        FCard(padding = 16.dp) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    ActPeriodSwitch(ym.actLongLabel(), onPrev, onNext, onPickMonth, tile = true, minWidth = 150)
+        FCard(padding = 0.dp) { Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 14.dp)) {
+            // Arrows sit at the card's edges; the month and its totals in the middle.
+            Box(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+                ActPeriodSwitch(ym.actLongLabel(), onPrev, onNext, onPickMonth, tile = true, minWidth = 150) {
                     Text(buildAnnotatedString {
                         append(tr("Out") + " ")
-                        withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.SemiBold)) { append(currency.format(t.expense)) }
+                        withStyle(SpanStyle(color = F.ink, fontWeight = FontWeight.SemiBold)) { append(currency.format(t.expense)) }
                         append(" · " + tr("In") + " ")
                         withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.SemiBold)) { append(currency.format(t.income)) }
                     }, color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, style = F.money)
@@ -132,7 +132,7 @@ internal fun ActivityCalendarView(
                     }
                 }
             }
-        }
+        } }
         DayCard(day, today, onAdd = { nav.push(Screen.EditTxn(date = day)) })
     }
 }

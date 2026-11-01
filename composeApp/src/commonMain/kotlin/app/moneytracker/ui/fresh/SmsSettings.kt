@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.MoneyRepository.Keys
@@ -86,7 +88,9 @@ internal fun SmsSettingsScreen() {
             Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).clickable { nav.push(Screen.Inbox) }.padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Mark(tr("Detected messages"), 38.dp, icon = Glyph.Message)
+            Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {
+                Icon(Glyph.Message, null, tint = F.accent, modifier = Modifier.size(18.dp))
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(tr("Detected messages"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Text(if (pending.isEmpty()) tr("Nothing waiting") else tr("{0} waiting for review", pending.size), color = F.muted, fontSize = 12.sp)
@@ -116,12 +120,17 @@ internal fun SmsSettingsScreen() {
                 val origHint = when (showOriginal) {
                     "0" -> tr("Not kept on entries"); "2" -> tr("Shown only while editing an entry"); else -> tr("Always shown in entry details")
                 }
-                Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(tr("Original message on entries"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    Text(origHint, Modifier.padding(bottom = 6.dp), color = F.muted, fontSize = 12.sp)
+                // A compact choice on the right of its row, like a switch would sit.
+                Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(tr("Original message on entries"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text(origHint, color = F.muted, fontSize = 12.sp)
+                    }
                     val opts = listOf("0" to tr("Hide"), "2" to tr("While editing"), "1" to tr("Show"))
                     val selected = opts.indexOfFirst { it.first == (showOriginal ?: "1") }.coerceAtLeast(0)
-                    Segmented(opts.map { it.second }, selected, { put(Keys.SMS_SHOW_ORIGINAL, opts[it].first) }, Modifier.height(48.dp))
+                    SmsSegmented(opts.map { it.second }, selected, { put(Keys.SMS_SHOW_ORIGINAL, opts[it].first) },
+                        segmentHeight = 36.dp, outer = 10.dp, inner = 8.dp, inset = 3.dp, track = F.page, fill = false)
                 }
             }
         }
@@ -133,7 +142,8 @@ internal fun SmsSettingsScreen() {
             val presets = listOf(7, 30, 90, 180)
             val opts = presets.map { tr("{0} days", it) } + (if (days in presets) tr("Other") else tr("{0} days", days))
             val sel = presets.indexOf(days).let { if (it < 0) presets.size else it }
-            Segmented(opts, sel, { i -> if (i < presets.size) put(Keys.SMS_IMPORT_DAYS, "${presets[i]}") else customDays = true }, Modifier.padding(top = 14.dp).height(48.dp))
+            SmsSegmented(opts, sel, { i -> if (i < presets.size) put(Keys.SMS_IMPORT_DAYS, "${presets[i]}") else customDays = true },
+                Modifier.padding(top = 14.dp), segmentHeight = 40.dp, outer = 12.dp, inner = 9.dp, inset = 4.dp, track = F.track, fill = true)
             PrimaryButton(tr("Import messages"), { if (capture) import() else disclosure = { import() } }, Modifier.padding(top = 12.dp))
         }
 
@@ -151,7 +161,7 @@ internal fun SmsSettingsScreen() {
                     }
                     Divider()
                 }
-                FRow(tr("Account matching rules"), tr("Sender and card digits, set on each account"), value = tr("Per account"), onClick = { nav.push(Screen.AccountList) })
+                FRow(tr("Account matching rules"), tr("Sender and card digits, set on each account"), value = tr("Per account") + " ›", valueColor = F.accent, chevron = false, onClick = { nav.push(Screen.AccountList) })
             }
         }
         Text(tr("Content-filter words are removed before a message is read, which helps when a bank adds text that confuses the amount or shop name."),
@@ -195,9 +205,7 @@ private fun SwitchLine(label: String, hint: String?, checked: Boolean, dimmed: B
 /** Switch drawn in the kit's colours (the row handles the tap). */
 @Composable
 internal fun SmsSwitch(checked: Boolean) {
-    Box(Modifier.size(width = 46.dp, height = 28.dp).clip(RoundedCornerShape(999.dp)).background(if (checked) F.accent else F.border)) {
-        Box(Modifier.offset(x = if (checked) 21.dp else 3.dp, y = 3.dp).size(22.dp).clip(CircleShape).background(if (checked) F.onAccent else F.card))
-    }
+    FSwitch(checked, null)
 }
 
 @Composable
@@ -224,10 +232,37 @@ private fun FilterLine(key: String, label: String, hint: String, value: String?,
                 SmsTextArea(text, { text = it })
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(tr("One per line."), Modifier.weight(1f), color = F.muted, fontSize = 12.sp)
-                    Text(tr("Save"), Modifier.clip(RoundedCornerShape(10.dp)).background(F.accent).clickable { onSave(text) }.padding(horizontal = 14.dp, vertical = 9.dp),
-                        color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Box(Modifier.height(44.dp).clip(RoundedCornerShape(10.dp)).background(F.accent).clickable { onSave(text) }.padding(horizontal = 18.dp),
+                        contentAlignment = Alignment.Center) {
+                        Text(tr("Save"), color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
+        }
+    }
+}
+
+/**
+ * The kit's segmented control at this screen's two sizes: full width with equal segments ([fill]),
+ * or compact with segments sized to their labels.
+ */
+@Composable
+private fun SmsSegmented(
+    options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier,
+    segmentHeight: Dp, outer: Dp, inner: Dp, inset: Dp, track: Color, fill: Boolean,
+) {
+    Row(
+        modifier.then(if (fill) Modifier.fillMaxWidth() else Modifier).clip(RoundedCornerShape(outer)).background(track).padding(inset),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        options.forEachIndexed { i, o ->
+            val on = i == selected
+            Box(
+                Modifier.then(if (fill) Modifier.weight(1f) else Modifier).height(segmentHeight).clip(RoundedCornerShape(inner))
+                    .background(if (on) F.card else Color.Transparent).clickable { onSelect(i) }
+                    .then(if (fill) Modifier else Modifier.padding(horizontal = 10.dp)),
+                contentAlignment = Alignment.Center,
+            ) { Text(o, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1) }
         }
     }
 }

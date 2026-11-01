@@ -1,13 +1,17 @@
 package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -86,9 +92,10 @@ internal fun FreshBackup() {
     pendingImport?.let { ImportPreview(it, onCancel = backup::cancelImport, onImport = backup::confirmImport) }
 
     SubScreen(tr("Backup & data"), nav::pop) {
-        FCard {
-            val s = status
-            val failed = s != null && s.startsWith("Failed")
+        val s = status
+        val failed = s != null && s.startsWith("Failed")
+        // All is well: the card wears the accent tint (success uses the accent, not a separate green). A failure goes soft red.
+        Column(Modifier.fillMaxWidth().clip(F.cardShape).background(if (failed) F.dangerTint else F.accentTint).padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(if (failed) Glyph.Error else Glyph.Done, null,
                     tint = if (failed) F.danger else F.accent, modifier = Modifier.size(18.dp))
@@ -102,9 +109,9 @@ internal fun FreshBackup() {
                 tr("Everything stays on this phone. A snapshot is taken automatically once a day (last 10 kept). Keep a copy somewhere else in case you lose or reset the phone."),
                 Modifier.padding(top = 8.dp, bottom = 14.dp), color = F.muted, fontSize = 13.sp,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PrimaryButton(tr("Back up now"), backup::backupNow, Modifier.weight(1f))
-                SecondaryButton(tr("Share a copy…"), backup::shareBackup, Modifier.weight(1f))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CardButton(tr("Back up now"), backup::backupNow, Modifier.weight(1f), F.accent, F.onAccent, FontWeight.SemiBold)
+                CardButton(tr("Share a copy…"), backup::shareBackup, Modifier.weight(1f), F.page, F.ink)
             }
         }
 
@@ -119,7 +126,7 @@ internal fun FreshBackup() {
             Triple(tr("Import receipt photos"), tr("From a photos .zip; existing photos are kept"), backup::importPhotos),
         )
         FCard(padding = 0.dp) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+            Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
                 actions.forEachIndexed { i, (title, sub, go) ->
                     if (i > 0) Divider()
                     FRow(title, sub, onClick = go)
@@ -131,30 +138,37 @@ internal fun FreshBackup() {
             Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp,
         )
 
-        SectionLabel(tr("Snapshots on this phone · last 10 kept"))
-        if (local.isEmpty()) EmptyCard(tr("No snapshots yet."))
-        else FCard(padding = 0.dp) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                local.forEachIndexed { i, b ->
-                    if (i > 0) Divider()
-                    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Snapshots and Start over: the label sits inside its card.
+        FCard(Modifier, padding = 0.dp) {
+            Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                InCardLabel(tr("Snapshots on this phone · last 10 kept"))
+                if (local.isEmpty()) Text(tr("No snapshots yet."), Modifier.padding(vertical = 8.dp), color = F.muted, fontSize = 14.sp)
+                local.forEach { b ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = 46.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text(snapshotWhen(b.name, today), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             Text("${snapshotKind(b.name)} · ${tr("{0} KB", b.sizeBytes / 1024)}", color = F.muted, fontSize = 12.sp)
                         }
-                        StgTextButton(tr("Restore"), { restoring = b })
-                        Box(Modifier.size(40.dp).clip(F.iconShape).clickable(onClickLabel = tr("Delete snapshot")) { deleting = b }, contentAlignment = Alignment.Center) {
-                            Icon(Glyph.Delete, tr("Delete snapshot"), tint = F.muted, modifier = Modifier.size(20.dp))
-                        }
+                        StgTextButton(tr("Restore"), { restoring = b }, color = F.ink)
+                        Box(
+                            Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(F.page).clickable(onClickLabel = tr("Delete snapshot")) { deleting = b },
+                            contentAlignment = Alignment.Center,
+                        ) { Icon(Glyph.Delete, tr("Delete snapshot"), tint = F.muted, modifier = Modifier.size(18.dp)) }
                     }
                 }
             }
         }
 
-        SectionLabel(tr("Start over · a snapshot is saved first, so this can be undone"))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SecondaryButton(tr("Clear entries"), { resetting = false }, Modifier.weight(1f), danger = true)
-            SecondaryButton(tr("Reset everything"), { resetting = true }, Modifier.weight(1f), danger = true)
+        FCard(Modifier, padding = 0.dp) {
+            Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                InCardLabel(tr("Start over · a snapshot is saved first, so this can be undone"))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Red words on white with a soft warm edge: noticeable, not alarming.
+                    val edge = F.warn.copy(alpha = 0.3f)
+                    CardButton(tr("Clear entries"), { resetting = false }, Modifier.weight(1f), F.card, F.danger, height = 44.dp, radius = 12.dp, border = edge)
+                    CardButton(tr("Reset everything"), { resetting = true }, Modifier.weight(1f), F.card, F.danger, height = 44.dp, radius = 12.dp, border = edge)
+                }
+            }
         }
     }
 
@@ -175,6 +189,25 @@ internal fun FreshBackup() {
             if (everything) tr("Reset") else tr("Clear"), { resetting = null },
         ) { backup.reset(everything) }
     }
+}
+
+/** Grey upper-case label at the top of a card. */
+@Composable
+private fun InCardLabel(text: String) =
+    Text(text.uppercase(), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
+
+/** A button sized for inside a card: shorter than the screen's main buttons. */
+@Composable
+private fun CardButton(
+    text: String, onClick: () -> Unit, modifier: Modifier, background: Color, color: Color, weight: FontWeight = FontWeight.Medium,
+    height: Dp = 46.dp, radius: Dp = 14.dp, border: Color? = null,
+) {
+    val shape = RoundedCornerShape(radius)
+    Box(
+        modifier.fillMaxWidth().height(height).clip(shape).background(background)
+            .then(if (border != null) Modifier.border(1.dp, border, shape) else Modifier).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, color = color, fontSize = 14.sp, fontWeight = weight) }
 }
 
 /** Spreadsheet import check: every row read from the file, untick any to leave out, then import. */

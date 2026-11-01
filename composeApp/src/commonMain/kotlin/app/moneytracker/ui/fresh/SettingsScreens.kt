@@ -1,7 +1,11 @@
 package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -34,6 +38,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.MoneyRepository.Keys
@@ -275,11 +280,13 @@ internal fun FreshSettings() {
             }
             Text(if (found.size == 1) tr("1 setting found") else tr("{0} settings found", found.size),
                 Modifier.padding(start = 4.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            if (found.isEmpty()) FCard {
-                Text(tr("No settings match “{0}”", query.trim()), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Text(tr("Try a simpler word, like theme, currency, backup or SMS."), Modifier.padding(top = 4.dp), color = F.muted, fontSize = 13.sp)
+            if (found.isEmpty()) FCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(tr("No settings match “{0}”", query.trim()), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
+                    Text(tr("Try a simpler word, like theme, currency, backup or SMS."), Modifier.padding(top = 4.dp), color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
+                }
             } else FCard(padding = 0.dp) {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
                     found.forEachIndexed { i, (where, r) ->
                         if (i > 0) Divider()
                         SettingRowView(r, where)
@@ -287,7 +294,7 @@ internal fun FreshSettings() {
                 }
             }
         } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val last = snapshots.firstOrNull()?.let { snapshotWhen(it.name, repo.today()) } ?: tr("Not yet")
                 QuickTile(Glyph.Backup, tr("Backup"), last, Modifier.weight(1f)) { nav.push(Screen.Backup) }
                 QuickTile(Glyph.Message, tr("Bank SMS"), if (capture) tr("On") else tr("Off"), Modifier.weight(1f)) { nav.push(Screen.MessageSettings) }
@@ -297,7 +304,7 @@ internal fun FreshSettings() {
                 val isOpen = sec.id in open
                 FCard(padding = 0.dp) {
                     Row(
-                        Modifier.fillMaxWidth().clickable { open = if (isOpen) open - sec.id else open + sec.id }.padding(horizontal = 16.dp, vertical = 14.dp),
+                        Modifier.fillMaxWidth().clickable { open = if (isOpen) open - sec.id else open + sec.id }.padding(horizontal = 14.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -305,16 +312,17 @@ internal fun FreshSettings() {
                             Text(sec.sub, color = F.muted, fontSize = 12.sp)
                         }
                         Icon(if (isOpen) Glyph.ChevronUp else Glyph.ChevronDown,
-                            if (isOpen) tr("Collapse") else tr("Expand"), tint = F.muted)
+                            if (isOpen) tr("Collapse") else tr("Expand"), tint = F.muted, modifier = Modifier.size(16.dp))
                     }
                     AnimatedVisibility(isOpen, enter = expandVertically(tween(200)), exit = shrinkVertically(tween(200))) {
-                        Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)) {
+                        Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 4.dp)) {
                             sec.rows.forEach { r -> Divider(); SettingRowView(r, null) }
                         }
                     }
                 }
             }
-            Text(tr("Tap a setting to change it. Changes save right away."), Modifier.padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp)
+            Text(tr("Tap a setting to change it. Changes save right away."), Modifier.fillMaxWidth().padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp,
+                textAlign = TextAlign.Center)
         }
     }
 
@@ -430,18 +438,22 @@ private fun SettingRowView(r: SRow, where: String?) {
 
 @Composable
 private fun SearchBox(value: String, onChange: (String) -> Unit) {
+    // A thin accent ring while typing shows where the text goes.
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
     Row(
-        Modifier.fillMaxWidth().height(48.dp).clip(F.buttonShape).background(F.card).padding(start = 14.dp, end = 4.dp),
+        Modifier.fillMaxWidth().height(44.dp).clip(F.iconShape).background(F.card)
+            .border(2.dp, if (focused) F.accent else Color.Transparent, F.iconShape).padding(start = 14.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(Glyph.Search, null, tint = F.muted, modifier = Modifier.size(20.dp))
+        Icon(Glyph.Search, null, tint = F.muted, modifier = Modifier.size(18.dp))
         Box(Modifier.weight(1f)) {
             if (value.isEmpty()) Text(tr("Search settings, e.g. dark, pin, export"), color = F.muted, fontSize = 14.sp, maxLines = 1)
             BasicTextField(value, onChange, Modifier.fillMaxWidth(), singleLine = true,
-                textStyle = TextStyle(color = F.ink, fontSize = 14.sp), cursorBrush = SolidColor(F.accent))
+                textStyle = TextStyle(color = F.ink, fontSize = 14.sp), cursorBrush = SolidColor(F.accent), interactionSource = interaction)
         }
         if (value.isNotEmpty()) Box(
-            Modifier.size(40.dp).clip(CircleShape).clickable(onClickLabel = tr("Clear search")) { onChange("") },
+            Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(F.page).clickable(onClickLabel = tr("Clear search")) { onChange("") },
             contentAlignment = Alignment.Center,
         ) { Icon(Glyph.Close, tr("Clear search"), tint = F.muted, modifier = Modifier.size(18.dp)) }
     }
@@ -449,11 +461,13 @@ private fun SearchBox(value: String, onChange: (String) -> Unit) {
 
 @Composable
 private fun QuickTile(icon: ImageVector, title: String, value: String, modifier: Modifier, onClick: () -> Unit) {
-    FCard(modifier, onClick = onClick, padding = 16.dp) {
-        Box(Modifier.size(32.dp).clip(F.iconShape).background(F.accentTint), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = F.accent, modifier = Modifier.size(18.dp))
-        }
-        Text(title, Modifier.padding(top = 8.dp), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+    // A bare accent icon, no tinted box: three small tiles read lighter than three badges.
+    Column(
+        modifier.clip(RoundedCornerShape(16.dp)).background(F.card).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(icon, null, tint = F.accent, modifier = Modifier.size(20.dp))
+        Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
         Text(value, color = F.muted, fontSize = 12.sp, maxLines = 1)
     }
 }

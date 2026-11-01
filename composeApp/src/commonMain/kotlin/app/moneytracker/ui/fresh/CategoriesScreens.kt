@@ -1,6 +1,8 @@
 package app.moneytracker.ui.fresh
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,6 +100,7 @@ internal fun FreshCategories(kind: CategoryKind) {
                             }
                         }
                         ArrowButton(Glyph.ChevronUp, tr("Move {0} up", c.name), at > 0) { move(-1) }
+                        HGap(6.dp)
                         ArrowButton(Glyph.ChevronDown, tr("Move {0} down", c.name), at < siblings.lastIndex) { move(1) }
                     }
                 }
@@ -137,9 +140,9 @@ internal fun FreshCategories(kind: CategoryKind) {
 @Composable
 private fun ArrowButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.size(36.dp).clip(F.iconShape).clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+        Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(F.page).clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, label, tint = if (enabled) F.ink else F.border, modifier = Modifier.size(20.dp)) }
+    ) { Icon(icon, label, tint = if (enabled) F.ink else F.muted.copy(alpha = 0.4f), modifier = Modifier.size(18.dp)) }
 }
 
 @Composable
@@ -166,7 +169,7 @@ private fun CategorySheet(
     Sheet(if (isNew) kindName else tr("Edit {0}", c.name), onDismiss, bottom = {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!isNew) Box(
-                Modifier.size(52.dp).clip(F.buttonShape).clickable(onClickLabel = tr("Delete category"), onClick = onDelete),
+                Modifier.size(52.dp).clip(F.buttonShape).background(F.dangerTint).clickable(onClickLabel = tr("Delete category"), onClick = onDelete),
                 contentAlignment = Alignment.Center,
             ) { Icon(Glyph.Delete, tr("Delete category"), tint = F.danger) }
             PrimaryButton(if (isNew) tr("Add category") else tr("Save changes"), enabled = trimmed.isNotEmpty() && !duplicate, modifier = Modifier.weight(1f), onClick = {

@@ -135,7 +135,7 @@ internal fun FreshSearch() {
     }
 
     Column(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter).padding(top = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IconTile(Glyph.Back, tr("Back"), { nav.pop() })
             Row(
                 Modifier.weight(1f).height(44.dp).clip(F.iconShape).background(F.card).border(2.dp, F.accent, F.iconShape).padding(start = 12.dp, end = 6.dp),
@@ -160,7 +160,7 @@ internal fun FreshSearch() {
         ) {
             item(key = "filters") {
                 FCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             FieldLabel(tr("Type"))
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -202,7 +202,7 @@ internal fun FreshSearch() {
                         append(tr("in") + " ")
                         withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.Medium)) { append(currency.format(earned)) }
                         append(" · " + tr("out") + " ")
-                        withStyle(SpanStyle(color = F.expense, fontWeight = FontWeight.Medium)) { append(currency.format(spent)) }
+                        withStyle(SpanStyle(color = F.ink, fontWeight = FontWeight.Medium)) { append(currency.format(spent)) }
                     }, color = F.muted, fontSize = 13.sp, style = F.money)
                 }
             }
@@ -223,7 +223,7 @@ internal fun FreshSearch() {
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter).padding(top = 12.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 Modifier.height(52.dp).clip(F.buttonShape).background(F.card).clickable(onClick = ::clear).padding(horizontal = 20.dp),
                 contentAlignment = Alignment.Center,
@@ -271,7 +271,7 @@ private fun AmountField(label: String, value: String, placeholder: String, modif
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         FieldLabel(label)
         Box(
-            Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(10.dp)).border(1.dp, F.border, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp),
+            Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(12.dp)).background(F.card).border(1.dp, F.border, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             if (value.isEmpty()) Text(placeholder, color = F.muted, fontSize = 14.sp, maxLines = 1)
