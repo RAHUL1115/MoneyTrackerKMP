@@ -1,0 +1,1 @@
+New layout (experimental): a cleaner, more consistent look. Screens use nearly the full width, rows are more compact, and switches, tabs, chips, text fields and confirmations look the same everywhere. Toasts can be closed with ×. Bank SMS, Insights, Budget, Accounts, Settings, Repeats and Backup screens were tidied to match.
