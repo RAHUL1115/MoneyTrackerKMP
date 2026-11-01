@@ -141,11 +141,12 @@ fun AccountsTab() {
                     Column(Modifier.padding(top = 10.dp).card()) {
                         if (isCard) {
                             val payable = counted.sumOf { (it.card?.statementDue ?: 0) + (it.card?.overdue ?: 0) }
-                            val outstanding = counted.sumOf { (it.card?.currentCycle ?: 0) + (it.card?.upcoming ?: 0) }
+                            // Like MM, a card in credit offsets the others' outstanding.
+                            val outstanding = counted.sumOf { it.card?.outstanding ?: 0 }
                             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.Bottom) {
                                 GroupName(group.name, Modifier.weight(1f))
                                 CardColumn(tr("Balance payable"), currency.format(payable))
-                                CardColumn(tr("Outst. balance"), currency.format(outstanding))
+                                CardColumn(tr("Outst. balance"), currency.format(kotlin.math.abs(outstanding)), if (outstanding < 0) IncomeColor else Ink)
                             }
                         } else {
                             // In the main currency: foreign-currency accounts are converted at their rate.
@@ -185,7 +186,9 @@ fun AccountsTab() {
                                 if (card != null) {
                                     Text(fmt.format(card.statementDue + card.overdue), Modifier.width(120.dp), textAlign = TextAlign.End,
                                         color = if (card.overdue > 0) ExpenseColor else Ink, style = RowAmountStyle)
-                                    Text(fmt.format(card.currentCycle + card.upcoming), Modifier.width(120.dp), textAlign = TextAlign.End, color = Ink, style = RowAmountStyle)
+                                    // In credit: MM shows the amount unsigned in the income colour.
+                                    Text(fmt.format(kotlin.math.abs(card.outstanding)), Modifier.width(120.dp), textAlign = TextAlign.End,
+                                        color = if (card.outstanding < 0) IncomeColor else Ink, style = RowAmountStyle)
                                 } else {
                                     val shown = if (line.group.type.isDebitCard) line.balance else line.effectiveBalance
                                     Text(fmt.format(shown), color = moneyColor(shown), style = RowAmountStyle)
@@ -206,11 +209,11 @@ private fun GroupName(name: String, modifier: Modifier) =
     Text(name, modifier, color = SubtleText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
 
 @Composable
-private fun CardColumn(label: String, value: String) {
+private fun CardColumn(label: String, value: String, color: Color = Ink) {
     Column(Modifier.width(120.dp), horizontalAlignment = Alignment.End) {
         Text(label, fontSize = 11.sp, color = SubtleText, maxLines = 1, overflow = TextOverflow.Ellipsis)
         // Fixed 120 dp column (it lines up with the amounts below), so a long figure steps its size down instead of clipping.
-        FitAmount(value, SectionTotalStyle, Ink, textAlign = TextAlign.End, min = 12.sp)
+        FitAmount(value, SectionTotalStyle, color, textAlign = TextAlign.End, min = 12.sp)
     }
 }
 

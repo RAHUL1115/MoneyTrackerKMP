@@ -234,8 +234,12 @@ data class CardStatus(
     val upcoming: Long = 0,
     /** Gross charges dated in the current cycle (for spending limits). */
     val cycleSpend: Long = 0,
+    /** Payments left over after every charge is settled (the card is in credit). */
+    val credit: Long = 0,
 ) {
     val totalOwed get() = statementDue + currentCycle + overdue
+    /** MM's "Outst. balance": open-cycle and later charges, less any credit (negative = in credit). */
+    val outstanding get() = currentCycle + upcoming - credit
 }
 
 /**
@@ -263,7 +267,7 @@ fun cardStatus(txns: List<Txn>, settlementDay: Int, today: LocalDate, prepaid: S
     val cycleSpend = charges.filter { it.date in current && it.kind == TxnKind.EXPENSE }.sumOf { it.accountValue }
     val currentCharges = take(regular.filter { it.date in current }.sumOf { it.accountValue })
     val upcoming = take(regular.filter { it.date > current.endInclusive }.sumOf { it.accountValue })
-    return CardStatus(statement, currentCharges, older + unpaidPrepaid, upcoming, cycleSpend)
+    return CardStatus(statement, currentCharges, older + unpaidPrepaid, upcoming, cycleSpend, credit = payments)
 }
 
 /** Card spending for the "Monthly card usage" target. */

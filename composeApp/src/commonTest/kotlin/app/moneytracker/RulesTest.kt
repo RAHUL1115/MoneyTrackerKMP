@@ -99,6 +99,16 @@ class RulesTest {
         assertEquals(600, s.totalOwed)
     }
 
+    @Test fun overpaymentIsKeptAsCredit() {
+        // MM shows what's left after every charge is covered in "Outst. balance" as a credit, not zero.
+        val txns = listOf(t(TxnKind.EXPENSE, "2026-03-12", 300), t(TxnKind.TRANSFER_IN, "2026-03-01", 1000))
+        val s = cardStatus(txns, 10, d("2026-03-15"))
+        assertEquals(0, s.statementDue + s.currentCycle + s.overdue + s.upcoming)
+        assertEquals(700, s.credit)
+        assertEquals(-700, s.outstanding)
+        assertEquals(0, cardStatus(listOf(t(TxnKind.EXPENSE, "2026-03-12", 300)), 10, d("2026-03-15")).credit)
+    }
+
     @Test fun futureInstallmentsAreUpcomingNotCurrentCycle() {
         val txns = listOf(t(TxnKind.EXPENSE, "2026-03-12", 300), t(TxnKind.EXPENSE, "2026-04-12", 300), t(TxnKind.EXPENSE, "2026-05-12", 300))
         val s = cardStatus(txns, 10, d("2026-03-15"))

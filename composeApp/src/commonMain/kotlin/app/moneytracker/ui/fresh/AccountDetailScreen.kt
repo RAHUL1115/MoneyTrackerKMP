@@ -304,8 +304,10 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
                     if (card.overdue > 0) Text(tr("incl. {0} overdue", fmt.format(card.overdue)), color = on, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                    Text(tr("Not yet billed"), color = soft, fontSize = 12.sp)
-                    Text(fmt.format(card.currentCycle + card.upcoming), color = on, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
+                    val credit = card.outstanding < 0
+                    Text(if (credit) tr("In credit") else tr("Not yet billed"), color = soft, fontSize = 12.sp)
+                    Text(fmt.format(kotlin.math.abs(card.outstanding)), color = if (credit) F.income else on, fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
+                        style = F.money, maxLines = 1)
                     Text(tr("Spent this cycle {0}", fmt.format(card.cycleSpend)), color = soft, fontSize = 11.sp, maxLines = 1)
                 }
             }
