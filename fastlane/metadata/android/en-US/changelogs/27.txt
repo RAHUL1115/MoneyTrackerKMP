@@ -1,0 +1,1 @@
+Privacy eye: tap the eye at the top of the main screens to hide every amount as ₹ ••••, in both layouts. It stays hidden until you tap the eye again, with no passcode needed. While hidden, tap a total to see the amounts for a few seconds. Adding or editing an entry still shows the real numbers.
