@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,7 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,12 +49,17 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -107,18 +110,18 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 
 private const val PHOTO_NOTICE_KEY = "photoNoticeShown"
+private const val RECENT_TAB = "recent"
+private const val OTHER_TAB = "other"
 
-/** The row the receipt style's tray is filling. */
+/** The row the tray is filling. */
 private enum class Step { AMOUNT, CATEGORY, ACCOUNT, FROM, TO, NOTE }
 
-private enum class AddSheet { NONE, CATEGORY, ACCOUNT, FROM, TO, TAGS, REPEAT, CURRENCY, BOOKMARK, COPY, DATE, PHOTO, DESC, PLACE, ORIGIN }
+private enum class AddSheet { NONE, TAGS, REPEAT, CURRENCY, BOOKMARK, COPY, DATE, PHOTO, DESC, PLACE, ORIGIN }
 
 /** The entry being added or edited. Mirrors the classic editor's state and rules; only the screens differ. */
 @Stable
 private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: CurrencyFormat, val currencies: Map<String, Currency>, timeOn: Boolean) {
     val accountFirst = repo.settingNow(Keys.INPUT_ORDER) == "ACCOUNT"
-    /** Entry screen style: the sentence ("on Food from HDFC") or a receipt card of rows. */
-    val receipt = repo.settingNow(Keys.ENTRY_STYLE) == "RECEIPT"
     var existing by mutableStateOf<Txn?>(null)
     // Balance adjustments edit as Increase / Decrease; picking a type turns one into a normal entry.
     var adjustUp by mutableStateOf(true)
@@ -265,9 +268,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     val f = remember { AddForm(repo, s, currency, currencies, timeOn) }
     val today = remember { repo.today() }
 
-    var sheet by remember {
-        mutableStateOf(if (s.txnId == null && s.preset == null && f.accountFirst && f.accountId == null) AddSheet.ACCOUNT else AddSheet.NONE)
-    }
+    var sheet by remember { mutableStateOf(AddSheet.NONE) }
     var feeTarget by remember { mutableStateOf(false) }  // transfers: keypad types into the fee
     var datePicker by remember { mutableStateOf(false) }
     var timePicker by remember { mutableStateOf(false) }
@@ -279,7 +280,11 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     var listening by remember { mutableStateOf(false) }
     val noteFocus = remember { FocusRequester() }
     var noteFocused by remember { mutableStateOf(false) }
-    var step by remember { mutableStateOf(Step.AMOUNT) }
+    // "Account first" (Settings › Input order) starts a new entry on the account.
+    var step by remember {
+        mutableStateOf(if (s.txnId == null && s.preset == null && f.accountFirst && f.accountId == null) Step.ACCOUNT else Step.AMOUNT)
+    }
+    var acctTab by remember { mutableStateOf<String?>(null) }  // the account tray's tab: Recent or a group id
     var subOf by remember { mutableStateOf<String?>(null) }  // a main category whose sub-categories the tray shows
 
     // Keep the photo strip current; capture location once for new entries if the user enabled it.
@@ -447,8 +452,8 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 val amount = m.amount.takeIf { it > 0 }?.let { (m.currency?.let { c -> currencies[c]?.format } ?: currency).format(it) }
                 SuggestChip(listOfNotNull(m.note, amount).joinToString(" · ")) {
                     f.pickNote(m); focus.clearFocus()
-                    if (!isTransfer && f.categoryId == null) sheet = AddSheet.CATEGORY
-                    else if (f.accountId == null) sheet = if (isTransfer) AddSheet.FROM else AddSheet.ACCOUNT
+                    if (!isTransfer && f.categoryId == null) step = Step.CATEGORY
+                    else if (f.accountId == null) step = if (isTransfer) Step.FROM else Step.ACCOUNT
                 }
             }
         }
@@ -495,11 +500,15 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     // The keypad hides under the phone keyboard but keeps its space, so a shorter keyboard never shows half of it.
     val imeUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
-    // ───────────── the receipt style: amount over a card of rows, and one tray under them that follows the row
+    // ───────────── amount over a card of rows, and one tray under them that follows the row
     // being filled (keypad, categories, accounts, then the phone keyboard for the note). Picking moves on to the next
     // empty row; tapping a row jumps to it. The tray keeps its height, so nothing above it ever moves.
 
-    val order = if (isTransfer) listOf(Step.AMOUNT, Step.FROM, Step.TO, Step.NOTE) else listOf(Step.AMOUNT, Step.CATEGORY, Step.ACCOUNT, Step.NOTE)
+    val order = when {
+        isTransfer -> listOf(Step.AMOUNT, Step.FROM, Step.TO, Step.NOTE)
+        f.accountFirst -> listOf(Step.ACCOUNT, Step.AMOUNT, Step.CATEGORY, Step.NOTE)
+        else -> listOf(Step.AMOUNT, Step.CATEGORY, Step.ACCOUNT, Step.NOTE)
+    }
     fun filled(st: Step) = when (st) {
         // A pre-selected usual account still gets its turn; one picked by hand (or loaded for editing) is skipped.
         Step.CATEGORY -> f.categoryId != null; Step.ACCOUNT, Step.FROM -> f.accountChosen; Step.TO -> f.toAccountId != null
@@ -516,13 +525,13 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         goTo(rest.firstOrNull { it == Step.NOTE || !filled(it) } ?: Step.NOTE)
     }
     // A tap on the note, or the keyboard closing, keeps the tray in step with it.
-    LaunchedEffect(noteFocused) { if (f.receipt && noteFocused) step = Step.NOTE }
+    LaunchedEffect(noteFocused) { if (noteFocused) step = Step.NOTE }
     var imeWasUp by remember { mutableStateOf(false) }
     LaunchedEffect(imeUp) {
-        if (f.receipt && imeWasUp && !imeUp && step == Step.NOTE) { focus.clearFocus(); step = Step.AMOUNT }
+        if (imeWasUp && !imeUp && step == Step.NOTE) { focus.clearFocus(); step = Step.AMOUNT }
         imeWasUp = imeUp
     }
-    LaunchedEffect(isTransfer) { if (f.receipt && step !in order) step = Step.AMOUNT }
+    LaunchedEffect(isTransfer) { if (step !in order) step = Step.AMOUNT }
 
     @Composable
     fun saveRow() {
@@ -551,56 +560,114 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         }
     }
 
+    // Accounts for the account tray: Recent (usual and recently used) first, then one tab per account group.
+    val summary = rememberMoneySummary()
+    val lineById = summary?.first?.associateBy { it.account.id }.orEmpty()
+    val recentRange = remember { DateRange(today.minus(DatePeriod(days = 60)), today) }
+    val recentTxns by remember(recentRange) { repo.txnsBetween(recentRange) }.collectAsState(emptyList())
+
+    /** What an account shows on the right of its row: a card's debt (or credit), else its balance. */
+    fun balanceOf(a: Account): Pair<String, Color> {
+        val l = lineById[a.id] ?: return "" to F.muted
+        val af = a.currency?.let { currencies[it]?.format } ?: currency
+        val c = l.card
+        return when {
+            c != null && c.outstanding < 0 && c.totalOwed == 0L -> tr("{0} credit", af.format(-c.outstanding)) to F.income
+            c != null && c.totalOwed + c.upcoming > 0 -> tr("{0} owed", af.format(c.totalOwed + c.upcoming)) to F.muted
+            c != null -> tr("Nothing owed") to F.muted
+            else -> {
+                val v = if (l.group.type.isDebitCard) l.balance else l.effectiveBalance
+                af.format(v) to when { v > 0 -> F.income; v < 0 -> F.expense; else -> F.muted }
+            }
+        }
+    }
+
     @Composable
     fun tray(modifier: Modifier) {
-        Column(modifier.fillMaxWidth().clip(F.cardShape).background(F.card)) {
+        val acctStep = step == Step.ACCOUNT || step == Step.FROM || step == Step.TO
+        val forTo = step == Step.TO
+        val currentAcct = if (forTo) f.toAccountId else f.accountId
+        val pickable = accounts.filter { (!it.hidden || it.id == currentAcct) && (!forTo || it.id != f.accountId) }
+        val usual = remember(step, f.categoryId) { if (step == Step.ACCOUNT) repo.habitAccount(f.txnKind, f.categoryId) else null }
+        val recent = if (!acctStep) emptyList() else (listOfNotNull(usual, currentAcct) + recentTxns.sortedByDescending { it.createdAt }
+            .map { if (forTo) it.toAccountId else it.accountId }).filterNotNull().distinct()
+            .mapNotNull { id -> pickable.firstOrNull { it.id == id } }.take(6)
+        val knownGroups = groups.map { it.id }.toSet()
+        val tabs: List<Pair<String, String>> = if (!acctStep) emptyList() else buildList {
+            if (recent.isNotEmpty()) add(RECENT_TAB to tr("Recent"))
+            groups.sortedBy { it.sortOrder }.filter { g -> pickable.any { it.groupId == g.id } }.forEach { add(it.id to it.name) }
+            if (pickable.any { it.groupId !in knownGroups }) add(OTHER_TAB to tr("Other"))
+        }
+        val tab = acctTab?.takeIf { t -> tabs.any { it.first == t } } ?: tabs.firstOrNull()?.first
+        // Edge to edge, squared off, on the bottom of the screen; a hairline on top separates it from Save.
+        Column(modifier.fullBleed().background(F.card)) {
+            Box(Modifier.fillMaxWidth().height(1.dp).background(F.border))
             val sub = subOf?.let { catById[it] }
-            Row(Modifier.fillMaxWidth().height(44.dp).background(F.page.copy(alpha = 0.5f)).padding(start = 16.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                val title = when (step) {
-                    Step.AMOUNT -> if (feeTarget) tr("Fee") else tr("Amount")
-                    Step.CATEGORY -> sub?.name ?: tr("Category")
-                    Step.ACCOUNT -> if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("Paid into") else tr("Pay from")
-                    Step.FROM -> tr("Move from"); Step.TO -> tr("Move to"); Step.NOTE -> tr("Note")
+            Row(Modifier.fillMaxWidth().height(48.dp).background(F.page.copy(alpha = 0.5f)).padding(start = 12.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (acctStep && tabs.size > 1) {
+                    // Tabs scroll on their own; a tab that doesn't fit fades out before Next instead of being cut off.
+                    val tabScroll = rememberScrollState()
+                    Row(
+                        Modifier.weight(1f).fadeEnd(tabScroll.canScrollForward).horizontalScroll(tabScroll).padding(end = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        tabs.forEach { (id, label) -> TrayTab(label, id == tab) { acctTab = id } }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                } else {
+                    val title = when (step) {
+                        Step.AMOUNT -> if (feeTarget) tr("Fee") else tr("Amount")
+                        Step.CATEGORY -> sub?.name ?: tr("Category")
+                        Step.ACCOUNT -> if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("Paid into") else tr("Pay from")
+                        Step.FROM -> tr("Move from"); Step.TO -> tr("Move to"); Step.NOTE -> tr("Note")
+                    }
+                    if (sub != null) Icon(Glyph.Back, tr("All categories"), tint = F.muted, modifier = Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).clickable { subOf = null }.padding(7.dp))
+                    Text(title, Modifier.weight(1f).padding(start = 4.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                if (sub != null) Icon(Glyph.Back, tr("All categories"), tint = F.muted, modifier = Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).clickable { subOf = null }.padding(7.dp))
-                Text(title, Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Box(
                     Modifier.height(32.dp).clip(RoundedCornerShape(10.dp)).background(F.accentTint)
                         .clickable { if (step == Step.NOTE) { focus.clearFocus(); step = Step.AMOUNT } else advance() }.padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center,
                 ) { Text(if (step == Step.NOTE) tr("Done") else tr("Next ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             }
+            // A hairline under the header marks where the choices start.
+            Box(Modifier.fillMaxWidth().height(1.dp).background(F.border))
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (step) {
                     Step.AMOUNT -> AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it },
-                        Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 4.dp))
-                    Step.CATEGORY -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(10.dp)) {
+                        Modifier.fillMaxSize().padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp))
+                    Step.CATEGORY -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(8.dp)) {
                         val mains = categories.filter { it.kind == f.catKind && it.parentId == null }
                         val current = f.categoryId?.let { catById[it] }
                         val subs = sub?.let { m -> categories.filter { it.parentId == m.id } }.orEmpty()
-                        if (sub != null) AddGrid(listOf(sub) + subs) { c, mod ->
-                            AddTile(c.name, if (c.id == sub.id) tr("Just {0}", c.name) else c.name, c.id == f.categoryId, mod, icon = categoryIcon(sub.name)) {
+                        if (sub != null) PickGrid(listOf(sub) + subs) { c, mod ->
+                            PickRow(if (c.id == sub.id) tr("Just {0}", c.name) else c.name, c.id == f.categoryId, mod, icon = categoryIcon(sub.name)) {
                                 f.pickCategory(c); advance()
                             }
-                        } else AddGrid(mains) { m, mod ->
-                            AddTile(m.name, m.name, m.id == (current?.parentId ?: current?.id), mod, icon = categoryIcon(m.name)) {
+                        } else PickGrid(mains) { m, mod ->
+                            PickRow(m.name, m.id == (current?.parentId ?: current?.id), mod, icon = categoryIcon(m.name)) {
                                 f.pickCategory(m)
                                 if (useSubcategories && categories.any { it.parentId == m.id }) subOf = m.id else advance()
                             }
                         }
                         AddLink(tr("Edit categories ›"), Modifier.padding(top = 8.dp)) { nav.push(Screen.Categories(f.catKind)) }
                     }
-                    Step.ACCOUNT, Step.FROM, Step.TO -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(10.dp)) {
-                        val forTo = step == Step.TO
-                        val current = if (forTo) f.toAccountId else f.accountId
-                        val list = accounts.filter { (!it.hidden || it.id == current) && (!forTo || it.id != f.accountId) }
-                        AddGrid(list, columns = 3) { a, mod ->
-                            AddTile(a.name, a.name, a.id == current, mod) {
+                    Step.ACCOUNT, Step.FROM, Step.TO -> Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        val shownAccts = when (tab) {
+                            RECENT_TAB -> recent
+                            OTHER_TAB -> pickable.filter { it.groupId !in knownGroups }
+                            else -> pickable.filter { it.groupId == tab }
+                        }
+                        shownAccts.forEach { a ->
+                            val (bal, balColor) = balanceOf(a)
+                            AccountPickRow(a.name + (a.currency?.let { "  ($it)" } ?: ""), a.id == currentAcct, a.id == usual, bal, balColor) {
                                 if (forTo) f.toAccountId = a.id else f.pickFrom(a)
                                 advance()
                             }
                         }
-                        AddLink(if (accounts.isEmpty()) tr("Add an account ›") else tr("Edit accounts ›"), Modifier.padding(top = 8.dp)) {
+                        AddLink(if (accounts.isEmpty()) tr("Add an account ›") else tr("Edit accounts ›"), Modifier.padding(top = 4.dp)) {
                             nav.push(if (accounts.isEmpty()) Screen.EditAccount() else Screen.AccountList)
                         }
                     }
@@ -631,7 +698,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                 currencyChip()
             }
             // The row being filled is underlined in the accent colour.
-            RowDivider(f.receipt && step == Step.AMOUNT, Modifier.padding(top = 8.dp))
+            RowDivider(step == Step.AMOUNT, Modifier.padding(top = 8.dp))
             val current = f.categoryId?.let { catById[it] }
             if (isTransfer) {
                 ReceiptRow(Glyph.Card, accountName(f.accountId) ?: tr("Choose"), tr("From"), missing = f.accountId == null, active = step == Step.FROM) { goTo(Step.FROM) }
@@ -682,120 +749,23 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     // they sit at the top; the amount, category, keypad and Save stay near the thumb.
 
     DisposableEffect(Unit) { KeyboardOverlay.active = true; onDispose { KeyboardOverlay.active = false } }
-    val recentRange = remember { DateRange(today.minus(DatePeriod(days = 60)), today) }
-    val recentTxns by remember(recentRange) { repo.txnsBetween(recentRange) }.collectAsState(emptyList())
     val e = f.existing
     // Like the classic layout, a refund is money coming in, so it sits on the Income tab (with expense categories).
     val refundable = !f.isAdjustment && (f.type == DraftType.INCOME || f.type == DraftType.REFUND) && e?.transferGroupId == null
     val allPhotos = if (f.isAdjustment) emptyList() else f.existingPhotos.map { it.fileName } + f.newPhotos
-    Box(Modifier.fillMaxSize().background(if (f.receipt) F.page else F.card).statusBarsPadding()) {
-        Column(Modifier.fillMaxSize().padding(horizontal = F.gutter).padding(top = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Box(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
+        Column(Modifier.fillMaxSize().padding(horizontal = F.gutter).padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconTile(Glyph.Close, tr("Close"), { nav.back() }, background = if (f.receipt) F.card else F.page)
-                TypeTabs(f, Modifier.weight(1f), onPage = f.receipt)
+                IconTile(Glyph.Close, tr("Close"), { nav.back() }, background = F.card)
+                TypeTabs(f, Modifier.weight(1f))
             }
-            if (f.receipt) receiptCard() else {
-                // The amount has a fixed zone; its line has a fixed height and long sums shrink inside it.
-                Column(
-                    Modifier.height(112.dp).fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { feeTarget = false; focus.clearFocus() },
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-                ) {
-                    val amountText = shown(fmt, addExprShown(f.amountText))
-                    Row(Modifier.height(58.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            amountText, Modifier.weight(1f, fill = false),
-                            color = if ((total ?: 0) > 0) F.ink else F.muted,
-                            fontSize = when { amountText.length > 16 -> 26.sp; amountText.length > 11 -> 30.sp; else -> 36.sp },
-                            fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, style = F.money,
-                        )
-                        currencyChip()
-                    }
-                    val (hint, color) = amountHint()
-                    Text(hint, Modifier.height(18.dp), color = color, fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                }
-
-                // One fixed box for "what is it": the entry as a sentence ("on Food from HDFC") with recent categories under it,
-                // or From / To and the fee for a transfer. Its height never changes, so switching type moves nothing.
-                Column(Modifier.fillMaxWidth().height(104.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (isTransfer) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AccountBox(tr("FROM"), accountName(f.accountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.FROM }
-                        Box(
-                            Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(F.page)
-                                .clickable(onClickLabel = tr("Swap accounts")) { val a = f.accountId; f.accountId = f.toAccountId; f.toAccountId = a },
-                            contentAlignment = Alignment.Center,
-                        ) { Icon(Glyph.Swap, tr("Swap accounts"), tint = F.accent, modifier = Modifier.size(18.dp)) }
-                        AccountBox(tr("TO"), accountName(f.toAccountId) ?: tr("Choose"), Modifier.weight(1f)) { sheet = AddSheet.TO }
-                    }
-                    Row(
-                        Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (feeTarget) F.accentTint else F.page)
-                            .clickable { feeTarget = !feeTarget; focus.clearFocus() }.padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(tr("Fee, saved as an expense"), Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                        Text(if (f.feeText.isEmpty()) shown(fmt, "0") else shown(fmt, addExprShown(f.feeText)),
-                            color = if (f.feeText.isEmpty()) F.muted else F.ink, fontSize = 14.sp, style = F.money)
-                    }
-                } else if (!f.isAdjustment) {
-                    val current = f.categoryId?.let { catById[it] }
-                    val selectedMain = current?.parentId ?: current?.id
-                    Row(Modifier.height(44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(when (f.type) { DraftType.INCOME -> tr("for"); DraftType.REFUND -> tr("refund for"); else -> tr("on") }, color = F.muted, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                        SentencePill(catLabel?.let { catById[f.categoryId]?.name } ?: tr("Category"), accent = true, missing = catLabel == null,
-                            icon = categoryIcon(current?.let { catById[selectedMain]?.name ?: it.name }), modifier = Modifier.widthIn(max = 150.dp)) {
-                            focus.clearFocus(); sheet = AddSheet.CATEGORY
-                        }
-                        Text(if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("into") else tr("from"), color = F.muted, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                        SentencePill(accountName(f.accountId) ?: tr("Account"), accent = false, missing = f.accountId == null, modifier = Modifier.weight(1f, fill = false)) {
-                            focus.clearFocus(); sheet = AddSheet.ACCOUNT
-                        }
-                    }
-                    // Recently used categories, one tap each; the chosen one is always among them.
-                    val mains = categories.filter { it.kind == f.catKind && it.parentId == null }
-                    val used = recentTxns.sortedByDescending { it.createdAt }.mapNotNull { t -> t.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } }
-                    val recent = (used + mains.map { it.id }).distinct().mapNotNull { id -> mains.firstOrNull { it.id == id } }.take(5)
-                        .let { r -> if (selectedMain == null || r.any { it.id == selectedMain } || mains.none { it.id == selectedMain }) r else r.dropLast(1) + mains.first { it.id == selectedMain } }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        recent.forEach { c ->
-                            val on = c.id == selectedMain
-                            Box(
-                                Modifier.size(44.dp).clip(CircleShape).background(if (on) F.accent else F.page)
-                                    .clickable(onClickLabel = c.name) { f.pickCategory(c); if (f.accountId == null) sheet = AddSheet.ACCOUNT },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                val icon = categoryIcon(c.name)
-                                if (icon != null) Icon(icon, c.name, tint = if (on) F.onAccent else F.muted, modifier = Modifier.size(20.dp))
-                                else Text(markText(c.name), color = if (on) F.onAccent else F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                    }
-                } else {
-                    Text(tr("Balance adjustment · {0}", tr(MODIFIED_BALANCE_NAME)), Modifier.fillMaxWidth().padding(top = 16.dp),
-                        color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
-                }
-                }
-
-                // Date and time get a row of their own above the note, so they are easy to see and reach.
-                Row(Modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val day = "${f.date.weekday()} ${f.date.short()}"
-                    FieldButton(
-                        if (f.date == today || f.date == today.minus(DatePeriod(days = 1))) "${dateLabel(f.date)}, $day" else day,
-                        Glyph.Calendar, accent = true, label = tr("Date"), modifier = Modifier.weight(1f),
-                    ) { focus.clearFocus(); sheet = AddSheet.DATE }
-                    if (timeOn) FieldButton(f.timeOfDay?.let { formatTime(it) } ?: tr("Add time"), Glyph.Clock, accent = false, label = tr("Time"), modifier = Modifier.widthIn(min = 116.dp)) {
-                        focus.clearFocus(); timePicker = true
-                    }
-                }
-
-                noteField(Modifier.fillMaxWidth())
-            }
+            receiptCard()
 
             // Everything else about the entry: one chip each, each opening a small sheet. A chip shows its value once set.
-            CompositionLocalProvider(LocalChipRest provides if (f.receipt) F.card else F.page) {
+            CompositionLocalProvider(LocalChipRest provides F.card) {
             Row(Modifier.bleedScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // The receipt has no room for the fee row, so a transfer's fee is a chip that points the keypad at it.
-                if (f.receipt && isTransfer) ExtraChip(if (f.feeText.isEmpty()) tr("Fee") else tr("Fee {0}", shown(fmt, addExprShown(f.feeText))), feeTarget || f.feeText.isNotEmpty()) {
+                // A transfer's fee is a chip that points the keypad at it.
+                if (isTransfer) ExtraChip(if (f.feeText.isEmpty()) tr("Fee") else tr("Fee {0}", shown(fmt, addExprShown(f.feeText))), feeTarget || f.feeText.isNotEmpty()) {
                     feeTarget = !feeTarget; goTo(Step.AMOUNT)
                 }
                 if (refundable) ExtraChip(if (f.type == DraftType.REFUND) tr("Refund ✓") else tr("Refund"), f.type == DraftType.REFUND) {
@@ -826,15 +796,8 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
 
             // Spare height sits between the chips and the keypad; on shorter screens the keypad gives some up.
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Bottom)) {
-            if (f.receipt) {
-                saveRow()
-                tray(Modifier.weight(1f, fill = false).heightIn(min = 232.dp, max = 300.dp))
-            } else {
-            Box(Modifier.weight(1f, fill = false).heightIn(min = 176.dp, max = 248.dp).fillMaxWidth()) {
-                if (!imeUp) AddKeypad(if (feeTarget) f.feeText else f.amountText, fmt, { if (feeTarget) f.feeText = it else f.amountText = it }, Modifier.fillMaxSize())
-            }
             saveRow()
-            }
+            tray(Modifier.weight(1f, fill = false).heightIn(min = 232.dp, max = 300.dp))
             }
         }
         // Past notes and the suggested category ride on a strip on top of the keyboard, so they push nothing.
@@ -889,86 +852,6 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         }
         AddSheet.ORIGIN -> Sheet(tr("Original message"), { sheet = AddSheet.NONE }) {
             Text(f.origin, color = F.ink, fontSize = 14.sp, lineHeight = 18.sp)
-        }
-        AddSheet.CATEGORY -> {
-            val mains = categories.filter { it.kind == f.catKind && it.parentId == null }
-            val subsOf = categories.filter { it.parentId != null && it.kind == f.catKind }.groupBy { it.parentId }
-            val current = f.categoryId?.let { catById[it] }
-            val selectedMain = current?.parentId ?: current?.id
-            fun done() { sheet = if (f.accountId == null) AddSheet.ACCOUNT else AddSheet.NONE }
-            Sheet(if (f.catKind == CategoryKind.INCOME) tr("Income categories") else tr("Expense categories"), { sheet = AddSheet.NONE }) {
-                if (mains.isEmpty()) Text(tr("No categories yet"), color = F.muted, fontSize = 14.sp)
-                AddGrid(mains) { m, mod ->
-                    AddTile(m.name, m.name, m.id == selectedMain, mod, icon = categoryIcon(m.name)) {
-                        f.pickCategory(m)
-                        if (!(useSubcategories && subsOf.containsKey(m.id))) done()
-                    }
-                }
-                val subs = if (useSubcategories) subsOf[selectedMain].orEmpty() else emptyList()
-                if (subs.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(tr("{0} has sub-categories (optional)", catById[selectedMain]?.name.orEmpty()), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                    Spacer(Modifier.height(4.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        subs.forEach { sub -> Pill(sub.name, sub.id == f.categoryId, { f.pickCategory(sub); done() }) }
-                    }
-                }
-                AddLink(tr("Edit categories ›")) { sheet = AddSheet.NONE; nav.push(Screen.Categories(f.catKind)) }
-            }
-        }
-        AddSheet.ACCOUNT, AddSheet.FROM, AddSheet.TO -> {
-            val forTo = sheet == AddSheet.TO
-            val list = accounts.filter { !forTo || it.id != f.accountId }
-            val current = if (forTo) f.toAccountId else f.accountId
-            var showHidden by remember { mutableStateOf(false) }
-            val usual = remember(sheet) { if (sheet == AddSheet.ACCOUNT) repo.habitAccount(f.txnKind, f.categoryId) else null }
-            val title = when (sheet) {
-                AddSheet.FROM -> tr("Move from")
-                AddSheet.TO -> tr("Move to")
-                else -> if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("Paid into") else tr("Pay from")
-            }
-            fun pick(a: Account) {
-                if (forTo) { f.toAccountId = a.id; sheet = AddSheet.NONE }
-                else { f.pickFrom(a); sheet = if (isTransfer && f.toAccountId == null) AddSheet.TO else AddSheet.NONE }
-            }
-            // Usual and recently used accounts first, so the half-open sheet usually holds the one you want.
-            val recentRange = remember { DateRange(repo.today().minus(DatePeriod(days = 30)), repo.today()) }
-            val recentTxns by remember(recentRange) { repo.txnsBetween(recentRange) }.collectAsState(emptyList())
-            val quick = (listOfNotNull(usual, current) + recentTxns.sortedByDescending { it.createdAt }
-                .map { if (forTo) it.toAccountId else it.accountId }).filterNotNull().distinct()
-                .mapNotNull { id -> list.firstOrNull { it.id == id && !it.hidden } }.take(4)
-            Sheet(title, { sheet = AddSheet.NONE }, half = true) {
-                if (list.isEmpty()) Text(tr("No accounts yet"), color = F.muted, fontSize = 14.sp)
-                if (quick.size > 1) {
-                    SectionLabel(tr("Usual and recent"))
-                    quick.forEach { a ->
-                        SheetOption(a.name, a.id == current, subtitle = if (a.id == usual) tr("Usual") else null, leading = { Mark(a.name, 32.dp) }) { pick(a) }
-                    }
-                }
-                val known = groups.map { it.id }.toSet()
-                val sections = groups.map { it.name to list.filter { a -> a.groupId == it.id } } + (tr("Other") to list.filter { it.groupId !in known })
-                sections.forEach { (name, items) ->
-                    val shownItems = items.filter { !it.hidden || showHidden || it.id == current }
-                    if (shownItems.isNotEmpty()) {
-                        SectionLabel(name)
-                        shownItems.forEach { a ->
-                            SheetOption(
-                                a.name, a.id == current,
-                                subtitle = listOfNotNull(if (a.id == usual) tr("Usual") else null, if (a.hidden) tr("Hidden") else null, a.currency).joinToString(" · ").ifEmpty { null },
-                                leading = { Mark(a.name, 32.dp) },
-                            ) { pick(a) }
-                        }
-                    }
-                }
-                val hiddenCount = list.count { it.hidden && it.id != current }
-                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    if (hiddenCount > 0) AddLink(if (showHidden) tr("Hide hidden accounts") else tr("Show hidden accounts ({0})", hiddenCount)) { showHidden = !showHidden }
-                    else Spacer(Modifier.width(1.dp))
-                    AddLink(if (accounts.isEmpty()) tr("Add an account ›") else tr("Edit accounts ›")) {
-                        sheet = AddSheet.NONE; nav.push(if (accounts.isEmpty()) Screen.EditAccount() else Screen.AccountList)
-                    }
-                }
-            }
         }
         AddSheet.TAGS -> Sheet(tr("Tags"), { sheet = AddSheet.NONE }, bottom = { PrimaryButton(tr("Done"), { sheet = AddSheet.NONE }) }) {
             if (tags.isEmpty()) Text(tr("No tags yet"), color = F.muted, fontSize = 14.sp)
@@ -1083,30 +966,19 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
 
 /** Expense / Income / Transfer; a refund sits on Expense, an adjustment has none selected. */
 @Composable
-private fun TypeTabs(f: AddForm, modifier: Modifier, onPage: Boolean = false) {
+private fun TypeTabs(f: AddForm, modifier: Modifier) {
     val tabs = listOf(DraftType.EXPENSE to tr("Expense"), DraftType.INCOME to tr("Income"), DraftType.TRANSFER to tr("Transfer"))
     val selected = if (f.isAdjustment) null else if (f.type == DraftType.REFUND) DraftType.INCOME else f.type
-    Row(modifier.height(44.dp).clip(F.iconShape).background(if (onPage) F.card else F.page).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(modifier.height(44.dp).clip(F.iconShape).background(F.card).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         tabs.forEach { (t, label) ->
             val on = t == selected
             Box(
-                Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(10.dp)).background(if (on) (if (onPage) F.page else F.card) else Color.Transparent).clickable { f.pickType(t) },
+                Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(10.dp)).background(if (on) F.page else Color.Transparent).clickable { f.pickType(t) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(label, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
             }
         }
-    }
-}
-
-@Composable
-private fun AccountBox(label: String, name: String, modifier: Modifier, onClick: () -> Unit) {
-    Column(
-        modifier.height(64.dp).clip(RoundedCornerShape(16.dp)).background(F.page).clickable(onClick = onClick).padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(label, color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        Text(name, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -1119,39 +991,23 @@ private fun SuggestChip(text: String, accent: Boolean = false, onClick: () -> Un
     ) { Text(text, color = if (accent) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
 
-/** A tappable word in the entry sentence: the category (accent, with its icon) or the account. */
-@Composable
-private fun SentencePill(text: String, accent: Boolean, missing: Boolean, modifier: Modifier = Modifier, icon: ImageVector? = null, onClick: () -> Unit) {
-    val ink = when { accent -> F.accent; missing -> F.danger; else -> F.ink }
-    Row(
-        modifier.height(40.dp).clip(RoundedCornerShape(999.dp)).background(if (accent) F.accentTint else F.page).clickable(onClick = onClick)
-            .padding(start = if (icon != null) 6.dp else 12.dp, end = 10.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        if (icon != null) Box(Modifier.size(28.dp).clip(CircleShape).background(F.card), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = F.accent, modifier = Modifier.size(16.dp))
-        }
-        Text(text, Modifier.weight(1f, fill = false), color = ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-            maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Icon(Glyph.ChevronDown, null, tint = ink, modifier = Modifier.size(16.dp))
-    }
+/** Widens a child of the gutter-padded column to the full screen width. */
+private fun Modifier.fullBleed(): Modifier = layout { measurable, constraints ->
+    val extra = (F.gutter * 2).roundToPx()
+    val width = constraints.maxWidth + extra
+    val p = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+    layout(constraints.maxWidth, p.height) { p.place(-extra / 2, 0) }
 }
 
-/** Date or time of the entry: a field-height button with an icon, tinted for the date. */
-@Composable
-private fun FieldButton(text: String, icon: ImageVector, accent: Boolean, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Row(
-        modifier.fillMaxHeight().clip(RoundedCornerShape(14.dp)).background(if (accent) F.accentTint else F.page)
-            .clickable(onClickLabel = label, onClick = onClick).padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(icon, null, tint = if (accent) F.accent else F.ink, modifier = Modifier.size(18.dp))
-        Text(text, color = if (accent) F.accent else F.ink, fontSize = 14.sp, fontWeight = if (accent) FontWeight.SemiBold else FontWeight.Medium,
-            maxLines = 1, overflow = TextOverflow.Ellipsis)
+/** Fades the last 24dp of a horizontally scrolling strip while more of it is off to the right. */
+private fun Modifier.fadeEnd(on: Boolean): Modifier = if (!on) this else
+    graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen).drawWithContent {
+        drawContent()
+        val w = 24.dp.toPx()
+        drawRect(Brush.horizontalGradient(listOf(Color.Black, Color.Transparent), startX = size.width - w, endX = size.width), blendMode = BlendMode.DstIn)
     }
-}
 
-/** Resting colour of the extra chips: white on the receipt's grey page, grey on the sentence's white one. */
+/** Resting colour of the extra chips: white on the grey page. */
 private val LocalChipRest = staticCompositionLocalOf<Color?> { null }
 
 /** Hairline under a receipt row, thicker and in the accent when the row is being filled. Always 2dp tall, so nothing moves. */

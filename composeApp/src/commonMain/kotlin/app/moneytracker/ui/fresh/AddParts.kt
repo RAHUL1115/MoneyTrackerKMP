@@ -37,7 +37,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -115,36 +114,65 @@ internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String
     }
 }
 
-/** Category or account tile: coloured mark over the name. No outline at rest; the chosen one is tinted with a thin ring. */
+/** One choice in the entry tray: a wide row with an icon (or the name's mark), the full name, and a check when chosen. */
 @Composable
-internal fun AddTile(name: String, label: String, selected: Boolean, modifier: Modifier = Modifier, mark: String? = null, icon: ImageVector? = null, onClick: () -> Unit) {
-    val (bg, fg) = markColors(name)
-    val shape = RoundedCornerShape(18.dp)
-    Column(
-        modifier.height(70.dp).clip(shape).background(if (selected) F.accentTint else Color.Transparent)
-            .then(if (selected) Modifier.border(1.5.dp, F.accent, shape) else Modifier).clickable(onClick = onClick).padding(horizontal = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+internal fun PickRow(label: String, selected: Boolean, modifier: Modifier = Modifier, icon: ImageVector? = null, onClick: () -> Unit) {
+    Row(
+        modifier.height(50.dp).clip(RoundedCornerShape(14.dp)).background(if (selected) F.accentTint else F.page)
+            .clickable(onClickLabel = label, onClick = onClick).padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(34.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) F.card else if (mark != null) F.fill else bg), contentAlignment = Alignment.Center) {
-            if (icon != null) Icon(icon, null, tint = if (selected) F.accent else fg, modifier = Modifier.size(18.dp))
-            else Text(mark ?: markText(name), color = if (mark != null) F.muted else fg, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(F.card), contentAlignment = Alignment.Center) {
+            if (icon != null) Icon(icon, null, tint = if (selected) F.accent else F.muted, modifier = Modifier.size(18.dp))
+            else Text(markText(label), color = if (selected) F.accent else F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
-        Spacer(Modifier.height(6.dp))
-        Text(label, color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(label, Modifier.weight(1f), color = if (selected) F.accent else F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (selected) Icon(Glyph.Check, null, tint = F.accent, modifier = Modifier.size(18.dp))
     }
 }
 
-/** Equal-width tiles, [columns] per row. */
+/** An account in the entry tray: full name, "Usual" when it is, and its balance (or what a card owes) on the right. */
 @Composable
-internal fun <T> AddGrid(items: List<T>, columns: Int = 4, cell: @Composable (T, Modifier) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items.chunked(columns).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+internal fun AccountPickRow(name: String, selected: Boolean, usual: Boolean, balance: String, balanceColor: Color, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) F.accentTint else F.page)
+            .clickable(onClickLabel = name, onClick = onClick).padding(start = 12.dp, end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(name, Modifier.weight(1f, fill = false), color = if (selected) F.accent else F.ink, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (usual) Box(Modifier.height(20.dp).clip(RoundedCornerShape(999.dp)).background(F.card).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+                Text(tr("Usual"), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            }
+        }
+        Text(balance, color = balanceColor, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, style = F.money)
+        Box(Modifier.size(18.dp)) { if (selected) Icon(Glyph.Check, null, tint = F.accent, modifier = Modifier.size(18.dp)) }
+    }
+}
+
+/** Two equal columns of [PickRow]s. */
+@Composable
+internal fun <T> PickGrid(items: List<T>, cell: @Composable (T, Modifier) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 row.forEach { cell(it, Modifier.weight(1f)) }
-                repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }
+}
+
+/** A tab in the tray's header (Recent and the account groups). */
+@Composable
+internal fun TrayTab(text: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.height(32.dp).clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.card)
+            .clickable(onClick = onClick).padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
 }
 
 /** Small rounded chip (date choices, filters inside the editor). */
