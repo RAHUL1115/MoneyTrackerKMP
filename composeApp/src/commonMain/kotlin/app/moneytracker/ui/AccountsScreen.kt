@@ -121,6 +121,7 @@ fun AccountsTab() {
 
     Column(Modifier.fillMaxSize()) {
         TitleTopBar(tr("Accounts")) {
+            PrivacyEyeButton()
             IconButton(onClick = { nav.push(Screen.AccountsTrend) }) { Icon(Icons.Outlined.BarChart, tr("Total stats")) }
             IconButton(onClick = { nav.push(Screen.AccountList) }) { Icon(Icons.Outlined.Settings, tr("Manage accounts")) }
             IconButton(onClick = { nav.push(Screen.EditAccount()) }) { Icon(Icons.Outlined.Add, tr("Add account")) }

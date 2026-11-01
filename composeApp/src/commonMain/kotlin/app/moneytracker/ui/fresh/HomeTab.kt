@@ -149,17 +149,18 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
         Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Column(Modifier.fillMaxWidth().clickable { onOpenTab(FreshTab.ACTIVITY) }, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        // While amounts are hidden, a tap on a figure peeks at them instead of opening its tab.
+        Column(Modifier.fillMaxWidth().clickable(onClick = app.moneytracker.ui.Privacy.tap { onOpenTab(FreshTab.ACTIVITY) }), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(tr("Spent today"), color = soft, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             Text(currency.format(totals(todayRows).expense), color = F.ink, fontSize = 34.sp, lineHeight = 42.sp,
                 fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            HeroFigure(tr("Yesterday"), currency.format(totals(yesterdayRows).expense), Modifier.weight(1f)) { onOpenTab(FreshTab.ACTIVITY) }
-            HeroFigure(tr("{0} so far", tr(actMonthNames[ym.month - 1])), currency.format(monthSpent), Modifier.weight(1f)) { onOpenTab(FreshTab.INSIGHTS) }
+            HeroFigure(tr("Yesterday"), currency.format(totals(yesterdayRows).expense), Modifier.weight(1f), app.moneytracker.ui.Privacy.tap { onOpenTab(FreshTab.ACTIVITY) })
+            HeroFigure(tr("{0} so far", tr(actMonthNames[ym.month - 1])), currency.format(monthSpent), Modifier.weight(1f), app.moneytracker.ui.Privacy.tap { onOpenTab(FreshTab.INSIGHTS) })
         }
         // The budget line shows once a budget is set; setting one lives on the Budget screen.
-        if (budget != null) Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.Budget) }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (budget != null) Column(Modifier.fillMaxWidth().clickable(onClick = app.moneytracker.ui.Privacy.tap { nav.push(Screen.Budget) }), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             run {
                 val left = budget.remaining
                 Row {

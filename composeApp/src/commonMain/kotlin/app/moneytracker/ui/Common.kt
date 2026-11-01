@@ -249,7 +249,8 @@ fun SummaryStrip(
     items: List<Triple<String, Long, Color>>,
     currency: CurrencyFormat,
 ) {
-    Column(Modifier.background(SurfaceColor)) {
+    // While amounts are hidden, a tap on the totals peeks at them for a few seconds.
+    Column(Modifier.background(SurfaceColor).clickable(enabled = Privacy.masked) { Privacy.peek() }) {
         Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 7.dp)) {
             items.forEach { (label, value, color) ->
                 Column(Modifier.weight(1f).padding(horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {

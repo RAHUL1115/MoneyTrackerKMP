@@ -217,8 +217,23 @@ fun TabHeader(title: String, overline: String? = null, actions: @Composable RowS
             if (overline != null) Text(overline, color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             Text(title, color = F.ink, fontSize = if (overline != null) 20.sp else 22.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), content = actions)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PrivacyEye()
+            actions()
+        }
     }
+}
+
+/** The privacy eye on every main tab: hides or shows all amounts, tinted while they're hidden. */
+@Composable
+fun PrivacyEye() {
+    val repo = app.moneytracker.ui.LocalRepo.current
+    val on = app.moneytracker.ui.Privacy.hidden
+    IconTile(
+        if (on) Glyph.EyeOff else Glyph.Eye, if (on) tr("Show amounts") else tr("Hide amounts"),
+        { app.moneytracker.ui.Privacy.toggle(repo) },
+        tint = if (on) F.accent else F.ink, background = if (on) F.accentTint else F.card,
+    )
 }
 
 /** 44dp square white button holding an icon (header actions, back). */

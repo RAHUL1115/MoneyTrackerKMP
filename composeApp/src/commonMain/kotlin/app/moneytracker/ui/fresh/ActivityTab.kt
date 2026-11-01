@@ -299,7 +299,9 @@ private fun ArrowButton(icon: ImageVector, label: String, tile: Boolean, onClick
 @Composable
 internal fun ActSummary(income: Long, expense: Long, modifier: Modifier = Modifier, background: Color = F.card) {
     val currency = LocalCurrency.current
-    Row(modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(background).padding(vertical = 10.dp, horizontal = 4.dp)) {
+    // While amounts are hidden, a tap peeks at them for a few seconds.
+    Row(modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(background)
+        .clickable(enabled = app.moneytracker.ui.Privacy.masked) { app.moneytracker.ui.Privacy.peek() }.padding(vertical = 10.dp, horizontal = 4.dp)) {
         SummaryCell(tr("Money in"), currency.format(income), F.income)
         Box(Modifier.width(1.dp).height(36.dp).background(F.line))
         SummaryCell(tr("Money out"), currency.format(expense), F.expense)

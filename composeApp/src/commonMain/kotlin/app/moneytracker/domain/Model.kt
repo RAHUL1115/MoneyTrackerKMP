@@ -144,8 +144,8 @@ data class RecurringRule(
 )
 
 /** A non-main currency. [rate] = main-currency units per 1 unit (e.g. 1 USD = 83.2 INR → 83.2). */
-data class Currency(val code: String, val symbol: String, val decimals: Int, val rate: Double, val sortOrder: Int = 0) {
-    val format get() = CurrencyFormat(symbol, decimals)
+data class Currency(val code: String, val symbol: String, val decimals: Int, val rate: Double, val sortOrder: Int = 0, val masked: Boolean = false) {
+    val format get() = CurrencyFormat(symbol, decimals, masked = masked)
 }
 
 data class Tag(val id: String, val name: String, val sortOrder: Int = 0)

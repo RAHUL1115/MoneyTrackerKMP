@@ -132,6 +132,7 @@ fun TransactionsTab() {
                 if (platform.voiceAvailable) IconButton(onClick = {
                     platform.listen { text -> nav.push(Screen.EditTxn(preset = VoiceParser.parse(text, repo.today(), currency))) }
                 }) { Icon(Icons.Outlined.Mic, tr("Voice input")) }
+                PrivacyEyeButton()
                 IconButton(onClick = { nav.push(Screen.Templates) }) { Icon(Icons.Outlined.StarOutline, tr("Bookmarks")) }
                 IconButton(onClick = { nav.push(Screen.Search) }) { Icon(Icons.Outlined.Search, tr("Search")) }
                 IconButton(onClick = { filterSheet = true }) {

@@ -287,7 +287,8 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
     val repo = LocalRepo.current
     val a = line.account
     val card = line.card
-    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(20.dp)) {
+    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card)
+        .clickable(enabled = app.moneytracker.ui.Privacy.masked) { app.moneytracker.ui.Privacy.peek() }.padding(20.dp)) {
         val on = F.ink
         val soft = F.muted
         Row {

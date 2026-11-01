@@ -3,7 +3,11 @@ package app.moneytracker.domain
 import kotlin.math.absoluteValue
 
 /** Currency display settings; amounts are stored as Long minor units (10^decimals per major unit). */
-data class CurrencyFormat(val symbol: String = "₹", val decimals: Int = 2, val symbolAfter: Boolean = false) {
+data class CurrencyFormat(
+    val symbol: String = "₹", val decimals: Int = 2, val symbolAfter: Boolean = false,
+    /** Privacy: show every amount as the same fixed mask (••••), keeping only its sign. Display only. */
+    val masked: Boolean = false,
+) {
     private val factor: Long get() = pow10(decimals)
 
     fun format(minor: Long, showSign: Boolean = false, withSymbol: Boolean = true): String {
@@ -13,8 +17,8 @@ data class CurrencyFormat(val symbol: String = "₹", val decimals: Int = 2, val
             else -> ""
         }
         val abs = minor.absoluteValue
-        val major = groupThousands((abs / factor).toString())
-        val fraction = if (decimals > 0) "." + (abs % factor).toString().padStart(decimals, '0') else ""
+        val major = if (masked) MASK else groupThousands((abs / factor).toString())
+        val fraction = if (decimals > 0 && !masked) "." + (abs % factor).toString().padStart(decimals, '0') else ""
         return when {
             !withSymbol -> "$sign$major$fraction"
             symbolAfter -> "$sign$major$fraction $symbol"
@@ -45,6 +49,8 @@ data class CurrencyFormat(val symbol: String = "₹", val decimals: Int = 2, val
         digits.reversed().chunked(3).joinToString(",").reversed()
 
     companion object {
+        /** Always four dots, so a masked amount's length says nothing about its size. */
+        const val MASK = "••••"
         fun pow10(n: Int): Long { var r = 1L; repeat(n) { r *= 10 }; return r }
     }
 }

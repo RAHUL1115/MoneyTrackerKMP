@@ -157,6 +157,7 @@ class MoneyRepository(
         const val TIME_INPUT = "timeInput"                // NONE | INPUT (ask for time) | LIST (ask and show it in lists)
         const val TIME_SORT = "timeSort"                  // DESC (default) | ASC: order of entries within a day
         const val SHOW_DESCRIPTION = "showDescription"    // "1" = description under the note in lists
+        const val HIDE_AMOUNTS = "hideAmounts"            // "1" = privacy: amounts show as •••• until the eye is tapped
         const val INPUT_ORDER = "inputOrder"              // AMOUNT (default) | ACCOUNT: which picker opens first
         const val COLOR_SET = "colorSet"                  // A (income green, expense red) | B (swapped)
         const val SYMBOL_AFTER = "symbolAfter"            // "1" = "1,000.00 ₹"

@@ -1,0 +1,75 @@
+package app.moneytracker.ui
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import app.moneytracker.data.MoneyRepository
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+/**
+ * The privacy eye: while [hidden], every amount in the app shows as ₹ •••• (see CurrencyFormat.masked).
+ * The eye turns it on or off and the choice is saved; tapping a total only peeks for a few seconds.
+ * Entry editors always show real numbers ([Unmasked]); widgets, exports and backups are never masked.
+ */
+object Privacy {
+    var hidden by mutableStateOf(false)
+        private set
+    var peeking by mutableStateOf(false)
+        private set
+    /** True while amounts should be masked right now. */
+    val masked get() = hidden && !peeking
+
+    private var peekJob: Job? = null
+
+    /** Reads the saved choice (call once the database is open). */
+    fun load(repo: MoneyRepository) { hidden = repo.settingNow(MoneyRepository.Keys.HIDE_AMOUNTS) == "1" }
+
+    /** The eye: hide or show amounts, and remember it. */
+    fun toggle(repo: MoneyRepository) {
+        hidden = !hidden
+        peekJob?.cancel(); peeking = false
+        MainScope().launch(repo.io) { repo.putSetting(MoneyRepository.Keys.HIDE_AMOUNTS, if (hidden) "1" else "0") }
+    }
+
+    /** Shows the amounts for a few seconds without turning privacy off. */
+    fun peek() {
+        if (!hidden) return
+        peeking = true
+        peekJob?.cancel()
+        peekJob = MainScope().launch { delay(5_000); peeking = false }
+    }
+
+    /** A tap on a total: peeks while amounts are hidden, otherwise does [action]. */
+    fun tap(action: () -> Unit): () -> Unit = { if (masked) peek() else action() }
+}
+
+/** The classic layout's eye: a top-bar button that hides or shows all amounts, accent while they're hidden. */
+@Composable
+fun PrivacyEyeButton() {
+    val repo = LocalRepo.current
+    val on = Privacy.hidden
+    androidx.compose.material3.IconButton(onClick = { Privacy.toggle(repo) }) {
+        androidx.compose.material3.Icon(
+            if (on) androidx.compose.material.icons.Icons.Outlined.VisibilityOff else androidx.compose.material.icons.Icons.Outlined.Visibility,
+            if (on) tr("Show amounts") else tr("Hide amounts"),
+            tint = if (on) Accent else androidx.compose.material3.LocalContentColor.current,
+        )
+    }
+}
+
+/** Shows [content] with real amounts even while privacy is on (adding and editing an entry). */
+@Composable
+fun Unmasked(content: @Composable () -> Unit) {
+    CompositionLocalProvider(
+        LocalCurrency provides LocalCurrency.current.copy(masked = false),
+        LocalCurrencies provides LocalCurrencies.current.mapValues { it.value.copy(masked = false) },
+        content = content,
+    )
+}

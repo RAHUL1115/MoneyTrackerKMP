@@ -208,8 +208,8 @@ internal fun InsightsTab() {
             }
             Segmented(Side.entries.map { tr(it.label) }, side.ordinal, { side = Side.entries[it]; openKey = null })
 
-            // Hero: total, change, trend, daily average.
-            FCard {
+            // Hero: total, change, trend, daily average. While amounts are hidden, a tap peeks at them.
+            FCard(onClick = if (app.moneytracker.ui.Privacy.masked) ({ app.moneytracker.ui.Privacy.peek() }) else null) {
                 Text(when (side) { Side.SPENDING -> tr("Spent {0}", phrase); Side.INCOME -> tr("Earned {0}", phrase); Side.NET -> tr("Net {0}", phrase) },
                     color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 Text(currency.format(total), color = if (side == Side.NET) (if (total < 0) F.expense else F.income) else F.ink,

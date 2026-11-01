@@ -90,7 +90,7 @@ private fun NavItem(tab: FreshTab, icon: ImageVector, selected: FreshTab, onSele
  * (help, licences and other plain screens are shared by both layouts).
  */
 fun freshScreen(screen: Screen): (@Composable () -> Unit)? = when (screen) {
-    is Screen.EditTxn -> { { FreshEditTxn(screen) } }
+    is Screen.EditTxn -> { { app.moneytracker.ui.Unmasked { FreshEditTxn(screen) } } }
     Screen.Inbox -> { { FreshInbox() } }
     Screen.MessageSettings -> { { FreshMessageSettings() } }
     Screen.Search -> { { FreshSearch() } }

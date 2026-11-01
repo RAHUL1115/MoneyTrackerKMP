@@ -216,7 +216,7 @@ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Bo
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).clickable(onClick = onToggle).padding(20.dp)) {
+    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).clickable(onClick = app.moneytracker.ui.Privacy.tap(onToggle)).padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(tr("Net worth · in totals"), Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             Icon(if (trendOn) Glyph.ChevronUp else Glyph.ChevronDown, tr("Net worth trend"), tint = F.muted, modifier = Modifier.size(18.dp))

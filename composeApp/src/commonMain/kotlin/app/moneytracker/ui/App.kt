@@ -147,13 +147,16 @@ fun App(
             LaunchedEffect(colorSet) { colorsSwapped = colorSet == "B" }
             val timeInput by remember(repo) { repo.setting(Keys.TIME_INPUT) }.collectAsState(null)
             val showDescription by remember(repo) { repo.flag(Keys.SHOW_DESCRIPTION) }.collectAsState(false)
+            // Privacy eye: the saved choice, then every amount below is masked while it's on.
+            LaunchedEffect(repo) { Privacy.load(repo) }
+            val masked = Privacy.masked
             CompositionLocalProvider(
                 LocalRepo provides repo,
-                LocalCurrency provides currency,
+                LocalCurrency provides currency.copy(masked = masked),
                 LocalNavigator provides navigator,
                 LocalBackup provides backup,
                 LocalPlatform provides platform,
-                LocalCurrencies provides currencies.associateBy { it.code },
+                LocalCurrencies provides currencies.associate { it.code to it.copy(masked = masked) },
                 LocalListPrefs provides ListPrefs(showTime = timeInput == "LIST", showDescription = showDescription),
                 app.moneytracker.ui.fresh.LocalNewLayout provides newLayout,
                 app.moneytracker.ui.fresh.LocalToaster provides toaster,
@@ -202,7 +205,7 @@ fun App(
                             Box(Modifier.fillMaxSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }) {
                             val fresh = if (newLayout) app.moneytracker.ui.fresh.freshScreen(top) else null
                             if (fresh != null) fresh() else when (top) {
-                                is Screen.EditTxn -> EditTxnScreen(top)
+                                is Screen.EditTxn -> Unmasked { EditTxnScreen(top) }
                                 is Screen.AccountDetail -> AccountDetailScreen(top.accountId)
                                 is Screen.EditAccount -> EditAccountScreen(top.accountId)
                                 is Screen.Categories -> CategoriesScreen(top.kind)

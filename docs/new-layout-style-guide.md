@@ -91,6 +91,9 @@ Roles:
 - **Text field**: white, hairline border, radius 12, at least 44 tall, 12 side padding.
 - **Toast**: ink background, radius 14, shadow, 13 text. Undo is a small chip; × closes it.
 - **Progress bar**: `F.track` track, accent fill (warn when over budget).
+- **Privacy eye**: a header tile on every main tab (an eye icon in the classic layout's top bars). It hides every amount
+  as ₹ •••• (always four dots) and is tinted with the accent while on; the choice is saved. Tapping a total peeks for 5
+  seconds. Colours, signs and bars stay. Adding or editing an entry always shows real numbers.
 - **Entry tray** (adding an entry): edge to edge, squared off, a hairline on top and under its header; 8 inside.
   Categories in two columns of wide rows; accounts as rows with balances under Recent and account-group tabs.
 
