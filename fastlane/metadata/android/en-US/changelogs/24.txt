@@ -1,0 +1,1 @@
+Credit cards you've overpaid now show what's left as a credit, as Money Manager does, instead of 0. Classic layout: the amount appears under Outst. balance in the income colour, and the card group's outstanding total is reduced by it. New layout: the card's row and page say "In credit". Net worth already counted it as an asset.
