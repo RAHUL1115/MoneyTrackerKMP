@@ -49,7 +49,7 @@ object SmsParser {
         Regex("""(?i)\binfo:?\s*([a-z0-9][a-z0-9 &'./_-]{1,40}?)(?=[.,]|$)"""),
         Regex("""(?i)\btowards\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=[.,]|$)"""),
     )
-    private val debitWords = listOf("debited", "spent", "paid", "purchase", "withdrawn", "withdrawal", "sent", "debit", "txn of", "used for", "charged")
+    private val debitWords = listOf("debited", "spent", "paid", "purchase", "withdrawn", "withdrawal", "sent", "debit", "txn of", "used for", "used at", "used on", "charged")
     private val refundWords = listOf("refund", "reversal", "reversed", "chargeback")
     private val creditWords = listOf("credited", "received", "deposited", "refund", "reversed", "credit of", "added to")
     private val noise = listOf("otp", "one time password", "verification code", "offer", "voucher", "win ", "congratulations",

@@ -18,6 +18,18 @@ class SmsParserTest {
         assertEquals("Swiggy", p.vendor)
     }
 
+    @Test fun hsbcCardUsedAt() {
+        // "used at …" with the limit and amount due after it.
+        val p = SmsParser.parse("VM-HSBCIN", "HSBC Credit Card xx6456 used at RELIANCE RETAIL LIMITE for INR 3599.00 on 02/11/26. " +
+            "Avl limit INR 490738.08; due INR 3261.92. Call +914065118002 to report fraud.")!!
+        assertEquals("HSBC", p.bank)
+        assertEquals(359_900, p.amount)
+        assertFalse(p.isCredit)
+        assertEquals("6456", p.accountDigits)
+        assertEquals(SmsParser.Instrument.CREDIT_CARD, p.instrument)
+        assertEquals("Reliance Retail Limite", p.vendor)
+    }
+
     @Test fun upiDebitToVpa() {
         val p = SmsParser.parse("AX-ICICIT", "ICICI Bank Acct XX567 debited for Rs 499.00 on 12-Oct-26; zomato@paytm credited. UPI:123456789012")!!
         assertEquals("ICICI Bank", p.bank)
