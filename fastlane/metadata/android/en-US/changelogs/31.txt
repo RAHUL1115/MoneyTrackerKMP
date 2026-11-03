@@ -1,0 +1,1 @@
+MoneyTracker 0.2.3. Search by tag: pick tags from the new Tags row in Search, or type #name to search tag names. Searching with # used to find nothing. Search now also finds a transfer by the account it went to.
