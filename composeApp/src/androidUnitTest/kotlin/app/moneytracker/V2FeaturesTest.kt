@@ -60,6 +60,23 @@ class V2FeaturesTest {
         assertEquals(listOf("March rent"), repo.search("", all, 100_000, null).map { it.note })          // amount filter
     }
 
+    @Test fun searchByTagNameSelectedTagsAndTransferDestination() = runTest {
+        val trip = repo.tagNamed("Goa trip")
+        val work = repo.tagNamed("Work")
+        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 25_000, note = "Beach shack", tagIds = listOf(trip)))
+        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 9_000, note = "Taxi", tagIds = listOf(trip, work)))
+        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 4_000, note = "goa snacks"))
+        repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_cash", toAccountId = "acc_bank", amount = 1_000, note = "Deposit"))
+        // "#goa" looks at tag names only: the untagged "goa snacks" note is not a match.
+        assertEquals(setOf("Beach shack", "Taxi"), repo.search("#goa", all, null, null).map { it.note }.toSet())
+        assertEquals(setOf("Beach shack", "Taxi", "goa snacks"), repo.search("goa", all, null, null).map { it.note }.toSet())
+        // Selected tags: any one of them is enough, as in Money Manager.
+        assertEquals(listOf("Taxi"), repo.search("", all, null, null, setOf(work)).map { it.note })
+        assertEquals(setOf("Beach shack", "Taxi"), repo.search("", all, null, null, setOf(trip, work)).map { it.note }.toSet())
+        // A transfer is found by the account it went to.
+        assertEquals(listOf("Deposit"), repo.search("bank", all, null, null).map { it.note })
+    }
+
     @Test fun foreignCurrencyAccountKeepsOwnBalanceAndReportsInMain() = runTest {
         repo.saveCurrency(Currency("USD", "$", 2, 80.0))
         repo.saveAccount(Account("acc_usd", "grp_bank", "USD Account", currency = "USD"))

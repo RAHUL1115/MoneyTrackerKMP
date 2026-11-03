@@ -77,6 +77,8 @@ internal fun FreshSearch() {
     var text by rememberSaveable { mutableStateOf("") }
     var types by rememberSaveable { mutableStateOf(listOf<String>()) }
     var accts by rememberSaveable { mutableStateOf(listOf<String>()) }
+    var tagIds by rememberSaveable { mutableStateOf(listOf<String>()) }
+    val allTags by repo.tags.collectAsState(emptyList())
     var minText by rememberSaveable { mutableStateOf("") }
     var maxText by rememberSaveable { mutableStateOf("") }
     var dates by rememberSaveable { mutableStateOf(SearchDates.ALL) }
@@ -101,9 +103,9 @@ internal fun FreshSearch() {
     }
     val min = currency.parse(minText)
     val max = currency.parse(maxText)
-    val active = text.isNotBlank() || min != null || max != null || types.isNotEmpty() || accts.isNotEmpty() || dates != SearchDates.ALL
-    val found by produceState(emptyList<Txn>(), text, range, min, max, accounts) {
-        value = if (!active) emptyList() else withContext(repo.io) { repo.search(text, range, min, max) }
+    val active = text.isNotBlank() || min != null || max != null || types.isNotEmpty() || accts.isNotEmpty() || tagIds.isNotEmpty() || dates != SearchDates.ALL
+    val found by produceState(emptyList<Txn>(), text, range, min, max, tagIds, accounts) {
+        value = if (!active) emptyList() else withContext(repo.io) { repo.search(text, range, min, max, tagIds.toSet()) }
     }
     // Each transfer once (its outgoing side), then the type and account chips.
     val results = found.sortedBy { if (it.kind == TxnKind.TRANSFER_IN) 1 else 0 }.distinctBy { it.transferGroupId ?: it.id }
@@ -121,7 +123,7 @@ internal fun FreshSearch() {
     val earned = rows.filter { classify(it) == Flow.INCOME }.sumOf { it.amount }
     val spent = rows.filter { classify(it) == Flow.EXPENSE }.sumOf { it.amount }
 
-    fun clear() { text = ""; types = emptyList(); accts = emptyList(); minText = ""; maxText = ""; dates = SearchDates.ALL; from = null; to = null }
+    fun clear() { text = ""; types = emptyList(); accts = emptyList(); tagIds = emptyList(); minText = ""; maxText = ""; dates = SearchDates.ALL; from = null; to = null }
     fun applyToActivity() {
         val kind = when (types.toSet()) {
             setOf(SearchType.EXPENSES.name) -> ActKind.OUT
@@ -158,6 +160,15 @@ internal fun FreshSearch() {
             contentPadding = PaddingValues(start = F.gutter, end = F.gutter, bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            val tagChoices = app.moneytracker.ui.searchTagChoices(allTags, tagIds, text)
+            if (text.trim().startsWith("#")) item(key = "tagSuggest") {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (tagChoices.none { it.id !in tagIds }) Text(tr("No tag matches"), Modifier.padding(vertical = 8.dp), color = F.muted, fontSize = 13.sp)
+                    tagChoices.filter { it.id !in tagIds }.forEach { t ->
+                        ActChip("#${t.name}", false) { tagIds = app.moneytracker.ui.pickSearchTag(t, tagIds, text) { text = it } }
+                    }
+                }
+            }
             item(key = "filters") {
                 FCard {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -174,6 +185,14 @@ internal fun FreshSearch() {
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 accounts.filter { !it.hidden || it.id in accts }.forEach { a ->
                                     ActChip(a.name, a.id in accts) { accts = if (a.id in accts) accts - a.id else accts + a.id }
+                                }
+                            }
+                        }
+                        if (allTags.isNotEmpty()) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FieldLabel(tr("Tags"))
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                app.moneytracker.ui.searchTagChoices(allTags, tagIds, "").forEach { t ->
+                                    ActChip("#${t.name}", t.id in tagIds) { tagIds = app.moneytracker.ui.pickSearchTag(t, tagIds, text) { text = it } }
                                 }
                             }
                         }

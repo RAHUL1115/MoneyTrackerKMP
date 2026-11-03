@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -76,6 +77,23 @@ import kotlinx.datetime.minus
 
 private enum class SearchSpan(val label: String) { MONTH("This month"), THREE("3 months"), YEAR("This year"), ALL("All time") }
 
+/**
+ * Tags to offer under a search box: the selected ones first, then the rest. While the text starts with #,
+ * the rest are narrowed to names containing what follows it.
+ */
+fun searchTagChoices(tags: List<Tag>, selected: List<String>, text: String): List<Tag> {
+    val chosen = selected.mapNotNull { id -> tags.firstOrNull { it.id == id } }
+    val query = text.trim().takeIf { it.startsWith("#") }?.drop(1)?.trim().orEmpty()
+    return chosen + tags.filter { it.id !in selected && it.name.contains(query, ignoreCase = true) }
+}
+
+/** Toggles [tag] in [selected]; picking a tag while typing #name also clears the typed text. */
+fun pickSearchTag(tag: Tag, selected: List<String>, text: String, setText: (String) -> Unit): List<String> {
+    if (tag.id in selected) return selected - tag.id
+    if (text.trim().startsWith("#")) setText("")
+    return selected + tag.id
+}
+
 @Composable
 fun SearchScreen() {
     val repo = LocalRepo.current
@@ -86,6 +104,8 @@ fun SearchScreen() {
     var span by remember { mutableStateOf(SearchSpan.ALL) }
     var minText by remember { mutableStateOf("") }
     var maxText by remember { mutableStateOf("") }
+    var tagIds by remember { mutableStateOf(listOf<String>()) }
+    val allTags by repo.tags.collectAsState(emptyList())
     val accounts by repo.accounts.collectAsState(emptyList())
     val categories by repo.categories.collectAsState(emptyList())
     val tagNames by repo.txnTagNames.collectAsState(emptyMap())
@@ -99,8 +119,9 @@ fun SearchScreen() {
     val min = currency.parse(minText)
     val max = currency.parse(maxText)
     // Re-run on any change; cheap single SQL query with LIMIT.
-    val results by produceState(emptyList<app.moneytracker.domain.Txn>(), text, range, min, max, accounts, categories) {
-        value = if (text.isBlank() && min == null && max == null) emptyList() else withContext(repo.io) { repo.search(text, range, min, max) }
+    val searching = text.isNotBlank() || min != null || max != null || tagIds.isNotEmpty()
+    val results by produceState(emptyList<app.moneytracker.domain.Txn>(), text, range, min, max, tagIds, accounts, categories) {
+        value = if (!searching) emptyList() else withContext(repo.io) { repo.search(text, range, min, max, tagIds.toSet()) }
     }
     val flags = accounts.associate { it.id to it.transferAsExpense }
 
@@ -119,6 +140,19 @@ fun SearchScreen() {
             }
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SearchSpan.entries.forEach { s -> Chip(tr(s.label), s == span) { span = s } }
+            }
+            val tagChoices = searchTagChoices(allTags, tagIds, text)
+            if (tagChoices.isNotEmpty()) {
+                Row(
+                    Modifier.padding(top = 4.dp).fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(tr("Tags"), color = SubtleText, fontSize = 13.sp)
+                    tagChoices.forEach { t ->
+                        val on = t.id in tagIds
+                        Chip(if (on) "#${t.name}  ✕" else "#${t.name}", on) { tagIds = pickSearchTag(t, tagIds, text) { text = it } }
+                    }
+                }
             }
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(minText, { minText = it }, Modifier.weight(1f), label = { Text(tr("Min amount")) }, singleLine = true,
@@ -144,7 +178,7 @@ fun SearchScreen() {
                     TxnLine(t, accountName, catById, classify(t.toReportRow(flags)), tags = tagNames[t.id].orEmpty()) { nav.push(Screen.EditTxn(txnId = t.id)) }
                 }
             }
-            if (results.isEmpty() && (text.isNotBlank() || min != null || max != null)) item { EmptyState(tr("No matches"), Icons.Outlined.Search) }
+            if (results.isEmpty() && searching) item { EmptyState(tr("No matches"), Icons.Outlined.Search) }
         }
     }
 }

@@ -414,13 +414,23 @@ class MoneyRepository(
         return app.moneytracker.domain.totals(rows)
     }
 
-    /** Text matches note, memo, category, account or tag names; amounts are main-currency minor units. */
-    fun search(text: String, range: DateRange, minAmount: Long?, maxAmount: Long?): List<Txn> =
-        q.searchTxns(
+    /**
+     * Text matches note, memo, category, either account or tag names; text starting with # matches tag names only.
+     * With [tagIds], the entry must carry at least one of them. Amounts are main-currency minor units.
+     */
+    fun search(text: String, range: DateRange, minAmount: Long?, maxAmount: Long?, tagIds: Set<String> = emptySet()): List<Txn> {
+        val trimmed = text.trim()
+        val tagsOnly = trimmed.startsWith("#")
+        val words = trimmed.removePrefix("#").trim().replace("%", "").replace("_", "")
+        val found = q.searchTxns(
             range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong(),
-            "%" + text.trim().replace("%", "").replace("_", "") + "%",
+            if (tagsOnly) 1L else 0L, "%$words%",
             minAmount ?: 0L, maxAmount ?: Long.MAX_VALUE,
         ).executeAsList().map { it.toDomain() }
+        if (tagIds.isEmpty()) return found
+        val tagged = tagIds.flatMap { txnIdsWithTag(it) }.toSet()
+        return found.filter { it.id in tagged }
+    }
 
     fun txn(id: String): Txn? = q.txnById(id).executeAsOneOrNull()?.toDomain()
     fun installmentGroup(groupId: String): List<Txn> = q.txnsByInstallmentGroup(groupId).executeAsList().map { it.toDomain() }

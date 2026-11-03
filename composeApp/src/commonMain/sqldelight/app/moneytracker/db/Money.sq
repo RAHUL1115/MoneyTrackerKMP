@@ -307,10 +307,13 @@ SELECT T.* FROM Txn T
 LEFT JOIN Category C ON C.id = T.categoryId
 LEFT JOIN Category P ON P.id = C.parentId
 LEFT JOIN Account A ON A.id = T.accountId
+LEFT JOIN Account B ON B.id = T.toAccountId
 WHERE T.deleted = 0 AND T.kind != 'TRANSFER_IN'
   AND T.date >= :fromDay AND T.date <= :toDay
-  AND (T.note LIKE :pattern OR T.memo LIKE :pattern OR C.name LIKE :pattern OR P.name LIKE :pattern OR A.name LIKE :pattern
-       OR T.id IN (SELECT TT.txnId FROM TxnTag TT JOIN Tag G ON G.id = TT.tagId WHERE G.name LIKE :pattern))
+  -- tagsOnly = 1 for a search typed as #name: only tag names count.
+  AND ((:tagsOnly = 0 AND (T.note LIKE :pattern OR T.memo LIKE :pattern OR C.name LIKE :pattern OR P.name LIKE :pattern
+                           OR A.name LIKE :pattern OR B.name LIKE :pattern))
+       OR T.id IN (SELECT TT.txnId FROM TxnTag TT JOIN Tag G ON G.id = TT.tagId WHERE G.deleted = 0 AND G.name LIKE :pattern))
   AND T.amount >= :minAmount AND T.amount <= :maxAmount
 ORDER BY T.date DESC, T.createdAt DESC
 LIMIT 1000;
