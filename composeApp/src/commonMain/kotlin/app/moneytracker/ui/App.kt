@@ -165,8 +165,8 @@ fun App(
                 Box(Modifier.fillMaxSize().navigationBarsPadding().then(if (app.moneytracker.ui.fresh.KeyboardOverlay.active) Modifier else Modifier.imePadding())) {
                     when {
                         passcode == "loading" || onboarded == "loading" -> Unit
-                        locked && !passcode.isNullOrBlank() ->
-                            if (newLayout) app.moneytracker.ui.fresh.FreshLock(passcode!!, onUnlocked) else LockScreen(passcode!!, onUnlocked)
+                        // One lock screen for both layouts: the classic PIN pad.
+                        locked && !passcode.isNullOrBlank() -> LockScreen(passcode!!, onUnlocked)
                         // First launch always uses the classic welcome screens; both layouts start after them.
                         onboarded != "1" -> OnboardingScreen()
                         else -> {

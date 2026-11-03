@@ -4,7 +4,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import app.moneytracker.domain.totals
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,38 +12,30 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.DraftType
-import app.moneytracker.data.MoneyRepository.Keys
 import app.moneytracker.data.Template
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.DateRange
@@ -56,12 +47,9 @@ import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.budgetLines
 import app.moneytracker.domain.classify
 import app.moneytracker.domain.effectiveBudgets
-import app.moneytracker.ui.BiometricStatus
 import app.moneytracker.ui.LocalCurrencies
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalPlatform
-import app.moneytracker.ui.unlock
 import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.byMainCategory
@@ -243,75 +231,6 @@ private fun RecentDays() {
                 dayTxns.forEachIndexed { i, txn ->
                     if (i > 0) Divider()
                     ActEntryRow(txn, data) { nav.push(Screen.EditTxn(txnId = txn.id)) }
-                }
-            }
-        }
-    }
-}
-
-// ───────────────────────── lock
-
-private const val PIN_LENGTH = 4
-
-@Composable
-fun FreshLock(hash: String, onUnlocked: () -> Unit) {
-    val repo = LocalRepo.current
-    val platform = LocalPlatform.current
-    val biometricOn by remember(repo) { repo.flag(Keys.BIOMETRIC) }.collectAsState(false)
-    val status by platform.biometricStatus.collectAsState()
-    val canUseBiometric = biometricOn && status == BiometricStatus.AVAILABLE
-    var pin by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-    var attempts by remember { mutableIntStateOf(0) }
-    fun promptBiometric() = platform.authenticate(tr("Unlock MoneyTracker"), onUnlocked) { msg -> error = msg }
-    // Offer the biometric prompt straight away; the PIN pad stays underneath as the fallback.
-    LaunchedEffect(canUseBiometric) { if (canUseBiometric) promptBiometric() }
-    fun press(k: String) {
-        when (k) {
-            "bio" -> { error = null; promptBiometric() }
-            "del" -> pin = pin.dropLast(1)
-            else -> if (pin.length < PIN_LENGTH) {
-                pin += k
-                if (pin.length == PIN_LENGTH) {
-                    if (platform.unlock(pin, hash, repo)) onUnlocked()
-                    else { attempts++; error = tr("Wrong passcode ({0}). Try again", attempts); pin = "" }
-                }
-            }
-        }
-    }
-    Column(
-        Modifier.fillMaxSize().background(F.page).statusBarsPadding().padding(horizontal = 32.dp).padding(top = 72.dp, bottom = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        Box(Modifier.size(64.dp).clip(RoundedCornerShape(20.dp)).background(F.accent), contentAlignment = Alignment.Center) {
-            Icon(Glyph.Lock, null, tint = F.onAccent, modifier = Modifier.size(28.dp))
-        }
-        Text(tr("Unlock MoneyTracker"), color = F.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        Text(
-            error ?: if (canUseBiometric) tr("Enter passcode or use your fingerprint / face") else tr("Enter passcode"),
-            color = if (error != null) F.danger else F.muted, fontSize = 14.sp,
-        )
-        Row(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            repeat(PIN_LENGTH) { i ->
-                Box(Modifier.size(16.dp).clip(CircleShape).background(if (i < pin.length) F.accent else Color.Transparent).border(2.dp, F.accent, CircleShape))
-            }
-        }
-        Spacer(Modifier.weight(1f))
-        listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", if (canUseBiometric) "bio" else "", "0", "del").chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                row.forEach { k ->
-                    val bg = when (k) { "bio" -> F.accentTint; "del", "" -> Color.Transparent; else -> F.card }
-                    Box(
-                        Modifier.weight(1f).height(64.dp).clip(RoundedCornerShape(20.dp)).background(bg)
-                            .then(if (k.isEmpty()) Modifier else Modifier.clickable { press(k) }),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        when (k) {
-                            "bio" -> Icon(Glyph.Fingerprint, tr("Unlock with biometrics"), tint = F.accent, modifier = Modifier.size(30.dp))
-                            "del" -> Icon(Glyph.Backspace, tr("Delete digit"), tint = F.ink)
-                            else -> Text(k, color = F.ink, fontSize = 21.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
                 }
             }
         }

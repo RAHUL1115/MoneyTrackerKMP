@@ -126,7 +126,7 @@ type scale wins), **Kept** (deliberate app choice, canvas to be updated).
 | Home | Spending card padding and gap | 24/22/20, gap 20 | 20/18, gap 16 | Fixed (radius stays 24) |
 | Home | Budget bar track; over budget | `F.track`; warn | `F.fill`; danger | Fixed |
 | Home | Selected tab in the bottom bar | Bolder label | Same weight as the others | Fixed (SemiBold) |
-| Unlock | Gap between items; lock icon | 20; 28 | 16; 30 | Fixed |
+| Unlock | Gap between items; lock icon | 20; 28 | 16; 30 | Replaced 2026-11-03: both layouts now use the classic lock screen |
 | Bank SMS review | "N to review" line | Under the title in the header | A line in the body | Fixed (header subtitle) |
 | Bank SMS review | Stacked-card edges behind the message | Shown | None | Fixed (when more than one waits) |
 | Bank SMS review | Dismiss and Edit buttons | White, no border, radius 18 | Bordered, radius 16 | Fixed |
