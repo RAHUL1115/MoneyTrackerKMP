@@ -1,0 +1,1 @@
+MoneyTracker 0.2.1. Fixes the Tags picker: a tag that did not fit on a row was squeezed into a narrow column one letter wide. Tags now wrap to the next line, and long names end in "…".
