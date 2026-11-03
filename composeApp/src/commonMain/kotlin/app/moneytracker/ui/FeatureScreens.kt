@@ -156,7 +156,7 @@ fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
         Modifier.minimumInteractiveComponentSize().border(1.dp, if (selected) Accent else BorderColor, RoundedCornerShape(16.dp))
             .background(if (selected) AccentTint else SurfaceColor, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 6.dp),
-        color = if (selected) Accent else InkSoft, fontSize = 13.sp,
+        color = if (selected) Accent else InkSoft, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
     )
 }
 
@@ -512,14 +512,14 @@ fun TagPickerDialog(selected: List<String>, onDismiss: () -> Unit, onDone: (List
     )
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun FlowChips(items: List<Pair<String, String>>, selected: Set<String>, onToggle: (String) -> Unit) {
-    // Simple wrapping: rows of up to 3 chips (dialogs are narrow; avoids an experimental FlowRow dependency).
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        items.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { row.forEach { (id, label) -> Chip(label, id in selected) { onToggle(id) } } }
-        }
-    }
+    // Wrap by measured width so a long tag moves to the next line instead of being squeezed.
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) { items.forEach { (id, label) -> Chip(label, id in selected) { onToggle(id) } } }
 }
 
 // ───────────────────────── stats drill-down
