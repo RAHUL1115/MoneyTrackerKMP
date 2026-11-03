@@ -1,0 +1,1 @@
+MoneyTracker 0.2.2. The new layout now uses the same lock screen as the classic layout: one PIN pad with the fingerprint or face option, whichever layout you pick.
