@@ -1,0 +1,1 @@
+MoneyTracker 0.3.0. A simpler More tab and Settings, the same in both layouts: six places that show their status (Categories & tags, Budget, Repeat & bookmarks, Bank SMS, Backup & security), and settings in six groups that each open on their own page, with search. Choose between the Classic layout and the New (experimental) one under Settings, Look, Layout.
