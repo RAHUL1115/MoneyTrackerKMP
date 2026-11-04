@@ -39,6 +39,8 @@ sealed interface Screen {
     data object Security : Screen
     data object AccountsTrend : Screen
     data object AccountGroups : Screen
+    /** A More place that gathers related screens: "labels", "reuse", "sms", "safety" or "help". */
+    data class MoreHub(val id: String) : Screen
 }
 
 /** Minimal back stack on top of the tabbed home screen; the platform wires its back button to [pop]. */

@@ -227,6 +227,7 @@ fun App(
                                 is Screen.License -> LicenseScreen(top.id)
                                 Screen.Currencies -> CurrenciesScreen()
                                 Screen.Tags -> TagsScreen()
+                                is Screen.MoreHub -> MoreHubScreen(top.id)
                                 Screen.Security -> SecurityScreen()
                                 Screen.AccountsTrend -> AccountsTrendScreen()
                                 Screen.AccountGroups -> AccountGroupsScreen()

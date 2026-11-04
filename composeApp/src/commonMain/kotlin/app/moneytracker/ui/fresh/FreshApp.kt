@@ -102,6 +102,7 @@ fun freshScreen(screen: Screen): (@Composable () -> Unit)? = when (screen) {
     is Screen.Categories -> { { FreshCategories(screen.kind) } }
     Screen.Recurring -> { { FreshRepeats() } }
     Screen.Backup -> { { FreshBackup() } }
+    is Screen.MoreHub -> { { FreshHub(screen.id) } }
     else -> null
 }
 

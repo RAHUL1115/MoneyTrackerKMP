@@ -22,6 +22,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.foundation.layout.width
@@ -78,44 +87,94 @@ import kotlinx.coroutines.withContext
 @Composable
 fun MoreTab() {
     val nav = LocalNavigator.current
-    Column(Modifier.fillMaxSize().background(PageBackground)) {
-        TitleTopBar(tr("Settings")) { Text("v0.1", Modifier.padding(end = 12.dp), color = SubtleText, fontSize = 13.sp) }
+    val platform = LocalPlatform.current
+    val places = rememberMorePlaces(newLayout = false)
+    Column(Modifier.fillMaxSize().background(PageBackground).verticalScroll(rememberScrollState())) {
+        TitleTopBar(tr("Settings")) { Text(platform.appVersion.ifEmpty { "" }.let { if (it.isEmpty()) "" else "v$it" }, Modifier.padding(end = 12.dp), color = SubtleText, fontSize = 13.sp) }
         HorizontalDivider(color = DividerColor)
         Spacer(Modifier.height(12.dp))
-        val tiles = listOf(
-            Triple(tr("Configuration"), Icons.Outlined.Settings) { nav.push(Screen.Configuration) },
-            Triple(tr("Accounts"), Icons.Outlined.AccountBalanceWallet) { nav.push(Screen.AccountList) },
-            Triple(tr("Backup"), Icons.Outlined.Restore) { nav.push(Screen.Backup) },
-            Triple(tr("Categories"), Icons.Outlined.Category) { nav.push(Screen.Categories(CategoryKind.EXPENSE)) },
-            Triple(tr("Budget"), Icons.Outlined.EditNote) { nav.push(Screen.Budget) },
-            Triple(tr("Repeat"), Icons.Outlined.Repeat) { nav.push(Screen.Recurring) },
-            Triple(tr("Bookmarks"), Icons.Outlined.StarOutline) { nav.push(Screen.Templates) },
-            Triple(tr("Detected SMS"), Icons.Outlined.MarkEmailUnread) { nav.push(Screen.Inbox) },
-            Triple(tr("Passcode"), Icons.Outlined.Lock) { nav.push(Screen.Security) },
-            Triple(tr("Calculator"), Icons.Outlined.Calculate) { nav.push(Screen.Calculator) },
-            Triple(tr("Help"), Icons.Outlined.HelpOutline) { nav.push(Screen.Help) },
-            Triple(tr("About"), Icons.Outlined.Info) { nav.push(Screen.About) },
-        )
         Column(Modifier.card().padding(vertical = 8.dp)) {
-            tiles.chunked(3).forEach { row ->
+            places.chunked(3).forEach { row ->
                 Row(Modifier.fillMaxWidth()) {
-                    row.forEach { (label, icon, onClick) -> Tile(label, icon, Modifier.weight(1f), onClick) }
+                    row.forEach { p -> Tile(p.title, p.status, placeIcon(p.id), Modifier.weight(1f), p.open) }
                 }
             }
         }
+        Spacer(Modifier.height(12.dp))
+        Column(Modifier.card()) {
+            ConfigRow(tr("Help")) { nav.push(Screen.Help) }
+            HorizontalDivider(color = DividerColor)
+            ConfigRow(tr("About MoneyTracker")) { nav.push(Screen.About) }
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
+/** Icon for a settings group. */
+internal fun groupIcon(id: String): ImageVector = when (id) {
+    "money" -> Icons.Outlined.Payments
+    "calendar" -> Icons.Outlined.CalendarMonth
+    "look" -> Icons.Outlined.Palette
+    "entering" -> Icons.Outlined.EditNote
+    "lists" -> Icons.AutoMirrored.Outlined.List
+    else -> Icons.Outlined.Notifications
+}
+
+/** Icon for a More place or settings hub. */
+internal fun placeIcon(id: String): ImageVector = when (id) {
+    "labels" -> Icons.Outlined.Category
+    "budget" -> Icons.Outlined.EditNote
+    "reuse" -> Icons.Outlined.Repeat
+    "sms" -> Icons.Outlined.MarkEmailUnread
+    "safety" -> Icons.Outlined.Lock
+    "help" -> Icons.AutoMirrored.Outlined.HelpOutline
+    else -> Icons.Outlined.Settings
+}
+
 @Composable
-private fun Tile(label: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
+private fun Tile(label: String, status: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
     Column(
-        modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 18.dp),
+        modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(horizontal = 4.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(Modifier.size(48.dp).background(AccentTint, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(24.dp), tint = Accent)
         }
-        Text(label, Modifier.padding(top = 10.dp), fontSize = 13.sp, color = Ink)
+        Text(label, Modifier.padding(top = 10.dp), fontSize = 13.sp, color = Ink, textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 2)
+        Text(status, Modifier.padding(top = 2.dp), fontSize = 11.sp, color = SubtleText, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 14.sp)
+    }
+}
+
+/** Categories & tags, Repeat & bookmarks, Backup & security, Help & about. */
+@Composable
+fun MoreHubScreen(id: String) {
+    val nav = LocalNavigator.current
+    val hub = rememberSettingHubs().firstOrNull { it.id == id } ?: return
+    Column(Modifier.fillMaxSize().background(PageBackground)) {
+        BackTopBar(hub.title, nav::pop)
+        HorizontalDivider(color = DividerColor)
+        Text(hub.intro, Modifier.padding(horizontal = 24.dp, vertical = 14.dp), fontSize = 13.sp, color = SubtleText)
+        HorizontalDivider(color = DividerColor)
+        hub.rows.forEach { r -> SettingRowClassic(r, null); HorizontalDivider(color = DividerColor) }
+    }
+}
+
+/** A shared setting row drawn the classic way: label, hint, and a teal value or a switch. */
+@Composable
+internal fun SettingRowClassic(r: SettingRow, where: String?) {
+    val checked = r.checked
+    Row(
+        Modifier.fillMaxWidth().background(SurfaceColor).clickable(onClick = r.onClick).heightIn(min = 56.dp).padding(start = 24.dp, end = 20.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(r.title, color = Ink)
+            val hint = where ?: r.subtitle
+            if (!hint.isNullOrEmpty()) Text(hint, fontSize = 12.sp, color = SubtleText)
+        }
+        if (checked != null) AppSwitch(checked) { r.onClick() }
+        else if (r.value != null) Text(r.value, color = Accent, maxLines = 1)
     }
 }
 
@@ -134,112 +193,139 @@ fun ConfigurationScreen() {
     var accentDialog by remember { mutableStateOf(false) }
     var languageDialog by remember { mutableStateOf(false) }
     var locationDisclosure by remember { mutableStateOf(false) }
-    val language by remember(repo) { repo.setting(Keys.LANGUAGE) }.collectAsState(null)
-    val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
-    val carryOver by remember(repo) { repo.flag(Keys.CARRY_OVER) }.collectAsState(false)
-    val cardAtPayment by remember(repo) { repo.flag(Keys.CARD_AT_PAYMENT) }.collectAsState(false)
-    val reminder by remember(repo) { repo.flag(Keys.REMINDER) }.collectAsState(false)
-    val quickAdd by remember(repo) { repo.flag(Keys.QUICK_ADD_NOTIFICATION) }.collectAsState(false)
-    val capture by remember(repo) { repo.flag(Keys.CAPTURE_ENABLED) }.collectAsState(false)
-    val location by remember(repo) { repo.flag(Keys.LOCATION) }.collectAsState(false)
-    val useSubcategories by repo.useSubcategories.collectAsState(false)
-    val passcode by remember(repo) { repo.setting(Keys.PASSCODE) }.collectAsState(null)
     val reminderTime by remember(repo) { repo.setting(Keys.REMINDER_TIME) }.collectAsState(null)
-    val startScreen by remember(repo) { repo.setting(Keys.START_SCREEN) }.collectAsState(null)
-    @Composable fun opt(key: String) = remember(repo, key) { repo.setting(key) }
-    val swipe by opt(Keys.SWIPE).collectAsState(null)
-    val colorSet by opt(Keys.COLOR_SET).collectAsState(null)
-    val timeInput by opt(Keys.TIME_INPUT).collectAsState(null)
-    val timeSort by opt(Keys.TIME_SORT).collectAsState(null)
-    val inputOrder by opt(Keys.INPUT_ORDER).collectAsState(null)
-    val theme by opt(Keys.THEME).collectAsState(null)
-    val widgetTheme by opt(Keys.WIDGET_THEME).collectAsState(null)
-    val widgetOpacity by opt(Keys.WIDGET_OPACITY).collectAsState(null)
-    val repeatTiming by opt(Keys.REPEAT_TIMING).collectAsState(null)
-    val autocomplete by opt(Keys.AUTOCOMPLETE).collectAsState(null)
-    val habitAccount by opt(Keys.HABIT_ACCOUNT).collectAsState(null)
-    val showDescription by remember(repo) { repo.flag(Keys.SHOW_DESCRIPTION) }.collectAsState(false)
-    val noteButton by remember(repo) { repo.setting(Keys.NOTE_BUTTON) }.collectAsState(null)
-    val symbolAfter by remember(repo) { repo.flag(Keys.SYMBOL_AFTER) }.collectAsState(false)
-    var resetAutocompleteDone by remember { mutableStateOf(false) }
     var timeDialog by remember { mutableStateOf(false) }
     var layoutSwitch by remember { mutableStateOf(false) }
+    var layoutChoice by remember { mutableStateOf(false) }
     // Widgets show colours, currency format and their own style; repaint them after any change.
     fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) }; platform.refreshWidgets() }
     fun setFlag(key: String, on: Boolean) = put(key, if (on) "1" else "0")
 
-    Column(Modifier.fillMaxSize()) {
-        BackTopBar(tr("Configuration"), nav::pop)
+    var resetConfirm by remember { mutableStateOf(false) }
+    var groupId by remember { mutableStateOf<String?>(null) }
+    var query by remember { mutableStateOf("") }
+    val actions = SettingActions(
+        choice = { choice = it },
+        edit = { if (it == Keys.REMINDER_TIME) timeDialog = true else editing = it },
+        accent = { accentDialog = true },
+        language = { languageDialog = true },
+        switchLayout = { layoutChoice = true },
+        locationOn = { locationDisclosure = true },
+        resetSuggestions = { resetConfirm = true },
+        choiceLabel = { key, value ->
+            if (key in CHOICES) choiceLabel(key, value) else tr((value ?: "DAILY").lowercase().replaceFirstChar { it.uppercase() })
+        },
+    )
+    val groups = rememberSettingGroups(newLayout = false, a = actions)
+    val hubs = rememberSettingHubs()
+    val group = groups.firstOrNull { it.id == groupId }
+    // Back closes an open group first.
+    androidx.compose.runtime.DisposableEffect(group != null) {
+        val remove = if (group != null) nav.interceptBack { groupId = null; true } else ({})
+        onDispose { remove() }
+    }
+
+    Column(Modifier.fillMaxSize().background(PageBackground)) {
+        BackTopBar(group?.title ?: tr("Settings"), { if (group != null) groupId = null else nav.pop() })
         HorizontalDivider(color = DividerColor)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            ConfigSection(tr("Category / Repeat"))
-            ConfigRow(tr("Income category setting")) { nav.push(Screen.Categories(CategoryKind.INCOME)) }
-            ConfigRow(tr("Expenses category setting")) { nav.push(Screen.Categories(CategoryKind.EXPENSE)) }
-            ConfigToggle(tr("Sub-categories"), tr("Pick a sub-category (Food › Lunch) when adding an entry"), useSubcategories) { setFlag(Keys.USE_SUBCATEGORIES, it) }
-            ConfigRow(tr("Budget setting")) { nav.push(Screen.Budget) }
-            ConfigRow(tr("Repeat setting")) { nav.push(Screen.Recurring) }
-            ConfigRow(tr("Repeat entries are added"), choiceLabel(Keys.REPEAT_TIMING, repeatTiming)) { choice = Keys.REPEAT_TIMING }
-            ConfigSection(tr("Configuration"))
-            ConfigRow(tr("Currency symbol"), currency.symbol) { editing = Keys.CURRENCY_SYMBOL }
-            ConfigRow(tr("Decimal places"), currency.decimals.toString()) { editing = Keys.CURRENCY_DECIMALS }
-            ConfigToggle(tr("Symbol after amount"), if (symbolAfter) "1,000.00 ${currency.symbol}" else "${currency.symbol} 1,000.00", symbolAfter) { setFlag(Keys.SYMBOL_AFTER, it) }
-            ConfigRow(tr("Sub currencies")) { nav.push(Screen.Currencies) }
-            ConfigRow(tr("Monthly start date"), tr("Every {0}", startDay)) { editing = Keys.MONTH_START_DAY }
-            ConfigRow(tr("If start date is a weekend"), when (ps.shift) {
-                app.moneytracker.domain.Periods.WeekendShift.NONE -> tr("Keep")
-                app.moneytracker.domain.Periods.WeekendShift.BEFORE -> tr("Friday before")
-                app.moneytracker.domain.Periods.WeekendShift.AFTER -> tr("Monday after")
-            }) { choice = Keys.WEEKEND_SHIFT }
-            ConfigRow(tr("Weekly start day"), tr(ps.weekStart.name.lowercase().replaceFirstChar { it.uppercase() })) { choice = Keys.WEEK_START }
-            ConfigRow(tr("Start screen"), tr((startScreen ?: "DAILY").lowercase().replaceFirstChar { it.uppercase() })) { choice = Keys.START_SCREEN }
-            ConfigToggle(tr("Carry-over"), tr("Show the balance carried from earlier months"), carryOver) { setFlag(Keys.CARRY_OVER, it) }
-            ConfigToggle(tr("Card expenses at payment"), tr("Count credit-card purchases when the bill is paid, not when you buy"), cardAtPayment) { setFlag(Keys.CARD_AT_PAYMENT, it) }
-            ConfigRow(tr("Tags")) { nav.push(Screen.Tags) }
-            ConfigRow(tr("Swipe"), choiceLabel(Keys.SWIPE, swipe)) { choice = Keys.SWIPE }
-            ConfigRow(tr("Income / expense colors"), choiceLabel(Keys.COLOR_SET, colorSet)) { choice = Keys.COLOR_SET }
-            ConfigRow(tr("Time input"), choiceLabel(Keys.TIME_INPUT, timeInput)) { choice = Keys.TIME_INPUT }
-            ConfigRow(tr("Order within a day"), choiceLabel(Keys.TIME_SORT, timeSort)) { choice = Keys.TIME_SORT }
-            ConfigToggle(tr("Show description"), tr("Description under the note in lists"), showDescription) { setFlag(Keys.SHOW_DESCRIPTION, it) }
-            ConfigToggle(tr("Note button"), tr("Add a note from the Daily view, next to +"), noteButton != "0") { setFlag(Keys.NOTE_BUTTON, it) }
-            ConfigToggle(tr("Autocomplete notes"), tr("Suggest past notes while typing; picks their category and account"), autocomplete != "0") {
-                put(Keys.AUTOCOMPLETE, if (it) "1" else "0")
+            if (group == null) {
+                Row(
+                    Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 16.dp, vertical = 10.dp)
+                        .background(PageBackground, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.Search, null, tint = SubtleText)
+                    Box(Modifier.weight(1f).padding(start = 8.dp)) {
+                        if (query.isEmpty()) Text(tr("Search, e.g. currency, dark, reminder"), color = SubtleText)
+                        androidx.compose.foundation.text.BasicTextField(query, { query = it }, singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = Ink),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(Accent), modifier = Modifier.fillMaxWidth())
+                    }
+                }
+                HorizontalDivider(color = DividerColor)
             }
-            ConfigRow(tr("Reset autocomplete"), if (resetAutocompleteDone) tr("Done") else null) {
-                scope.launch { withContext(repo.io) { repo.resetAutocomplete() }; resetAutocompleteDone = true }
-            }
-            ConfigToggle(tr("Remember usual accounts"), tr("Pre-select the account you usually use; a category's preferred account comes first"), habitAccount != "0") {
-                put(Keys.HABIT_ACCOUNT, if (it) "1" else "0")
-            }
-            ConfigRow(tr("Input order"), choiceLabel(Keys.INPUT_ORDER, inputOrder)) { choice = Keys.INPUT_ORDER }
-            ConfigToggle(tr("New layout (experimental)"), tr("Simpler screens, still being tested. MoneyTracker restarts to switch."), false) { if (it) layoutSwitch = true }
-            ConfigRow(tr("Style"), choiceLabel(Keys.THEME, theme)) { choice = Keys.THEME }
-            ConfigRow(tr("Accent colour"), tr(accentChoice.label)) { accentDialog = true }
-            ConfigRow(tr("Language"), I18n.LANGUAGES.firstOrNull { it.first == language.orEmpty() }?.takeIf { it.first.isNotEmpty() }?.second ?: tr("Phone language")) { languageDialog = true }
-            ConfigRow(tr("Widget style"), choiceLabel(Keys.WIDGET_THEME, widgetTheme)) { choice = Keys.WIDGET_THEME }
-            ConfigRow(tr("Widget background"), choiceLabel(Keys.WIDGET_OPACITY, widgetOpacity)) { choice = Keys.WIDGET_OPACITY }
-            Text(
-                tr("Set decimal places before entering data; existing amounts are not converted."),
-                Modifier.padding(horizontal = 28.dp, vertical = 12.dp), fontSize = 13.sp, color = SubtleText,
-            )
-
-            ConfigSection(tr("Security & alerts"))
-            ConfigRow(tr("Passcode"), if (passcode.isNullOrBlank()) tr("Off") else tr("On")) { nav.push(Screen.Security) }
-            ConfigToggle(tr("Daily reminder"), tr("A nudge to record the day's spending"), reminder) { on ->
-                val (h, m) = (reminderTime ?: "21:00").split(":").map { it.toIntOrNull() ?: 0 }
-                platform.setReminder(on, h, m) { active -> setFlag(Keys.REMINDER, active) }
-            }
-            if (reminder) ConfigRow(tr("Reminder time"), reminderTime ?: "21:00") { timeDialog = true }
-            ConfigToggle(tr("Quick add in notification bar"), tr("Expense / Income / Transfer buttons"), quickAdd) { on ->
-                platform.setQuickAddNotification(on) { active -> setFlag(Keys.QUICK_ADD_NOTIFICATION, active) }
-            }
-            ConfigRow(tr("Bank SMS"), if (capture) tr("On") else tr("Off")) { nav.push(Screen.MessageSettings) }
-            ConfigToggle(tr("Save location"), tr("Attach your current location to new entries"), location) { on ->
-                if (on) locationDisclosure = true else setFlag(Keys.LOCATION, false)
+            when {
+                group != null -> {
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider(color = DividerColor)
+                    group.rows.forEach { r -> SettingRowClassic(r, null); HorizontalDivider(color = DividerColor) }
+                }
+                query.isNotBlank() -> {
+                    val found = searchSettings(groups, hubs, query)
+                    Spacer(Modifier.height(12.dp))
+                    if (found.isEmpty()) Text(tr("No settings match “{0}”", query.trim()), Modifier.fillMaxWidth().padding(32.dp),
+                        color = SubtleText, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    else {
+                        HorizontalDivider(color = DividerColor)
+                        found.forEach { (where, r) -> SettingRowClassic(r, where); HorizontalDivider(color = DividerColor) }
+                    }
+                }
+                else -> {
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider(color = DividerColor)
+                    groups.forEach { g ->
+                        Row(
+                            Modifier.fillMaxWidth().background(SurfaceColor).clickable { groupId = g.id }.heightIn(min = 64.dp).padding(horizontal = 18.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            Box(Modifier.size(40.dp).background(AccentTint, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                                Icon(groupIcon(g.id), null, Modifier.size(20.dp), tint = Accent)
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text(g.title, color = Ink)
+                                Text(g.summary, fontSize = 12.sp, color = SubtleText, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = SubtleText)
+                        }
+                        HorizontalDivider(color = DividerColor)
+                    }
+                    Text(tr("Each line shows what is set now. Changes save right away."), Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
+                        fontSize = 12.sp, color = SubtleText)
+                }
             }
             Spacer(Modifier.height(24.dp))
         }
     }
 
+    if (resetConfirm) {
+        AlertDialog(
+            onDismissRequest = { resetConfirm = false },
+            title = { Text(tr("Reset note suggestions?")) },
+            text = { Text(tr("MoneyTracker forgets the notes, categories and accounts it learned from past entries. Your entries stay as they are.")) },
+            confirmButton = { TextButton(onClick = { resetConfirm = false; scope.launch { withContext(repo.io) { repo.resetAutocomplete() } } }) { Text(tr("Reset"), color = Accent) } },
+            dismissButton = { TextButton(onClick = { resetConfirm = false }) { Text(tr("Cancel")) } },
+        )
+    }
+
+    if (layoutChoice) {
+        AlertDialog(
+            onDismissRequest = { layoutChoice = false },
+            title = { Text(tr("Layout")) },
+            text = {
+                Column {
+                    listOf(
+                        Triple(tr("Classic"), tr("The familiar tabs: Trans., Stats, Accounts, More"), true),
+                        Triple(tr("New (experimental)"), tr("Simpler screens, still being tested"), false),
+                    ).forEach { (label, hint, current) ->
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { layoutChoice = false; if (!current) layoutSwitch = true }.padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(label, color = if (current) Accent else Ink)
+                                Text(hint, fontSize = 12.sp, color = SubtleText)
+                            }
+                            if (current) Icon(Icons.Filled.Check, null, tint = Accent)
+                        }
+                    }
+                    Text(tr("MoneyTracker restarts to switch. Your entries, accounts and settings stay the same."), Modifier.padding(top = 8.dp), fontSize = 12.sp, color = SubtleText)
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { layoutChoice = false }) { Text(tr("Cancel")) } },
+        )
+    }
     if (layoutSwitch) app.moneytracker.ui.fresh.LayoutSwitchDialog(toNew = true) { layoutSwitch = false }
     if (locationDisclosure) {
         DisclosureDialog(tr("Save location"),

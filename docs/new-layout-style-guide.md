@@ -184,3 +184,13 @@ type scale wins), **Kept** (deliberate app choice, canvas to be updated).
 | Backup | Status buttons | 46 tall, Share filled | 52, Share bordered | Fixed |
 | Backup | Start over | Inside a card, warm border | Bare bordered buttons | Fixed |
 | Backup | Snapshots | Label in the card, no dividers, small Restore and Delete | Dividers, larger buttons | Fixed |
+
+## Settings structure (both layouts, 2026-11-04)
+
+Both layouts use one structure, defined once in `ui/SettingsModel.kt`; each layout only draws it.
+
+- **Places** (classic More tab, top of new-layout Settings), each with a status line: Categories & tags, Budget, Repeat & bookmarks, Bank SMS, Backup & security, then Settings (classic) or Help & about (new layout). Categories & tags, Repeat & bookmarks, Bank SMS (detected transactions + SMS settings), Backup & security and Help & about each open a short screen of their rows.
+- **Alignment (new layout):** tiles in a row share one height; their content, the PREFERENCES label and card rows all start 14 in; the label sits 8 above its card.
+- **Preferences** in six groups, each row showing what is set now; tapping a group opens it on its own page: Money, Calendar, Look, Entering, Lists, Reminders.
+- **Search** finds any setting or place row.
+- Not on More or in Settings: Accounts and account groups (on the Accounts tab) and the calculator (both amount keypads calculate).
