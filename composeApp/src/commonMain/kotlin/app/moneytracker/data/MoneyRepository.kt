@@ -79,6 +79,8 @@ data class TxnDraft(
     val lng: Double? = null,
     val timeOfDay: Int? = null,
     val origin: String = "",
+    /** Exchange rate to use for [currency]; null = today's. Set when editing so an entry keeps the rate it was made with. */
+    val rate: Double? = null,
 )
 
 /** [REFUND] is money back into an expense category; it is saved as an expense with a negative amount. */
@@ -140,6 +142,9 @@ class MoneyRepository(
         const val CURRENCY_SYMBOL = "currencySymbol"
         const val CURRENCY_DECIMALS = "currencyDecimals"
         const val CURRENCY_CODE = "currencyCode"
+        const val RATES_AUTO = "ratesAuto"                 // "0" turns off the daily exchange-rate update (on by default)
+        const val RATES_DATE = "ratesDate"                 // ECB date (yyyy-mm-dd) of the rates last fetched
+        const val RATES_CHECKED = "ratesChecked"           // epoch ms of the last successful fetch
         const val PASSCODE = "passcodeHash"
         /** The passcode in use before a restore, accepted once at the lock screen in case the backup's can't be checked here. */
         const val PASSCODE_PREVIOUS = "passcodeHashBeforeRestore"
@@ -217,6 +222,24 @@ class MoneyRepository(
     fun saveCurrency(c: Currency) = q.upsertCurrency(CurrencyRow(c.code.uppercase(), c.symbol, c.decimals.toLong(), c.rate, c.sortOrder.toLong(), 0, now()))
     fun deleteCurrency(code: String) = q.softDeleteCurrency(now(), code)
 
+    /**
+     * Fetches today's rates for every other currency through [get] (URL → reply, null on failure) and saves them.
+     * Entries already saved keep the rate they were entered with.
+     */
+    suspend fun updateRates(get: suspend (String) -> String?): RatesUpdate {
+        val main = (settingNow(Keys.CURRENCY_CODE) ?: "INR").uppercase()
+        val others = q.allCurrencies().executeAsList().map { it.toDomain() }.filter { it.code.uppercase() != main }
+        if (others.isEmpty()) return RatesUpdate.NothingToUpdate
+        val quote = runCatching { get(ExchangeRates.url(main, others.map { it.code }))?.let(ExchangeRates::parse) }.getOrNull() ?: return RatesUpdate.Failed
+        val updated = others.filter { it.code.uppercase() in quote.perMain }
+        db.transaction {
+            updated.forEach { c -> saveCurrency(c.copy(rate = ExchangeRates.mainPerUnit(quote.perMain.getValue(c.code.uppercase())))) }
+            putSetting(Keys.RATES_DATE, quote.date)
+            putSetting(Keys.RATES_CHECKED, now().toString())
+        }
+        return RatesUpdate.Done(quote.date, updated.map { it.code }, (others - updated.toSet()).map { it.code })
+    }
+
     // ───────────────────────── accounts
 
     val groups: CachedFlow<List<AccountGroup>> = cached({ q.allGroups() }) { rows -> rows.map { it.toDomain() } }
@@ -268,15 +291,18 @@ class MoneyRepository(
         }
         insert(Txn(newId(), kind, today(), now(), accountId, categoryId = app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY,
             amount = Fx.toMain(abs, cur, mainDecimals()), note = "Difference",
-            currency = cur?.code, originalAmount = cur?.let { abs }, accountAmount = cur?.let { abs }))
+            currency = cur?.code, originalAmount = cur?.let { abs }, accountAmount = cur?.let { abs }, rate = cur?.rate))
     }
 
     /** Edits an adjustment row in place. [amount] is in the account's currency; [up] = increase. */
     fun updateAdjustment(t: Txn, date: LocalDate, amount: Long, accountId: String, up: Boolean, note: String, memo: String = t.memo, timeOfDay: Int? = t.timeOfDay) {
-        val cur = currencyNow(accountNow(accountId)?.currency)
+        val today = currencyNow(accountNow(accountId)?.currency)
+        // Same currency: keep the adjustment's own rate.
+        val cur = today?.let { c -> (if (c.code == t.currency) rateOf(t) else null)?.let { c.copy(rate = it) } ?: c }
         insert(t.copy(
             kind = if (up) TxnKind.ADJUST_UP else TxnKind.ADJUST_DOWN, date = date, accountId = accountId, note = note, memo = memo, timeOfDay = timeOfDay,
             amount = Fx.toMain(amount, cur, mainDecimals()), currency = cur?.code, originalAmount = cur?.let { amount }, accountAmount = cur?.let { amount },
+            rate = cur?.rate,
         ))
     }
 
@@ -450,8 +476,18 @@ class MoneyRepository(
 
     /** Replaces an existing transaction (and its transfer pair / fee / installment group) with [d]. */
     fun update(existing: Txn, d: TxnDraft): String = db.transactionWithResult {
+        // Same currency as before: keep the rate the entry was made with, so a later rate update doesn't change it.
+        val rate = d.rate ?: if (d.currency != null && d.currency == existing.currency) rateOf(existing) else null
         delete(existing, wholeInstallmentPlan = true)
-        writeDraft(d.copy(repeat = null), recurringRuleId = existing.recurringRuleId, fixedId = null)
+        writeDraft(d.copy(repeat = null, rate = rate), recurringRuleId = existing.recurringRuleId, fixedId = null)
+    }
+
+    /** The rate [t] was made with: stored since v7, worked out from its two amounts for older entries. */
+    fun rateOf(t: Txn): Double? {
+        t.rate?.let { return it }
+        val original = t.originalAmount?.takeIf { it != 0L } ?: return null
+        val dec = currencyNow(t.currency)?.decimals ?: return null
+        return (t.amount.toDouble() / CurrencyFormat.pow10(mainDecimals())) / (original.toDouble() / CurrencyFormat.pow10(dec))
     }
 
     fun delete(t: Txn, wholeInstallmentPlan: Boolean = false) = db.transaction {
@@ -464,18 +500,19 @@ class MoneyRepository(
     }
 
     /** Converts a draft amount into the three stored figures: main currency, entered currency, account currency. */
-    private class Money(val main: Long, val currency: String?, val original: Long?, val account: Long?)
+    private class Money(val main: Long, val currency: String?, val original: Long?, val account: Long?, val rate: Double?)
 
     private fun money(amount: Long, entered: Currency?, accountCurrency: Currency?, mainDec: Int): Money {
         val main = Fx.toMain(amount, entered, mainDec)
         val inAccount = if (accountCurrency == null) null else Fx.convert(amount, entered, accountCurrency, mainDec)
-        return Money(main, entered?.code, entered?.let { amount }, inAccount)
+        return Money(main, entered?.code, entered?.let { amount }, inAccount, entered?.rate)
     }
 
     private fun writeDraft(d: TxnDraft, recurringRuleId: String?, fixedId: String?): String {
         val created = now()
         val mainDec = mainDecimals()
-        val entered = currencyNow(d.currency)
+        // The entry's own rate when editing (d.rate), otherwise today's.
+        val entered = currencyNow(d.currency)?.let { c -> d.rate?.let { c.copy(rate = it) } ?: c }
         val srcCur = currencyNow(accountNow(d.accountId)?.currency)
         val ids = mutableListOf<String>()
         val primary = when (d.type) {
@@ -488,7 +525,7 @@ class MoneyRepository(
                         val t = Txn(newId(), kind, d.date.plus(DatePeriod(months = i)), created + i, d.accountId,
                             categoryId = d.categoryId, amount = m.main, note = d.note, memo = d.memo,
                             installmentGroupId = group, installmentLabel = "(${i + 1}/${d.installments})",
-                            currency = m.currency, originalAmount = m.original, accountAmount = m.account, lat = d.lat, lng = d.lng, timeOfDay = d.timeOfDay,
+                            currency = m.currency, originalAmount = m.original, accountAmount = m.account, rate = m.rate, lat = d.lat, lng = d.lng, timeOfDay = d.timeOfDay,
                             origin = d.origin)
                         insert(t); ids += t.id; t.id
                     }.first()
@@ -496,7 +533,7 @@ class MoneyRepository(
                     val m = money(d.amount * d.type.sign, entered, srcCur, mainDec)
                     val t = Txn(fixedId ?: newId(), kind, d.date, created, d.accountId, categoryId = d.categoryId,
                         amount = m.main, note = d.note, memo = d.memo, recurringRuleId = recurringRuleId,
-                        currency = m.currency, originalAmount = m.original, accountAmount = m.account, lat = d.lat, lng = d.lng, timeOfDay = d.timeOfDay,
+                        currency = m.currency, originalAmount = m.original, accountAmount = m.account, rate = m.rate, lat = d.lat, lng = d.lng, timeOfDay = d.timeOfDay,
                         origin = d.origin)
                     insert(t, ignoreIfExists = fixedId != null); ids += t.id; t.id
                 }
@@ -511,15 +548,15 @@ class MoneyRepository(
                 val inn = money(d.amount, entered, dstCur, mainDec)
                 insert(Txn(outId, TxnKind.TRANSFER_OUT, d.date, created, d.accountId, to, amount = out.main,
                     note = d.note, memo = d.memo, transferGroupId = group, recurringRuleId = recurringRuleId,
-                    currency = out.currency, originalAmount = out.original, accountAmount = out.account, lat = d.lat, lng = d.lng, timeOfDay = d.timeOfDay), ignore)
+                    currency = out.currency, originalAmount = out.original, accountAmount = out.account, rate = out.rate, lat = d.lat, lng = d.lng, timeOfDay = d.timeOfDay), ignore)
                 insert(Txn(if (ignore) "${outId}_in" else newId(), TxnKind.TRANSFER_IN, d.date, created, to, d.accountId,
                     amount = inn.main, note = d.note, memo = d.memo, transferGroupId = group, recurringRuleId = recurringRuleId,
-                    currency = inn.currency, originalAmount = inn.original, accountAmount = inn.account, timeOfDay = d.timeOfDay), ignore)
+                    currency = inn.currency, originalAmount = inn.original, accountAmount = inn.account, rate = inn.rate, timeOfDay = d.timeOfDay), ignore)
                 if (d.fee > 0) {
                     val f = money(d.fee, entered, srcCur, mainDec)
                     insert(Txn(if (ignore) "${outId}_fee" else newId(), TxnKind.EXPENSE, d.date, created + 1, d.accountId,
                         categoryId = d.categoryId, amount = f.main, note = "Transfer fee", transferGroupId = group,
-                        currency = f.currency, originalAmount = f.original, accountAmount = f.account, timeOfDay = d.timeOfDay), ignore)
+                        currency = f.currency, originalAmount = f.original, accountAmount = f.account, rate = f.rate, timeOfDay = d.timeOfDay), ignore)
                 }
                 ids += outId
                 outId
@@ -532,7 +569,7 @@ class MoneyRepository(
     private fun insert(t: Txn, ignoreIfExists: Boolean = false) {
         val row = TxnRow(t.id, t.kind.name, t.date.toEpochDays().toLong(), t.createdAt, t.accountId, t.toAccountId,
             t.categoryId, t.amount, t.note, t.memo, t.transferGroupId, t.installmentGroupId, t.installmentLabel,
-            t.recurringRuleId, 0, now(), t.currency, t.originalAmount, t.accountAmount, t.lat, t.lng, t.timeOfDay?.toLong(), t.origin)
+            t.recurringRuleId, 0, now(), t.currency, t.originalAmount, t.accountAmount, t.lat, t.lng, t.timeOfDay?.toLong(), t.origin, t.rate)
         if (ignoreIfExists) q.insertTxnIfAbsent(row) else q.upsertTxn(row)
     }
 
@@ -994,7 +1031,7 @@ private fun AccountRow.toDomain() = Account(id, groupId, name, includeInTotals !
 private fun CategoryRow.toDomain() = Category(id, name, CategoryKind.valueOf(kind), parentId, sortOrder.toInt(), defaultAccountId)
 private fun TxnRow.toDomain() = Txn(id, TxnKind.valueOf(kind), LocalDate.fromEpochDays(date.toInt()), createdAt, accountId,
     toAccountId, categoryId, amount, note, memo, transferGroupId, installmentGroupId, installmentLabel, recurringRuleId,
-    currency, originalAmount, accountAmount, lat, lng, timeOfDay?.toInt(), origin)
+    currency, originalAmount, accountAmount, lat, lng, timeOfDay?.toInt(), origin, rate)
 private fun RuleRow.toDomain() = RecurringRule(id, TxnKind.valueOf(kind), accountId, toAccountId, categoryId, amount, note,
     RepeatType.valueOf(repeat), LocalDate.fromEpochDays(startDate.toInt()), LocalDate.fromEpochDays(nextDate.toInt()),
     endDate?.let { LocalDate.fromEpochDays(it.toInt()) }, currency, memo)

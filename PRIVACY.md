@@ -1,23 +1,27 @@
 # Privacy policy
 
-_Last updated: 18 October 2026_
+_Last updated: 4 November 2026_
 
-MoneyTracker is an offline app. It has no servers, no accounts, no ads and no analytics, and it does not request the internet permission, so it cannot send your data anywhere by itself.
+MoneyTracker is an offline app. It has no servers, no accounts, no ads and no analytics, and it never sends your entries, accounts or other data anywhere by itself.
+
+## Exchange rates
+If you add other currencies (for example a dollar account), the app asks api.frankfurter.dev, a free open-source service that publishes the European Central Bank's daily reference rates, for today's rates: once a day when you open the app, and whenever you tap Update now. If you have no other currencies, nothing is requested. The request contains only your currency codes (for example INR and USD). Like any web request it reveals your IP address to that service. To stop the daily check, turn off Settings › Money › Other currencies › Update automatically; you can still type rates by hand. Entries you already saved keep the rate they were entered with.
 
 ## What the app stores
 Everything you enter (accounts, entries, categories, budgets, notes, tags, receipt photos, settings) is stored only in the app's private storage on your phone. Daily automatic snapshots are kept there too (the last 10).
 
 Data leaves the app only when **you** export or share a backup, CSV or Excel file; it goes where you choose in the system file picker or share sheet.
 
-The app is excluded from Android's cloud backup, so nothing is copied to your Google account. When you set up a new phone by copying directly from the old one (cable or Wi-Fi), Android 12 and later may bring the app's data across; otherwise, export a backup file and restore it on the new phone (More › Backup).
+The app is excluded from Android's cloud backup, so nothing is copied to your Google account. When you set up a new phone by copying directly from the old one (cable or Wi-Fi), Android 12 and later may bring the app's data across; otherwise, export a backup file and restore it on the new phone (More › Backup & security › Backup & restore).
 
 Uninstalling the app deletes its data, except files you exported.
 
 ## Permissions
-Every permission is optional and requested only when you turn on the matching feature.
+Every permission is used only for the feature it belongs to; all except Internet are requested only when you turn that feature on.
 
 | Permission | Used for |
 |---|---|
+| Internet | Only for the daily exchange-rate update when you use other currencies (can be turned off); the request contains currency codes and nothing else. |
 | Location (precise or approximate) | Attaching where you were to a new entry, when "Save location" is on. Only latitude and longitude are saved with that entry; there is no background location. |
 | SMS (receive and read) | Bank SMS detection, when turned on, and "Import SMS": bank messages are read on the phone to suggest entries; other messages are ignored. Messages are never uploaded, shared or sent anywhere. |
 | Notifications | Daily reminder, quick-add notification and detected-SMS alerts. |

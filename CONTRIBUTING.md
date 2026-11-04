@@ -4,7 +4,7 @@ Thanks for helping. Bug reports, translations and pull requests are all welcome.
 
 ## Before you start
 - For anything bigger than a small fix, open an issue first so we can agree on the approach.
-- The app stays offline: no network access, no analytics, no ads, and no proprietary dependencies.
+- The app stays offline: no analytics, no ads and no proprietary dependencies. The only network use is the daily exchange-rate update for other currencies (currency codes only, to api.frankfurter.dev, can be turned off); don't add others without discussing it first.
 - Don't copy code, text, images or icons from other apps. Importers may read other apps' file formats, but must be written independently.
 
 ## Building and testing

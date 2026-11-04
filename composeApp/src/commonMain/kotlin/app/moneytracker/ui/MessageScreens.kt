@@ -97,7 +97,7 @@ fun MessageSettingsScreen() {
     disclosure?.let { action ->
         DisclosureDialog(tr("Detect bank SMS"),
             tr("MoneyTracker reads SMS from banks and card issuers on this phone to suggest income and expense entries. " +
-                "Messages are processed only on your phone and are never uploaded or shared: the app has no internet access. " +
+                "Messages are processed only on your phone and are never uploaded or shared. " +
                 "Other messages are ignored. You can turn this off at any time here in Bank SMS."),
             { disclosure = null }) { disclosure = null; action() }
     }

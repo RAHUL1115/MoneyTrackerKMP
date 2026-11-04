@@ -71,6 +71,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import app.moneytracker.data.MoneyRepository.Keys
 import kotlinx.datetime.minus
 
 // ───────────────────────── search
@@ -417,12 +418,64 @@ fun CurrenciesScreen() {
     val scope = rememberCoroutineScope()
     val currencies by repo.currencies.collectAsState(emptyList())
     var editing by remember { mutableStateOf<Currency?>(null) }
+    val platform = LocalPlatform.current
+    val auto by remember(repo) { repo.setting(Keys.RATES_AUTO) }.collectAsState(null)
+    val ratesDate by remember(repo) { repo.setting(Keys.RATES_DATE) }.collectAsState(null)
+    val mainCode by remember(repo) { repo.setting(Keys.CURRENCY_CODE) }.collectAsState(null)
+    var updating by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf<String?>(null) }
+    fun update() {
+        updating = true; status = null
+        scope.launch {
+            val r = withContext(repo.io) { repo.updateRates(platform::httpGet) }
+            updating = false
+            status = when (r) {
+                is app.moneytracker.data.RatesUpdate.Done -> listOfNotNull(
+                    tr("Updated {0}.", r.updated.joinToString(", ")).takeIf { r.updated.isNotEmpty() },
+                    tr("No ECB rate for {0}; edit it by hand.", r.missing.joinToString(", ")).takeIf { r.missing.isNotEmpty() },
+                ).joinToString(" ")
+                app.moneytracker.data.RatesUpdate.Failed -> tr("Couldn't get rates. Check your connection; ECB rates cover about 30 major currencies.")
+                app.moneytracker.data.RatesUpdate.NothingToUpdate -> tr("Add a currency first.")
+            }
+        }
+    }
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            BackTopBar(tr("Sub currencies"), nav::pop)
+            BackTopBar(tr("Other currencies"), nav::pop)
             HorizontalDivider(color = DividerColor)
             Text(tr("Main currency: {0}. Rates are how many {0} one unit is worth; transactions keep the rate from the day they were entered.", main.symbol),
                 Modifier.padding(20.dp), color = SubtleText, fontSize = 13.sp)
+            if (currencies.isNotEmpty()) {
+                HorizontalDivider(color = DividerColor)
+                Row(
+                    Modifier.fillMaxWidth().background(SurfaceColor).padding(start = 20.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(tr("Exchange rates"))
+                        Text(
+                            ratesDate?.let { d -> runCatching { LocalDate.parse(d) }.getOrNull()?.let { tr("ECB rates of {0}", "${it.dayOfMonth} ${monthShort(it.monthNumber)} ${it.year}") } }
+                                ?: tr("Typed in by hand"),
+                            fontSize = 12.sp, color = SubtleText,
+                        )
+                    }
+                    TextButton(onClick = ::update, enabled = !updating) {
+                        Text(if (updating) tr("Updating…") else tr("Update now"), color = if (updating) SubtleText else Accent)
+                    }
+                }
+                HorizontalDivider(color = DividerColor)
+                // On unless turned off: rates are checked once a day, and only while there are other currencies.
+                ConfigToggle(tr("Update automatically"), tr("Once a day, when you open MoneyTracker"), auto != "0") { on ->
+                    scope.launch { withContext(repo.io) { repo.putSetting(Keys.RATES_AUTO, if (on) "1" else "0") } }
+                    if (on) update()
+                }
+                HorizontalDivider(color = DividerColor)
+                Text(tr("Rates are the European Central Bank's, from {0}. Only currency codes (like {1} and USD) are sent, nothing about your entries or accounts.",
+                    app.moneytracker.data.ExchangeRates.HOST, mainCode ?: "INR"),
+                    Modifier.padding(horizontal = 20.dp, vertical = 10.dp), color = SubtleText, fontSize = 12.sp)
+                status?.let { Text(it, Modifier.padding(horizontal = 20.dp, vertical = 10.dp), color = SubtleText, fontSize = 13.sp) }
+                Spacer(Modifier.height(12.dp))
+            }
             if (currencies.isEmpty()) EmptyState(tr("No other currencies yet. Tap + to add one, e.g. USD for a dollar account."))
             LazyColumn {
                 items(currencies, key = { it.code }) { c ->

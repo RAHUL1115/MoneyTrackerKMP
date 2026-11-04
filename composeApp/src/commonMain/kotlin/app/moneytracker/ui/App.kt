@@ -149,6 +149,13 @@ fun App(
             val showDescription by remember(repo) { repo.flag(Keys.SHOW_DESCRIPTION) }.collectAsState(false)
             // Privacy eye: the saved choice, then every amount below is masked while it's on.
             LaunchedEffect(repo) { Privacy.load(repo) }
+            // Exchange rates, once a day unless "Update automatically" is off. No request is made without other currencies.
+            LaunchedEffect(repo) {
+                kotlinx.coroutines.withContext(repo.io) {
+                    val due = (repo.settingNow(Keys.RATES_CHECKED)?.toLongOrNull() ?: 0L) < kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - 20 * 3_600_000L
+                    if (repo.settingNow(Keys.RATES_AUTO) != "0" && due) repo.updateRates(platform::httpGet)
+                }
+            }
             val masked = Privacy.masked
             CompositionLocalProvider(
                 LocalRepo provides repo,

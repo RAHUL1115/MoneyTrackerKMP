@@ -35,9 +35,9 @@ App: **MoneyTracker** · package `in.amrahul.moneytracker` · personal developer
 **No.**
 
 ### Data safety
-Everything stays on the phone and the app has no internet permission. Under Play's definitions, data processed only on the device and never sent off it is not "collected".
+Everything the user enters stays on the phone. Under Play's definitions, data processed only on the device and never sent off it is not "collected". The app does have the internet permission, used only for the daily exchange-rate update (on by default, only when the user has other currencies, can be turned off): it sends currency codes (for example INR, USD) to api.frankfurter.dev and nothing about the user, their entries or accounts. Currency codes are not one of Play's user data types, so the answer stays No.
 - Does your app collect or share any of the required user data types? **No.**
-- (The form then skips the encryption and deletion questions. If it asks, data is not transmitted, and users delete data by uninstalling or using More › Backup › Reset everything.)
+- (The form then skips the encryption and deletion questions. If it asks, data is not transmitted, and users delete data by uninstalling or using More › Backup & security › Backup & restore › Reset everything.)
 
 ### Government apps
 **No.**
@@ -53,10 +53,10 @@ Tick the option for **personal finance management / budgeting tools** if it's li
 - Permissions: `READ_SMS`, `RECEIVE_SMS`.
 - Description (paste):
 
-  > MoneyTracker is a personal budget and expense tracker. Its core feature, "Bank SMS detection", reads payment messages from the user's bank and card issuers as they arrive (RECEIVE_SMS) and lets the user import recent ones (READ_SMS) so that income and expenses are recorded automatically: amount, account and category are suggested for the user to confirm. The feature is off by default; a prominent in-app disclosure explains what is read and why before Android's permission prompt. Messages are parsed only on the device. The app has no internet permission, so message content is never uploaded or shared. Non-financial messages are ignored, and users can block senders or words.
+  > MoneyTracker is a personal budget and expense tracker. Its core feature, "Bank SMS detection", reads payment messages from the user's bank and card issuers as they arrive (RECEIVE_SMS) and lets the user import recent ones (READ_SMS) so that income and expenses are recorded automatically: amount, account and category are suggested for the user to confirm. The feature is off by default; a prominent in-app disclosure explains what is read and why before Android's permission prompt. Messages are parsed only on the device and message content is never uploaded (the app's only network use is a daily exchange-rate update that sends currency codes) or shared. Non-financial messages are ignored, and users can block senders or words.
 
 - Demo video (30–60 s, unlisted YouTube link). Record on a phone with a bank SMS:
-  1. Open More › Configuration › Bank SMS & notifications.
+  1. Open More › Bank SMS › Bank SMS settings.
   2. Turn on **Detect bank SMS**; show the in-app disclosure dialog, then Android's permission prompt.
   3. Receive (or send yourself) a bank-style SMS; show the "Spent ₹…" notification.
   4. Open **Detected SMS**, review the suggested entry, Save; show it in the Daily list.

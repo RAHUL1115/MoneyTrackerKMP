@@ -1,4 +1,4 @@
-MoneyTracker is a free, open-source budget and expense tracker. Turn on bank-SMS detection and it reads payment messages from your bank on your phone and suggests the entries for you: amount, account and category. Everything stays on your phone: the app has no internet permission, no accounts, no ads and no analytics.
+MoneyTracker is a free, open-source budget and expense tracker. Turn on bank-SMS detection and it reads payment messages from your bank on your phone and suggests the entries for you: amount, account and category. Everything stays on your phone: no accounts, no ads and no analytics. The only thing that ever goes online is a daily exchange-rate update for your other currencies, which sends currency codes and nothing else, and can be turned off.
 
 <b>Bank SMS detection</b>
 • Spot income, expenses and refunds in bank and card messages as they arrive, then review or save them in one tap

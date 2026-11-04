@@ -82,8 +82,12 @@ interface PlatformServices {
     val appVersion: String
     /** A license text shipped with the app (e.g. "GPL-3.0"), or null if missing. */
     fun licenseText(id: String): String?
-    /** Opens a web page in the browser (the app itself has no network access). */
+    /** Opens a web page in the browser. */
     fun openUrl(url: String)
+
+    // network: used only for exchange rates (daily unless turned off, and only with other currencies)
+    /** The body of an HTTPS GET to [url], or null on any failure (no connection, timeout, not 200). */
+    suspend fun httpGet(url: String): String?
 
     /** Closes the screens and opens the app again from the start (used after switching layouts). */
     fun restartApp()

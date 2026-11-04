@@ -67,7 +67,8 @@ CREATE TABLE Txn (
     lat REAL,                        -- v2: optional location
     lng REAL,
     timeOfDay INTEGER,               -- v4: minutes after midnight; null = no time recorded
-    origin TEXT NOT NULL DEFAULT ''  -- v5: the bank message an entry was made from
+    origin TEXT NOT NULL DEFAULT '', -- v5: the bank message an entry was made from
+    rate REAL                        -- v7: main-currency units per 1 entered unit when the entry was made; null = main currency
 );
 CREATE INDEX Txn_date ON Txn(date);
 CREATE INDEX Txn_account ON Txn(accountId);

@@ -2,7 +2,7 @@
 
 **Track your money on your phone, without signing up or using a cloud service.**
 
-MoneyTracker is a free, open-source personal-finance app for **Android 7.0 and newer**. Record expenses, income and transfers, manage bank accounts and credit cards, and see where your money goes. No ads, no sign-up, no analytics, and no internet permission.
+MoneyTracker is a free, open-source personal-finance app for **Android 7.0 and newer**. Record expenses, income and transfers, manage bank accounts and credit cards, and see where your money goes. No ads, no sign-up and no analytics; the only network use is a daily exchange-rate update for your other currencies, which sends nothing but currency codes and can be turned off.
 
 **[Download the latest APK](https://github.com/RAHUL1115/MoneyTrackerKMP/releases/latest)** · [Getting started](#getting-started) · [SMS detection](#bank-sms-detection) · [Backups](#back-up-your-data) · [For developers](#for-developers)
 
@@ -94,7 +94,7 @@ MoneyTracker is an independent app, not affiliated with Realbyte. You do not nee
 
 ## Privacy and help
 
-MoneyTracker itself has no internet permission, ads, sign-up or analytics. Everything stays on your phone unless you choose to export or share it. Camera, speech-recognition and map features use other apps on your phone; those apps have their own privacy policies. See [PRIVACY.md](PRIVACY.md).
+MoneyTracker has no ads, sign-up or analytics. Everything stays on your phone unless you choose to export or share it. The one exception is exchange rates: if you use other currencies, the app fetches the European Central Bank's daily rates from api.frankfurter.dev once a day, sending only currency codes. Turn it off under Settings › Money › Other currencies › Update automatically. Camera, speech-recognition and map features use other apps on your phone; those apps have their own privacy policies. See [PRIVACY.md](PRIVACY.md).
 
 For in-app guidance, open **More › Help**. To report a bug or request a feature, [open an issue](https://github.com/RAHUL1115/MoneyTrackerKMP/issues). For SMS problems, include the app version and an example with account numbers, references, phone numbers and other personal details removed. Report security problems privately as described in [SECURITY.md](SECURITY.md).
 
@@ -108,7 +108,7 @@ The sections above are for people installing and using the app. The sections bel
 
 MoneyTracker uses **Kotlin Multiplatform + Compose Multiplatform**. The domain logic, SQLDelight database and UI live in `commonMain`; the currently configured target is Android. This shared structure allows iOS or desktop targets to be added later, but this repository does not currently provide those apps.
 
-The app stays offline: no network access, analytics, ads or proprietary dependencies. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making changes.
+The app stays offline apart from the daily exchange-rate update (currency codes only, can be turned off): no analytics, ads or proprietary dependencies. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making changes.
 
 ### Build and test
 

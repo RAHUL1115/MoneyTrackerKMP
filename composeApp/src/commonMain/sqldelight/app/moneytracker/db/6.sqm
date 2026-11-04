@@ -1,0 +1,2 @@
+-- v7: each entry keeps the exchange rate it was made with, so editing it later doesn't re-convert at today's rate.
+ALTER TABLE Txn ADD COLUMN rate REAL;

@@ -115,6 +115,8 @@ data class Txn(
     val timeOfDay: Int? = null,
     /** The SMS text this entry was made from. */
     val origin: String = "",
+    /** Main-currency units per 1 unit of [currency] when the entry was made; null for main-currency entries. */
+    val rate: Double? = null,
 ) {
     /** In main currency — used for reports. */
     val signedAmount: Long get() = amount * kind.sign

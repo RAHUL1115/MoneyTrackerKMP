@@ -43,7 +43,8 @@ class V2FeaturesTest {
         val db = MoneyDatabase(driver)
         assertEquals(500, db.moneyQueries.allTxns().executeAsList().single().amount)
         assertTrue(db.moneyQueries.allCurrencies().executeAsList().isEmpty())   // new table exists
-        assertEquals(6L, MoneyDatabase.Schema.version)
+        assertEquals(7L, MoneyDatabase.Schema.version)
+        assertEquals(null, db.moneyQueries.allTxns().executeAsList().single().rate)                         // v7 column exists
         assertEquals(null, db.moneyQueries.allCategories().executeAsList().firstOrNull()?.defaultAccountId)   // v3 column exists
         assertEquals(null, db.moneyQueries.allTxns().executeAsList().single().timeOfDay)                    // v4 column exists
         driver.execute(null, "INSERT INTO Account(id,groupId,name,sortOrder,updatedAt) VALUES ('a','g','A',0,0)", 0)
@@ -58,6 +59,48 @@ class V2FeaturesTest {
         assertEquals(listOf("Pizza night"), repo.search("eating", all, null, null).map { it.note })      // sub-category name
         assertEquals(listOf("March rent"), repo.search("bank", all, null, null).map { it.note })         // account name
         assertEquals(listOf("March rent"), repo.search("", all, 100_000, null).map { it.note })          // amount filter
+    }
+
+    @Test fun exchangeRatesParseAndInvert() {
+        val q = app.moneytracker.data.ExchangeRates.parse("""{"amount":1.0,"base":"INR","date":"2026-11-03","rates":{"EUR":0.01025,"USD":0.0119}}""")!!
+        assertEquals("2026-11-03", q.date)
+        assertEquals(0.0119, q.perMain.getValue("USD"))
+        assertEquals(84.0336, app.moneytracker.data.ExchangeRates.mainPerUnit(0.0119))    // 1 USD in rupees
+        assertEquals(0.011905, app.moneytracker.data.ExchangeRates.mainPerUnit(84.0))      // under 1: six decimals
+        assertEquals(null, app.moneytracker.data.ExchangeRates.parse("""{"message":"not found"}"""))
+        assertEquals("https://api.frankfurter.dev/v1/latest?base=INR&symbols=USD,EUR",
+            app.moneytracker.data.ExchangeRates.url("inr", listOf("usd", "EUR")))
+    }
+
+    @Test fun updateRatesSavesNewRatesAndReportsMissing() = runTest {
+        repo.putSetting(MoneyRepository.Keys.CURRENCY_CODE, "INR")
+        repo.saveCurrency(Currency("USD", "$", 2, 80.0))
+        repo.saveCurrency(Currency("AED", "د.إ", 2, 22.0))
+        var asked = ""
+        val r = repo.updateRates { url -> asked = url; """{"amount":1.0,"base":"INR","date":"2026-11-03","rates":{"USD":0.0119}}""" }
+        assertTrue(asked.contains("base=INR") && asked.contains("USD") && asked.contains("AED"))
+        assertEquals(app.moneytracker.data.RatesUpdate.Done("2026-11-03", listOf("USD"), listOf("AED")), r)
+        assertEquals(84.0336, repo.currencies.first().first { it.code == "USD" }.rate)
+        assertEquals(22.0, repo.currencies.first().first { it.code == "AED" }.rate)                // no ECB rate: unchanged
+        assertEquals("2026-11-03", repo.settingNow(MoneyRepository.Keys.RATES_DATE))
+        assertEquals(app.moneytracker.data.RatesUpdate.Failed, repo.updateRates { null })           // offline
+    }
+
+    @Test fun entryKeepsItsRateWhenRatesChangeAndItIsEdited() = runTest {
+        repo.saveCurrency(Currency("USD", "$", 2, 80.0))
+        val id = repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 1_000, currency = "USD", note = "Lunch"))  // $10.00
+        val made = repo.txn(id)!!
+        assertEquals(80.0, made.rate)
+        assertEquals(80_000L, made.amount)                                                        // ₹800.00
+        repo.saveCurrency(Currency("USD", "$", 2, 95.0))                                          // rates update later
+        val edited = repo.txn(repo.update(made, repo.draftFrom(made).copy(note = "Team lunch")))!!
+        assertEquals(80.0, edited.rate)                                                           // edit keeps the old rate
+        assertEquals(80_000L, edited.amount)
+        val fresh = repo.txn(repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 1_000, currency = "USD")))!!
+        assertEquals(95.0, fresh.rate)                                                            // new entry: today's rate
+        assertEquals(95_000L, fresh.amount)
+        // An entry from before v7 (no stored rate) keeps the rate implied by its two amounts.
+        assertEquals(80.0, repo.rateOf(made.copy(rate = null)))
     }
 
     @Test fun searchByTagNameSelectedTagsAndTransferDestination() = runTest {

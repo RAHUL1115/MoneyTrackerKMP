@@ -126,30 +126,33 @@ fun HelpScreen() {
 private val HELP = listOf(
     "Adding an entry" to "Tap + on the Trans. tab. Pick Income, Expense or Transfer, then the amount, category and account. " +
         "The keypad has a calculator (÷ × − +). Save closes the form; Continue keeps it open for the next entry. " +
-        "Swipe left or right on the Trans. tab to change month (or tab, in Configuration › Swipe).",
+        "Swipe left or right on the Trans. tab to change month (or tab, in Settings › Lists › Swipe).",
     "Editing, copying and bookmarks" to "Tap an entry to view it, then edit. The ⋮ menu copies it (with today's date or the entry's date), " +
         "deletes it or saves it as a bookmark. Bookmarks (☆ on the Trans. tab) are ready-made entries you can add in one tap.",
     "Selecting several entries" to "Long-press an entry to start selecting. The bar shows how many are selected and their sum; " +
         "delete them together or change their date, category, account or note at once. Back clears the selection.",
-    "Repeat and installments" to "In the form, tap Rep/Inst. Repeat adds the entry every day, week, month and so on (More › Repeat lists the rules; " +
+    "Repeat and installments" to "In the form, tap Rep/Inst. Repeat adds the entry every day, week, month and so on (More › Repeat & bookmarks lists the rules; " +
         "tap one to change it). Installments split a credit-card purchase over several months.",
+    "Other currencies" to "Add a currency in Settings › Money › Other currencies, then pick it when adding an entry. " +
+        "Rates are the European Central Bank's, updated once a day from api.frankfurter.dev (only currency codes are sent); " +
+        "turn off Update automatically to type rates yourself. Each entry keeps the rate it was made with, even when you edit it later.",
     "Transfers and fees" to "A transfer moves money between your accounts and is not income or expense. Add a fee to record bank charges. " +
         "Accounts marked “Transfers in count as expense” (savings, investments) turn money moved into them into spending.",
     "Credit cards" to "Set the billing day so statements are split into cycles; the card's page shows what's due, and Pay records the payment. " +
         "Tag a purchase “Due now” to make it due at once, or “Excluded from target” to leave it out of the card's monthly usage target.",
-    "Hidden and deleted accounts" to "Hide an account in More › Accounts (eye icon): it leaves lists and pickers but keeps its balance and history. " +
+    "Hidden and deleted accounts" to "Hide an account from the Accounts tab’s settings (eye icon): it leaves lists and pickers but keeps its balance and history. " +
         "In the account picker's group view hidden accounts are greyed but can still be picked. Deleted accounts and groups can be restored there too.",
     "Budgets" to "More › Budget sets a monthly amount per category (or a total). An amount applies from that month onward. " +
         "Trans. › Total shows what's left; tap it for each category.",
     "Stats and filter" to "Stats shows spending by category for a week, month, year or any period; tap a category for its trend and entries. " +
         "The filter on the Trans. tab narrows the lists to chosen categories or accounts.",
-    "Bank SMS" to "Configuration › Bank SMS turns on detection. Detected messages wait in Detected SMS " +
+    "Bank SMS" to "More › Bank SMS › Bank SMS settings turns on detection. Detected messages wait in Detected transactions " +
         "until you save them, or are saved at once with Save automatically. Block numbers or words, filter out confusing text and import " +
         "older SMS. In an account's settings, set card digits or a sender to file its messages there.",
     "Backup and restore" to "A snapshot is kept every day (last 10). Export or share a backup file to keep a copy off the phone. " +
         "Restore file also reads Money Manager backups from Android and iPhone (.mmbak): accounts, entries, categories, budgets, repeats, " +
         "settings and passcode come across. Photos travel separately with Export photos / Import photos.",
-    "Passcode" to "More › Passcode locks the app with a 4-digit code, with fingerprint or face unlock if your phone supports it.",
+    "Passcode" to "More › Backup & security › Passcode locks the app with a 4-digit code, with fingerprint or face unlock if your phone supports it.",
     "Widgets" to "Long-press your home screen and add MoneyTracker widgets: month summary, one-line totals, quick add and credit cards. " +
-        "Configuration › Widget settings changes their colours and transparency.",
+        "Settings › Look › Widget style and Widget background change their colours and transparency.",
 )
