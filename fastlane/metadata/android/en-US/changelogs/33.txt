@@ -1,0 +1,1 @@
+MoneyTracker 0.3.1. Exchange rates update themselves: your other currencies get the European Central Bank rate once a day (Settings, Money, Other currencies; you can turn it off or tap Update now). Only currency codes are sent. Each entry now keeps the rate it was made with, even when you edit it later.
