@@ -141,9 +141,12 @@ fun categoryIcon(name: String?): ImageVector? {
     }
 }
 
-/** Two-letter mark: "Food" → "FO", "Credit card" → "CC". */
+/** Two-letter mark: "Food" → "FO", "Credit card" → "CC"; a name with its own emoji ("🍔 Food") shows the emoji. */
 fun markText(name: String): String {
-    val words = name.trim().split(' ', '/', '-', '&').filter { it.isNotBlank() }
+    val parts = name.trim().split(' ', '/', '-', '&').filter { it.isNotBlank() }
+    // Taking one Char of an emoji splits its surrogate pair and draws "�".
+    parts.firstOrNull { w -> w.none { it.isLetterOrDigit() } }?.let { return it }
+    val words = parts
     return when {
         words.isEmpty() -> "·"
         words.size == 1 -> words[0].take(2).uppercase()
@@ -263,8 +266,11 @@ fun SubScreen(
     bottom: (@Composable () -> Unit)? = null,
     scroll: Boolean = true,
     add: Pair<String, () -> Unit>? = null,
+    /** Pass one in to scroll the page from outside (e.g. back to the top). */
+    scrollState: androidx.compose.foundation.ScrollState? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val pageScroll = scrollState ?: rememberScrollState()
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter).padding(top = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -273,10 +279,12 @@ fun SubScreen(
                 Text(title, color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (subtitle != null) Text(subtitle, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+            // While amounts are hidden, every screen offers the eye, not just the main tabs.
+            if (app.moneytracker.ui.Privacy.hidden) PrivacyEye()
             actions()
         }
         Column(
-            Modifier.weight(1f).fillMaxWidth().then(if (scroll) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+            Modifier.weight(1f).fillMaxWidth().then(if (scroll) Modifier.verticalScroll(pageScroll) else Modifier)
                 .padding(horizontal = if (scroll) F.gutter else 0.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

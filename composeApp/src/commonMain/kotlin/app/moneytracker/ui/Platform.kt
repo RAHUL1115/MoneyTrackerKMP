@@ -31,6 +31,12 @@ fun PlatformServices.unlock(pin: String, stored: String, repo: MoneyRepository):
  * (iOS, desktop) only has to provide its own implementation — screens stay unchanged.
  * Callbacks run on the main thread.
  */
+/**
+ * [maker]: lower-case manufacturer, e.g. "vivo". [restricted]: Android's battery optimisation or background
+ * restriction applies to the app. Maker battery managers (vivo, Xiaomi, Oppo…) can block it even when this is false.
+ */
+data class BackgroundState(val maker: String, val restricted: Boolean)
+
 interface PlatformServices {
     // security
     /** A new hash for [pin], with its own salt inside, so it checks out on any install. */
@@ -69,6 +75,12 @@ interface PlatformServices {
     fun setMessageCapture(enabled: Boolean, onResult: (Boolean) -> Unit)
     /** Reads bank messages already in the SMS inbox (last [days] days); [onResult] gets how many were added, null if refused. */
     fun importInboxMessages(days: Int, onResult: (Int?) -> Unit)
+    /** False when "Detect bank SMS" can't run because the SMS permission was taken away. */
+    fun messagePermissionGranted(): Boolean
+    /** Phone maker and whether Android limits the app in the background, which delays SMS detection. */
+    fun backgroundState(): BackgroundState
+    /** Opens the maker's autostart manager ([autostart]) or the app's own settings page; false if neither opened. */
+    fun openBackgroundSettings(autostart: Boolean): Boolean
     fun refreshWidgets()
 
     // languages

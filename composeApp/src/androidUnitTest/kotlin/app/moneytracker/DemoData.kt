@@ -49,7 +49,7 @@ class DemoData {
             if (day == 5) add(DraftType.TRANSFER, d, "acc_bank", 10_000, note = "Monthly saving", to = "acc_savings")
             if (day == 8) add(DraftType.EXPENSE, d, "acc_bank", 1_850 + rnd.nextInt(400).toLong(), "cat_ex_2_1", "Electricity")
             if (day == 12) add(DraftType.EXPENSE, d, "acc_card", 799, "cat_ex_5", "Streaming")
-            if (day == 15) add(DraftType.TRANSFER, d, "acc_bank", 3_000, note = "ATM", to = "acc_cash")
+            if (day == 1 || day == 15) add(DraftType.TRANSFER, d, "acc_bank", 3_000, note = "ATM", to = "acc_cash")   // keeps Cash positive
             if (day == 20) add(DraftType.TRANSFER, d, "acc_bank", 6_500, note = "Card bill", to = "acc_card")
             if (day % 3 == 0) add(DraftType.EXPENSE, d, "acc_card", 600 + rnd.nextInt(1_400).toLong(), "cat_ex_0_0", listOf("Supermarket", "Vegetables", "Groceries").random(rnd))
             if (day % 4 == 1) add(DraftType.EXPENSE, d, "acc_cash", 120 + rnd.nextInt(180).toLong(), "cat_ex_0_2", "Coffee")
@@ -71,10 +71,14 @@ class DemoData {
         repo.setBudget("cat_ex_5", ym.plus(-2), 2_000 * 100)
         val noon = today.toEpochDays() * 86_400_000L
         repo.saveNote(Note("note_demo", "Trip to Goa", "Flights booked. Keep ₹15,000 aside for hotel and food.", 2, true, noon, noon))
-        repo.ingestMessage("SMS", "AX-HDFCBK", "Rs.1,240.00 spent on HDFC Bank Card x4821 at BIG BAZAAR on ${today}.", noon + 10 * 3_600_000L)
+        repo.ingestMessage("SMS", "AX-HDFCBK", "Rs.1,240.00 spent on HDFC Bank Card x4821 at BIG BAZAAR on ${smsDate(today)}.", noon + 10 * 3_600_000L)
         driver.close()
         println("Demo database written to $out")
     }
 }
+
+/** Bank-SMS style date, e.g. 05-Nov-26. */
+private fun smsDate(d: LocalDate) =
+    "%02d-%s-%02d".format(d.dayOfMonth, d.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }, d.year % 100)
 
 private fun LocalDate.plus(p: DatePeriod) = kotlinx.datetime.LocalDate.fromEpochDays(this.toEpochDays() + p.days)

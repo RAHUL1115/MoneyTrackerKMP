@@ -69,12 +69,12 @@ Tick the option for **personal finance management / budgeting tools** if it's li
 - Main store listing: title, short and full description from `fastlane/metadata/android/en-US/`.
 - App icon: `fastlane/metadata/android/en-US/images/icon.png` (512 × 512).
 - Feature graphic: `.../images/featureGraphic.png` (1024 × 500).
-- Phone screenshots: `.../images/phoneScreenshots/1_daily.png` … `6_detected.png` (1080 × 2137, Galaxy S24 size and density with the status and navigation bars trimmed to fit Play's 2:1 limit; made-up demo data). Regenerate with `DemoData.kt` (see its header) if the UI changes.
+- Phone screenshots: `.../images/phoneScreenshots/1_daily.png` … `6_detected.png` (1080 × 2137, retaken 2026-11-05 at Galaxy S24 size and density with the status and navigation bars trimmed to fit Play's 2:1 limit; made-up demo data). Regenerate with `DemoData.kt` (see its header) if the UI changes.
 - App category: **Finance**. Tags: budget, expense tracker, personal finance.
 - Contact email: required (shown publicly). Website: `https://github.com/RAHUL1115/MoneyTrackerKMP`.
 
 ## 4. Releases
-1. **Internal testing** first: upload the `play-bundle` AAB from the CI run of the latest tag. On first upload, accept **Play App Signing**; the CI release key becomes the upload key.
+1. **Internal testing** first: upload the `play-bundle` AAB from the CI run of the latest tag. **Before the first upload**, set up app signing with **your own key** (App integrity › App signing › "Use a different key" › export and upload the release keystore with Google's PEPK tool). Don't accept the Google-generated key: Play installs would then be signed differently from the GitHub/F-Droid APKs, and users couldn't update across them. This can't be changed later.
 2. **Closed testing** (required for personal accounts created after Nov 2023): at least **12 testers** opted in for **14 consecutive days**. Add them by email list or Google Group and share the opt-in link.
 3. Then **Apply for production** on the Dashboard; answer the questions about the closed test.
 4. Each later release: bump `versionCode` (+1) and `versionName`, add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`, tag `v<versionName>`.

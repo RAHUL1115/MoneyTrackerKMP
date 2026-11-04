@@ -61,7 +61,7 @@ internal fun SmsSettingsScreen() {
     val scope = rememberCoroutineScope()
     @Composable fun opt(key: String) = remember(repo, key) { repo.setting(key) }
     val pending by repo.pendingCaptures.collectAsState(emptyList())
-    val capture by remember(repo) { repo.flag(Keys.CAPTURE_ENABLED) }.collectAsState(false)
+    val captureSetting by remember(repo) { repo.flag(Keys.CAPTURE_ENABLED) }.collectAsState(false)
     val alert by opt(Keys.SMS_ALERT).collectAsState(null)
     val autoSave by opt(Keys.SMS_AUTO_SAVE).collectAsState(null)
     val showOriginal by opt(Keys.SMS_SHOW_ORIGINAL).collectAsState(null)
@@ -72,6 +72,9 @@ internal fun SmsSettingsScreen() {
     var disclosure by remember { mutableStateOf<(() -> Unit)?>(null) }   // action waiting on the SMS disclosure
     var editing by remember { mutableStateOf<String?>(null) }
     var customDays by remember { mutableStateOf(false) }
+    var keepRunning by remember { mutableStateOf(false) }
+    val health = app.moneytracker.ui.rememberSmsHealth()
+    val capture = captureSetting && health.permission
 
     fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) } }
     val days = importDays?.toIntOrNull() ?: 30
@@ -107,6 +110,15 @@ internal fun SmsSettingsScreen() {
                 SwitchLine(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture) { on ->
                     val apply = { platform.setMessageCapture(on) { active -> put(Keys.CAPTURE_ENABLED, if (active) "1" else "0") } }
                     if (on) disclosure = apply else apply()
+                }
+                if (!health.permission) {
+                    Text(app.moneytracker.ui.smsPermissionSteps(), color = F.muted, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(bottom = 12.dp))
+                }
+                if (capture) {
+                    Divider()
+                    HealthLine(tr("Keep detection running"),
+                        if (health.background.restricted) tr("This phone is limiting MoneyTracker in the background") else tr("Let MoneyTracker start when an SMS arrives"),
+                        tr("Check ›"), warn = health.background.restricted) { keepRunning = true }
                 }
                 Divider()
                 SwitchLine(tr("Alert for detected messages"), tr("A notification when a bank message is detected"), alert != "0", dimmed = !capture) { on ->
@@ -171,6 +183,19 @@ internal fun SmsSettingsScreen() {
     disclosure?.let { action ->
         Confirm(tr("Detect bank SMS"), smsDisclosureText(), tr("Continue"), onDismiss = { disclosure = null }, danger = false) { action() }
     }
+    if (keepRunning) {
+        val autostart = app.moneytracker.ui.hasAutostartManager(health.background.maker)
+        Sheet(tr("Keep detection running"), { keepRunning = false }, bottom = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (autostart) PrimaryButton(tr("Open Autostart"), { platform.openBackgroundSettings(autostart = true); keepRunning = false }, Modifier.fillMaxWidth())
+                SecondaryButton(tr("Open app settings"), { platform.openBackgroundSettings(autostart = false); keepRunning = false }, Modifier.fillMaxWidth())
+            }
+        }) {
+            Text(tr("Some phones stop apps from starting in the background. Bank SMS are then only read when you open MoneyTracker, or at the next background check (about every 15 minutes while the phone is in use)."),
+                color = F.muted, fontSize = 13.sp, lineHeight = 19.sp)
+            Text(app.moneytracker.ui.backgroundSteps(health.background.maker), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, lineHeight = 20.sp)
+        }
+    }
     if (customDays) {
         var text by remember { mutableStateOf(days.toString()) }
         val value = text.toIntOrNull()?.takeIf { it in 1..365 }
@@ -199,6 +224,21 @@ private fun SwitchLine(label: String, hint: String?, checked: Boolean, dimmed: B
             if (hint != null) Text(hint, color = F.muted, fontSize = 12.sp)
         }
         SmsSwitch(checked)
+    }
+}
+
+/** A status line inside the switches card: label, hint and a small action, amber when something needs fixing. */
+@Composable
+private fun HealthLine(label: String, hint: String, action: String, warn: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(onClick = onClick).padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(label, color = if (warn) F.warn else F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(hint, color = F.muted, fontSize = 12.sp)
+        }
+        Text(action, color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }
 

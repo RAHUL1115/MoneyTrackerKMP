@@ -102,5 +102,36 @@ class SmsParserTest {
         assertNull(SmsParser.parse("VM-HDFCBK", "123456 is your OTP for txn of Rs 2,000 at AMAZON. Do not share."))
         assertNull(SmsParser.parse("VM-ICICIB", "Congratulations! You are eligible for a pre-approved loan of Rs 5,00,000"))
         assertNull(SmsParser.parse("AD-SHOPCO", "Flat 50% off today only!"))
+        assertNull(SmsParser.parse("VM-HDFCBK", "Get cashback offer: spend Rs 5,000 and win a voucher worth Rs 500!"))
+        assertNull(SmsParser.parse("VM-SBIINB", "Rs 1,499.00 will be debited from A/c XX1234 on 05-Nov for your mandate."))
+    }
+
+    @Test fun ignoresFailedPayments() {
+        assertNull(SmsParser.parse("VM-HDFCBK", "Your payment of Rs.500 at SHOP failed. No amount debited from a/c XX1234."))
+        assertNull(SmsParser.parse("VM-ICICIB", "Txn of INR 2,000.00 on Card XX9876 at AMAZON was declined due to insufficient limit."))
+        assertNull(SmsParser.parse("VM-SBIINB", "UPI transaction of Rs 300 to ZOMATO is unsuccessful. Amount not debited."))
+    }
+
+    @Test fun reversalIsARefund() {
+        val p = SmsParser.parse("VM-HDFCBK", "Reversal of Rs.500.00 for transaction debited from a/c XX1234 on 03-Nov-26.")!!
+        assertTrue(p.isCredit)
+        assertTrue(p.isRefund)
+        assertEquals(50_000, p.amount)
+    }
+
+    @Test fun keepsTransactionsWithPromoFooters() {
+        // Real alerts often end with an ad; the transaction itself must still be read.
+        val upi = SmsParser.parse("JD-HDFCBK-S", "Sent Rs.250.00 From HDFC Bank A/C *1234 To SWIGGY On 04/11/26 Ref 612345678901. " +
+            "Not You? Call 18001234567. Exclusive offer: win cashback on your next order!")!!
+        assertEquals(25_000, upi.amount)
+        assertFalse(upi.isCredit)
+        assertEquals("1234", upi.accountDigits)
+        val card = SmsParser.parse("AX-ICICIT", "INR 1,200.00 spent using ICICI Bank Card XX9876 on 04-Nov-26 on AMAZON. " +
+            "Avl Limit: INR 50,000.00. Congratulations, you have unlocked a voucher.")!!
+        assertEquals(120_000, card.amount)
+        assertEquals("9876", card.accountDigits)
+        val salary = SmsParser.parse("VM-SBIINB", "Your A/c XX4321 is credited with Rs 40,000.00 on 01-Nov-26. Check out our FD offers.")!!
+        assertTrue(salary.isCredit)
+        assertEquals(4_000_000, salary.amount)
     }
 }

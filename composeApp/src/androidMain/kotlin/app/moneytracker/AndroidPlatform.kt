@@ -40,6 +40,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.FragmentActivity
 import app.moneytracker.ui.BiometricStatus
+import app.moneytracker.ui.BackgroundState
 import app.moneytracker.ui.PlatformServices
 import app.moneytracker.ui.tr
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -315,10 +316,29 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
             if (on) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
             PackageManager.DONT_KILL_APP,
         )
-        if (!enabled) { toggle(false); return onResult(false) }
+        if (!enabled) { toggle(false); SmsCatchUp.cancel(ctx); return onResult(false) }
         // READ_SMS lets the app catch up on messages that arrived while it couldn't run (same permission group, no extra prompt).
         val perms = listOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS) + if (Build.VERSION.SDK_INT >= 33) listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
-        withPermissions(perms) { ok -> toggle(ok); onResult(ok) }
+        // Only the SMS permissions decide: refusing notifications must not leave detection off.
+        withPermissions(perms) { _ -> val ok = Detected.hasPermissions(ctx); toggle(ok); if (ok) SmsCatchUp.schedule(ctx); onResult(ok) }
+    }
+
+    override fun messagePermissionGranted(): Boolean = Detected.hasPermissions(ctx)
+
+    override fun backgroundState(): BackgroundState {
+        val power = ctx.getSystemService(android.os.PowerManager::class.java)
+        val activityManager = ctx.getSystemService(android.app.ActivityManager::class.java)
+        val optimised = !power.isIgnoringBatteryOptimizations(ctx.packageName)
+        val restricted = Build.VERSION.SDK_INT >= 28 && activityManager.isBackgroundRestricted
+        return BackgroundState(Build.MANUFACTURER.orEmpty().lowercase(), optimised || restricted)
+    }
+
+    override fun openBackgroundSettings(autostart: Boolean): Boolean {
+        fun open(i: Intent) = runCatching { activity.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+        if (autostart) AUTOSTART.any { (pkg, cls) -> open(Intent().setClassName(pkg, cls)) }.let { if (it) return true }
+        // App info: Battery › Unrestricted lives here on Android 12+.
+        return open(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", ctx.packageName, null))) ||
+            open(Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
     }
 
     override fun importInboxMessages(days: Int, onResult: (Int?) -> Unit) {
@@ -339,6 +359,19 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
 
 /** Class 2 ("weak") includes most face unlock; fine for an app lock that always has a PIN fallback. */
 private const val MAX_PICK = 5
+
+/** Maker autostart managers, tried in order; whichever exists on the phone opens (no package queries needed). */
+private val AUTOSTART = listOf(
+    "com.vivo.permissionmanager" to "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
+    "com.iqoo.secure" to "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager",
+    "com.iqoo.secure" to "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity",
+    "com.miui.securitycenter" to "com.miui.permcenter.autostart.AutoStartManagementActivity",
+    "com.coloros.safecenter" to "com.coloros.safecenter.permission.startup.StartupAppListActivity",
+    "com.coloros.safecenter" to "com.coloros.safecenter.startupapp.StartupAppListActivity",
+    "com.oplus.safecenter" to "com.oplus.safecenter.permission.startup.StartupAppListActivity",
+    "com.huawei.systemmanager" to "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
+    "com.letv.android.letvsafe" to "com.letv.android.letvsafe.AutobootManageActivity",
+)
 
 private const val AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_WEAK
 

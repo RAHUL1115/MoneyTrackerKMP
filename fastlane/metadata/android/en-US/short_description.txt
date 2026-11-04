@@ -1,1 +1,1 @@
-Private expense tracker that reads bank SMS on your phone. No ads, no internet.
+Private expense tracker that reads bank SMS on your phone. No ads, no accounts.

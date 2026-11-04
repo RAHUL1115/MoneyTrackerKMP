@@ -225,7 +225,7 @@ class QuickAddDismissReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pending = goAsync()
-        Thread { try { Reminders.restore(ctx); runCatching { Detected.catchUp(ctx) }; SummaryWidget.updateAll(ctx) } finally { pending.finish() } }.start()
+        Thread { try { Reminders.restore(ctx); runCatching { Detected.catchUp(ctx, alert = true) }; SummaryWidget.updateAll(ctx) } finally { pending.finish() } }.start()
     }
 }
 
@@ -271,34 +271,83 @@ object Detected {
     }
 
     /** "Import SMS": reads the inbox for the last [days] days; returns how many new messages were picked up. */
-    fun importInbox(ctx: Context, days: Int): Int = importSince(ctx, System.currentTimeMillis() - days * DAY_MS)
+    fun importInbox(ctx: Context, days: Int): Int = importSince(ctx, System.currentTimeMillis() - days * DAY_MS).size
+
+    private fun granted(ctx: Context, perm: String) = ctx.checkSelfPermission(perm) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    /** Both SMS permissions are granted; Android or the phone maker can take them back from an app it thinks is unused. */
+    fun hasPermissions(ctx: Context) = granted(ctx, android.Manifest.permission.RECEIVE_SMS) && granted(ctx, android.Manifest.permission.READ_SMS)
 
     /**
-     * SMS that arrived while the receiver couldn't run (app force-stopped, or killed by an aggressive
-     * battery saver) are picked up on the next app open or boot. Duplicates are dropped by [ingestMessage].
+     * Makes the receiver and the periodic catch-up match the "Detect bank SMS" setting. A restored backup or a
+     * reinstall brings the setting back as on while the receiver (a per-install component state) is still off,
+     * which used to stop both live detection and catch-up without any sign in the app.
      */
-    fun catchUp(ctx: Context) {
-        if (ctx.packageManager.getComponentEnabledSetting(ComponentName(ctx, SmsReceiver::class.java)) != android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED) return
-        if (ctx.checkSelfPermission(android.Manifest.permission.READ_SMS) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
+    fun repair(ctx: Context, r: app.moneytracker.data.MoneyRepository = repo(ctx)) {
+        // The switch never claims detection is on without the permission to do it.
+        if (r.settingNow(Keys.CAPTURE_ENABLED) == "1" && !hasPermissions(ctx)) r.putSetting(Keys.CAPTURE_ENABLED, "0")
+        val on = r.settingNow(Keys.CAPTURE_ENABLED) == "1"
+        val component = ComponentName(ctx, SmsReceiver::class.java)
+        val state = if (on) android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED else android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+        if (ctx.packageManager.getComponentEnabledSetting(component) != state)
+            ctx.packageManager.setComponentEnabledSetting(component, state, android.content.pm.PackageManager.DONT_KILL_APP)
+        if (on) SmsCatchUp.schedule(ctx) else SmsCatchUp.cancel(ctx)
+    }
+
+    /**
+     * SMS that arrived while the receiver couldn't run (app force-stopped, or held back by the phone's battery
+     * manager) are picked up on app open, after a reboot and every ~15 minutes. Duplicates are dropped by
+     * [ingestMessage]. [alert]: notify for what's found (off when the app is on screen).
+     */
+    fun catchUp(ctx: Context, alert: Boolean = false) {
         val r = repo(ctx)
+        repair(ctx, r)
+        if (r.settingNow(Keys.CAPTURE_ENABLED) != "1" || !granted(ctx, android.Manifest.permission.READ_SMS)) return
         val now = System.currentTimeMillis()
         val last = r.settingNow(Keys.SMS_LAST_SCAN)?.toLongOrNull() ?: (now - DAY_MS)
-        importSince(ctx, maxOf(last - 60 * 60 * 1000, now - 7 * DAY_MS))   // an hour of overlap; at most a week back
+        val found = importSince(ctx, maxOf(last - 60 * 60 * 1000, now - 7 * DAY_MS))   // an hour of overlap; at most a week back
         r.putSetting(Keys.SMS_LAST_SCAN, now.toString())
+        if (alert) found.forEach { alert(ctx, r, it) }
     }
 
     private const val DAY_MS = 24L * 60 * 60 * 1000
 
-    private fun importSince(ctx: Context, since: Long): Int {
+    private fun importSince(ctx: Context, since: Long): List<app.moneytracker.domain.Capture> {
         val r = repo(ctx)
-        var added = 0
+        val added = mutableListOf<app.moneytracker.domain.Capture>()
         ctx.contentResolver.query(Telephony.Sms.Inbox.CONTENT_URI, arrayOf(Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE),
             "${Telephony.Sms.DATE} >= ?", arrayOf(since.toString()), "${Telephony.Sms.DATE} ASC")?.use { c ->
             while (c.moveToNext()) {
-                if (r.ingestMessage("SMS", c.getString(0).orEmpty(), c.getString(1).orEmpty(), c.getLong(2)) != null) added++
+                r.ingestMessage("SMS", c.getString(0).orEmpty(), c.getString(1).orEmpty(), c.getLong(2))?.let { added += it }
             }
         }
         return added
+    }
+}
+
+/**
+ * The safety net behind [SmsReceiver]: an inexact, non-waking alarm about every 15 minutes that reads the inbox
+ * for anything the receiver missed. Non-waking, so it costs nothing while the screen is off and runs when the
+ * phone is next in use. No exact-alarm permission needed.
+ */
+object SmsCatchUp {
+    private fun pending(ctx: Context) = PendingIntent.getBroadcast(
+        ctx, 2, Intent(ctx, SmsCatchUpReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    fun schedule(ctx: Context) {
+        val every = AlarmManager.INTERVAL_FIFTEEN_MINUTES
+        ctx.getSystemService(AlarmManager::class.java).setInexactRepeating(
+            AlarmManager.ELAPSED_REALTIME, android.os.SystemClock.elapsedRealtime() + every, every, pending(ctx))
+    }
+
+    fun cancel(ctx: Context) = ctx.getSystemService(AlarmManager::class.java).cancel(pending(ctx))
+}
+
+class SmsCatchUpReceiver : BroadcastReceiver() {
+    override fun onReceive(ctx: Context, intent: Intent) {
+        val pending = goAsync()
+        Thread { try { runCatching { Detected.catchUp(ctx, alert = true) } } finally { pending.finish() } }.start()
     }
 }
 

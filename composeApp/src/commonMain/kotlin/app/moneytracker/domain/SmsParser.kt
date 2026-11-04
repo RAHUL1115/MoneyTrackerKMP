@@ -51,13 +51,25 @@ object SmsParser {
     )
     private val debitWords = listOf("debited", "spent", "paid", "purchase", "withdrawn", "withdrawal", "sent", "debit", "txn of", "used for", "used at", "used on", "charged")
     private val refundWords = listOf("refund", "reversal", "reversed", "chargeback")
-    private val creditWords = listOf("credited", "received", "deposited", "refund", "reversed", "credit of", "added to")
-    private val noise = listOf("otp", "one time password", "verification code", "offer", "voucher", "win ", "congratulations",
-        "pre-approved", "apply now", "eligible for", "due date", "minimum amount due", "statement is ready", "will be debited")
+    private val creditWords = listOf("credited", "received", "deposited", "refund", "reversal", "reversed", "credit of", "added to")
+    /** Never a completed transaction: codes, upcoming debits, bills and loan pitches. */
+    private val noise = listOf("otp", "one time password", "verification code", "pre-approved", "apply now", "eligible for",
+        "due date", "minimum amount due", "statement is ready", "will be debited",
+        // Attempts that didn't go through.
+        "failed", "declined", "unsuccessful", "not debited", "no amount debited", "could not be processed")
+    /** Marketing words. Banks often append an ad to a real alert, so these only rule out messages that don't look like one. */
+    private val promo = listOf("offer", "voucher", "win ", "congratulations", "cashback")
+    private val doneRe = Regex("""(?i)\b(?:debited|credited|spent|sent|withdrawn)\b""")
+    private val refRe = Regex("""(?i)\bref""")
+
+    /** A completed movement on an identified account or UPI reference, as opposed to an advert quoting amounts. */
+    private fun looksLikeAlert(text: String, lower: String) =
+        doneRe.containsMatchIn(text) && (digitsRe.containsMatchIn(text) || "upi" in lower || refRe.containsMatchIn(text))
 
     fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed? {
         val lower = text.lowercase()
         if (noise.any { it in lower }) return null
+        if (promo.any { it in lower } && !looksLikeAlert(text, lower)) return null
         val isDebit = debitWords.any { it in lower }
         val isCredit = creditWords.any { it in lower }
         if (!isDebit && !isCredit) return null

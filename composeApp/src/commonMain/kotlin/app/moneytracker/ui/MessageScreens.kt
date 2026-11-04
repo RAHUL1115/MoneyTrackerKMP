@@ -3,6 +3,7 @@ package app.moneytracker.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,7 +19,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -31,6 +34,69 @@ import app.moneytracker.domain.MessageRules
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Whether detection can run (SMS permission) and how the phone treats the app in the background; re-checked while shown. */
+internal data class SmsHealth(val permission: Boolean, val background: BackgroundState)
+
+@Composable
+internal fun rememberSmsHealth(): SmsHealth {
+    val platform = LocalPlatform.current
+    var health by remember { mutableStateOf(SmsHealth(platform.messagePermissionGranted(), platform.backgroundState())) }
+    // No lifecycle hook in common code: a cheap re-check picks up changes made in the phone's settings.
+    LaunchedEffect(platform) {
+        while (true) {
+            kotlinx.coroutines.delay(1500)
+            health = SmsHealth(platform.messagePermissionGranted(), platform.backgroundState())
+        }
+    }
+    return health
+}
+
+private val autostartMakers = listOf("vivo", "iqoo", "xiaomi", "redmi", "poco", "oppo", "realme", "oneplus", "huawei", "honor", "letv")
+
+/** Android 13+ blocks SMS permissions for apps installed outside a store until "restricted settings" are allowed. */
+internal fun smsPermissionSteps(): String =
+    tr("If Android says it's a restricted setting (common when installed from GitHub): open Settings › Apps › MoneyTracker, tap ⋮ › Allow restricted settings, then allow SMS under Permissions.")
+
+/** Makers with their own autostart manager that the app knows how to open. */
+internal fun hasAutostartManager(maker: String) = autostartMakers.any { it in maker }
+
+/** Where this phone keeps the switches that let MoneyTracker start when an SMS arrives. */
+internal fun backgroundSteps(maker: String): String = when {
+    listOf("vivo", "iqoo").any { it in maker } -> tr("Settings › Battery › Background power consumption management › MoneyTracker › Allow. Then turn on MoneyTracker in Autostart (Settings › Apps › Autostart, or i Manager › App manager).")
+    listOf("xiaomi", "redmi", "poco").any { it in maker } -> tr("Turn on Autostart for MoneyTracker, then set Battery saver to No restrictions (Settings › Apps › Manage apps › MoneyTracker).")
+    listOf("oppo", "realme", "oneplus").any { it in maker } -> tr("Settings › Apps › MoneyTracker › Battery: allow background activity and auto launch.")
+    "samsung" in maker -> tr("Settings › Battery › Background usage limits: make sure MoneyTracker isn't under Sleeping or Deep sleeping apps. In app info, set Battery to Unrestricted.")
+    listOf("huawei", "honor").any { it in maker } -> tr("Settings › Battery › App launch › MoneyTracker: choose Manage manually and turn everything on.")
+    else -> tr("Settings › Apps › MoneyTracker › Battery › Unrestricted.")
+}
+
+/** Explains why detection can be late and opens the right settings page. Shared by both layouts. */
+@Composable
+internal fun KeepRunningDialog(health: SmsHealth, onDismiss: () -> Unit) {
+    val platform = LocalPlatform.current
+    val autostart = hasAutostartManager(health.background.maker)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(tr("Keep detection running")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(tr("Some phones stop apps from starting in the background. Bank SMS are then only read when you open MoneyTracker, or at the next background check (about every 15 minutes while the phone is in use)."))
+                Text(backgroundSteps(health.background.maker), fontWeight = FontWeight.Medium)
+                if (health.background.restricted) Text(tr("Android is currently limiting MoneyTracker in the background."), color = SubtleText, fontSize = 13.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { platform.openBackgroundSettings(autostart = false); onDismiss() }) { Text(tr("App settings")) }
+        },
+        dismissButton = {
+            Row {
+                if (autostart) TextButton(onClick = { platform.openBackgroundSettings(autostart = true); onDismiss() }) { Text(tr("Autostart")) }
+                TextButton(onClick = onDismiss) { Text(tr("Close")) }
+            }
+        },
+    )
+}
+
 /** SMS settings: detection switches, block lists, the content filter and inbox import. */
 @Composable
 fun MessageSettingsScreen() {
@@ -39,7 +105,7 @@ fun MessageSettingsScreen() {
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
     @Composable fun opt(key: String) = remember(repo, key) { repo.setting(key) }
-    val capture by remember(repo) { repo.flag(Keys.CAPTURE_ENABLED) }.collectAsState(false)
+    val captureSetting by remember(repo) { repo.flag(Keys.CAPTURE_ENABLED) }.collectAsState(false)
     val alert by opt(Keys.SMS_ALERT).collectAsState(null)
     val autoSave by opt(Keys.SMS_AUTO_SAVE).collectAsState(null)
     val showOriginal by opt(Keys.SMS_SHOW_ORIGINAL).collectAsState(null)
@@ -52,6 +118,9 @@ fun MessageSettingsScreen() {
     var daysDialog by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var disclosure by remember { mutableStateOf<(() -> Unit)?>(null) }   // action waiting on the SMS disclosure
+    var keepRunning by remember { mutableStateOf(false) }
+    val health = rememberSmsHealth()
+    val capture = captureSetting && health.permission
 
     fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) } }
     val days = importDays?.toIntOrNull() ?: 30
@@ -67,6 +136,8 @@ fun MessageSettingsScreen() {
                 val apply = { platform.setMessageCapture(on) { active -> put(Keys.CAPTURE_ENABLED, if (active) "1" else "0") } }
                 if (on) disclosure = apply else apply()
             }
+            if (!health.permission) Text(smsPermissionSteps(), Modifier.padding(horizontal = 28.dp, vertical = 8.dp), fontSize = 12.sp, color = SubtleText)
+            if (capture) ConfigRow(tr("Keep detection running"), if (health.background.restricted) tr("Restricted") else tr("Check")) { keepRunning = true }
             ConfigToggle(tr("Alert for detected messages"), null, alert != "0") { put(Keys.SMS_ALERT, if (it) "1" else "0") }
             ConfigToggle(tr("Save automatically"), tr("Add the entry right away when the account is recognised"), autoSave == "1") {
                 put(Keys.SMS_AUTO_SAVE, if (it) "1" else "0")
@@ -101,6 +172,7 @@ fun MessageSettingsScreen() {
                 "Other messages are ignored. You can turn this off at any time here in Bank SMS."),
             { disclosure = null }) { disclosure = null; action() }
     }
+    if (keepRunning) KeepRunningDialog(health) { keepRunning = false }
     message?.let { m ->
         AlertDialog(onDismissRequest = { message = null }, text = { Text(m) },
             confirmButton = { TextButton(onClick = { message = null }) { Text(tr("OK")) } })

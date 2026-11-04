@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -80,6 +81,16 @@ internal fun SmsReviewScreen() {
     var pasting by remember { mutableStateOf(false) }
     var disclosure by remember { mutableStateOf<(() -> Unit)?>(null) }
     val current = captures.firstOrNull { it.id == focusId } ?: captures.firstOrNull()
+    val pageScroll = rememberScrollState()
+    /** The list never reorders: after Add or Dismiss the row below takes the selection (or the one above, at the end). */
+    fun selectNextAfter(c: Capture) {
+        val i = captures.indexOfFirst { it.id == c.id }
+        focusId = (captures.getOrNull(i + 1) ?: captures.getOrNull(i - 1))?.id
+    }
+    fun select(c: Capture) {
+        focusId = c.id
+        scope.launch { pageScroll.animateScrollTo(0) }   // the big card on top shows the selection
+    }
 
     fun restore(id: String, txnId: String?) = scope.launch {
         withContext(repo.io) {
@@ -90,10 +101,12 @@ internal fun SmsReviewScreen() {
         focusId = id
     }
     fun dismiss(c: Capture) = scope.launch {
+        selectNextAfter(c)
         withContext(repo.io) { repo.setCaptureStatus(c.id, CaptureStatus.DISMISSED) }
         toaster.show(tr("Dismissed message from {0}", c.sender.ifBlank { tr("pasted text") })) { restore(c.id, null) }
     }
     fun add(c: Capture, d: TxnDraft) = scope.launch {
+        selectNextAfter(c)
         val id = withContext(repo.io) { repo.create(d).also { repo.learnFromDraft(d); repo.completeCapture(c, d, it) } }
         added++
         platform.refreshWidgets()
@@ -113,6 +126,7 @@ internal fun SmsReviewScreen() {
         tr("Bank messages"), nav::pop,
         subtitle = tr("{0} to review · read on this phone only", captures.size),
         actions = { IconTile(Glyph.Settings, tr("Bank SMS settings"), { nav.push(Screen.MessageSettings) }) },
+        scrollState = pageScroll,
         bottom = if (current == null) null else ({
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GreyButton(tr("Dismiss")) { dismiss(current) }
@@ -154,20 +168,31 @@ internal fun SmsReviewScreen() {
             SmallAction(tr("Paste a message"), Modifier.weight(1f), Glyph.Paste) { pasting = true }
             SmallAction(tr("Import last {0} days", days), Modifier.weight(1f)) { if (capture) import() else disclosure = { import() } }
         }
-        val others = captures.filter { it.id != current?.id }
-        if (others.isNotEmpty()) {
-            SectionLabel(tr("Also waiting"))
+        // Every waiting message, in a fixed order; the one in the big card is highlighted, not moved.
+        if (captures.size > 1) {
+            SectionLabel(tr("All messages ({0})", captures.size))
             FCard(padding = 0.dp) {
-                Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-                    others.forEachIndexed { i, c ->
-                        if (i > 0) Divider()
-                        FRow(
-                            c.merchant.ifBlank { c.sender.ifBlank { tr("Pasted message") } },
-                            subtitle = "${c.sender.ifBlank { tr("Pasted") }} · ${whenLabel(c.receivedAt)}",
-                            value = c.amount?.let { a -> if (app.moneytracker.domain.isRefund(c.kind, a)) currency.format(-a, showSign = true) else currency.format(a) },
-                            valueColor = if (c.kind == TxnKind.INCOME || app.moneytracker.domain.isRefund(c.kind, c.amount)) F.income else if (c.kind == TxnKind.EXPENSE) F.expense else F.ink,
-                            onClick = { focusId = c.id },
-                        )
+                Column(Modifier.padding(vertical = 4.dp)) {
+                    captures.forEachIndexed { i, c ->
+                        if (i > 0) Box(Modifier.padding(horizontal = 18.dp)) { Divider() }
+                        val selected = c.id == current?.id
+                        Box(
+                            Modifier.fillMaxWidth()
+                                .then(if (selected) Modifier.background(F.accentTint) else Modifier)
+                                .drawBehind { if (selected) drawRect(F.accent, size = Size(4.dp.toPx(), size.height)) }
+                                .padding(horizontal = 18.dp),
+                        ) {
+                            FRow(
+                                c.merchant.ifBlank { c.sender.ifBlank { tr("Pasted message") } },
+                                subtitle = if (selected) tr("In view") + " · " + whenLabel(c.receivedAt)
+                                    else "${c.sender.ifBlank { tr("Pasted") }} · ${whenLabel(c.receivedAt)}",
+                                value = c.amount?.let { a -> if (app.moneytracker.domain.isRefund(c.kind, a)) currency.format(-a, showSign = true) else currency.format(a) },
+                                valueColor = if (c.kind == TxnKind.INCOME || app.moneytracker.domain.isRefund(c.kind, c.amount)) F.income else if (c.kind == TxnKind.EXPENSE) F.expense else F.ink,
+                                chevron = !selected,
+                                // While amounts are hidden, a tap also shows them for a few seconds.
+                                onClick = { app.moneytracker.ui.Privacy.peek(); select(c) },
+                            )
+                        }
                     }
                 }
             }
@@ -231,7 +256,8 @@ private fun ReviewCard(c: Capture, d: TxnDraft?, amountText: String, ready: Bool
         }
         Text(c.text, Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(F.page).padding(horizontal = 12.dp, vertical = 10.dp),
             color = F.ink, fontSize = 13.sp, lineHeight = 19.sp)
-        Column {
+        // Tap a hidden amount to see it for a few seconds.
+        Column(Modifier.fillMaxWidth().clickable(enabled = app.moneytracker.ui.Privacy.masked) { app.moneytracker.ui.Privacy.peek() }) {
             Text(if (refund) tr("We'll add a refund") else if (d?.type == DraftType.INCOME) tr("We'll add income") else tr("We'll add"),
                 color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
             Text(amountText, color = if (refund || d?.type == DraftType.INCOME) F.income else if (d?.type == DraftType.EXPENSE) F.expense else F.ink, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, style = F.money)
