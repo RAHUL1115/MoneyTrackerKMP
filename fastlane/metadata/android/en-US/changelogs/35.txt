@@ -1,0 +1,1 @@
+MoneyTracker 0.3.3. New layout: tags picked in Search now filter the Activity page ("Apply filter to Activity"), and the filter bar shows them as #name. Entries match if they have any of the chosen tags, just like in Search.
