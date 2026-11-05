@@ -227,7 +227,7 @@ internal fun HeaderButton(text: String, filled: Boolean, leading: ImageVector? =
 
 @Composable
 private fun ActFilterBar(filter: TxnFilter, catById: Map<String, Category>, accountName: Map<String, String>, onEdit: () -> Unit, onClear: () -> Unit) {
-    val names = filter.categoryIds.mapNotNull { catById[it]?.name } + filter.accountIds.mapNotNull { accountName[it] }
+    val names = app.moneytracker.ui.filterNames(filter, catById, accountName)
     Row(
         Modifier.padding(horizontal = F.gutter).padding(top = 10.dp).fillMaxWidth().clip(F.iconShape).background(F.accentTint)
             .clickable(onClick = onEdit).padding(start = 14.dp, end = 4.dp).height(44.dp),

@@ -47,16 +47,24 @@ import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.ReportRow
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
 /**
  * Trans.-tab filter. Within a dimension any checked item matches; across dimensions all must match
  * (e.g. Food + Cash = food bought with cash). Empty = no filter.
  */
-data class TxnFilter(val categoryIds: Set<String> = emptySet(), val accountIds: Set<String> = emptySet()) {
-    val isActive get() = categoryIds.isNotEmpty() || accountIds.isNotEmpty()
+data class TxnFilter(
+    val categoryIds: Set<String> = emptySet(),
+    val accountIds: Set<String> = emptySet(),
+    /** Any of these tags (as in search); set from search's "Apply filter to Activity". */
+    val tagIds: Set<String> = emptySet(),
+) {
+    val isActive get() = categoryIds.isNotEmpty() || accountIds.isNotEmpty() || tagIds.isNotEmpty()
 
-    fun matches(t: Txn, catById: Map<String, Category>): Boolean {
+    /** [tagged]: ids of entries carrying any of [tagIds] (looked up by the caller). */
+    fun matches(t: Txn, catById: Map<String, Category>, tagged: Set<String> = emptySet()): Boolean {
+        if (tagIds.isNotEmpty() && t.id !in tagged) return false
         if (categoryIds.isNotEmpty()) {
             val c = t.categoryId?.let { catById[it] } ?: return false
             if (c.id !in categoryIds && c.parentId !in categoryIds) return false
@@ -80,8 +88,10 @@ fun rememberFilteredTxns(range: DateRange): State<List<Txn>> {
     val catById by repo.categoryById.collectAsState(emptyMap())
     return remember(range, filter, catById) {
         repo.txnsBetween(range).map { list ->
-            list.filter { it.kind != TxnKind.ADJUST_UP && it.kind != TxnKind.ADJUST_DOWN && (!filter.isActive || filter.matches(it, catById)) }
-        }
+            // Looked up on every change, so entries tagged later still match.
+            val tagged = filter.tagIds.flatMapTo(mutableSetOf()) { repo.txnIdsWithTag(it) }
+            list.filter { it.kind != TxnKind.ADJUST_UP && it.kind != TxnKind.ADJUST_DOWN && (!filter.isActive || filter.matches(it, catById, tagged)) }
+        }.flowOn(repo.io)
     }.collectAsState(emptyList())
 }
 
@@ -98,10 +108,19 @@ fun rememberFilteredRows(range: DateRange): State<List<ReportRow>> {
     return androidx.compose.runtime.rememberUpdatedState(txns.filter { it.kind != TxnKind.TRANSFER_IN }.map { it.toReportRow(flags) })
 }
 
+/** What the filter bar lists: categories, accounts, then tags as #name. */
+@Composable
+internal fun filterNames(filter: TxnFilter, catById: Map<String, Category>, accountName: Map<String, String>): List<String> {
+    val tags by LocalRepo.current.tags.collectAsState(emptyList())
+    val tagName = tags.associate { it.id to it.name }
+    return filter.categoryIds.mapNotNull { catById[it]?.name } + filter.accountIds.mapNotNull { accountName[it] } +
+        filter.tagIds.mapNotNull { tagName[it]?.let { n -> "#$n" } }
+}
+
 /** Bar shown under the tabs while a filter is applied. */
 @Composable
 fun FilterBar(filter: TxnFilter, catById: Map<String, Category>, accountName: Map<String, String>, onEdit: () -> Unit, onClear: () -> Unit) {
-    val names = filter.categoryIds.mapNotNull { catById[it]?.name } + filter.accountIds.mapNotNull { accountName[it] }
+    val names = filterNames(filter, catById, accountName)
     Row(
         Modifier.fillMaxWidth().background(AccentTint).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -127,6 +146,7 @@ fun FilterSheet(range: DateRange, initial: TxnFilter, onDismiss: () -> Unit, onA
     val catById by repo.categoryById.collectAsState(emptyMap())
     var cats by remember { mutableStateOf(initial.categoryIds) }
     var accs by remember { mutableStateOf(initial.accountIds) }
+    var tags by remember { mutableStateOf(initial.tagIds) }   // not editable here; kept unless cleared
     var tab by remember { mutableStateOf(1) }
     val mainOf = { t: Txn -> t.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } }
     val perCategory = txns.filter { it.kind == TxnKind.INCOME || it.kind == TxnKind.EXPENSE }.groupBy { mainOf(it) }.mapValues { (_, v) -> v.sumOf { it.amount } }
@@ -169,12 +189,12 @@ fun FilterSheet(range: DateRange, initial: TxnFilter, onDismiss: () -> Unit, onA
             Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
                     Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(FillColor)
-                        .clickable { cats = emptySet(); accs = emptySet() },
+                        .clickable { cats = emptySet(); accs = emptySet(); tags = emptySet() },
                     contentAlignment = Alignment.Center,
                 ) { Text(tr("Clear"), color = Ink, fontWeight = FontWeight.Medium) }
                 Box(
                     Modifier.weight(2f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(Accent)
-                        .clickable { onApply(TxnFilter(cats, accs)) },
+                        .clickable { onApply(TxnFilter(cats, accs, tags)) },
                     contentAlignment = Alignment.Center,
                 ) { Text(tr("Filter"), color = Color.White, fontWeight = FontWeight.SemiBold) }
             }
