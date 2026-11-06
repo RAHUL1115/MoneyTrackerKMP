@@ -189,6 +189,7 @@ fun App(
                                     LaunchAction.VOICE -> platform.listen { text -> navigator.push(Screen.EditTxn(preset = VoiceParser.parse(text, repo.today(), currency))) }
                                     LaunchAction.INBOX -> navigator.push(Screen.Inbox)
                                     LaunchAction.SEARCH -> navigator.push(Screen.Search)
+                                    LaunchAction.WEB_DASHBOARD -> navigator.push(Screen.WebDashboard)
                                 }
                                 onLaunchHandled()
                             }
@@ -238,6 +239,7 @@ fun App(
                                 Screen.Security -> SecurityScreen()
                                 Screen.AccountsTrend -> AccountsTrendScreen()
                                 Screen.AccountGroups -> AccountGroupsScreen()
+                                Screen.WebDashboard -> WebDashboardScreen()
                             }
                             }
                             }

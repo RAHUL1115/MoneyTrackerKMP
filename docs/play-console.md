@@ -35,7 +35,7 @@ App: **MoneyTracker** · package `in.amrahul.moneytracker` · personal developer
 **No.**
 
 ### Data safety
-Everything the user enters stays on the phone. Under Play's definitions, data processed only on the device and never sent off it is not "collected". The app does have the internet permission, used only for the daily exchange-rate update (on by default, only when the user has other currencies, can be turned off): it sends currency codes (for example INR, USD) to api.frankfurter.dev and nothing about the user, their entries or accounts. Currency codes are not one of Play's user data types, so the answer stays No.
+Everything the user enters stays on the phone. Under Play's definitions, data processed only on the device and never sent off it is not "collected". The app does have the internet permission, used only for the daily exchange-rate update (on by default, only when the user has other currencies, can be turned off): it sends currency codes (for example INR, USD) to api.frankfurter.dev and nothing about the user, their entries or accounts. Currency codes are not one of Play's user data types, so the answer stays No. The web dashboard (off by default) serves the user's own data from the phone to the user's own browser on the same local network; it never reaches the developer or any third party, so it is not "collection" or "sharing" either.
 - Does your app collect or share any of the required user data types? **No.**
 - (The form then skips the encryption and deletion questions. If it asks, data is not transmitted, and users delete data by uninstalling or using More › Backup & security › Backup & restore › Reset everything.)
 
@@ -53,7 +53,7 @@ Tick the option for **personal finance management / budgeting tools** if it's li
 - Permissions: `READ_SMS`, `RECEIVE_SMS`.
 - Description (paste):
 
-  > MoneyTracker is a personal budget and expense tracker. Its core feature, "Bank SMS detection", reads payment messages from the user's bank and card issuers as they arrive (RECEIVE_SMS) and lets the user import recent ones (READ_SMS) so that income and expenses are recorded automatically: amount, account and category are suggested for the user to confirm. The feature is off by default; a prominent in-app disclosure explains what is read and why before Android's permission prompt. Messages are parsed only on the device and message content is never uploaded (the app's only network use is a daily exchange-rate update that sends currency codes) or shared. Non-financial messages are ignored, and users can block senders or words.
+  > MoneyTracker is a personal budget and expense tracker. Its core feature, "Bank SMS detection", reads payment messages from the user's bank and card issuers as they arrive (RECEIVE_SMS) and lets the user import recent ones (READ_SMS) so that income and expenses are recorded automatically: amount, account and category are suggested for the user to confirm. The feature is off by default; a prominent in-app disclosure explains what is read and why before Android's permission prompt. Messages are parsed only on the device and message content is never uploaded (the app's only internet use is a daily exchange-rate update that sends currency codes; the optional web dashboard serves the user's own browser on their local Wi-Fi only) or shared. Non-financial messages are ignored, and users can block senders or words.
 
 - Demo video (30–60 s, unlisted YouTube link). Record on a phone with a bank SMS:
   1. Open More › Bank SMS › Bank SMS settings.
@@ -61,6 +61,13 @@ Tick the option for **personal finance management / budgeting tools** if it's li
   3. Receive (or send yourself) a bank-style SMS; show the "Spent ₹…" notification.
   4. Open **Detected SMS**, review the suggested entry, Save; show it in the Daily list.
   5. Show **Import SMS** adding older bank messages.
+
+### Foreground service (special use)
+App content › Foreground service permissions. `FOREGROUND_SERVICE_SPECIAL_USE` for the web dashboard. Paste:
+
+  > When the user turns on "Web dashboard", MoneyTracker runs a small web server on the phone so the user can view and edit their own entries from a browser on a computer on the same Wi-Fi network. It must keep running while the user works in that browser with the phone in their pocket or the screen off, which no other foreground-service type covers (it isn't data sync, media or connected-device communication). It starts only from the user's tap, shows an ongoing notification with Stop, stops automatically after 30 minutes without visits (user-adjustable) or when the phone leaves the Wi-Fi, and serves only the local network.
+
+- Demo video (30 s): More › Web dashboard › Start; show the notification; open the address on a computer, add an entry; tap Stop in the notification.
 
 ### Location
 `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION`: foreground only, used when "Save location" is on (an in-app disclosure is shown first). No background location, so no extra declaration is needed.

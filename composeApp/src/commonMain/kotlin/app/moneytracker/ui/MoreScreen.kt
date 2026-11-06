@@ -49,6 +49,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.MarkEmailUnread
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -97,6 +98,8 @@ fun MoreTab() {
             places.chunked(3).forEach { row ->
                 Row(Modifier.fillMaxWidth()) {
                     row.forEach { p -> Tile(p.title, p.status, placeIcon(p.id), Modifier.weight(1f), p.open) }
+                    // A short last row keeps the grid's columns instead of stretching its tiles.
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
@@ -127,6 +130,7 @@ internal fun placeIcon(id: String): ImageVector = when (id) {
     "reuse" -> Icons.Outlined.Repeat
     "sms" -> Icons.Outlined.MarkEmailUnread
     "safety" -> Icons.Outlined.Lock
+    "web" -> Icons.Outlined.Computer
     "help" -> Icons.AutoMirrored.Outlined.HelpOutline
     else -> Icons.Outlined.Settings
 }

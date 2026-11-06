@@ -37,6 +37,22 @@ fun PlatformServices.unlock(pin: String, stored: String, repo: MoneyRepository):
  */
 data class BackgroundState(val maker: String, val restricted: Boolean)
 
+/** A browser signed in to the web dashboard. [lastSeen]: epoch ms of its last request. */
+data class WebVisitor(val id: String, val name: String, val lastSeen: Long)
+
+/**
+ * The same-Wi-Fi web dashboard. [address] is "192.168.1.5:8080" while [running]; [wifi] is whether the phone has a
+ * local network address it can serve on; [stopReason] says why it last stopped on its own (left Wi-Fi, auto-stop).
+ */
+data class WebDashboardState(
+    val running: Boolean = false,
+    val wifi: Boolean = false,
+    val address: String? = null,
+    val computers: List<WebVisitor> = emptyList(),
+    val error: String? = null,
+    val stopReason: String? = null,
+)
+
 interface PlatformServices {
     // security
     /** A new hash for [pin], with its own salt inside, so it checks out on any install. */
@@ -101,6 +117,18 @@ interface PlatformServices {
     /** The body of an HTTPS GET to [url], or null on any failure (no connection, timeout, not 200). */
     suspend fun httpGet(url: String): String?
 
+    // web dashboard: the phone serves a page to computers on the same Wi-Fi (local network only)
+    val webDashboard: StateFlow<WebDashboardState>
+    /** Re-checks Wi-Fi (call while the dashboard screen is open). */
+    fun refreshWebDashboard()
+    /** Starts serving in the background, with a notification; [onResult] is false when it couldn't start. */
+    fun startWebDashboard(onResult: (Boolean) -> Unit)
+    fun stopWebDashboard()
+    fun disconnectWebComputer(id: String)
+    /** Saves (or with null removes) the dashboard password; every computer has to sign in again. */
+    fun setWebPassword(password: String?)
+    fun openWifiSettings()
+
     /** Closes the screens and opens the app again from the start (used after switching layouts). */
     fun restartApp()
 }
@@ -110,4 +138,4 @@ enum class BiometricStatus { AVAILABLE, NOT_ENROLLED, UNSUPPORTED }
 val LocalPlatform = compositionLocalOf<PlatformServices> { error("No platform services") }
 
 /** One-shot actions requested from outside the UI (shortcut, widget, notification). */
-enum class LaunchAction { ADD_EXPENSE, ADD_INCOME, ADD_TRANSFER, VOICE, INBOX, SEARCH }
+enum class LaunchAction { ADD_EXPENSE, ADD_INCOME, ADD_TRANSFER, VOICE, INBOX, SEARCH, WEB_DASHBOARD }

@@ -265,6 +265,7 @@ fun rememberMorePlaces(newLayout: Boolean): List<MorePlace> {
             listOf(last?.let { tr("Backed up {0}", it) } ?: tr("No backup yet"), if (passcode) tr("passcode on") else tr("passcode off")).joinToString(" · ")) {
             nav.push(Screen.MoreHub("safety"))
         },
+        MorePlace("web", tr("Web dashboard"), webDashboardStatus()) { nav.push(Screen.WebDashboard) },
         if (newLayout) MorePlace("help", tr("Help & about"), tr("Guide, version, licences")) { nav.push(Screen.MoreHub("help")) }
         else MorePlace("settings", tr("Settings"), tr("Money, calendar, look, entering")) { nav.push(Screen.Configuration) },
     )

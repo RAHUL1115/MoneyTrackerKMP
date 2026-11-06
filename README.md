@@ -2,7 +2,7 @@
 
 **Track your money on your phone, without signing up or using a cloud service.**
 
-MoneyTracker is a free, open-source personal-finance app for **Android 7.0 and newer**. Record expenses, income and transfers, manage bank accounts and credit cards, and see where your money goes. No ads, no sign-up and no analytics; the only network use is a daily exchange-rate update for your other currencies, which sends nothing but currency codes and can be turned off.
+MoneyTracker is a free, open-source personal-finance app for **Android 7.0 and newer**. Record expenses, income and transfers, manage bank accounts and credit cards, and see where your money goes. No ads, no sign-up and no analytics; the only internet use is a daily exchange-rate update for your other currencies, which sends nothing but currency codes and can be turned off. The optional web dashboard works only on your own Wi-Fi.
 
 **[Download the latest APK](https://github.com/RAHUL1115/MoneyTrackerKMP/releases/latest)** · [Getting started](#getting-started) · [SMS detection](#bank-sms-detection) · [Backups](#back-up-your-data) · [For developers](#for-developers)
 
@@ -39,6 +39,7 @@ You can use MoneyTracker entirely by entering transactions yourself. SMS detecti
 - **Faster access:** home-screen widgets, launcher shortcuts and Quick add buttons in the notification shade.
 - **Your preferences:** light/dark appearance, wallpaper-based accent colours, custom month start, passcode and biometric unlock, and 79 languages including right-to-left scripts.
 - **Import and export:** backup files, CSV and Excel (`.xlsx`), plus Money Manager (`.mmbak`) backup import.
+- **Web dashboard:** open your entries in a browser on a computer on the same Wi-Fi (More › Web dashboard): transactions with filters, analytics and accounts, and add, edit or delete entries with a full keyboard. The page comes from your phone, never the internet; set a password for shared Wi-Fi.
 
 ## Bank SMS detection
 
@@ -108,7 +109,7 @@ The sections above are for people installing and using the app. The sections bel
 
 MoneyTracker uses **Kotlin Multiplatform + Compose Multiplatform**. The domain logic, SQLDelight database and UI live in `commonMain`; the currently configured target is Android. This shared structure allows iOS or desktop targets to be added later, but this repository does not currently provide those apps.
 
-The app stays offline apart from the daily exchange-rate update (currency codes only, can be turned off): no analytics, ads or proprietary dependencies. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making changes.
+The app stays offline apart from the daily exchange-rate update (currency codes only, can be turned off) and the opt-in web dashboard, which serves only the local network: no analytics, ads or proprietary dependencies. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making changes.
 
 ### Build and test
 

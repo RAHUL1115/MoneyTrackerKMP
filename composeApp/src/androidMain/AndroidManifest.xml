@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- All optional: each is requested only when the user turns the matching feature on. -->
-    <!-- Only for the daily exchange-rate update (can be turned off; sends currency codes only). -->
+    <!-- Daily exchange-rate update (can be turned off; sends currency codes only) and the same-Wi-Fi web dashboard. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -12,6 +12,10 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Web dashboard (only while the user has it on): serves a page to computers on the same Wi-Fi. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
@@ -65,6 +69,11 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_cards_info" />
         </receiver>
+        <service android:name=".web.WebDashboardService" android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Serves the user's own MoneyTracker data as a web page to their computer on the same Wi-Fi network, while they have the web dashboard turned on." />
+        </service>
         <service android:name=".CardsWidgetService" android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 

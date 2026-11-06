@@ -93,6 +93,7 @@ fun freshScreen(screen: Screen): (@Composable () -> Unit)? = when (screen) {
     is Screen.EditTxn -> { { app.moneytracker.ui.Unmasked { FreshEditTxn(screen) } } }
     Screen.Inbox -> { { FreshInbox() } }
     Screen.MessageSettings -> { { FreshMessageSettings() } }
+    Screen.WebDashboard -> { { FreshWebDashboard() } }
     Screen.Search -> { { FreshSearch() } }
     is Screen.EditNote -> { { FreshEditNote(screen.noteId) } }
     Screen.Budget -> { { FreshBudget() } }

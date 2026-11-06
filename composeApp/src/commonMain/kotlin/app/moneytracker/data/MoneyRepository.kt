@@ -184,6 +184,8 @@ class MoneyRepository(
         const val SMS_LAST_SCAN = "smsLastScan"           // epoch ms of the last catch-up read of the inbox
         const val ACCOUNTS_GROUPED = "accountsGrouped"    // "1" = account picker shows groups on the left, accounts on the right
         const val UI_LAYOUT = "uiLayout"                  // CLASSIC (default) | NEW; read once at start, so a change needs a restart
+        const val WEB_PASSWORD = "webPassword"            // salted hash of the web dashboard password; empty = no password
+        const val WEB_AUTO_STOP = "webAutoStop"           // minutes without a visit before the web dashboard stops; "0" = never; default 30
     }
 
     fun setting(key: String): Flow<String?> = q.getSetting(key).asFlow().mapToOneOrNull(io)
@@ -326,6 +328,25 @@ class MoneyRepository(
         }) { sortWithinDays(q.txnsBetween(from, to).executeAsList().map { it.toDomain() }, ascending = settingNow(Keys.TIME_SORT) == "ASC") }
     }
 
+    // ───────────────────────── synchronous reads for background threads (web dashboard); no shared caches
+
+    fun txnsNow(range: DateRange): List<Txn> = sortWithinDays(
+        q.txnsBetween(range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong()).executeAsList().map { it.toDomain() },
+        ascending = settingNow(Keys.TIME_SORT) == "ASC",
+    )
+    fun reportRowsNow(range: DateRange): List<ReportRow> = settingNow(Keys.CARD_AT_PAYMENT).let { card ->
+        q.reportRows(range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong()).executeAsList().map { it.toReportRow(card == "1") }
+    }
+    fun balancesNow(): Map<String, Long> = q.balances(today().toEpochDays().toLong()).executeAsList().associate { it.accountId to it.balance.toLong() }
+    fun budgetEntriesNow(upTo: YearMonth): List<BudgetEntry> =
+        q.budgetAmountsUpTo(upTo.key.toLong()).executeAsList().map { BudgetEntry(it.categoryId, it.period.toInt(), it.amount) }
+    fun categoriesNow(): List<Category> = q.allCategories().executeAsList().map { it.toDomain() }
+    fun categoryByIdNow(): Map<String, Category> = q.categoriesWithDeleted().executeAsList().associate { it.id to it.toDomain() }
+    fun tagsNow(): List<Tag> = q.allTags().executeAsList().map { Tag(it.id, it.name, it.sortOrder.toInt()) }
+    fun txnTagNamesNow(): Map<String, List<String>> = q.allTxnTags().executeAsList().groupBy({ it.txnId }, { it.name })
+    fun currenciesNow(): List<Currency> = q.allCurrencies().executeAsList().map { it.toDomain() }
+    fun currencyFormatNow(): CurrencyFormat = currencyFormat(settingNow(Keys.CURRENCY_SYMBOL), settingNow(Keys.CURRENCY_DECIMALS), settingNow(Keys.SYMBOL_AFTER))
+
     /** Newest day first; within a day by recorded time (entries without one by entry order), newest first unless [ascending]. */
     fun sortWithinDays(txns: List<Txn>, ascending: Boolean = false): List<Txn> {
         val inDay = compareBy<Txn>({ it.timeOfDay ?: -1 }, { it.createdAt })
@@ -459,6 +480,8 @@ class MoneyRepository(
     }
 
     fun txn(id: String): Txn? = q.txnById(id).executeAsOneOrNull()?.toDomain()
+    /** Like [txn], but null once the entry is deleted. */
+    fun liveTxn(id: String): Txn? = q.txnById(id).executeAsOneOrNull()?.takeIf { it.deleted == 0L }?.toDomain()
     fun installmentGroup(groupId: String): List<Txn> = q.txnsByInstallmentGroup(groupId).executeAsList().map { it.toDomain() }
     fun transferGroup(groupId: String): List<Txn> = q.txnsByTransferGroup(groupId).executeAsList().map { it.toDomain() }
 

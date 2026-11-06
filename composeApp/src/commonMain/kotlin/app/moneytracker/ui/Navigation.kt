@@ -39,6 +39,8 @@ sealed interface Screen {
     data object Security : Screen
     data object AccountsTrend : Screen
     data object AccountGroups : Screen
+    /** Start / stop the same-Wi-Fi web dashboard, its password and connected computers. */
+    data object WebDashboard : Screen
     /** A More place that gathers related screens: "labels", "reuse", "sms", "safety" or "help". */
     data class MoreHub(val id: String) : Screen
 }

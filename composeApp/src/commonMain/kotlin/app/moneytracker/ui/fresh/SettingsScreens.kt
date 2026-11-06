@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.ui.text.TextStyle
@@ -383,6 +384,7 @@ private fun placeGlyph(id: String): ImageVector = when (id) {
     "reuse" -> Glyph.Repeat
     "sms" -> Glyph.Message
     "safety" -> Glyph.Lock
+    "web" -> Icons.Outlined.Computer
     else -> Icons.AutoMirrored.Outlined.HelpOutline
 }
 

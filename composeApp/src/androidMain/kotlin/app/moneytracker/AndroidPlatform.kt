@@ -284,6 +284,37 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
         }.getOrNull()
     }
 
+    // ───────────────────────── web dashboard
+
+    override val webDashboard: StateFlow<app.moneytracker.ui.WebDashboardState> = app.moneytracker.web.WebDashboard.state
+
+    override fun refreshWebDashboard() = app.moneytracker.web.WebDashboard.refresh()
+
+    override fun startWebDashboard(onResult: (Boolean) -> Unit) {
+        // The notification is how it's stopped from outside the app, so ask for it; the dashboard runs either way.
+        notificationPermission { _ ->
+            // Listen first, so a missing network or busy port is reported here; the service then keeps it running.
+            if (app.moneytracker.web.WebDashboard.startServer(ctx) == null) return@notificationPermission onResult(false)
+            app.moneytracker.web.WebDashboardService.start(ctx)
+            onResult(true)
+        }
+    }
+
+    override fun stopWebDashboard() = app.moneytracker.web.WebDashboardService.stop(ctx)
+
+    override fun disconnectWebComputer(id: String) = app.moneytracker.web.WebDashboard.disconnect(id)
+
+    override fun setWebPassword(password: String?) {
+        val repo = (ctx as MoneyTrackerApp).database.repo ?: return
+        repo.putSetting(app.moneytracker.data.MoneyRepository.Keys.WEB_PASSWORD, password?.let { app.moneytracker.web.WebPassword.hash(it) } ?: "")
+        app.moneytracker.web.WebDashboard.signOutAll()
+    }
+
+    override fun openWifiSettings() {
+        val panel = if (Build.VERSION.SDK_INT >= 29) Intent(Settings.Panel.ACTION_WIFI) else Intent(Settings.ACTION_WIFI_SETTINGS)
+        runCatching { activity.startActivity(panel) }.onFailure { runCatching { activity.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) } }
+    }
+
     override fun restartApp() {
         // A fresh task with a new activity; the process (and the open database) stays.
         MainActivity.skipLockOnce = true
