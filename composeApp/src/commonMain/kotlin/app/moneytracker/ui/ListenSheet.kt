@@ -10,6 +10,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -214,10 +215,15 @@ private fun ListenSheetBody(onDismiss: () -> Unit, startTyping: Boolean, onDone:
                         keyboardActions = KeyboardActions(onDone = { if (typed.text.isNotBlank()) openEditor(typed.text) }),
                     )
                 }
-            } else Box(Modifier.fillMaxWidth().heightIn(min = 62.dp).padding(top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
+            } else Box(
+                // Tap the words (or the hint) to type or fix them yourself; no need for the Type button.
+                Modifier.fillMaxWidth().heightIn(min = 62.dp).padding(top = 4.dp).clip(L.button)
+                    .clickable(onClickLabel = tr("Type instead")) { startTyping() }
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+            ) {
                 if (heard.isBlank()) {
                     Text(
-                        if (state == ListenState.ERROR) errorHint(error) else tr("Just say it, e.g. “1,200 for new shoes on my credit card” or “Got my salary, 50,000”."),
+                        if (state == ListenState.ERROR) errorHint(error) else tr("Just say it, e.g. “1,200 for new shoes on my credit card”. Or tap here to type."),
                         color = L.muted, fontSize = 16.sp, lineHeight = 22.sp,
                     )
                 } else Text(heard, color = L.ink, fontSize = 22.sp, lineHeight = 30.sp, fontWeight = FontWeight.Medium)

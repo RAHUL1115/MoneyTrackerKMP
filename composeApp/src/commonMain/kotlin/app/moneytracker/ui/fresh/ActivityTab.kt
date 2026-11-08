@@ -171,12 +171,10 @@ internal fun ActivityTab() {
             if (selecting) HeaderButton(tr("Done"), filled = true) { endSelect() }
             else {
                 IconTile(Glyph.Search, tr("Search"), { nav.push(Screen.Search) })
-                // Bookmarks are saved entries: pick one to open it filled in, then check and save.
-                IconTile(Glyph.Star, tr("Bookmarks"), { nav.push(Screen.Templates) })
                 if (view == ActView.NOTES) HeaderButton(tr("Note"), filled = true, leading = Glyph.Add) { nav.push(Screen.EditNote()) }
                 else IconTile(Glyph.Filter, tr("Filter by category or account"), { filterSheet = true },
                     tint = if (filter.isActive) F.accent else F.ink, background = if (filter.isActive) F.accentTint else F.card)
-                // Less frequent actions, Select among them, always last.
+                // At most four icons in the header (hide amounts, search, filter, more); everything else is under More.
                 IconTile(Glyph.More, tr("More"), { moreSheet = true }, badge = pending.size)
             }
         }
@@ -254,7 +252,9 @@ private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit
     Sheet(tr("Activity"), onDismiss) {
         if (onSelect != null) SheetOption(tr("Select entries"), subtitle = tr("Change or delete several at once"), onClick = onSelect)
         SheetOption(tr("Detected transactions"), subtitle = if (pending > 0) tr("{0} to review", pending) else null) { onDismiss(); nav.push(Screen.Inbox) }
-        if (platform.speechAvailable) SheetOption(tr("Voice input"), subtitle = tr("Say it, e.g. “1,200 for new shoes”")) { onDismiss(); onVoice() }
+        if (platform.speechAvailable) SheetOption(tr("Smart add"), subtitle = tr("Say or type it, e.g. “1,200 for new shoes”")) { onDismiss(); onVoice() }
+        // Bookmarks are saved entries: pick one to open it filled in, then check and save.
+        SheetOption(tr("Bookmarks"), subtitle = tr("Saved entries you add again and again")) { onDismiss(); nav.push(Screen.Templates) }
         SheetOption(tr("Add note")) { onDismiss(); nav.push(Screen.EditNote()) }
         SheetOption(tr("Repeat entries")) { onDismiss(); nav.push(Screen.Recurring) }
         SheetOption(tr("Export data to Excel")) { onDismiss(); backup.exportExcel() }
