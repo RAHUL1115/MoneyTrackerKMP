@@ -61,6 +61,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -117,6 +118,7 @@ fun TransactionsTab() {
     var filterSheet by remember { mutableStateOf(false) }
     var monthPicker by remember { mutableStateOf(false) }
     var listening by remember { mutableStateOf(false) }
+    var listenTyping by remember { mutableStateOf(false) }
     val filterCats by repo.categories.collectAsState(emptyList())
     val filterAccounts by repo.accountNames.collectAsState(emptyMap())
 
@@ -130,7 +132,7 @@ fun TransactionsTab() {
                             .padding(horizontal = 5.dp), color = Color.White, fontSize = 10.sp)
                     }
                 }
-                if (platform.speechAvailable) IconButton(onClick = { listening = true }) { Icon(Icons.Outlined.Mic, tr("Voice input")) }
+                if (platform.speechAvailable) IconButton(onClick = { listenTyping = false; listening = true }) { Icon(Icons.Outlined.Mic, tr("Voice input")) }
                 PrivacyEyeButton()
                 IconButton(onClick = { nav.push(Screen.Templates) }) { Icon(Icons.Outlined.StarOutline, tr("Bookmarks")) }
                 IconButton(onClick = { nav.push(Screen.Search) }) { Icon(Icons.Outlined.Search, tr("Search")) }
@@ -145,6 +147,7 @@ fun TransactionsTab() {
             }
             if (monthPicker) MonthPickerDialog(ym, ps.labelFor(repo.today()), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
             UnderlineTabs(TransView.entries.map { tr(it.title) }, view.ordinal) { view = TransView.entries[it] }
+            if (view == TransView.DAILY) ClassicSmartAddBar(onType = { listenTyping = true; listening = true }, onSpeak = { listenTyping = false; listening = true })
             if (filter.isActive && view != TransView.TOTAL && view != TransView.NOTE) {
                 FilterBar(filter, filterCats.associateBy { it.id }, filterAccounts, onEdit = { filterSheet = true }, onClear = { filter = TxnFilter() })
             }
@@ -172,7 +175,7 @@ fun TransactionsTab() {
               }
             }
         }
-        if (listening) ListenSheet(onDismiss = { listening = false }) { g -> nav.push(Screen.EditTxn(preset = g?.draft)) }
+        if (listening) ListenSheet(onDismiss = { listening = false }, startTyping = listenTyping) { g -> nav.push(Screen.EditTxn(preset = g?.draft)) }
         if (filterSheet) FilterSheet(range, filter, onDismiss = { filterSheet = false }) { filter = it; filterSheet = false }
         // Note button beside + on the Daily view (Configuration › Note button).
         val noteButton by remember(repo) { repo.setting(app.moneytracker.data.MoneyRepository.Keys.NOTE_BUTTON) }.collectAsState(null)
@@ -741,4 +744,25 @@ private fun UpcomingRepeatsRow(
         Text(currency.format(sum), color = Ink, fontSize = 15.sp)
     }
     HorizontalDivider(color = DividerColor)
+}
+
+/** Smart add at the top of the Daily list: tap the box to type an entry the way you'd say it, or the mic to speak it. */
+@Composable
+private fun ClassicSmartAddBar(onType: () -> Unit, onSpeak: () -> Unit) {
+    val platform = LocalPlatform.current
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = ListCardMargin).padding(top = ListCardMargin).height(48.dp)
+            .clip(RoundedCornerShape(12.dp)).background(SurfaceColor).clickable(onClickLabel = tr("Type an entry"), onClick = onType)
+            .padding(start = 14.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(tr("Type or say it: “1,200 for new shoes”"), Modifier.weight(1f), color = SubtleText, fontSize = 14.sp, maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        if (platform.speechAvailable) {
+            Box(
+                Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Accent).clickable(onClickLabel = tr("Say an entry"), onClick = onSpeak),
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.Outlined.Mic, tr("Say an entry"), tint = Color.White, modifier = Modifier.size(20.dp)) }
+        }
+    }
 }

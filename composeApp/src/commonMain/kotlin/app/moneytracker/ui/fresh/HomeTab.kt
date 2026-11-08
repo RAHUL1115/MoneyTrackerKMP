@@ -26,8 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,13 +90,46 @@ internal fun HomeTab(onOpenTab: (FreshTab) -> Unit) {
             IconTile(Glyph.Settings, tr("Settings"), { nav.push(Screen.Configuration) })
         }
         Column(Modifier.padding(horizontal = F.gutter).padding(top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-            SpendingHero(onOpenTab)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SpendingHero(onOpenTab)
+                SmartAddBar()
+            }
             SmsWaiting()
             RecentDays()
             Text(tr("See everything in Activity ›"),
                 Modifier.align(Alignment.CenterHorizontally).height(44.dp).clip(F.iconShape).background(F.card)
                     .clickable { onOpenTab(FreshTab.ACTIVITY) }.padding(horizontal = 20.dp).wrapContentHeight(),
                 color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+/**
+ * Smart add, one tap from Home: tap the box to type an entry the way you'd say it, or the mic to speak it.
+ * Both open the same sheet; the Add screen then opens filled in.
+ */
+@Composable
+private fun SmartAddBar() {
+    val nav = LocalNavigator.current
+    val platform = app.moneytracker.ui.LocalPlatform.current
+    var open by remember { mutableStateOf<Boolean?>(null) }   // true: typing, false: speaking
+    Row(
+        Modifier.fillMaxWidth().height(56.dp).clip(F.cardShape).background(F.card)
+            .clickable(onClickLabel = tr("Type an entry")) { open = true }.padding(start = CARD_INSET, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(tr("Type or say it: “1,200 for new shoes”"), Modifier.weight(1f), color = F.muted, fontSize = 15.sp, maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        if (platform.speechAvailable) {
+            Box(
+                Modifier.size(44.dp).clip(F.iconShape).background(F.accent).clickable(onClickLabel = tr("Say an entry")) { open = false },
+                contentAlignment = Alignment.Center,
+            ) { Icon(Glyph.Mic, tr("Say an entry"), tint = F.onAccent, modifier = Modifier.size(22.dp)) }
+        }
+    }
+    open?.let { typing ->
+        app.moneytracker.ui.ListenSheet(onDismiss = { open = null }, look = newListenLook(), startTyping = typing) { g ->
+            nav.push(Screen.EditTxn(preset = g?.draft))
         }
     }
 }

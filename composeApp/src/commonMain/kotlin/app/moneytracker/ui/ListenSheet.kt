@@ -10,6 +10,22 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,13 +93,13 @@ private enum class ListenState { LISTENING, DONE, ERROR }
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ListenSheet(onDismiss: () -> Unit, look: ListenLook = ListenLook.classic(), onDone: (SmartGuess?) -> Unit) {
-    CompositionLocalProvider(LocalListenLook provides look) { ListenSheetBody(onDismiss, onDone) }
+fun ListenSheet(onDismiss: () -> Unit, look: ListenLook = ListenLook.classic(), startTyping: Boolean = false, onDone: (SmartGuess?) -> Unit) {
+    CompositionLocalProvider(LocalListenLook provides look) { ListenSheetBody(onDismiss, startTyping, onDone) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ListenSheetBody(onDismiss: () -> Unit, onDone: (SmartGuess?) -> Unit) {
+private fun ListenSheetBody(onDismiss: () -> Unit, startTyping: Boolean, onDone: (SmartGuess?) -> Unit) {
     val platform = LocalPlatform.current
     val repo = LocalRepo.current
     val currency = LocalCurrency.current
@@ -103,6 +119,10 @@ private fun ListenSheetBody(onDismiss: () -> Unit, onDone: (SmartGuess?) -> Unit
     var session by remember { mutableStateOf<SpeechSession?>(null) }
     var attempt by remember { mutableIntStateOf(0) }
     var parseJob by remember { mutableStateOf<Job?>(null) }
+    // Type mode: the same sheet with a text box; write it the way you'd say it and the fields fill in as you type.
+    var typing by remember { mutableStateOf(startTyping) }
+    var typed by remember { mutableStateOf(TextFieldValue("")) }
+    val typeFocus = remember { FocusRequester() }
 
     fun reparse(text: String, then: (SmartGuess?) -> Unit = {}) {
         val p = parser
@@ -126,12 +146,14 @@ private fun ListenSheetBody(onDismiss: () -> Unit, onDone: (SmartGuess?) -> Unit
 
     LaunchedEffect(Unit) { parser = SmartEntry.parser(platform); reparse(heard) }
 
-    DisposableEffect(attempt) {
+    DisposableEffect(attempt, typing) {
         state = ListenState.LISTENING; error = null; level = 0f
+        if (typing) return@DisposableEffect onDispose {}
         val s = platform.startSpeech(object : SpeechListener {
             override fun onLevel(level: Float) { setLevel(level) }
-            override fun onPartial(text: String) { heard = text; reparse(text) }
+            override fun onPartial(text: String) { if (!typing) { heard = text; reparse(text) } }
             override fun onFinal(text: String) {
+                if (typing) return
                 heard = text.ifBlank { heard }
                 if (heard.isBlank()) { fail(SpeechError.NO_MATCH); return }
                 state = ListenState.DONE
@@ -144,16 +166,28 @@ private fun ListenSheetBody(onDismiss: () -> Unit, onDone: (SmartGuess?) -> Unit
         onDispose { s?.cancel() }
     }
 
+    fun startTyping() {
+        session?.cancel()
+        typed = TextFieldValue(heard, TextRange(heard.length))
+        typing = true
+    }
+    fun startSpeaking() { typing = false; heard = typed.text; attempt++ }
+    LaunchedEffect(typing) { if (typing) runCatching { typeFocus.requestFocus() } }
+
     ModalBottomSheet(
         onDismissRequest = { session?.cancel(); onDismiss() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = L.sheet,
         shape = RoundedCornerShape(topStart = L.radius, topEnd = L.radius),
     ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
+        Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 14.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
             // Status line
             Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
-                when (state) {
+                if (typing) {
+                    Icon(Icons.Outlined.Keyboard, null, Modifier.size(20.dp), tint = L.accent)
+                    Spacer(Modifier.width(10.dp))
+                    Text(tr("Type it like you’d say it"), color = L.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                } else when (state) {
                     ListenState.ERROR -> Text(errorTitle(error), color = L.danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     else -> {
                         SoundBars(if (state == ListenState.LISTENING) level else 0f)
@@ -164,8 +198,23 @@ private fun ListenSheetBody(onDismiss: () -> Unit, onDone: (SmartGuess?) -> Unit
                 }
             }
 
-            // What was heard
-            Box(Modifier.fillMaxWidth().heightIn(min = 62.dp).padding(top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
+            // What was heard, or the text box in type mode
+            if (typing) {
+                Box(
+                    Modifier.fillMaxWidth().padding(top = 4.dp).heightIn(min = 62.dp).border(2.dp, L.accent, L.button)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                ) {
+                    if (typed.text.isEmpty()) Text(tr("e.g. 1,200 for new shoes on my credit card"), color = L.muted, fontSize = 18.sp, lineHeight = 24.sp)
+                    BasicTextField(
+                        typed, { v -> typed = v; heard = v.text; reparse(v.text) },
+                        Modifier.fillMaxWidth().focusRequester(typeFocus),
+                        textStyle = TextStyle(color = L.ink, fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Medium),
+                        cursorBrush = SolidColor(L.accent),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { if (typed.text.isNotBlank()) openEditor(typed.text) }),
+                    )
+                }
+            } else Box(Modifier.fillMaxWidth().heightIn(min = 62.dp).padding(top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
                 if (heard.isBlank()) {
                     Text(
                         if (state == ListenState.ERROR) errorHint(error) else tr("Just say it, e.g. “1,200 for new shoes on my credit card” or “Got my salary, 50,000”."),
@@ -191,18 +240,30 @@ private fun ListenSheetBody(onDismiss: () -> Unit, onDone: (SmartGuess?) -> Unit
                     shape = L.button, color = L.fill,
                 ) { Box(contentAlignment = Alignment.Center) { Text(tr("Cancel"), color = L.inkSoft, fontSize = 16.sp) } }
 
-                MainButton(state) {
-                    when (state) {
-                        ListenState.LISTENING -> session?.stop()
-                        ListenState.ERROR -> { heard = ""; guess = null; attempt++ }
-                        ListenState.DONE -> {}
+                if (typing) {
+                    // Back to speaking.
+                    Surface(onClick = { startSpeaking() }, modifier = Modifier.size(56.dp), shape = CircleShape, color = L.fill) {
+                        Box(contentAlignment = Alignment.Center) { Icon(Icons.Filled.Mic, tr("Speak instead"), Modifier.size(24.dp), tint = L.accent) }
                     }
-                }
+                    val ready = typed.text.isNotBlank()
+                    Surface(
+                        onClick = { if (ready) openEditor(typed.text) }, enabled = ready, modifier = Modifier.weight(1f).height(50.dp),
+                        shape = L.button, color = if (ready) L.accent else L.fill,
+                    ) { Box(contentAlignment = Alignment.Center) { Text(tr("Done"), color = if (ready) L.onAccent else L.muted, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) } }
+                } else {
+                    MainButton(state) {
+                        when (state) {
+                            ListenState.LISTENING -> session?.stop()
+                            ListenState.ERROR -> { heard = ""; guess = null; attempt++ }
+                            ListenState.DONE -> {}
+                        }
+                    }
 
-                Surface(
-                    onClick = { openEditor(heard) }, modifier = Modifier.weight(1f).height(50.dp),
-                    shape = L.button, color = L.sheet, border = BorderStroke(1.dp, L.border),
-                ) { Box(contentAlignment = Alignment.Center) { Text(L.typeLabel, color = L.accent, fontSize = 16.sp) } }
+                    Surface(
+                        onClick = { startTyping() }, modifier = Modifier.weight(1f).height(50.dp),
+                        shape = L.button, color = L.sheet, border = BorderStroke(1.dp, L.border),
+                    ) { Box(contentAlignment = Alignment.Center) { Text(L.typeLabel, color = L.accent, fontSize = 16.sp) } }
+                }
             }
 
             Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
