@@ -86,6 +86,9 @@ fun AboutScreen() {
                 LIBRARIES.forEach { (name, by) ->
                     AboutLink(Icons.Outlined.Code, name, "$by · ${tr("Apache License 2.0")}", external = false) { nav.push(Screen.License("Apache-2.0")) }
                 }
+                AboutLink(Icons.Outlined.Code, "Model2Vec potion-multilingual-128M", "MinishLab · ${tr("MIT License")}", external = false) {
+                    nav.push(Screen.License("MIT-Model2Vec"))
+                }
                 AboutLink(Icons.Outlined.Gavel, tr("License (GPL-3.0)"), tr("Full text, offline"), external = false, divider = false) {
                     nav.push(Screen.License("GPL-3.0"))
                 }
@@ -125,7 +128,7 @@ fun LicenseScreen(id: String) {
     val platform = LocalPlatform.current
     val text = remember(id) { platform.licenseText(id) }
     Column(Modifier.fillMaxSize().background(SurfaceColor)) {
-        BackTopBar(if (id == "GPL-3.0") "GNU GPL v3" else "Apache License 2.0", nav::pop)
+        BackTopBar(when { id == "GPL-3.0" -> "GNU GPL v3"; id.startsWith("MIT") -> "MIT License"; else -> "Apache License 2.0" }, nav::pop)
         HorizontalDivider(color = DividerColor)
         SelectionContainer(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             Text(text ?: tr("No data available."), Modifier.padding(16.dp), fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 15.sp, color = InkSoft)

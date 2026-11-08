@@ -31,10 +31,11 @@ Every permission is used only for the feature it belongs to; all except Internet
 | Location (precise or approximate) | Attaching where you were to a new entry, when "Save location" is on. Only latitude and longitude are saved with that entry; there is no background location. |
 | SMS (receive and read) | Bank SMS detection, when turned on, and "Import SMS": bank messages are read on the phone to suggest entries; other messages are ignored. Messages are never uploaded, shared or sent anywhere. |
 | Notifications | Daily reminder, quick-add notification, detected-SMS alerts and the "Web dashboard is on" notification. |
+| Microphone | Smart entry: MoneyTracker's listening sheet in the classic layout, only while it is open after you tap the mic. Speech is turned into text by your phone's speech recognizer (on the phone where it supports that; otherwise it may process audio online). Understanding the words (amount, category, account, date) happens entirely on the phone. |
 | Run at startup | Restoring the reminder after the phone restarts. |
 | Fingerprint / face | Unlocking the app when a passcode is set. The app never sees your biometric data; Android only reports success or failure. |
 
-The camera, voice input and maps are used through other apps on your phone (camera app, speech recognizer, map app). What those apps do is covered by their own privacy policies; for example, a speech recognizer may process audio online.
+The camera, the new layout's voice input and maps are used through other apps on your phone (camera app, speech recognizer, map app). What those apps do is covered by their own privacy policies; for example, a speech recognizer may process audio online.
 
 ## Passcode
 The passcode is stored only as a salted hash. A passcode imported from a Money Manager backup is hashed the same way.

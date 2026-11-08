@@ -220,6 +220,33 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
         runCatching { voiceLauncher.launch(voiceIntent) }
     }
 
+    private val speech = AndroidSpeech(ctx)
+
+    override val speechAvailable: Boolean get() = speech.available
+
+    override fun startSpeech(listener: app.moneytracker.ui.SpeechListener): app.moneytracker.ui.SpeechSession? {
+        if (!speech.available) return null
+        // The microphone is asked for the first time someone taps the mic; the session starts once it's granted.
+        var session: app.moneytracker.ui.SpeechSession? = null
+        var cancelled = false
+        val wrapper = object : app.moneytracker.ui.SpeechSession {
+            override fun stop() { session?.stop() ?: run { cancelled = true } }
+            override fun cancel() { cancelled = true; session?.cancel() }
+        }
+        val needsMic = speech.recognizerAvailable
+        val begin = { granted: Boolean ->
+            if (!cancelled) {
+                if (!granted) listener.onError(app.moneytracker.ui.SpeechError.NO_PERMISSION)
+                else session = speech.start(listener) ?: run { listener.onError(app.moneytracker.ui.SpeechError.OTHER); null }
+            }
+        }
+        if (needsMic) withPermissions(listOf(Manifest.permission.RECORD_AUDIO), begin) else begin(true)
+        return wrapper
+    }
+
+    override fun readSmartModel(name: String): ByteArray? =
+        runCatching { ctx.assets.open("smart/$name").use { it.readBytes() } }.getOrNull()
+
     /**
      * A fresh fix for a new entry. Asks for precise location; Android 12+ lets the user grant only
      * approximate, which still works (network provider). Waits up to [LOCATION_TIMEOUT_MS], then falls back

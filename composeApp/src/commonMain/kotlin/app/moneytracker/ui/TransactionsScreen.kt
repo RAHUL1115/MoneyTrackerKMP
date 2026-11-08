@@ -116,6 +116,7 @@ fun TransactionsTab() {
     var filter by remember { mutableStateOf(TxnFilter()) }
     var filterSheet by remember { mutableStateOf(false) }
     var monthPicker by remember { mutableStateOf(false) }
+    var listening by remember { mutableStateOf(false) }
     val filterCats by repo.categories.collectAsState(emptyList())
     val filterAccounts by repo.accountNames.collectAsState(emptyMap())
 
@@ -129,9 +130,7 @@ fun TransactionsTab() {
                             .padding(horizontal = 5.dp), color = Color.White, fontSize = 10.sp)
                     }
                 }
-                if (platform.voiceAvailable) IconButton(onClick = {
-                    platform.listen { text -> nav.push(Screen.EditTxn(preset = VoiceParser.parse(text, repo.today(), currency))) }
-                }) { Icon(Icons.Outlined.Mic, tr("Voice input")) }
+                if (platform.speechAvailable) IconButton(onClick = { listening = true }) { Icon(Icons.Outlined.Mic, tr("Voice input")) }
                 PrivacyEyeButton()
                 IconButton(onClick = { nav.push(Screen.Templates) }) { Icon(Icons.Outlined.StarOutline, tr("Bookmarks")) }
                 IconButton(onClick = { nav.push(Screen.Search) }) { Icon(Icons.Outlined.Search, tr("Search")) }
@@ -173,6 +172,7 @@ fun TransactionsTab() {
               }
             }
         }
+        if (listening) ListenSheet(onDismiss = { listening = false })
         if (filterSheet) FilterSheet(range, filter, onDismiss = { filterSheet = false }) { filter = it; filterSheet = false }
         // Note button beside + on the Daily view (Configuration › Note button).
         val noteButton by remember(repo) { repo.setting(app.moneytracker.data.MoneyRepository.Keys.NOTE_BUTTON) }.collectAsState(null)

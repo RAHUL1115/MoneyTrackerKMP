@@ -30,7 +30,8 @@ object SmsParser {
         "SCB" to "Standard Chartered", "SCBANK" to "Standard Chartered", "CITI" to "Citi", "AMEX" to "American Express",
         "HSBC" to "HSBC", "PAYTM" to "Paytm Payments Bank", "AIRBNK" to "Airtel Payments Bank", "IDBI" to "IDBI Bank",
         "BOI" to "Bank of India", "CBOI" to "Central Bank", "IOB" to "Indian Overseas Bank", "SIB" to "South Indian Bank",
-        "ONECRD" to "OneCard", "JUPITER" to "Jupiter", "FIMONEY" to "Fi", "SLICE" to "slice", "SLCBNK" to "slice",
+        "ONECRD" to "OneCard", "JUPITER" to "Jupiter", "FIMONEY" to "Fi", "SLICE" to "slice", "SLCBNK" to "slice", "SLCEIT" to "slice",
+        "UTKS" to "Utkarsh SFB", "IPBMSG" to "India Post Payments Bank", "IPPB" to "India Post Payments Bank", "FEDSCP" to "Scapia",
     )
 
     private val currencyTokens = mapOf(
@@ -42,23 +43,36 @@ object SmsParser {
     private val amountAfterRe = Regex("""(?i)(?:debited|credited|spent|paid|received|withdrawn|sent)\s+(?:by|for|of|with)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)""")
     private val digitsRe = Regex("""(?i)(?:a/c|acct|account|card|ac)\s*(?:no\.?)?\s*(?:ending(?:\s+with|\s+in)?|xx+|\*+|x+|no\.?)?\s*[x*]*(\d{3,6})\b""")
     private val vendorRes = listOf(
+        Regex("""(?i)@\s*upi[_-]([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+\d|[.,]|$)"""),           // YES Bank "@UPI_SHOP NAME 18-01-…"
         Regex("""(?i)\bvpa\s+([a-z0-9._-]+)@[a-z]+"""),                                   // UPI handle → name part
         Regex("""(?i)\b(?:at|@)\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+(?:on|via|ref|txn|using|for|avl|avbl|\d)|[.,]|$)"""),
-        Regex("""(?i)\bto\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+(?:on|via|ref|upi|txn|from|avl|avbl|\d)|[.,]|$)"""),
+        Regex("""(?i)\bto\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+(?:on|via|ref|rrn|upi|txn|from|avl|avbl|utr|\d)|[.,]|$)"""),
         Regex("""(?i)\bfrom\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+(?:on|via|ref|upi|txn|avl|avbl|\d)|[.,]|$)"""),
         Regex("""(?i)\binfo:?\s*([a-z0-9][a-z0-9 &'./_-]{1,40}?)(?=[.,]|$)"""),
         Regex("""(?i)\btowards\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=[.,]|$)"""),
     )
-    private val debitWords = listOf("debited", "spent", "paid", "purchase", "withdrawn", "withdrawal", "sent", "debit", "txn of", "used for", "used at", "used on", "charged")
+    private val debitWords = listOf("debited", "spent", "paid", "purchase", "withdrawn", "withdrawal", "sent", "debit", "txn of", "txn rs", "transaction of",
+        "used for", "used at", "used on", "charged")
     private val refundWords = listOf("refund", "reversal", "reversed", "chargeback")
     private val creditWords = listOf("credited", "received", "deposited", "refund", "reversal", "reversed", "credit of", "added to")
     /** Never a completed transaction: codes, upcoming debits, bills and loan pitches. */
     private val noise = listOf("otp", "one time password", "verification code", "pre-approved", "apply now", "eligible for",
         "due date", "minimum amount due", "statement is ready", "will be debited",
         // Attempts that didn't go through.
-        "failed", "declined", "unsuccessful", "not debited", "no amount debited", "could not be processed")
+        "failed", "declined", "unsuccessful", "not debited", "no amount debited", "could not be processed", "cannot be debited",
+        // Bill reminders, credit/loan pitches that need consent, payment requests and bait.
+        "is due on", "are due on", "require consent", "requires consent", "continue disbursement", "access loan", "t&c apply",
+        "collect request", "requested money", "has requested")
+    private val noiseRes = listOf(
+        Regex("""(?i)(?:rs\.?|inr|₹)\s*[0-9][0-9,]*(?:\.[0-9]+)?\*"""),   // "Rs. 8,000* is credited" (asterisked bait)
+        Regex("""(?i)e-?mandate.{0,120}\bhas been registered|mandate (?:is )?not registered"""),
+    )
+    /** Paying the card bill: the bank-account debit already records the money leaving, so this isn't income. */
+    private val cardPaymentRe = Regex("""(?i)\b(?:re)?payment (?:of )?(?:rs\.?|inr|₹)?\s*[0-9][0-9,]*(?:\.[0-9]+)?\s+(?:has been |is |was )?(?:received|credited)\s+(?:towards|for|to|on|in)\b.{0,60}?\bcard\b""")
+    /** Words that, just before an amount, mark it as a balance or limit rather than the money moved. */
+    private val balanceRe = Regex("""(?i)(?:bal|balance|avl|avbl|available|limit|lmt|due|outstanding)[\s.:\-]*$""")
     /** Marketing words. Banks often append an ad to a real alert, so these only rule out messages that don't look like one. */
-    private val promo = listOf("offer", "voucher", "win ", "congratulations", "cashback")
+    private val promo = listOf("offer", "voucher", "win ", "congratulations", "cashback", "scratch card", " or more", "redemption transaction")
     private val doneRe = Regex("""(?i)\b(?:debited|credited|spent|sent|withdrawn)\b""")
     private val refRe = Regex("""(?i)\bref""")
 
@@ -68,15 +82,16 @@ object SmsParser {
 
     fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed? {
         val lower = text.lowercase()
-        if (noise.any { it in lower }) return null
+        if (noise.any { it in lower } || noiseRes.any { it.containsMatchIn(text) } || cardPaymentRe.containsMatchIn(text)) return null
         if (promo.any { it in lower } && !looksLikeAlert(text, lower)) return null
         val isDebit = debitWords.any { it in lower }
         val isCredit = creditWords.any { it in lower }
         if (!isDebit && !isCredit) return null
 
-        val (rawAmount, code) = amountRe.find(text)?.let { m ->
-            m.groupValues[2] to currencyTokens[m.groupValues[1].lowercase()]
-        } ?: amountAfterRe.find(text)?.let { it.groupValues[1] to null } ?: return null
+        // Skip "Avl Bal INR 24.42"-style amounts; fall back to "debited with 265.44" when only the balance has a currency.
+        val (rawAmount, code) = amountRe.findAll(text).firstOrNull { m -> !balanceRe.containsMatchIn(text.substring(maxOf(0, m.range.first - 25), m.range.first)) }
+            ?.let { m -> m.groupValues[2] to currencyTokens[m.groupValues[1].lowercase()] }
+            ?: amountAfterRe.find(text)?.let { it.groupValues[1] to null } ?: return null
         val major = rawAmount.replace(",", "").toDoubleOrNull() ?: return null
         if (major <= 0) return null
         val amount = kotlin.math.round(major * CurrencyFormat.pow10(mainDecimals)).toLong()
@@ -122,7 +137,9 @@ object SmsParser {
             val v = re.find(text)?.groupValues?.get(1)?.trim()?.trimEnd('.', '-', '_') ?: continue
             val cleaned = v.replace(Regex("""\s+"""), " ")
             if (cleaned.length < 2 || cleaned.all { it.isDigit() || it == 'x' || it == 'X' || it == '*' }) continue
-            if (cleaned.lowercase() in setOf("your", "your a/c", "a/c", "account", "card", "you", "bank")) continue
+            val low = cleaned.lowercase()
+            if (low in setOf("your", "your a/c", "a/c", "account", "card", "you", "bank", "vpa", "rs", "inr")) continue
+            if (low.startsWith("your ") || Regex("""^\d{5,}\b""").containsMatchIn(low) || listOf("dispute", "if not you", "credit card account").any { it in low }) continue
             return cleaned.split(' ').joinToString(" ") { w -> if (w.length > 3 && w.all { it.isUpperCase() || !it.isLetter() }) w.lowercase().replaceFirstChar { it.uppercase() } else w }
         }
         return null

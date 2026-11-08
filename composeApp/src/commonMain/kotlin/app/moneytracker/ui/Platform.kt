@@ -53,6 +53,26 @@ data class WebDashboardState(
     val stopReason: String? = null,
 )
 
+/** Events from an in-app listening session. All run on the main thread. */
+interface SpeechListener {
+    /** Rough loudness 0..1, for the sound bars. */
+    fun onLevel(level: Float) {}
+    /** The words heard so far (replaces the previous partial text). */
+    fun onPartial(text: String)
+    /** Listening ended with this text (may be empty if nothing was understood). */
+    fun onFinal(text: String)
+    fun onError(error: SpeechError)
+}
+
+enum class SpeechError { NO_PERMISSION, NO_MATCH, NETWORK, BUSY, OTHER }
+
+interface SpeechSession {
+    /** Stop listening and deliver what was heard through onFinal. */
+    fun stop()
+    /** Stop without a result. */
+    fun cancel()
+}
+
 interface PlatformServices {
     // security
     /** A new hash for [pin], with its own salt inside, so it checks out on any install. */
@@ -82,6 +102,15 @@ interface PlatformServices {
     // input helpers
     val voiceAvailable: Boolean
     fun listen(onText: (String) -> Unit)
+    /** True when MoneyTracker's own listening sheet can turn speech into text on this phone. */
+    val speechAvailable: Boolean
+    /**
+     * Starts listening in the app (no system popup); asks for the microphone first if needed. Words arrive through
+     * [listener] while the person speaks. Returns null when nothing can listen here.
+     */
+    fun startSpeech(listener: SpeechListener): SpeechSession?
+    /** A Smart entry model file (bytes), or null when the app doesn't ship it. */
+    fun readSmartModel(name: String): ByteArray?
     fun currentLocation(onResult: (lat: Double, lng: Double) -> Unit, onUnavailable: () -> Unit)
     fun openMap(lat: Double, lng: Double)
 
