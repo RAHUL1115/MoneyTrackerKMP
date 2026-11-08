@@ -61,6 +61,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -257,9 +258,38 @@ private fun DailyView(range: DateRange, onType: () -> Unit, onSpeak: () -> Unit)
     val visible = txns.filter { it.kind != TxnKind.TRANSFER_IN }
     if (visible.isEmpty()) { ClassicSmartAddBar(onType, onSpeak); EmptyState(icon = Icons.Outlined.Inbox); return }
     val dayTotals = rows.groupBy { it.date }.mapValues { totals(it.value) }
-    LazyColumn(Modifier.fillMaxSize()) {
-        // Smart add is the first card: it scrolls away with the list and comes back when you pull down to the top.
-        item(key = "smartAdd") { ClassicSmartAddBar(onType, onSpeak) }
+    // Smart add latches: shown when the list opens, gone once it scrolls out of view (coming back to the top doesn't
+    // bring it back), and revealed again by a second pull down while already at the top.
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    var barShown by remember { mutableStateOf(true) }
+    androidx.compose.runtime.LaunchedEffect(listState) {
+        androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex }.collect { if (it >= 1) barShown = false }
+    }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val revealPx = with(density) { 56.dp.toPx() }
+    val pull = remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            var pulled = 0f
+            override fun onPostScroll(consumed: androidx.compose.ui.geometry.Offset, available: androidx.compose.ui.geometry.Offset,
+                                      source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): androidx.compose.ui.geometry.Offset {
+                // Downward drag the list couldn't use: it's already at the top.
+                if (!barShown && available.y > 0f && source == androidx.compose.ui.input.nestedscroll.NestedScrollSource.UserInput) {
+                    pulled += available.y
+                    if (pulled > revealPx) { barShown = true; pulled = 0f }
+                } else if (available.y <= 0f) pulled = 0f
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity { pulled = 0f; return androidx.compose.ui.unit.Velocity.Zero }
+        }
+    }
+    LazyColumn(Modifier.fillMaxSize().nestedScroll(pull), state = listState) {
+        item(key = "smartAdd") {
+            androidx.compose.animation.AnimatedVisibility(
+                barShown,
+                enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
+            ) { ClassicSmartAddBar(onType, onSpeak) }
+        }
         // One card per day: header and its entries.
         visible.groupBy { it.date }.forEach { (date, dayTxns) ->
             item(key = "h$date") {
