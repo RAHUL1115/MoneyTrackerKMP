@@ -114,7 +114,8 @@ private const val RECENT_TAB = "recent"
 private const val OTHER_TAB = "other"
 
 /** The row the tray is filling. */
-private enum class Step { AMOUNT, CATEGORY, ACCOUNT, FROM, TO, NOTE }
+/** [CLOSED]: nothing is being filled (after the note, like the classic layout); tapping a row opens its tray again. */
+private enum class Step { AMOUNT, CATEGORY, ACCOUNT, FROM, TO, NOTE, CLOSED }
 
 private enum class AddSheet { NONE, TAGS, REPEAT, CURRENCY, BOOKMARK, COPY, DATE, PHOTO, DESC, PLACE, ORIGIN }
 
@@ -517,10 +518,11 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     LaunchedEffect(noteFocused) { if (noteFocused) step = Step.NOTE }
     var imeWasUp by remember { mutableStateOf(false) }
     LaunchedEffect(imeUp) {
-        if (imeWasUp && !imeUp && step == Step.NOTE) { focus.clearFocus(); step = Step.AMOUNT }
+        // The note is the last step: closing its keyboard closes the tray too, as in the classic layout.
+        if (imeWasUp && !imeUp && step == Step.NOTE) { focus.clearFocus(); step = Step.CLOSED }
         imeWasUp = imeUp
     }
-    LaunchedEffect(isTransfer) { if (step !in order) step = Step.AMOUNT }
+    LaunchedEffect(isTransfer) { if (step != Step.CLOSED && step !in order) step = Step.AMOUNT }
 
     @Composable
     fun saveRow() {
@@ -608,14 +610,14 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                         Step.AMOUNT -> if (feeTarget) tr("Fee") else tr("Amount")
                         Step.CATEGORY -> sub?.name ?: tr("Category")
                         Step.ACCOUNT -> if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) tr("Paid into") else tr("Pay from")
-                        Step.FROM -> tr("Move from"); Step.TO -> tr("Move to"); Step.NOTE -> tr("Note")
+                        Step.FROM -> tr("Move from"); Step.TO -> tr("Move to"); Step.NOTE -> tr("Note"); Step.CLOSED -> ""
                     }
                     if (sub != null) Icon(Glyph.Back, tr("All categories"), tint = F.muted, modifier = Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).clickable { subOf = null }.padding(7.dp))
                     Text(title, Modifier.weight(1f).padding(start = 4.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Box(
                     Modifier.height(32.dp).clip(RoundedCornerShape(10.dp)).background(F.accentTint)
-                        .clickable { if (step == Step.NOTE) { focus.clearFocus(); step = Step.AMOUNT } else advance() }.padding(horizontal = 12.dp),
+                        .clickable { if (step == Step.NOTE) { focus.clearFocus(); step = Step.CLOSED } else advance() }.padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center,
                 ) { Text(if (step == Step.NOTE) tr("Done") else tr("Next ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             }
@@ -660,7 +662,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                             nav.push(if (accounts.isEmpty()) Screen.EditAccount() else Screen.AccountList)
                         }
                     }
-                    Step.NOTE -> Unit  // the phone keyboard sits here
+                    Step.NOTE, Step.CLOSED -> Unit  // the phone keyboard sits here
                 }
             }
         }
@@ -786,7 +788,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             // Spare height sits between the chips and the keypad; on shorter screens the keypad gives some up.
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Bottom)) {
             saveRow()
-            tray(Modifier.weight(1f, fill = false).heightIn(min = 232.dp, max = 300.dp))
+            if (step != Step.CLOSED) tray(Modifier.weight(1f, fill = false).heightIn(min = 232.dp, max = 300.dp))
             }
         }
         // Past notes and the suggested category ride on a strip on top of the keyboard, so they push nothing.
