@@ -132,7 +132,7 @@ fun TransactionsTab() {
                             .padding(horizontal = 5.dp), color = Color.White, fontSize = 10.sp)
                     }
                 }
-                if (platform.speechAvailable) IconButton(onClick = { listenTyping = false; listening = true }) { Icon(Icons.Outlined.Mic, tr("Voice input")) }
+                // No mic here: the Smart add bar under the tabs has it, next to typing.
                 PrivacyEyeButton()
                 IconButton(onClick = { nav.push(Screen.Templates) }) { Icon(Icons.Outlined.StarOutline, tr("Bookmarks")) }
                 IconButton(onClick = { nav.push(Screen.Search) }) { Icon(Icons.Outlined.Search, tr("Search")) }
