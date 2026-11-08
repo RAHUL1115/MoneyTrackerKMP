@@ -102,6 +102,88 @@ class AndroidBackupController(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { runWithMessage { importPhotosFrom(it) } } }
 
+    // ───────────────────────── backup folder (picked by the person, outside app storage)
+
+    private val prefs = activity.getSharedPreferences("backup", android.content.Context.MODE_PRIVATE)
+    private val _folder = MutableStateFlow(prefs.getString(FOLDER_KEY, null)?.let { folderLabel(Uri.parse(it)) })
+    private val _folderProblem = MutableStateFlow(false)
+    override val backupFolder: StateFlow<String?> = _folder
+    override val backupFolderProblem: StateFlow<Boolean> = _folderProblem
+
+    private val folderLauncher = activity.registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri ?: return@registerForActivityResult
+        runWithMessage {
+            val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            activity.contentResolver.takePersistableUriPermission(uri, flags)
+            prefs.getString(FOLDER_KEY, null)?.takeIf { it != uri.toString() }?.let { old ->
+                runCatching { activity.contentResolver.releasePersistableUriPermission(Uri.parse(old), flags) }
+            }
+            prefs.edit().putString(FOLDER_KEY, uri.toString()).apply()
+            _folder.value = folderLabel(uri)
+            _folderProblem.value = false
+            // Start the folder off with a fresh backup, so it's useful straight away.
+            snapshot("manual")
+            if (_folderProblem.value) error(tr("Could not write to that folder"))
+            tr("Backups will also be saved to {0}", _folder.value ?: "")
+        }
+    }
+
+    override fun pickBackupFolder() = folderLauncher.launch(null)
+
+    override fun clearBackupFolder() {
+        prefs.getString(FOLDER_KEY, null)?.let { old ->
+            val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            runCatching { activity.contentResolver.releasePersistableUriPermission(Uri.parse(old), flags) }
+        }
+        prefs.edit().remove(FOLDER_KEY).apply()
+        _folder.value = null
+        _folderProblem.value = false
+    }
+
+    /** "primary:Documents/MoneyTracker" → "Documents/MoneyTracker"; other providers (Drive…) → the folder's name. */
+    private fun folderLabel(tree: Uri): String {
+        val id = runCatching { android.provider.DocumentsContract.getTreeDocumentId(tree) }.getOrNull().orEmpty()
+        if (id.startsWith("primary:")) return id.removePrefix("primary:").ifEmpty { tr("Phone storage") }
+        val doc = runCatching { android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, id) }.getOrNull()
+        val name = doc?.let { d ->
+            runCatching {
+                activity.contentResolver.query(d, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)
+                    ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            }.getOrNull()
+        }
+        return name ?: id.substringAfter(':').ifEmpty { tr("Chosen folder") }
+    }
+
+    /** Copies [file] into the chosen folder as MoneyTracker-<kind>-<time>.mtbak and keeps the newest [KEEP] of that kind there. */
+    private fun copyToFolder(file: File, kind: String) {
+        val tree = prefs.getString(FOLDER_KEY, null)?.let { Uri.parse(it) } ?: return
+        val cr = activity.contentResolver
+        try {
+            val parentId = android.provider.DocumentsContract.getTreeDocumentId(tree)
+            val parent = android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, parentId)
+            val name = "MoneyTracker-${file.name}"
+            val target = android.provider.DocumentsContract.createDocument(cr, parent, "application/octet-stream", name) ?: error("create")
+            cr.openOutputStream(target, "w")?.use { out -> file.inputStream().use { it.copyTo(out) } } ?: error("write")
+            // Prune old copies of this kind (only files this app named).
+            val children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId)
+            val cols = arrayOf(android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID, android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            val mine = ArrayList<Pair<String, String>>()
+            cr.query(children, cols, null, null, null)?.use { c ->
+                while (c.moveToNext()) {
+                    val n = c.getString(1) ?: continue
+                    if (n.startsWith("MoneyTracker-$kind-") && n.endsWith(".$EXT")) mine.add(c.getString(0) to n)
+                }
+            }
+            // Names carry the time (yyyyMMdd-HHmmss), so sorting by name is newest-last.
+            mine.sortedByDescending { it.second }.drop(KEEP).forEach { (id, _) ->
+                runCatching { android.provider.DocumentsContract.deleteDocument(cr, android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, id)) }
+            }
+            _folderProblem.value = false
+        } catch (e: Exception) {
+            _folderProblem.value = true
+        }
+    }
+
     override fun backupNow() = run(tr("Backup created")) { snapshot("manual") }
 
     override fun exportPhotos() = photoExportLauncher.launch("MoneyTracker-photos-${stamp()}.zip")
@@ -177,6 +259,7 @@ class AndroidBackupController(
         val out = File(dir, "$kind-${stamp()}.$EXT")
         db.dbFile.copyTo(out, overwrite = true)
         DatabaseManager.validate(out)?.let { out.delete(); error(it) }
+        if (kind == "auto" || kind == "manual") copyToFolder(out, kind)
         prune()
         refresh()
         return out
@@ -394,6 +477,7 @@ class AndroidBackupController(
 
     companion object {
         const val KEEP = 10
+        private const val FOLDER_KEY = "folderUri"
         /** Our own backup format (a copy of the database). Restore tells formats apart by content, not by name. */
         const val EXT = "mtbak"
         /** Backups made before 0.1.7; still listed and restorable. */

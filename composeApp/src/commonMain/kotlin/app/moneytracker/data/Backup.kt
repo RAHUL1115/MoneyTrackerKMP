@@ -17,6 +17,18 @@ interface BackupController {
     val status: StateFlow<String?>
 
     fun backupNow()
+
+    /**
+     * The folder (picked once by the person) where daily and manual backups are also saved, so file managers, cloud
+     * apps and a reinstall can reach them. Shown as a readable path; null when none is chosen. [backupFolderProblem]
+     * is set when the last copy there failed (folder removed or access taken away).
+     */
+    val backupFolder: StateFlow<String?>
+    val backupFolderProblem: StateFlow<Boolean>
+    /** Opens the system folder picker; the chosen folder gets a copy of the newest backup right away. */
+    fun pickBackupFolder()
+    /** Stops saving to the folder (files already there are left alone). */
+    fun clearBackupFolder()
     fun restoreLocal(name: String)
     fun deleteLocal(name: String)
 

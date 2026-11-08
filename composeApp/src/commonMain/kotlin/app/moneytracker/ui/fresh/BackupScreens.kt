@@ -83,6 +83,8 @@ internal fun FreshBackup() {
     val local by backup.localBackups.collectAsState()
     val status by backup.status.collectAsState()
     val pendingImport by backup.pendingImport.collectAsState()
+    val folder by backup.backupFolder.collectAsState()
+    val folderProblem by backup.backupFolderProblem.collectAsState()
     var restoring by remember { mutableStateOf<app.moneytracker.data.LocalBackup?>(null) }
     var deleting by remember { mutableStateOf<app.moneytracker.data.LocalBackup?>(null) }
     var confirmFile by remember { mutableStateOf(false) }
@@ -106,12 +108,28 @@ internal fun FreshBackup() {
                 if (s != null) StgTextButton(tr("OK"), backup::clearStatus)
             }
             Text(
-                tr("Everything stays on this phone. A snapshot is taken automatically once a day (last 10 kept). Keep a copy somewhere else in case you lose or reset the phone."),
+                tr("A snapshot is taken automatically once a day (last 10 kept). Choose a backup folder and each one is also saved there, where file managers and cloud apps can reach it and it survives uninstalling the app."),
                 Modifier.padding(top = 8.dp, bottom = 14.dp), color = F.muted, fontSize = 13.sp,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CardButton(tr("Back up now"), backup::backupNow, Modifier.weight(1f), F.accent, F.onAccent, FontWeight.SemiBold)
                 CardButton(tr("Share a copy…"), backup::shareBackup, Modifier.weight(1f), F.page, F.ink)
+            }
+        }
+
+        // Backup folder: outside the app, picked once.
+        FCard(padding = 0.dp) {
+            Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
+                FRow(
+                    tr("Backup folder"),
+                    when {
+                        folder == null -> tr("Not set. Choose one, e.g. Documents/MoneyTracker or a Drive folder")
+                        folderProblem -> tr("Can't reach {0}. Choose again", folder!!)
+                        else -> tr("Daily and manual backups are also saved to {0}", folder!!)
+                    },
+                    onClick = backup::pickBackupFolder,
+                )
+                if (folder != null) { Divider(); FRow(tr("Stop saving to this folder"), tr("Files already there are kept"), onClick = backup::clearBackupFolder) }
             }
         }
 

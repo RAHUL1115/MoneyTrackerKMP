@@ -15,7 +15,7 @@ You can set a password, which is stored on the phone only as a salted hash; afte
 ## What the app stores
 Everything you enter (accounts, entries, categories, budgets, notes, tags, receipt photos, settings) is stored only in the app's private storage on your phone. Daily automatic snapshots are kept there too (the last 10).
 
-Data leaves the app only when **you** export or share a backup, CSV or Excel file; it goes where you choose in the system file picker or share sheet.
+Data leaves the app only when **you** export or share a backup, CSV or Excel file; it goes where you choose in the system file picker or share sheet. If you choose a **backup folder**, the daily and manual backups are also saved there (newest 10 kept). Like any file in that folder, other apps that can open the folder, and a cloud app that syncs it, can read those backups; pick a folder you trust.
 
 The app is excluded from Android's cloud backup, so nothing is copied to your Google account. When you set up a new phone by copying directly from the old one (cable or Wi-Fi), Android 12 and later may bring the app's data across; otherwise, export a backup file and restore it on the new phone (More › Backup & security › Backup & restore).
 

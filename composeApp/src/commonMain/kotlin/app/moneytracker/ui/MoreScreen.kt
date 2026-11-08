@@ -690,6 +690,8 @@ fun BackupScreen() {
     val local by backup.localBackups.collectAsState()
     val status by backup.status.collectAsState()
     val pendingImport by backup.pendingImport.collectAsState()
+    val folder by backup.backupFolder.collectAsState()
+    val folderProblem by backup.backupFolderProblem.collectAsState()
     var restoring by remember { mutableStateOf<LocalBackup?>(null) }
     var confirmImport by remember { mutableStateOf(false) }
     var resetting by remember { mutableStateOf<Boolean?>(null) }   // true = everything, false = entries only
@@ -702,9 +704,29 @@ fun BackupScreen() {
         LazyColumn(Modifier.fillMaxSize()) {
             item {
                 Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(tr("Everything stays on this device. A snapshot is taken automatically once a day (last 10 kept). " +
-                        "Export a copy to another folder, SD card or cloud drive to protect against losing the phone."),
+                    Text(tr("A snapshot is taken automatically once a day (last 10 kept). Choose a backup folder and each one is " +
+                        "also saved there, where file managers and cloud apps can reach it and it survives uninstalling the app."),
                         fontSize = 13.sp, color = SubtleText)
+                    // Backup folder: outside the app, picked once.
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(PageBackground).clickable(onClick = backup::pickBackupFolder)
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(tr("Backup folder"), fontSize = 15.sp)
+                            Text(
+                                when {
+                                    folder == null -> tr("Not set. Tap to choose, e.g. Documents/MoneyTracker")
+                                    folderProblem -> tr("Can't reach {0}. Tap to choose again", folder!!)
+                                    else -> folder!!
+                                },
+                                fontSize = 12.sp, color = if (folderProblem) DangerColor else if (folder == null) SubtleText else Accent,
+                            )
+                        }
+                        if (folder != null) TextButton(onClick = backup::clearBackupFolder) { Text(tr("Stop"), color = SubtleText) }
+                        else Text(tr("Choose"), color = Accent, fontSize = 14.sp)
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         BackupButton(tr("Back up now"), Modifier.weight(1f), filled = true, onClick = backup::backupNow)
                         BackupButton(tr("Export file"), Modifier.weight(1f), onClick = backup::exportToFile)
