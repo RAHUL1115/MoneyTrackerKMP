@@ -505,3 +505,11 @@ fun Modifier.bleedScroll(state: androidx.compose.foundation.ScrollState): Modifi
 
 @Composable
 fun HGap(w: Dp) = Spacer(Modifier.width(w))
+
+/** The listening sheet in the new layout's look (canvas 7.1): rounder sheet, its own teal, "Type instead". */
+@Composable
+internal fun newListenLook() = app.moneytracker.ui.ListenLook(
+    sheet = F.card, ink = F.ink, inkSoft = F.ink, muted = F.muted, accent = F.accent, onAccent = F.onAccent,
+    line = F.line, fill = F.fill, border = F.border, danger = F.danger, income = F.income, expense = F.expense,
+    radius = 28.dp, button = F.buttonShape, typeLabel = tr("Type instead"),
+)

@@ -69,7 +69,7 @@ import app.moneytracker.ui.LocalTxnFilter
 import app.moneytracker.ui.MonthPickerDialog
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.TxnFilter
-import app.moneytracker.ui.VoiceParser
+import app.moneytracker.ui.ListenSheet
 import app.moneytracker.ui.categoryPath
 import app.moneytracker.ui.flattenCategories
 import app.moneytracker.ui.formatTime
@@ -135,6 +135,7 @@ internal fun ActivityTab() {
     var selection by remember { mutableStateOf(emptySet<String>()) }
     var filterSheet by remember { mutableStateOf(false) }
     var moreSheet by remember { mutableStateOf(false) }
+    var listening by remember { mutableStateOf(false) }
     var monthPicker by remember { mutableStateOf(false) }
     val pending by repo.pendingCaptures.collectAsState(emptyList())
     val ym = YearMonth.fromKey(periodKey)
@@ -211,7 +212,8 @@ internal fun ActivityTab() {
     if (monthPicker) MonthPickerDialog(ym, ps.labelFor(repo.today()), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
     if (filterSheet) FilterSheet(range, filter, onDismiss = { filterSheet = false }) { filter = it; filterSheet = false }
     if (moreSheet) MoreSheet(pending.size, onDismiss = { moreSheet = false },
-        onSelect = if (view == ActView.LIST) ({ moreSheet = false; selecting = true }) else null)
+        onSelect = if (view == ActView.LIST) ({ moreSheet = false; selecting = true }) else null, onVoice = { listening = true })
+    if (listening) ListenSheet(onDismiss = { listening = false }, look = newListenLook()) { g -> nav.push(Screen.EditTxn(preset = g?.draft)) }
 }
 
 @Composable
@@ -243,7 +245,7 @@ private fun ActFilterBar(filter: TxnFilter, catById: Map<String, Category>, acco
 
 /** Select, and the shortcuts the classic tab had in its top bar. */
 @Composable
-private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit)?) {
+private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit)?, onVoice: () -> Unit) {
     val nav = LocalNavigator.current
     val repo = LocalRepo.current
     val platform = LocalPlatform.current
@@ -252,10 +254,7 @@ private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit
     Sheet(tr("Activity"), onDismiss) {
         if (onSelect != null) SheetOption(tr("Select entries"), subtitle = tr("Change or delete several at once"), onClick = onSelect)
         SheetOption(tr("Detected transactions"), subtitle = if (pending > 0) tr("{0} to review", pending) else null) { onDismiss(); nav.push(Screen.Inbox) }
-        if (platform.voiceAvailable) SheetOption(tr("Voice input")) {
-            onDismiss()
-            platform.listen { text -> nav.push(Screen.EditTxn(preset = VoiceParser.parse(text, repo.today(), currency))) }
-        }
+        if (platform.speechAvailable) SheetOption(tr("Voice input"), subtitle = tr("Say it, e.g. “1,200 for new shoes”")) { onDismiss(); onVoice() }
         SheetOption(tr("Add note")) { onDismiss(); nav.push(Screen.EditNote()) }
         SheetOption(tr("Repeat entries")) { onDismiss(); nav.push(Screen.Recurring) }
         SheetOption(tr("Export data to Excel")) { onDismiss(); backup.exportExcel() }

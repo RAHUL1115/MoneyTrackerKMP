@@ -93,7 +93,7 @@ import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.Screen
-import app.moneytracker.ui.VoiceParser
+import app.moneytracker.ui.ListenSheet
 import app.moneytracker.ui.categoryPath
 import app.moneytracker.ui.formatTime
 import app.moneytracker.ui.long
@@ -338,19 +338,8 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         else -> "${d.weekday()} ${d.short()}"
     }
 
-    fun listen() {
-        listening = true
-        platform.listen { text ->
-            listening = false
-            val d = VoiceParser.parse(text, repo.today(), fmt)
-            if (s.txnId == null) f.pickType(if (d.type == DraftType.REFUND) DraftType.INCOME else d.type)
-            if (d.type == DraftType.REFUND && f.type == DraftType.INCOME) { f.type = DraftType.REFUND; f.categoryId = null }
-            if (d.amount > 0) f.amountText = fmt.toInput(d.amount)
-            if (d.note.isNotBlank()) f.note = d.note
-            f.date = d.date
-            toaster.show(tr("Heard “{0}” · filled in for you", text))
-        }
-    }
+    // Smart entry: MoneyTracker's own listening sheet; what it understood fills this screen in place.
+    fun listen() { listening = true }
 
     fun save(continueAfter: Boolean) {
         val amount = f.amountValue()
@@ -431,7 +420,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         AddInput(
             f.note, { f.note = it }, tr("Note"), modifier, background = background,
             fieldModifier = Modifier.focusRequester(noteFocus).onFocusChanged { noteFocused = it.isFocused },
-            trailing = if (platform.voiceAvailable) ({
+            trailing = if (platform.speechAvailable) ({
                 Box(
                     Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(if (listening) F.accent else F.fill)
                         .clickable(onClickLabel = tr("Say the entry, e.g. 200 fuel")) { focus.clearFocus(); listen() },
@@ -808,6 +797,18 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     }
 
     // ───────────── sheets and dialogs
+
+    if (listening) ListenSheet(onDismiss = { listening = false }, look = newListenLook()) { g ->
+        val d = g?.draft ?: return@ListenSheet
+        if (s.txnId == null) f.pickType(if (d.type == DraftType.REFUND) DraftType.INCOME else d.type)
+        if (d.type == DraftType.REFUND && f.type == DraftType.INCOME) { f.type = DraftType.REFUND; f.categoryId = null }
+        if (d.amount > 0) f.amountText = fmt.toInput(d.amount)
+        if (d.note.isNotBlank()) f.note = d.note
+        f.date = d.date
+        if (d.type != DraftType.REFUND && d.categoryId != null) f.categoryId = d.categoryId
+        if (d.accountId.isNotBlank()) { f.accountId = d.accountId; f.accountChosen = true }
+        toaster.show(tr("Filled in from what you said. Check and save."))
+    }
 
     when (sheet) {
         AddSheet.NONE -> Unit

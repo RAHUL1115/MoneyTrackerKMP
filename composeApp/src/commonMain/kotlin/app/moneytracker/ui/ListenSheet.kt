@@ -35,6 +35,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -66,15 +71,21 @@ import kotlinx.coroutines.withContext
 private enum class ListenState { LISTENING, DONE, ERROR }
 
 /**
- * Classic layout: MoneyTracker's own listening sheet (canvas C7.1). Words appear as they're heard and the fields
- * Smart entry understood fill in underneath; "done" opens the Add screen with everything filled in.
+ * MoneyTracker's own listening sheet (canvas C7.1 classic, 7.1 new layout). Words appear as they're heard and the fields
+ * Smart entry understood fill in underneath. When the person is done (or taps Type), [onDone] gets what was understood
+ * (null when nothing was heard); the sheet has already closed. Draw it in either layout's look with [look].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ListenSheet(onDismiss: () -> Unit) {
+fun ListenSheet(onDismiss: () -> Unit, look: ListenLook = ListenLook.classic(), onDone: (SmartGuess?) -> Unit) {
+    CompositionLocalProvider(LocalListenLook provides look) { ListenSheetBody(onDismiss, onDone) }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ListenSheetBody(onDismiss: () -> Unit, onDone: (SmartGuess?) -> Unit) {
     val platform = LocalPlatform.current
     val repo = LocalRepo.current
-    val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val categories by repo.categories.collectAsState(emptyList())
     val accounts by repo.accounts.collectAsState(emptyList())
@@ -109,7 +120,7 @@ fun ListenSheet(onDismiss: () -> Unit) {
             val p = parser ?: SmartEntry.parser(platform)
             val g = if (p != null && text.isNotBlank()) SmartEntry.guess(p, text, repo.today(), currency, categories, accounts, learned) else null
             onDismiss()
-            nav.push(Screen.EditTxn(preset = g?.draft))
+            onDone(g)
         }
     }
 
@@ -136,18 +147,18 @@ fun ListenSheet(onDismiss: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = { session?.cancel(); onDismiss() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = SurfaceColor,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        containerColor = L.sheet,
+        shape = RoundedCornerShape(topStart = L.radius, topEnd = L.radius),
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
             // Status line
             Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
                 when (state) {
-                    ListenState.ERROR -> Text(errorTitle(error), color = DangerColor, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    ListenState.ERROR -> Text(errorTitle(error), color = L.danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     else -> {
                         SoundBars(if (state == ListenState.LISTENING) level else 0f)
                         Spacer(Modifier.width(10.dp))
-                        Text(tr(if (state == ListenState.DONE) "Got it" else "Listening…"), color = Accent, fontSize = 15.sp,
+                        Text(tr(if (state == ListenState.DONE) "Got it" else "Listening…"), color = L.accent, fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     }
                 }
@@ -158,13 +169,13 @@ fun ListenSheet(onDismiss: () -> Unit) {
                 if (heard.isBlank()) {
                     Text(
                         if (state == ListenState.ERROR) errorHint(error) else tr("Just say it, e.g. “1,200 for new shoes on my credit card” or “Got my salary, 50,000”."),
-                        color = SubtleText, fontSize = 16.sp, lineHeight = 22.sp,
+                        color = L.muted, fontSize = 16.sp, lineHeight = 22.sp,
                     )
-                } else Text(heard, color = Ink, fontSize = 22.sp, lineHeight = 30.sp, fontWeight = FontWeight.Medium)
+                } else Text(heard, color = L.ink, fontSize = 22.sp, lineHeight = 30.sp, fontWeight = FontWeight.Medium)
             }
 
             // Understood so far
-            Text(tr("Understood so far"), Modifier.padding(top = 10.dp), color = SubtleText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(tr("Understood so far"), Modifier.padding(top = 10.dp), color = L.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             val g = guess.takeIf { heard.isNotBlank() }
             val d = g?.draft
             UnderstoodRow(tr("Amount"), d?.amount?.takeIf { it > 0 }?.let { currency.format(it) }, d?.type?.let { typeColor(it) })
@@ -177,8 +188,8 @@ fun ListenSheet(onDismiss: () -> Unit) {
             Row(Modifier.fillMaxWidth().padding(top = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Surface(
                     onClick = { session?.cancel(); onDismiss() }, modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(12.dp), color = FillColor,
-                ) { Box(contentAlignment = Alignment.Center) { Text(tr("Cancel"), color = InkSoft, fontSize = 16.sp) } }
+                    shape = L.button, color = L.fill,
+                ) { Box(contentAlignment = Alignment.Center) { Text(tr("Cancel"), color = L.inkSoft, fontSize = 16.sp) } }
 
                 MainButton(state) {
                     when (state) {
@@ -190,14 +201,14 @@ fun ListenSheet(onDismiss: () -> Unit) {
 
                 Surface(
                     onClick = { openEditor(heard) }, modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(12.dp), color = SurfaceColor, border = BorderStroke(1.dp, BorderColor),
-                ) { Box(contentAlignment = Alignment.Center) { Text(tr("Type"), color = Accent, fontSize = 16.sp) } }
+                    shape = L.button, color = L.sheet, border = BorderStroke(1.dp, L.border),
+                ) { Box(contentAlignment = Alignment.Center) { Text(L.typeLabel, color = L.accent, fontSize = 16.sp) } }
             }
 
             Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Lock, null, Modifier.size(14.dp), tint = SubtleText)
+                Icon(Icons.Outlined.Lock, null, Modifier.size(14.dp), tint = L.muted)
                 Spacer(Modifier.width(6.dp))
-                Text(tr("Understood on this phone. Nothing leaves it."), color = SubtleText, fontSize = 12.sp)
+                Text(tr("Understood on this phone. Nothing leaves it."), color = L.muted, fontSize = 12.sp)
             }
         }
     }
@@ -206,10 +217,10 @@ fun ListenSheet(onDismiss: () -> Unit) {
 @Composable
 private fun UnderstoodRow(label: String, value: String?, color: Color? = null) {
     Row(Modifier.fillMaxWidth().heightIn(min = 36.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.width(80.dp), color = SubtleText, fontSize = 14.sp)
-        Text(value ?: "—", color = if (value == null) SubtleText else color ?: Ink, fontSize = 15.sp, maxLines = 1)
+        Text(label, Modifier.width(80.dp), color = L.muted, fontSize = 14.sp)
+        Text(value ?: "—", color = if (value == null) L.muted else color ?: L.ink, fontSize = 15.sp, maxLines = 1)
     }
-    HorizontalDivider(color = DividerColor)
+    HorizontalDivider(color = L.line)
 }
 
 /** The round button: stop while listening (pulsing), try again after an error. */
@@ -220,13 +231,13 @@ private fun MainButton(state: ListenState, onClick: () -> Unit) {
     Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
         if (state == ListenState.LISTENING) {
             Box(Modifier.size(72.dp).graphicsLayer { scaleX = 1f + 0.8f * t; scaleY = 1f + 0.8f * t; alpha = 0.45f * (1f - t) }
-                .background(Accent, CircleShape))
+                .background(L.accent, CircleShape))
         }
-        Surface(onClick = onClick, enabled = state != ListenState.DONE, modifier = Modifier.size(72.dp), shape = CircleShape, color = Accent) {
+        Surface(onClick = onClick, enabled = state != ListenState.DONE, modifier = Modifier.size(72.dp), shape = CircleShape, color = L.accent) {
             Box(contentAlignment = Alignment.Center) {
                 when (state) {
-                    ListenState.ERROR -> Icon(Icons.Filled.Mic, tr("Try again"), Modifier.size(28.dp), tint = Color.White)
-                    else -> Box(Modifier.size(22.dp).clip(RoundedCornerShape(5.dp)).background(Color.White))
+                    ListenState.ERROR -> Icon(Icons.Filled.Mic, tr("Try again"), Modifier.size(28.dp), tint = L.onAccent)
+                    else -> Box(Modifier.size(22.dp).clip(RoundedCornerShape(5.dp)).background(L.onAccent))
                 }
             }
         }
@@ -243,15 +254,15 @@ private fun SoundBars(level: Float) {
         repeat(5) { i ->
             val shift = (phase + i * 0.2f) % 1f
             val h = (0.45f + 0.25f * shift + 0.3f * smooth * (0.6f + 0.4f * shift)).coerceIn(0.3f, 1f)
-            Box(Modifier.width(3.dp).height(18.dp).scale(1f, h).clip(RoundedCornerShape(2.dp)).background(Accent))
+            Box(Modifier.width(3.dp).height(18.dp).scale(1f, h).clip(RoundedCornerShape(2.dp)).background(L.accent))
         }
     }
 }
 
 @Composable private fun typeColor(t: DraftType): Color = when (t) {
-    DraftType.INCOME -> IncomeColor
-    DraftType.TRANSFER -> InkSoft
-    else -> ExpenseColor
+    DraftType.INCOME -> L.income
+    DraftType.TRANSFER -> L.inkSoft
+    else -> L.expense
 }
 
 private fun dayLabel(daysAgo: Int): String = when (daysAgo) {
@@ -273,3 +284,20 @@ private fun errorHint(e: SpeechError?): String = when (e) {
     SpeechError.BUSY -> tr("The phone’s speech service is busy. Try again in a moment.")
     else -> tr("This phone has no speech recognition. Tap Type instead.")
 }
+
+/** Colours and shapes of the listening sheet, so each layout draws it in its own look. */
+data class ListenLook(
+    val sheet: Color, val ink: Color, val inkSoft: Color, val muted: Color, val accent: Color, val onAccent: Color,
+    val line: Color, val fill: Color, val border: Color, val danger: Color, val income: Color, val expense: Color,
+    val radius: Dp, val button: Shape, val typeLabel: String,
+) {
+    companion object {
+        @Composable fun classic() = ListenLook(
+            SurfaceColor, Ink, InkSoft, SubtleText, Accent, Color.White, DividerColor, FillColor, BorderColor, DangerColor,
+            IncomeColor, ExpenseColor, 20.dp, RoundedCornerShape(12.dp), tr("Type"),
+        )
+    }
+}
+
+private val LocalListenLook = staticCompositionLocalOf<ListenLook> { error("ListenLook not provided") }
+private val L: ListenLook @Composable @ReadOnlyComposable get() = LocalListenLook.current

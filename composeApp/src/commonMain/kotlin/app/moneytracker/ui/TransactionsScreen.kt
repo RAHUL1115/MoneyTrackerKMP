@@ -172,7 +172,7 @@ fun TransactionsTab() {
               }
             }
         }
-        if (listening) ListenSheet(onDismiss = { listening = false })
+        if (listening) ListenSheet(onDismiss = { listening = false }) { g -> nav.push(Screen.EditTxn(preset = g?.draft)) }
         if (filterSheet) FilterSheet(range, filter, onDismiss = { filterSheet = false }) { filter = it; filterSheet = false }
         // Note button beside + on the Daily view (Configuration › Note button).
         val noteButton by remember(repo) { repo.setting(app.moneytracker.data.MoneyRepository.Keys.NOTE_BUTTON) }.collectAsState(null)

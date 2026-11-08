@@ -179,6 +179,11 @@ fun App(
                         else -> {
                             // You're in: a passcode that appears now (turned on, or brought by a restore) asks only after the next restart or a while away.
                             if (locked) SideEffect { onUnlocked() }
+                            var voiceSheet by remember { mutableStateOf(false) }
+                            if (voiceSheet) ListenSheet(onDismiss = { voiceSheet = false },
+                                look = if (newLayout) app.moneytracker.ui.fresh.newListenLook() else ListenLook.classic()) { g ->
+                                navigator.push(Screen.EditTxn(preset = g?.draft))
+                            }
                             LaunchedEffect(launchAction) {
                                 val a = launchAction ?: return@LaunchedEffect
                                 navigator.stack.clear()
@@ -186,7 +191,7 @@ fun App(
                                     LaunchAction.ADD_EXPENSE -> navigator.push(Screen.EditTxn())
                                     LaunchAction.ADD_INCOME -> navigator.push(Screen.EditTxn(preset = TxnDraft(DraftType.INCOME, repo.today(), "", amount = 0)))
                                     LaunchAction.ADD_TRANSFER -> navigator.push(Screen.EditTxn(preset = TxnDraft(DraftType.TRANSFER, repo.today(), "", amount = 0)))
-                                    LaunchAction.VOICE -> platform.listen { text -> navigator.push(Screen.EditTxn(preset = VoiceParser.parse(text, repo.today(), currency))) }
+                                    LaunchAction.VOICE -> voiceSheet = true
                                     LaunchAction.INBOX -> navigator.push(Screen.Inbox)
                                     LaunchAction.SEARCH -> navigator.push(Screen.Search)
                                     LaunchAction.WEB_DASHBOARD -> navigator.push(Screen.WebDashboard)
