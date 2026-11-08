@@ -147,7 +147,6 @@ fun TransactionsTab() {
             }
             if (monthPicker) MonthPickerDialog(ym, ps.labelFor(repo.today()), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
             UnderlineTabs(TransView.entries.map { tr(it.title) }, view.ordinal) { view = TransView.entries[it] }
-            if (view == TransView.DAILY) ClassicSmartAddBar(onType = { listenTyping = true; listening = true }, onSpeak = { listenTyping = false; listening = true })
             if (filter.isActive && view != TransView.TOTAL && view != TransView.NOTE) {
                 FilterBar(filter, filterCats.associateBy { it.id }, filterAccounts, onEdit = { filterSheet = true }, onClear = { filter = TxnFilter() })
             }
@@ -166,7 +165,7 @@ fun TransactionsTab() {
             androidx.compose.runtime.CompositionLocalProvider(LocalTxnFilter provides filter) {
               Column(Modifier.fillMaxSize().then(swipeModifier)) {
                 when (view) {
-                    TransView.DAILY -> DailyView(range)
+                    TransView.DAILY -> DailyView(range, onType = { listenTyping = true; listening = true }, onSpeak = { listenTyping = false; listening = true })
                     TransView.CALENDAR -> CalendarView(range, ps.weekStart)
                     TransView.MONTHLY -> MonthlyView(ym, ps)
                     TransView.TOTAL -> androidx.compose.runtime.CompositionLocalProvider(LocalTxnFilter provides TxnFilter()) { TotalView(ym, range, ps) }
@@ -219,7 +218,7 @@ fun Txn.toReportRow(transferAsExpense: Map<String, Boolean>) = ReportRow(
 // ───────────────────────── Daily
 
 @Composable
-private fun DailyView(range: DateRange) {
+private fun DailyView(range: DateRange, onType: () -> Unit, onSpeak: () -> Unit) {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
@@ -256,9 +255,11 @@ private fun DailyView(range: DateRange) {
     if (pending.isNotEmpty()) UpcomingRepeatsRow(pending, catById, currency) { nav.push(Screen.Recurring) }
     // TRANSFER_IN rows mirror TRANSFER_OUT; show each transfer once.
     val visible = txns.filter { it.kind != TxnKind.TRANSFER_IN }
-    if (visible.isEmpty()) { EmptyState(icon = Icons.Outlined.Inbox); return }
+    if (visible.isEmpty()) { ClassicSmartAddBar(onType, onSpeak); EmptyState(icon = Icons.Outlined.Inbox); return }
     val dayTotals = rows.groupBy { it.date }.mapValues { totals(it.value) }
     LazyColumn(Modifier.fillMaxSize()) {
+        // Smart add is the first card: it scrolls away with the list and comes back when you pull down to the top.
+        item(key = "smartAdd") { ClassicSmartAddBar(onType, onSpeak) }
         // One card per day: header and its entries.
         visible.groupBy { it.date }.forEach { (date, dayTxns) ->
             item(key = "h$date") {
@@ -751,9 +752,9 @@ private fun UpcomingRepeatsRow(
 private fun ClassicSmartAddBar(onType: () -> Unit, onSpeak: () -> Unit) {
     val platform = LocalPlatform.current
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = ListCardMargin).padding(top = ListCardMargin).height(48.dp)
-            .clip(RoundedCornerShape(12.dp)).background(SurfaceColor).clickable(onClickLabel = tr("Type an entry"), onClick = onType)
-            .padding(start = 14.dp, end = 4.dp),
+        Modifier.fillMaxWidth().padding(top = 6.dp).card(ListCardMargin).height(52.dp)
+            .clickable(onClickLabel = tr("Type an entry"), onClick = onType)
+            .padding(start = ListRowInset + 4.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(tr("Type or say it: “1,200 for new shoes”"), Modifier.weight(1f), color = SubtleText, fontSize = 14.sp, maxLines = 1,
