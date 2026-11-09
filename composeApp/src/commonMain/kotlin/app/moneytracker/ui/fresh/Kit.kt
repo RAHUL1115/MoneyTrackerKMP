@@ -189,7 +189,7 @@ val LocalToaster = compositionLocalOf { Toaster() }
 @Composable
 fun ToastHost(toaster: Toaster, modifier: Modifier = Modifier) {
     val t = toaster.current ?: return
-    LaunchedEffect(t.id) { delay(if (t.undo != null) 8000 else 2500); if (toaster.current?.id == t.id) toaster.dismiss() }
+    LaunchedEffect(t.id) { delay(if (t.undo != null) 5000 else 2500); if (toaster.current?.id == t.id) toaster.dismiss() }
     val shape = RoundedCornerShape(14.dp)
     Row(
         modifier.padding(horizontal = F.gutter, vertical = 12.dp).fillMaxWidth().shadow(10.dp, shape)
