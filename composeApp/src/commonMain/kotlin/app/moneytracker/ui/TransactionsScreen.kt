@@ -782,7 +782,7 @@ private fun UpcomingRepeatsRow(
 
 /**
  * The newest detected bank SMS payment at the top of the Daily list, tinted so it stands apart from saved entries.
- * Tapping it opens Detected transactions, where it's added or dismissed; it says what's still missing, if anything.
+ * Tapping it opens Detected transactions, where it's added or dismissed.
  */
 @Composable
 private fun ClassicDetectedCard() {
@@ -801,11 +801,6 @@ private fun ClassicDetectedCard() {
     val refund = app.moneytracker.domain.isRefund(c.kind, c.amount)
     val income = c.kind == TxnKind.INCOME || refund
     val amount = currency.format(kotlin.math.abs(d.amount))
-    val missing = listOfNotNull(
-        tr("category").takeIf { d.categoryId == null },
-        tr("account").takeIf { d.accountId !in accountName },
-        tr("amount").takeIf { d.amount == 0L },
-    )
     val line = Accent.copy(alpha = 0.18f)
     // Tinted so it reads as "waiting for you", not as one of the saved entries below. The whole card opens the
     // detected SMS; only a complete payment gets the one-tap Add.
@@ -822,18 +817,14 @@ private fun ClassicDetectedCard() {
         }
         HorizontalDivider(color = line)
         Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(d.categoryId?.let { catById[it]?.name } ?: tr("Category?"), Modifier.width(76.dp), color = if (d.categoryId == null) ExpenseColor else SubtleText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(d.categoryId?.let { catById[it]?.name }.orEmpty(), Modifier.width(76.dp), color = SubtleText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(c.merchant.ifBlank { d.note.ifBlank { c.sender } }, color = Ink, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(accountName[d.accountId] ?: tr("Which account?"), color = if (d.accountId in accountName) SubtleText else ExpenseColor,
+                // Plain like a saved row: what's missing is chosen on the detected SMS screen, no prompts here.
+                Text(accountName[d.accountId] ?: c.sender, color = SubtleText,
                     fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Text((if (refund) "+" else "") + amount, Modifier.padding(start = 8.dp), color = if (income) IncomeColor else ExpenseColor, fontSize = 15.sp)
-        }
-        if (missing.isNotEmpty()) {
-            HorizontalDivider(color = line)
-            Text(tr("Tap to choose the {0}", missing.joinToString(tr(" and "))), Modifier.padding(vertical = 10.dp),
-                color = Accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
