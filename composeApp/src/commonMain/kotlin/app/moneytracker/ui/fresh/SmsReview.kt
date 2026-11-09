@@ -1,5 +1,6 @@
 package app.moneytracker.ui.fresh
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -118,8 +119,14 @@ internal fun SmsReviewScreen() {
 
     // The suggested entry for the message on top; its Dismiss / Edit / Add stay pinned at the bottom, under the thumb.
     val accountNames by repo.accountNames.collectAsState(emptyMap())
-    val draft by produceState<TxnDraft?>(null, current?.id) { value = current?.let { c -> withContext(repo.io) { repo.draftFromCapture(c) } } }
-    val d = draft
+    // The card swaps message and suggestion together, once the suggestion is ready, so picking another message never
+    // flashes half-filled rows ("Choose in Edit", "Not set") or jumps in height on the way.
+    var shown by remember { mutableStateOf<Pair<Capture, TxnDraft>?>(null) }
+    androidx.compose.runtime.LaunchedEffect(current?.id) {
+        shown = current?.let { c -> c to withContext(repo.io) { repo.draftFromCapture(c) } }
+    }
+    val sc = shown?.first?.takeIf { s -> s.id == current?.id }
+    val d = shown?.second?.takeIf { sc != null }
     val amountText = reviewAmount(d)
     val ready = d != null && d.amount != 0L && d.accountId in accountNames && d.categoryId != null
     SubScreen(
@@ -129,18 +136,25 @@ internal fun SmsReviewScreen() {
         scrollState = pageScroll,
         bottom = if (current == null) null else ({
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GreyButton(tr("Dismiss")) { dismiss(current) }
-                GreyButton(tr("Edit")) { d?.let { nav.push(Screen.EditTxn(preset = it, captureId = current.id)) } }
+                GreyButton(tr("Dismiss")) { sc?.let { dismiss(it) } }
+                GreyButton(tr("Edit")) { if (sc != null && d != null) nav.push(Screen.EditTxn(preset = d, captureId = sc.id)) }
                 AddButton(
                     if (ready) tr("Add {0}", amountText) else tr("Review and add"),
-                    onClick = { d?.let { if (ready) add(current, it) else nav.push(Screen.EditTxn(preset = it, captureId = current.id)) } },
-                    modifier = Modifier.weight(1f), enabled = d != null,
+                    onClick = { if (sc != null && d != null) { if (ready) add(sc, d) else nav.push(Screen.EditTxn(preset = d, captureId = sc.id)) } },
+                    modifier = Modifier.weight(1f), enabled = d != null && sc != null,
                 )
             }
         }),
     ) {
         if (current != null) {
-            ReviewCard(current, d, amountText, ready, position = captures.indexOf(current) + 1, total = captures.size)
+            // Until the first suggestion is ready there is nothing to show; afterwards the previous message stays
+            // until the next one is ready, then fades across.
+            shown?.let { first ->
+                androidx.compose.animation.Crossfade(first, Modifier.animateContentSize(androidx.compose.animation.core.tween<androidx.compose.ui.unit.IntSize>(180)), label = "review") { (c, cd) ->
+                    val r = cd.amount != 0L && cd.accountId in accountNames && cd.categoryId != null
+                    ReviewCard(c, cd, reviewAmount(cd), r, position = captures.indexOfFirst { it.id == c.id } + 1, total = captures.size)
+                }
+            }
         } else {
             FCard(padding = 24.dp) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -184,11 +198,11 @@ internal fun SmsReviewScreen() {
                         ) {
                             FRow(
                                 c.merchant.ifBlank { c.sender.ifBlank { tr("Pasted message") } },
-                                subtitle = if (selected) tr("In view") + " · " + whenLabel(c.receivedAt)
-                                    else "${c.sender.ifBlank { tr("Pasted") }} · ${whenLabel(c.receivedAt)}",
+                                // Same text and arrow on every row, selected or not: only the highlight moves, nothing shifts.
+                                subtitle = "${c.sender.ifBlank { tr("Pasted") }} · ${whenLabel(c.receivedAt)}",
                                 value = c.amount?.let { a -> if (app.moneytracker.domain.isRefund(c.kind, a)) currency.format(-a, showSign = true) else currency.format(a) },
                                 valueColor = if (c.kind == TxnKind.INCOME || app.moneytracker.domain.isRefund(c.kind, c.amount)) F.income else if (c.kind == TxnKind.EXPENSE) F.expense else F.ink,
-                                chevron = !selected,
+                                chevron = true,
                                 // While amounts are hidden, a tap also shows them for a few seconds.
                                 onClick = { app.moneytracker.ui.Privacy.peek(); select(c) },
                             )
