@@ -515,6 +515,15 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     }
     fun advance() {
         val rest = order.drop(order.indexOf(step) + 1)
+        if (s.captureId != null) {
+            // From a bank message: only what's still missing; a note already read from the SMS is skipped too, and
+            // with nothing left the keypad closes so Save is in reach.
+            val next = rest.firstOrNull { st ->
+                when (st) { Step.NOTE -> f.note.isBlank(); Step.ACCOUNT, Step.FROM -> f.accountId == null; else -> !filled(st) }
+            }
+            if (next != null) goTo(next) else { focus.clearFocus(); step = Step.CLOSED }
+            return
+        }
         goTo(rest.firstOrNull { it == Step.NOTE || !filled(it) } ?: Step.NOTE)
     }
     // A tap on the note, or the keyboard closing, keeps the tray in step with it.
@@ -526,6 +535,18 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         imeWasUp = imeUp
     }
     LaunchedEffect(isTransfer) { if (step != Step.CLOSED && step !in order) step = Step.AMOUNT }
+    // From a bank message: start on the first thing still missing (amount, category, account, then note); with
+    // everything there the keypad stays closed and Save is in reach.
+    LaunchedEffect(s.captureId) {
+        if (s.captureId == null || isTransfer) return@LaunchedEffect
+        val missing = listOf(
+            Step.AMOUNT to ((f.amountValue() ?: 0L) <= 0L),
+            Step.CATEGORY to (f.categoryId == null),
+            Step.ACCOUNT to (f.accountId == null),
+            Step.NOTE to f.note.isBlank(),
+        ).firstOrNull { it.second }?.first
+        if (missing != null) goTo(missing) else step = Step.CLOSED
+    }
 
     @Composable
     fun saveRow() {
