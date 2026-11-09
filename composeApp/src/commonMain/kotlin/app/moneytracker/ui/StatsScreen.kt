@@ -1,5 +1,7 @@
 package app.moneytracker.ui
 
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -189,16 +191,19 @@ fun StatsTab() {
         if (monthPicker) MonthPickerDialog(ym, ps.labelFor(today), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
         MonthTopBar(label, { move(-1) }, { move(1) }, onLabelClick = if (span == StatsSpan.MONTHLY || span == StatsSpan.YEARLY) ({ monthPicker = true }) else null) {
             PrivacyEyeButton()
-            Box(Modifier.padding(end = 12.dp)) {
-                Row(
-                    Modifier.clip(RoundedCornerShape(50)).background(FillColor).clickable { spanMenu = true }.padding(start = 14.dp, end = 10.dp, top = 7.dp, bottom = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(tr(span.label), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Ink)
-                    Icon(Icons.Filled.KeyboardArrowDown, null, Modifier.size(18.dp), tint = InkSoft)
+            // Just the calendar icon; the menu ticks the period in use.
+            Box(Modifier.padding(end = 4.dp)) {
+                androidx.compose.material3.IconButton(onClick = { spanMenu = true }) {
+                    Icon(Icons.Outlined.CalendarMonth, tr("Period: {0}", tr(span.label)), tint = Ink)
                 }
                 DropdownMenu(spanMenu, { spanMenu = false }) {
-                    StatsSpan.entries.forEach { s -> DropdownMenuItem(text = { Text(tr(s.label)) }, onClick = { span = s; spanMenu = false }) }
+                    StatsSpan.entries.forEach { s ->
+                        DropdownMenuItem(
+                            text = { Text(tr(s.label), fontWeight = if (s == span) FontWeight.SemiBold else FontWeight.Normal) },
+                            trailingIcon = if (s == span) ({ Icon(Icons.Filled.Check, null, tint = Accent) }) else null,
+                            onClick = { span = s; spanMenu = false },
+                        )
+                    }
                 }
             }
         }
