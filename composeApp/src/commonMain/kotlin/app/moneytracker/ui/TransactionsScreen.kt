@@ -113,7 +113,6 @@ fun TransactionsTab() {
     var view by rememberSaveable {
         mutableStateOf(repo.settingNow(MoneyRepository.Keys.START_SCREEN)?.let { s -> TransView.entries.firstOrNull { it.name == s } } ?: TransView.DAILY)
     }
-    val pending by repo.pendingCaptures.collectAsState(emptyList())
     val ym = YearMonth.fromKey(periodKey)
     val range = ps.month(ym)
     var filter by remember { mutableStateOf(TxnFilter()) }
@@ -127,13 +126,7 @@ fun TransactionsTab() {
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             val actions: @Composable () -> Unit = {
-                if (pending.isNotEmpty()) {
-                    Box {
-                        IconButton(onClick = { nav.push(Screen.Inbox) }) { Icon(Icons.Outlined.MarkEmailUnread, tr("Detected transactions")) }
-                        Text(pending.size.toString(), Modifier.align(Alignment.TopEnd).padding(top = 6.dp, end = 6.dp).background(Accent, CircleShape)
-                            .padding(horizontal = 5.dp), color = Color.White, fontSize = 10.sp)
-                    }
-                }
+                // Detected SMS open from the card at the top of Daily; no separate icon up here.
                 // No mic here: the Smart add bar under the tabs has it, next to typing.
                 PrivacyEyeButton()
                 IconButton(onClick = { nav.push(Screen.Templates) }) { Icon(Icons.Outlined.StarOutline, tr("Bookmarks")) }
@@ -817,7 +810,7 @@ private fun ClassicDetectedCard() {
         }
         HorizontalDivider(color = line)
         Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(d.categoryId?.let { catById[it]?.name }.orEmpty(), Modifier.width(76.dp), color = SubtleText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(d.categoryId?.let { catById[it]?.name } ?: tr("No category"), Modifier.width(76.dp), color = if (d.categoryId == null) ExpenseColor else SubtleText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(c.merchant.ifBlank { d.note.ifBlank { c.sender } }, color = Ink, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 // Plain like a saved row: what's missing is chosen on the detected SMS screen, no prompts here.
