@@ -35,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -256,6 +257,8 @@ fun OnboardingScreen() {
     var page by remember { mutableStateOf(0) }
     var symbol by remember { mutableStateOf("₹") }
     var decimals by remember { mutableStateOf(2) }
+    var newLayout by remember { mutableStateOf(true) }
+    val platform = LocalPlatform.current
     val pages = listOf(
         tr("Track every rupee") to tr("Add income, expenses and transfers in a few taps with the built-in keypad."),
         tr("See where it goes") to tr("Daily, calendar and monthly views, stats by category, budgets and card statements."),
@@ -267,6 +270,13 @@ fun OnboardingScreen() {
             val (title, body) = pages[page]
             Text(title, fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Text(body, Modifier.padding(top = 16.dp), fontSize = 17.sp, color = InkSoft)
+        } else if (page == pages.size + 1) {
+            Text(tr("Choose your layout"), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text(tr("You can switch any time in Settings › Look › Layout."), Modifier.padding(top = 12.dp), color = SubtleText)
+            Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LayoutChoice(tr("New (recommended)"), tr("Home with today's spending and Smart add, then Activity, Insights and Accounts. Clean, simple screens."), newLayout) { newLayout = true }
+                LayoutChoice(tr("Classic"), tr("The familiar tabs: Trans., Stats, Accounts and More, with daily, calendar and monthly views."), !newLayout) { newLayout = false }
+            }
         } else {
             Text(tr("Your currency"), fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Text(tr("You can add more currencies later in Configuration."), Modifier.padding(top = 12.dp), color = SubtleText)
@@ -294,23 +304,41 @@ fun OnboardingScreen() {
         }
         Spacer(Modifier.weight(1f))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            repeat(pages.size + 1) { i -> Box(Modifier.padding(4.dp).size(8.dp).background(if (i == page) Accent else DividerColor, CircleShape)) }
+            repeat(pages.size + 2) { i -> Box(Modifier.padding(4.dp).size(8.dp).background(if (i == page) Accent else DividerColor, CircleShape)) }
         }
         Box(
             Modifier.fillMaxWidth().padding(top = 20.dp).height(52.dp).background(Accent, RoundedCornerShape(6.dp)).clickable {
-                if (page < pages.size) page++
+                if (page <= pages.size) page++
                 else scope.launch {
                     withContext(repo.io) {
                         repo.putSetting(Keys.CURRENCY_SYMBOL, symbol.ifBlank { "₹" })
                         repo.putSetting(Keys.CURRENCY_DECIMALS, decimals.toString())
+                        repo.putSetting(Keys.UI_LAYOUT, if (newLayout) "NEW" else "CLASSIC")
                         repo.putSetting(Keys.ONBOARDED, "1")
                     }
+                    // The layout is chosen when the app starts, so the new one needs a quick restart.
+                    if (newLayout) platform.restartApp()
                 }
             },
             contentAlignment = Alignment.Center,
-        ) { Text(if (page < pages.size) tr("Next") else tr("Start"), color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center) }
+        ) { Text(if (page <= pages.size) tr("Next") else tr("Start"), color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center) }
         if (page < pages.size) {
             Text(tr("Skip"), Modifier.fillMaxWidth().clickable { page = pages.size }.padding(14.dp), textAlign = TextAlign.Center, color = SubtleText)
         }
+    }
+}
+
+/** One layout to pick on the last welcome page. */
+@Composable
+private fun LayoutChoice(title: String, body: String, selected: Boolean, onClick: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().border(if (selected) 2.dp else 1.dp, if (selected) Accent else BorderColor, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (selected) Accent else Ink)
+            if (selected) Text("✓", color = Accent, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        }
+        Text(body, Modifier.padding(top = 6.dp), fontSize = 14.sp, color = InkSoft)
     }
 }
