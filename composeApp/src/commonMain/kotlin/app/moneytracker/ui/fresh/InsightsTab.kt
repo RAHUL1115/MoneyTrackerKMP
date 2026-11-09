@@ -179,12 +179,13 @@ internal fun InsightsTab() {
     Column(Modifier.fillMaxSize()) {
         TabHeader(tr("Insights")) {
             IconTile(Glyph.Download, tr("Export to Excel"), { backup.exportExcel() })
-            Pill(when (span) {
+            // Just the calendar icon; its label says which period is showing.
+            IconTile(Glyph.Calendar, tr("Period: {0}", when (span) {
                 Span.WEEK -> tr("Week")
                 Span.MONTH -> monthShort(ym.month) + " " + ym.year
                 Span.YEAR -> ym.year.toString()
                 Span.CUSTOM -> tr("Custom")
-            }, selected = false, onClick = { periodSheet = true }, modifier = Modifier.padding(top = 4.dp), leading = Glyph.Calendar)
+            }), { periodSheet = true })
         }
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter),

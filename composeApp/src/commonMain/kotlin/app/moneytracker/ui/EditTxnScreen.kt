@@ -274,6 +274,8 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
             amount == null || amount <= 0 -> tr("Enter an amount")
             fee == null -> tr("Fee is not a valid amount")
             accountId == null -> tr("Choose an account")
+            // Every entry needs a category (transfers and balance corrections have none of their own).
+            type != DraftType.TRANSFER && !isAdjustment && categoryId == null -> tr("Pick a category")
             type == DraftType.TRANSFER && toAccountId == null -> tr("Choose the destination account")
             type == DraftType.TRANSFER && toAccountId == accountId -> tr("Pick two different accounts")
             else -> null

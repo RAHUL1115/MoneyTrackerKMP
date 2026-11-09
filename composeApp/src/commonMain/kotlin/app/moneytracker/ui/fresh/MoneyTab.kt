@@ -103,8 +103,8 @@ internal fun MoneyTab() {
 
     Column(Modifier.fillMaxSize()) {
         TabHeader(tr("Accounts")) {
-            // A gear means app Settings everywhere, so this one says what it opens.
-            HeaderButton(tr("Groups"), filled = false) { manage = true }
+            // Groups gets its own icon (stacked layers): a gear means app Settings everywhere.
+            IconTile(Glyph.Groups, tr("Account groups"), { manage = true })
             IconTile(Glyph.Add, tr("Add account"), { nav.push(Screen.EditAccount()) }, tint = F.accent, background = F.accentTint)
         }
         val (lines, worth) = summary ?: return@Column

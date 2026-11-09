@@ -782,7 +782,7 @@ private fun UpcomingRepeatsRow(
 
 /**
  * The newest detected bank SMS payment at the top of the Daily list: Add saves it in one tap (with Undo), tapping the
- * row opens the editor, and "+N more" opens Detected transactions. Missing amount or account → Review and add.
+ * row opens the editor, and "+N more" opens Detected transactions. Missing amount, account or category → Review and add.
  */
 @Composable
 private fun ClassicDetectedCard() {
@@ -801,7 +801,7 @@ private fun ClassicDetectedCard() {
         value = withContext(repo.io) { repo.draftFromCapture(c) }
     }
     val d = draft ?: return
-    val ready = d.amount != 0L && d.accountId in accountName
+    val ready = d.amount != 0L && d.accountId in accountName && d.categoryId != null
     val refund = app.moneytracker.domain.isRefund(c.kind, c.amount)
     val income = c.kind == TxnKind.INCOME || refund
     val amount = currency.format(kotlin.math.abs(d.amount))
@@ -841,7 +841,7 @@ private fun ClassicDetectedCard() {
             Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(onClickLabel = tr("Edit before adding")) { edit() }.padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(d.categoryId?.let { catById[it]?.name } ?: "", Modifier.width(76.dp), color = SubtleText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(d.categoryId?.let { catById[it]?.name } ?: tr("Category?"), Modifier.width(76.dp), color = if (d.categoryId == null) ExpenseColor else SubtleText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(c.merchant.ifBlank { d.note.ifBlank { c.sender } }, color = Ink, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(accountName[d.accountId] ?: tr("Which account?"), color = if (d.accountId in accountName) SubtleText else ExpenseColor,

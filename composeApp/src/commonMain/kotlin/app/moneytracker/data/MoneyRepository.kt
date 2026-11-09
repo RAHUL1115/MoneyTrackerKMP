@@ -759,8 +759,11 @@ class MoneyRepository(
         // "Auto-save": straight into the books when the account is known.
         if (settingNow(Keys.SMS_AUTO_SAVE) == "1" && capture.accountId != null && (capture.amount ?: 0) != 0L) {
             val d = draftFromCapture(capture)
-            completeCapture(capture, d, create(d))
-            return capture.copy(status = CaptureStatus.SAVED)
+            // Only complete entries are saved on their own; without a category it waits for review.
+            if (d.categoryId != null) {
+                completeCapture(capture, d, create(d))
+                return capture.copy(status = CaptureStatus.SAVED)
+            }
         }
         return capture
     }
@@ -780,7 +783,11 @@ class MoneyRepository(
         }
         // A learned category of the other kind (an income category for a refund, say) doesn't fit.
         val wantedKind = if (type == DraftType.INCOME) CategoryKind.INCOME.name else CategoryKind.EXPENSE.name
-        val category = s?.categoryId?.takeIf { id -> q.allCategories().executeAsList().any { it.id == id && it.kind == wantedKind } }
+        val fits = { id: String -> q.allCategories().executeAsList().any { it.id == id && it.kind == wantedKind } }
+        // What this bank/merchant was filed under before; failing that, what the person's own notes with these words
+        // were filed under (the same suggestion the editor shows), so a one-tap Add lands in the right category.
+        val category = s?.categoryId?.takeIf(fits)
+            ?: p?.vendor?.let { SmsParser.words(it) }?.takeIf { it.isNotEmpty() }?.let { suggest(it).categoryId }?.takeIf(fits)
         return TxnDraft(
             type, date,
             c.accountId ?: p?.let { MessageRules.suggestAccount(accountsNow(), groupsNow(), c.sender, c.text, it, s?.accountId) }.orEmpty(),

@@ -74,8 +74,10 @@ class SmsAccountMatchingTest {
         repo.putSetting(MoneyRepository.Keys.SMS_AUTO_SAVE, "1")
         val c = repo.ingestMessage("SMS", "AD-ICICIT", "Rs.350 spent on credit card xx1234 at SECONDSHOP.", 1)!!
         assertEquals("icici_card", c.accountId)
+        // Auto-save only saves complete entries: with no category known yet, it waits for review.
+        assertEquals(app.moneytracker.domain.CaptureStatus.PENDING, c.status)
         assertEquals(0, repo.accountTxns("hdfc_card").size)
-        assertEquals(1, repo.accountTxns("icici_card").size)
+        assertEquals(0, repo.accountTxns("icici_card").size)
     }
 
     @Test fun genericCardCanBelongToBankAccountWithSenderRuleOrLearning() = runTest {

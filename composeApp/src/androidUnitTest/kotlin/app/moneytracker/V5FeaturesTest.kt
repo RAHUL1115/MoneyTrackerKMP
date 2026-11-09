@@ -96,9 +96,13 @@ class MessageRulesTest {
         val card = repo.accounts.first().first { it.id == "acc_card" }
         repo.saveAccount(card.copy(smsMatch = "x1234"))
         repo.putSetting(MoneyRepository.Keys.SMS_AUTO_SAVE, "1")
+        // Auto-save needs a category too; this shop was filed under one before.
+        val food = repo.categoriesNow().first { it.kind == app.moneytracker.domain.CategoryKind.EXPENSE && it.parentId == null }
+        repo.learn(app.moneytracker.domain.SmsParser.tokens(app.moneytracker.domain.SmsParser.parse("AD-HDFCBK", sms)!!), food.id, null)
         val c = repo.ingestMessage("SMS", "AD-HDFCBK", sms, 1_776_600_000_000)!!
         assertEquals("acc_card", c.accountId)
         val saved = repo.accountTxns("acc_card").single()
+        assertEquals(food.id, saved.categoryId)
         assertEquals(25_000L, saved.amount); assertEquals(sms, saved.origin)
     }
 

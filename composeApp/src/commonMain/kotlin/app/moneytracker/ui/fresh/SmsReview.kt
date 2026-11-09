@@ -121,7 +121,7 @@ internal fun SmsReviewScreen() {
     val draft by produceState<TxnDraft?>(null, current?.id) { value = current?.let { c -> withContext(repo.io) { repo.draftFromCapture(c) } } }
     val d = draft
     val amountText = reviewAmount(d)
-    val ready = d != null && d.amount != 0L && d.accountId in accountNames
+    val ready = d != null && d.amount != 0L && d.accountId in accountNames && d.categoryId != null
     SubScreen(
         tr("Bank messages"), nav::pop,
         subtitle = tr("{0} to review · read on this phone only", captures.size),

@@ -349,6 +349,8 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             amount == null || amount <= 0 -> tr("Enter an amount")
             fee == null -> tr("Fee is not a valid amount")
             f.accountId == null -> tr("Choose an account")
+            // Every entry needs a category (transfers and balance corrections have none of their own).
+            !isTransfer && !f.isAdjustment && f.categoryId == null -> tr("Pick a category")
             isTransfer && f.toAccountId == null -> tr("Choose the destination account")
             isTransfer && f.toAccountId == f.accountId -> tr("Pick two different accounts")
             else -> null
@@ -408,11 +410,12 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         isTransfer && (f.accountId == null || f.toAccountId == null) -> tr("Pick two accounts")
         isTransfer && f.toAccountId == f.accountId -> tr("Pick two different accounts")
         f.accountId == null -> tr("Choose an account")
+        !isTransfer && !f.isAdjustment && f.categoryId == null -> tr("Pick a category")
         isTransfer -> tr("Move {0}", fmt.format(total))
         catLabel != null -> tr("Save {0} · {1}", fmt.format(total), catById[f.categoryId]?.name ?: catLabel)
         else -> tr("Save {0}", fmt.format(total))
     }
-    val ready = total != null && total > 0 && f.accountId != null && (!isTransfer || (f.toAccountId != null && f.toAccountId != f.accountId))
+    val ready = total != null && total > 0 && f.accountId != null && (isTransfer || f.isAdjustment || f.categoryId != null) && (!isTransfer || (f.toAccountId != null && f.toAccountId != f.accountId))
 
     // ───────────── pieces shared by both screens
 
