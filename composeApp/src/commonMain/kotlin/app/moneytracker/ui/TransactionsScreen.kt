@@ -781,17 +781,14 @@ private fun UpcomingRepeatsRow(
 }
 
 /**
- * The newest detected bank SMS payment at the top of the Daily list: Add saves it in one tap (with Undo), tapping the
- * row opens the editor, and "+N more" opens Detected transactions. Missing amount, account or category → Review and add.
+ * The newest detected bank SMS payment at the top of the Daily list, tinted so it stands apart from saved entries.
+ * Tapping it opens Detected transactions, where it's added or dismissed; it says what's still missing, if anything.
  */
 @Composable
 private fun ClassicDetectedCard() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    val platform = LocalPlatform.current
-    val toaster = app.moneytracker.ui.fresh.LocalToaster.current
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val captures by repo.pendingCaptures.collectAsState(emptyList())
     val accountName by repo.accountNames.collectAsState(emptyMap())
     val catById by repo.categoryById.collectAsState(emptyMap())
@@ -801,46 +798,30 @@ private fun ClassicDetectedCard() {
         value = withContext(repo.io) { repo.draftFromCapture(c) }
     }
     val d = draft ?: return
-    val ready = d.amount != 0L && d.accountId in accountName && d.categoryId != null
     val refund = app.moneytracker.domain.isRefund(c.kind, c.amount)
     val income = c.kind == TxnKind.INCOME || refund
     val amount = currency.format(kotlin.math.abs(d.amount))
-    fun edit() = nav.push(Screen.EditTxn(preset = d, captureId = c.id))
-    fun add() = scope.launch {
-        val id = withContext(repo.io) { repo.create(d).also { repo.learnFromDraft(d); repo.completeCapture(c, d, it) } }
-        platform.refreshWidgets()
-        toaster.show(tr("Added {0}", listOfNotNull(amount, d.note.ifBlank { null }).joinToString(" · "))) {
-            scope.launch {
-                withContext(repo.io) { repo.txn(id)?.let { repo.delete(it) }; repo.setCaptureStatus(c.id, CaptureStatus.PENDING) }
-                platform.refreshWidgets()
-            }
-        }
-    }
-    fun dismiss() = scope.launch {
-        withContext(repo.io) { repo.setCaptureStatus(c.id, CaptureStatus.DISMISSED) }
-        toaster.show(tr("Dismissed message from {0}", c.sender.ifBlank { tr("pasted text") })) {
-            scope.launch { withContext(repo.io) { repo.setCaptureStatus(c.id, CaptureStatus.PENDING) } }
-        }
-    }
+    val missing = listOfNotNull(
+        tr("category").takeIf { d.categoryId == null },
+        tr("account").takeIf { d.accountId !in accountName },
+        tr("amount").takeIf { d.amount == 0L },
+    )
+    val line = Accent.copy(alpha = 0.18f)
+    // Tinted so it reads as "waiting for you", not as one of the saved entries below. The whole card opens the
+    // detected SMS; only a complete payment gets the one-tap Add.
     Column(
         Modifier.fillMaxWidth().padding(top = 6.dp).padding(horizontal = ListCardMargin).clip(RoundedCornerShape(16.dp))
-            .border(1.dp, AccentTint, RoundedCornerShape(16.dp)).background(SurfaceColor)
-            .padding(start = ListRowInset + 2.dp, end = ListRowInset + 2.dp, bottom = 12.dp),
+            .background(AccentTint).border(1.dp, Accent.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .clickable(onClickLabel = tr("Open detected SMS")) { nav.push(Screen.Inbox) }
+            .padding(start = ListRowInset + 2.dp, end = ListRowInset + 2.dp, bottom = 4.dp),
     ) {
         Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.MarkEmailUnread, null, Modifier.size(16.dp), tint = Accent)
             Text(tr("Found in bank SMS"), Modifier.weight(1f).padding(start = 6.dp), color = Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            Text(
-                if (captures.size > 1) tr("+{0} more ›", captures.size - 1) else tr("See all ›"),
-                Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.Inbox) }.padding(horizontal = 6.dp, vertical = 10.dp),
-                color = SubtleText, fontSize = 12.sp,
-            )
+            Text(if (captures.size > 1) tr("+{0} more ›", captures.size - 1) else tr("Open ›"), color = Accent, fontSize = 12.sp)
         }
-        HorizontalDivider(color = DividerColor)
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(onClickLabel = tr("Edit before adding")) { edit() }.padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        HorizontalDivider(color = line)
+        Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(d.categoryId?.let { catById[it]?.name } ?: tr("Category?"), Modifier.width(76.dp), color = if (d.categoryId == null) ExpenseColor else SubtleText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(c.merchant.ifBlank { d.note.ifBlank { c.sender } }, color = Ink, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -849,17 +830,10 @@ private fun ClassicDetectedCard() {
             }
             Text((if (refund) "+" else "") + amount, Modifier.padding(start = 8.dp), color = if (income) IncomeColor else ExpenseColor, fontSize = 15.sp)
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-            Box(
-                Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).border(1.dp, DividerColor, RoundedCornerShape(20.dp))
-                    .clickable { dismiss() }.padding(horizontal = 16.dp),
-                contentAlignment = Alignment.Center,
-            ) { Text(tr("Dismiss"), color = Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
-            Box(
-                Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(Accent)
-                    .clickable { if (ready) add() else edit() }.padding(horizontal = 20.dp),
-                contentAlignment = Alignment.Center,
-            ) { Text(if (ready) tr("Add {0}", amount) else tr("Review and add"), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
+        if (missing.isNotEmpty()) {
+            HorizontalDivider(color = line)
+            Text(tr("Tap to choose the {0}", missing.joinToString(tr(" and "))), Modifier.padding(vertical = 10.dp),
+                color = Accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
