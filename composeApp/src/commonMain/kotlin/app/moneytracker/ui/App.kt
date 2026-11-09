@@ -248,7 +248,8 @@ fun App(
                             }
                             }
                             }
-                            if (newLayout) app.moneytracker.ui.fresh.ToastHost(toaster, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
+                            // Both layouts: Undo after adding a detected payment, and the new layout's other toasts.
+                            app.moneytracker.ui.fresh.ToastHost(toaster, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
                             }
                         }
                     }

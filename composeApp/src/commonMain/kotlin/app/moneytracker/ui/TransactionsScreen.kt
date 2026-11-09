@@ -79,6 +79,7 @@ import app.moneytracker.domain.ReportRow
 import app.moneytracker.domain.TOTAL_BUDGET
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
+import app.moneytracker.domain.CaptureStatus
 import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.budgetLines
 import app.moneytracker.domain.classify
@@ -256,7 +257,7 @@ private fun DailyView(range: DateRange, onType: () -> Unit, onSpeak: () -> Unit)
     if (pending.isNotEmpty()) UpcomingRepeatsRow(pending, catById, currency) { nav.push(Screen.Recurring) }
     // TRANSFER_IN rows mirror TRANSFER_OUT; show each transfer once.
     val visible = txns.filter { it.kind != TxnKind.TRANSFER_IN }
-    if (visible.isEmpty()) { ClassicSmartAddBar(onType, onSpeak); EmptyState(icon = Icons.Outlined.Inbox); return }
+    if (visible.isEmpty()) { ClassicSmartAddBar(onType, onSpeak); ClassicDetectedCard(); EmptyState(icon = Icons.Outlined.Inbox); return }
     val dayTotals = rows.groupBy { it.date }.mapValues { totals(it.value) }
     // Smart add latches: shown when the list opens, gone once it scrolls out of view (coming back to the top doesn't
     // bring it back), and revealed again by a second pull down while already at the top.
@@ -290,6 +291,8 @@ private fun DailyView(range: DateRange, onType: () -> Unit, onSpeak: () -> Unit)
                 exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
             ) { ClassicSmartAddBar(onType, onSpeak) }
         }
+        // The newest bank SMS payment, ready to add in one tap; stays put while scrolling back up.
+        item(key = "detected") { ClassicDetectedCard() }
         // One card per day: header and its entries.
         visible.groupBy { it.date }.forEach { (date, dayTxns) ->
             item(key = "h$date") {
@@ -775,6 +778,90 @@ private fun UpcomingRepeatsRow(
         Text(currency.format(sum), color = Ink, fontSize = 15.sp)
     }
     HorizontalDivider(color = DividerColor)
+}
+
+/**
+ * The newest detected bank SMS payment at the top of the Daily list: Add saves it in one tap (with Undo), tapping the
+ * row opens the editor, and "+N more" opens Detected transactions. Missing amount or account → Review and add.
+ */
+@Composable
+private fun ClassicDetectedCard() {
+    val repo = LocalRepo.current
+    val nav = LocalNavigator.current
+    val currency = LocalCurrency.current
+    val platform = LocalPlatform.current
+    val toaster = app.moneytracker.ui.fresh.LocalToaster.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val captures by repo.pendingCaptures.collectAsState(emptyList())
+    val accountName by repo.accountNames.collectAsState(emptyMap())
+    val catById by repo.categoryById.collectAsState(emptyMap())
+    // Newest first: the payment that just arrived is the one on screen.
+    val c = captures.maxByOrNull { it.receivedAt } ?: return
+    val draft by androidx.compose.runtime.produceState<app.moneytracker.data.TxnDraft?>(null, c.id) {
+        value = withContext(repo.io) { repo.draftFromCapture(c) }
+    }
+    val d = draft ?: return
+    val ready = d.amount != 0L && d.accountId in accountName
+    val refund = app.moneytracker.domain.isRefund(c.kind, c.amount)
+    val income = c.kind == TxnKind.INCOME || refund
+    val amount = currency.format(kotlin.math.abs(d.amount))
+    fun edit() = nav.push(Screen.EditTxn(preset = d, captureId = c.id))
+    fun add() = scope.launch {
+        val id = withContext(repo.io) { repo.create(d).also { repo.learnFromDraft(d); repo.completeCapture(c, d, it) } }
+        platform.refreshWidgets()
+        toaster.show(tr("Added {0}", listOfNotNull(amount, d.note.ifBlank { null }).joinToString(" · "))) {
+            scope.launch {
+                withContext(repo.io) { repo.txn(id)?.let { repo.delete(it) }; repo.setCaptureStatus(c.id, CaptureStatus.PENDING) }
+                platform.refreshWidgets()
+            }
+        }
+    }
+    fun dismiss() = scope.launch {
+        withContext(repo.io) { repo.setCaptureStatus(c.id, CaptureStatus.DISMISSED) }
+        toaster.show(tr("Dismissed message from {0}", c.sender.ifBlank { tr("pasted text") })) {
+            scope.launch { withContext(repo.io) { repo.setCaptureStatus(c.id, CaptureStatus.PENDING) } }
+        }
+    }
+    Column(
+        Modifier.fillMaxWidth().padding(top = 6.dp).padding(horizontal = ListCardMargin).clip(RoundedCornerShape(16.dp))
+            .border(1.dp, AccentTint, RoundedCornerShape(16.dp)).background(SurfaceColor)
+            .padding(start = ListRowInset + 2.dp, end = ListRowInset + 2.dp, bottom = 12.dp),
+    ) {
+        Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.MarkEmailUnread, null, Modifier.size(16.dp), tint = Accent)
+            Text(tr("Found in bank SMS"), Modifier.weight(1f).padding(start = 6.dp), color = Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                if (captures.size > 1) tr("+{0} more ›", captures.size - 1) else tr("See all ›"),
+                Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.Inbox) }.padding(horizontal = 6.dp, vertical = 10.dp),
+                color = SubtleText, fontSize = 12.sp,
+            )
+        }
+        HorizontalDivider(color = DividerColor)
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(onClickLabel = tr("Edit before adding")) { edit() }.padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(d.categoryId?.let { catById[it]?.name } ?: "", Modifier.width(76.dp), color = SubtleText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(c.merchant.ifBlank { d.note.ifBlank { c.sender } }, color = Ink, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(accountName[d.accountId] ?: tr("Which account?"), color = if (d.accountId in accountName) SubtleText else ExpenseColor,
+                    fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Text((if (refund) "+" else "") + amount, Modifier.padding(start = 8.dp), color = if (income) IncomeColor else ExpenseColor, fontSize = 15.sp)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            Box(
+                Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).border(1.dp, DividerColor, RoundedCornerShape(20.dp))
+                    .clickable { dismiss() }.padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) { Text(tr("Dismiss"), color = Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
+            Box(
+                Modifier.height(40.dp).clip(RoundedCornerShape(20.dp)).background(Accent)
+                    .clickable { if (ready) add() else edit() }.padding(horizontal = 20.dp),
+                contentAlignment = Alignment.Center,
+            ) { Text(if (ready) tr("Add {0}", amount) else tr("Review and add"), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
+        }
+    }
 }
 
 /** Smart add at the top of the Daily list: tap the box to type an entry the way you'd say it, or the mic to speak it. */
