@@ -106,18 +106,11 @@ internal fun SmsReviewScreen() {
         withContext(repo.io) { repo.setCaptureStatus(c.id, CaptureStatus.DISMISSED) }
         toaster.show(tr("Dismissed message from {0}", c.sender.ifBlank { tr("pasted text") })) { restore(c.id, null) }
     }
-    fun add(c: Capture, d: TxnDraft) = scope.launch {
-        selectNextAfter(c)
-        val id = withContext(repo.io) { repo.create(d).also { repo.learnFromDraft(d); repo.completeCapture(c, d, it) } }
-        added++
-        platform.refreshWidgets()
-        toaster.show(tr("Added {0} to Activity", listOfNotNull(currency.format(d.amount), d.note.ifBlank { null }).joinToString(" · "))) { restore(c.id, id) }
-    }
     fun import() = platform.importInboxMessages(days) { n ->
         toaster.show(when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages from the last {1} days", n, days) })
     }
 
-    // The suggested entry for the message on top; its Dismiss / Edit / Add stay pinned at the bottom, under the thumb.
+    // The suggested entry for the message on top; its Dismiss / Add stay pinned at the bottom, under the thumb.
     val accountNames by repo.accountNames.collectAsState(emptyMap())
     // The card swaps message and suggestion together, once the suggestion is ready, so picking another message never
     // flashes half-filled rows ("Choose in Edit", "Not set") or jumps in height on the way.
@@ -136,11 +129,11 @@ internal fun SmsReviewScreen() {
         scrollState = pageScroll,
         bottom = if (current == null) null else ({
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Two steps for now, until detection has earned trust: Add opens the editor filled in; saving there adds it.
                 GreyButton(tr("Dismiss")) { sc?.let { dismiss(it) } }
-                GreyButton(tr("Edit")) { if (sc != null && d != null) nav.push(Screen.EditTxn(preset = d, captureId = sc.id)) }
                 AddButton(
-                    if (ready) tr("Add {0}", amountText) else tr("Review and add"),
-                    onClick = { if (sc != null && d != null) { if (ready) add(sc, d) else nav.push(Screen.EditTxn(preset = d, captureId = sc.id)) } },
+                    tr("Add"),
+                    onClick = { if (sc != null && d != null) nav.push(Screen.EditTxn(preset = d, captureId = sc.id)) },
                     modifier = Modifier.weight(1f), enabled = d != null && sc != null,
                 )
             }
