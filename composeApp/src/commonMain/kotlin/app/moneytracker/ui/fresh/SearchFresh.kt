@@ -131,7 +131,7 @@ internal fun FreshSearch() {
             else -> ActKind.ALL
         }
         val month = if (dates == SearchDates.ALL) null else ps.labelFor(minOf(range.endInclusive, today).coerceAtLeast(range.start)).key
-        ActivityHandoff.pending = ActivityFilterRequest(TxnFilter(accountIds = accts.toSet(), tagIds = tagIds.toSet()), kind, month)
+        nav.setResult(ACTIVITY_FILTER, ActivityFilterRequest(TxnFilter(accountIds = accts.toSet(), tagIds = tagIds.toSet()), kind, month))
         nav.pop()
         toaster.show(tr("Filter applied to Activity"))
     }

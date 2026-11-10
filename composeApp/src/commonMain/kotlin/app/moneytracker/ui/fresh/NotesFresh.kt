@@ -28,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -117,17 +118,19 @@ internal fun FreshEditNote(noteId: String?) {
     val nav = LocalNavigator.current
     val toaster = LocalToaster.current
     val notes by repo.notes.collectAsState(emptyList())
-    var loaded by remember { mutableStateOf(noteId == null) }
+    var loaded by rememberSaveable { mutableStateOf(noteId == null) }
     var original by remember { mutableStateOf<Note?>(null) }
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
-    var color by remember { mutableStateOf(0) }
-    var pinned by remember { mutableStateOf(false) }
-    var createdAt by remember { mutableStateOf(repo.today().toEpochDays() * DAY_MS) }
+    var title by rememberSaveable { mutableStateOf("") }
+    var content by rememberSaveable { mutableStateOf("") }
+    var color by rememberSaveable { mutableStateOf(0) }
+    var pinned by rememberSaveable { mutableStateOf(false) }
+    var createdAt by rememberSaveable { mutableStateOf(repo.today().toEpochDays() * DAY_MS) }
     var confirmDelete by remember { mutableStateOf(false) }
     var pickingDate by remember { mutableStateOf(false) }
     LaunchedEffect(notes) {
-        if (loaded) return@LaunchedEffect
+        // After the app was closed in the background the typed text comes back from saved state; only the stored
+        // note (to tell what changed) is read again.
+        if (loaded) { if (original == null) original = notes.firstOrNull { it.id == noteId }; return@LaunchedEffect }
         notes.firstOrNull { it.id == noteId }?.let {
             original = it; title = it.title; content = it.content; color = it.color; pinned = it.pinned; createdAt = it.createdAt; loaded = true
         }

@@ -21,9 +21,9 @@ import app.moneytracker.ui.Navigator
 /** FragmentActivity (not just ComponentActivity) because BiometricPrompt needs it. */
 class MainActivity : FragmentActivity() {
     private val navigator = Navigator()
+    private val process get() = application as MoneyTrackerApp
     private var locked by mutableStateOf(true)
     private var launchAction by mutableStateOf<LaunchAction?>(null)
-    private var backgroundedAt = 0L
     private lateinit var platform: AndroidPlatform
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,8 +39,12 @@ class MainActivity : FragmentActivity() {
         }
         val backup = AndroidBackupController(this, db, hashPin = platform::hashPin, portablePinHash = platform::portablePinHash)
         backup.autoBackupIfDue()
-        launchAction = Launch.parse(intent)
-        if (skipLockOnce) { skipLockOnce = false; locked = false }
+        // Coming back after the app was closed in the background (or re-created): the same screens, and the launch
+        // shortcut that opened it isn't replayed over them.
+        val saved = savedInstanceState?.getStringArrayList(NAV_STACK)
+        if (saved != null) navigator.restoreState(saved) else launchAction = Launch.parse(intent)
+        if (skipLockOnce) { skipLockOnce = false; process.unlocked = true }
+        locked = !process.unlocked
         // Layout is fixed for the life of this activity; Settings restarts the app to switch it.
         val newLayout = db.repo?.settingNow(app.moneytracker.data.MoneyRepository.Keys.UI_LAYOUT) == "NEW"
         readSystemAccent()
@@ -54,7 +58,7 @@ class MainActivity : FragmentActivity() {
             LaunchedEffect(Unit) { snapshotFlow { navigator.canPop }.collect { back.isEnabled = it } }
             App(
                 repo = db.repo, backup = backup, navigator = navigator, platform = platform,
-                locked = locked, onUnlocked = { locked = false },
+                locked = locked, onUnlocked = { locked = false; process.unlocked = true },
                 launchAction = launchAction, onLaunchHandled = { launchAction = null },
                 onDarkThemeChanged = ::applySystemBars,
                 newLayout = newLayout,
@@ -69,10 +73,10 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        val returning = backgroundedAt != 0L
-        Log.d("App") { if (returning) "back on screen after ${(SystemClock.elapsedRealtime() - backgroundedAt) / 1000} s" else "on screen" }
+        val returning = process.backgroundedAt != 0L
+        Log.d("App") { if (returning) "back on screen after ${(SystemClock.elapsedRealtime() - process.backgroundedAt) / 1000} s" else "on screen" }
         // Re-lock after a minute in the background (App only shows the lock if a passcode is set).
-        if (returning && SystemClock.elapsedRealtime() - backgroundedAt > LOCK_AFTER_MS) locked = true
+        if (returning && SystemClock.elapsedRealtime() - process.backgroundedAt > LOCK_AFTER_MS) { locked = true; process.unlocked = false }
         // One short thread per return to the screen; nothing is scheduled.
         Thread {
             if (returning) Log.attempt("App", "repeat entries on return") { (application as MoneyTrackerApp).database.repo?.generateRecurring() }   // cold start already ran it on open
@@ -100,12 +104,18 @@ class MainActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
-        backgroundedAt = SystemClock.elapsedRealtime()
+        process.backgroundedAt = SystemClock.elapsedRealtime()
         SummaryWidget.updateAll(this)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putStringArrayList(NAV_STACK, navigator.saveState())
     }
 
     companion object {
         private const val LOCK_AFTER_MS = 60_000L
+        private const val NAV_STACK = "navStack"
         /** Set just before a restart the user asked for, so the new activity doesn't ask for the passcode again. In-process only. */
         @Volatile var skipLockOnce = false
     }

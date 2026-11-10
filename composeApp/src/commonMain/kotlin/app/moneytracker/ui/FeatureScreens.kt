@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -354,12 +355,12 @@ fun EditNoteScreen(noteId: String?) {
     val nav = LocalNavigator.current
     val scope = rememberCoroutineScope()
     val notes by repo.notes.collectAsState(emptyList())
-    var loaded by remember { mutableStateOf(noteId == null) }
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
-    var color by remember { mutableStateOf(0) }
-    var pinned by remember { mutableStateOf(false) }
-    var createdAt by remember { mutableStateOf(0L) }
+    var loaded by rememberSaveable { mutableStateOf(noteId == null) }
+    var title by rememberSaveable { mutableStateOf("") }
+    var content by rememberSaveable { mutableStateOf("") }
+    var color by rememberSaveable { mutableStateOf(0) }
+    var pinned by rememberSaveable { mutableStateOf(false) }
+    var createdAt by rememberSaveable { mutableStateOf(0L) }
     LaunchedEffect(notes) {
         if (loaded) return@LaunchedEffect
         notes.firstOrNull { it.id == noteId }?.let { title = it.title; content = it.content; color = it.color; pinned = it.pinned; createdAt = it.createdAt; loaded = true }

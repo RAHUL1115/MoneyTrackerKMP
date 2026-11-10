@@ -521,23 +521,23 @@ fun EditAccountScreen(accountId: String?) {
     val groups by repo.groups.collectAsState(emptyList())
     val accounts by repo.accounts.collectAsState(emptyList())
 
-    var loaded by remember { mutableStateOf(accountId == null) }
-    var name by remember { mutableStateOf("") }
-    var groupId by remember { mutableStateOf<String?>(null) }
-    var includeInTotals by remember { mutableStateOf(true) }
-    var transferAsExpense by remember { mutableStateOf(false) }
-    var settlementDay by remember { mutableStateOf("1") }
-    var paymentAccountId by remember { mutableStateOf<String?>(null) }
-    var sortOrder by remember { mutableStateOf(accounts.size) }
-    var accountCurrency by remember { mutableStateOf<String?>(null) }
-    var limitText by remember { mutableStateOf("") }
-    var paymentDay by remember { mutableStateOf("") }
-    var autoPay by remember { mutableStateOf(false) }
-    var targetText by remember { mutableStateOf("") }
-    var targetType by remember { mutableStateOf(1) }
-    var memo by remember { mutableStateOf("") }
-    var smsSender by remember { mutableStateOf("") }
-    var smsMatch by remember { mutableStateOf("") }
+    var loaded by rememberSaveable { mutableStateOf(accountId == null) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var groupId by rememberSaveable { mutableStateOf<String?>(null) }
+    var includeInTotals by rememberSaveable { mutableStateOf(true) }
+    var transferAsExpense by rememberSaveable { mutableStateOf(false) }
+    var settlementDay by rememberSaveable { mutableStateOf("1") }
+    var paymentAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    var sortOrder by rememberSaveable { mutableStateOf(accounts.size) }
+    var accountCurrency by rememberSaveable { mutableStateOf<String?>(null) }
+    var limitText by rememberSaveable { mutableStateOf("") }
+    var paymentDay by rememberSaveable { mutableStateOf("") }
+    var autoPay by rememberSaveable { mutableStateOf(false) }
+    var targetText by rememberSaveable { mutableStateOf("") }
+    var targetType by rememberSaveable { mutableStateOf(1) }
+    var memo by rememberSaveable { mutableStateOf("") }
+    var smsSender by rememberSaveable { mutableStateOf("") }
+    var smsMatch by rememberSaveable { mutableStateOf("") }
     val currencies by repo.currencies.collectAsState(emptyList())
     val mainFmt = LocalCurrency.current
     var error by remember { mutableStateOf<String?>(null) }

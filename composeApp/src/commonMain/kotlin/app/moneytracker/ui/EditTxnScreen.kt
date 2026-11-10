@@ -74,6 +74,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.DraftType
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.saveable.rememberSaveable
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Account
@@ -108,27 +110,34 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
 
     var existing by remember { mutableStateOf<Txn?>(null) }
     // Balance adjustments edit as Increase / Decrease with date, amount, account and note.
-    var adjustUp by remember { mutableStateOf(true) }
+    var adjustUp by rememberSaveable { mutableStateOf(true) }
     // Picking Income / Expense / Transfer on an adjustment turns it into a normal entry.
-    var convertedFromAdjustment by remember { mutableStateOf(false) }
+    var convertedFromAdjustment by rememberSaveable { mutableStateOf(false) }
     val accountFirst = remember { repo.settingNow(app.moneytracker.data.MoneyRepository.Keys.INPUT_ORDER) == "ACCOUNT" }
-    var type by remember { mutableStateOf(screen.preset?.type ?: DraftType.EXPENSE) }
-    var date by remember { mutableStateOf(screen.date ?: screen.preset?.date ?: repo.today()) }
-    var accountId by remember { mutableStateOf(screen.preset?.accountId?.ifBlank { null }) }
+    var type by rememberSaveable { mutableStateOf(screen.preset?.type ?: DraftType.EXPENSE) }
+    var date by rememberSaveable(stateSaver = DateSaver) { mutableStateOf(screen.date ?: screen.preset?.date ?: repo.today()) }
+    var accountId by rememberSaveable { mutableStateOf(screen.preset?.accountId?.ifBlank { null }) }
     // True once the account came from the user (or an existing entry / preset); category defaults never override it.
-    var accountChosen by remember { mutableStateOf(accountId != null) }
-    var toAccountId by remember { mutableStateOf(screen.preset?.toAccountId) }
-    var categoryId by remember { mutableStateOf(screen.preset?.categoryId) }
+    var accountChosen by rememberSaveable { mutableStateOf(accountId != null) }
+    var toAccountId by rememberSaveable { mutableStateOf(screen.preset?.toAccountId) }
+    var categoryId by rememberSaveable { mutableStateOf(screen.preset?.categoryId) }
     val currencies = LocalCurrencies.current
     val platform = LocalPlatform.current
-    var currencyCode by remember { mutableStateOf(screen.preset?.currency) }
+    var currencyCode by rememberSaveable { mutableStateOf(screen.preset?.currency) }
     val enteredFmt = currencyCode?.let { currencies[it]?.format } ?: currency
-    var amountText by remember { mutableStateOf(screen.preset?.amount?.takeIf { it > 0 }?.let { enteredFmt.toInput(it) }.orEmpty()) }
-    var tagIds by remember { mutableStateOf(screen.preset?.tagIds.orEmpty()) }
-    var lat by remember { mutableStateOf<Double?>(null) }
-    var lng by remember { mutableStateOf<Double?>(null) }
+    var amountText by rememberSaveable { mutableStateOf(screen.preset?.amount?.takeIf { it > 0 }?.let { enteredFmt.toInput(it) }.orEmpty()) }
+    var tagIds by rememberSaveable(stateSaver = StringListSaver) { mutableStateOf(screen.preset?.tagIds.orEmpty()) }
+    var lat by rememberSaveable { mutableStateOf<Double?>(null) }
+    var lng by rememberSaveable { mutableStateOf<Double?>(null) }
     var existingPhotos by remember { mutableStateOf(emptyList<app.moneytracker.domain.Photo>()) }
-    var newPhotos by remember { mutableStateOf(emptyList<String>()) }
+    // Saved photos removed in this edit (they leave the entry on save); kept across the app closing in the background.
+    var removedPhotoIds by rememberSaveable(stateSaver = StringListSaver) { mutableStateOf(emptyList<String>()) }
+    // True once this form has been on screen: after the app was closed in the background, the fields come back from
+    // saved state, so the entry isn't reloaded over them and no default account is applied.
+    var formShown by rememberSaveable { mutableStateOf(false) }
+    val restoring = remember { formShown }
+    SideEffect { formShown = true }
+    var newPhotos by rememberSaveable(stateSaver = StringListSaver) { mutableStateOf(emptyList<String>()) }
     var tagDialog by remember { mutableStateOf(false) }
     var bookmarkDialog by remember { mutableStateOf(false) }
     var photoMenu by remember { mutableStateOf(false) }
@@ -136,16 +145,16 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     val tags by repo.tags.collectAsState(emptyList())
     val locationOn by remember(repo) { repo.flag(app.moneytracker.data.MoneyRepository.Keys.LOCATION) }.collectAsState(false)
     val capture = screen.captureId?.let { id -> repo.pendingCaptures.collectAsState(emptyList()).value.firstOrNull { it.id == id } }
-    var feeText by remember { mutableStateOf("") }
-    var showFee by remember { mutableStateOf(false) }
-    var note by remember { mutableStateOf(screen.preset?.note.orEmpty()) }
-    var memo by remember { mutableStateOf(screen.preset?.memo.orEmpty()) }
-    var origin by remember { mutableStateOf(screen.preset?.origin.orEmpty()) }
-    var installments by remember { mutableStateOf(screen.preset?.installments ?: 1) }
-    var repeat by remember { mutableStateOf(screen.preset?.repeat) }
-    var repeatEnd by remember { mutableStateOf(screen.preset?.repeatEnd) }
+    var feeText by rememberSaveable { mutableStateOf("") }
+    var showFee by rememberSaveable { mutableStateOf(false) }
+    var note by rememberSaveable { mutableStateOf(screen.preset?.note.orEmpty()) }
+    var memo by rememberSaveable { mutableStateOf(screen.preset?.memo.orEmpty()) }
+    var origin by rememberSaveable { mutableStateOf(screen.preset?.origin.orEmpty()) }
+    var installments by rememberSaveable { mutableStateOf(screen.preset?.installments ?: 1) }
+    var repeat by rememberSaveable { mutableStateOf(screen.preset?.repeat) }
+    var repeatEnd by rememberSaveable(stateSaver = OptionalDateSaver) { mutableStateOf(screen.preset?.repeatEnd) }
     var error by remember { mutableStateOf<String?>(null) }
-    var panel by remember {
+    var panel by rememberSaveable {
         mutableStateOf(if (screen.txnId == null && screen.preset == null) (if (accountFirst && accountId == null) Panel.ACCOUNT else Panel.AMOUNT) else Panel.NONE)
     }
     var datePicker by remember { mutableStateOf(false) }
@@ -157,7 +166,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     val timeInput by remember(repo) { repo.setting(app.moneytracker.data.MoneyRepository.Keys.TIME_INPUT) }.collectAsState(repo.settingNow(app.moneytracker.data.MoneyRepository.Keys.TIME_INPUT))
     val timeOn = timeInput == "INPUT" || timeInput == "LIST"
     // New entries get the current time when time input is on; edits keep what was stored.
-    var timeOfDay by remember { mutableStateOf(screen.preset?.timeOfDay ?: if (screen.txnId == null && timeOn) nowMinutes() else null) }
+    var timeOfDay by rememberSaveable { mutableStateOf(screen.preset?.timeOfDay ?: if (screen.txnId == null && timeOn) nowMinutes() else null) }
     var timePicker by remember { mutableStateOf(false) }
 
     // The account usually used for this kind of entry (and category), unless one was chosen; a refund goes back
@@ -171,7 +180,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     }
     // New blank entries start on that account (before the first frame, like loading an edit below), so the
     // account picker can be skipped. Account-first input asks for the account anyway.
-    remember { if (screen.txnId == null && screen.preset == null && !accountFirst) applyHabitAccount(null) }
+    remember { if (!restoring && screen.txnId == null && screen.preset == null && !accountFirst) applyHabitAccount(null) }
 
     // Fill the form with the entry being edited (transfer pair / fee / installment plan, tags, photos) before the
     // first frame: a few indexed rows read in well under a millisecond, and loading later would flash the
@@ -181,9 +190,10 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         val opened = editor.open(id) ?: return@remember
         val t = opened.txn
         val d = opened.draft
-        existingPhotos = opened.photos
-        adjustUp = t.kind == TxnKind.ADJUST_UP
+        existingPhotos = opened.photos.filter { it.id !in removedPhotoIds }
         existing = t
+        if (restoring) return@remember
+        adjustUp = t.kind == TxnKind.ADJUST_UP
         type = d.type; date = d.date; accountId = d.accountId; toAccountId = d.toAccountId; accountChosen = true
         categoryId = if (d.type == DraftType.TRANSFER) null else d.categoryId
         currencyCode = d.currency
@@ -194,7 +204,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         lat = d.lat; lng = d.lng
     }
     // Then keep the photo strip current (photos added or removed while editing).
-    LaunchedEffect(existing?.id) { existing?.let { t -> repo.photos(t.id).collect { existingPhotos = it } } }
+    LaunchedEffect(existing?.id) { existing?.let { t -> repo.photos(t.id).collect { list -> existingPhotos = list.filter { it.id !in removedPhotoIds } } } }
     // New entries: capture location once if the user enabled it.
     LaunchedEffect(locationOn) {
         if (locationOn && screen.txnId == null && lat == null) platform.currentLocation({ a, b -> lat = a; lng = b }, {})
@@ -220,8 +230,8 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     // Unsaved-changes guard: compare the form with what it held once loaded.
     fun formKey() = listOf(type, date, accountId, toAccountId, categoryId, amountText, feeText, note, memo, installments,
         repeat, repeatEnd, tagIds, currencyCode, newPhotos, existingPhotos.size, timeOfDay, adjustUp, convertedFromAdjustment).toString()
-    var baseline by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(existing, accounts) { if (screen.txnId == null || existing != null) baseline = formKey() }
+    var baseline by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(existing, accounts) { if (!restoring && (screen.txnId == null || existing != null)) baseline = formKey() }
     var confirmDiscard by remember { mutableStateOf(false) }
     val dirtyState = androidx.compose.runtime.rememberUpdatedState(baseline != null && formKey() != baseline)
     val panelState = androidx.compose.runtime.rememberUpdatedState(panel)
@@ -526,7 +536,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                             Box(
                                 Modifier.align(Alignment.TopEnd).minimumInteractiveComponentSize().clickable {
                                     val p = existingPhotos.firstOrNull { it.id == key }
-                                    if (p != null) existingPhotos = existingPhotos - p
+                                    if (p != null) { existingPhotos = existingPhotos - p; removedPhotoIds = removedPhotoIds + p.id }
                                     else { newPhotos = newPhotos - file; platform.deletePhotoFile(file) }
                                 },
                                 contentAlignment = Alignment.Center,

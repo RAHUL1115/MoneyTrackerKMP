@@ -67,6 +67,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.DraftType
+import app.moneytracker.ui.StateWriter
+import app.moneytracker.ui.StateReader
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.Saver
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.MoneyRepository.Keys
@@ -145,6 +149,8 @@ private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: Cu
     var lat by mutableStateOf<Double?>(null)
     var lng by mutableStateOf<Double?>(null)
     var existingPhotos by mutableStateOf(emptyList<Photo>())
+    /** Saved photos removed in this edit: they leave the entry only when it's saved. */
+    var removedPhotoIds by mutableStateOf(emptySet<String>())
     var newPhotos by mutableStateOf(emptyList<String>())
     var note by mutableStateOf(s.preset?.note.orEmpty())
     var memo by mutableStateOf(s.preset?.memo.orEmpty())
@@ -245,6 +251,29 @@ private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: Cu
     }
 
     fun amountValue(): Long? = fmt.parse(addSettle(amountText, fmt))
+
+    /** Everything typed, for the platform's saved state (the app closed in the background). */
+    fun saveState(): String = StateWriter().bool(adjustUp).bool(converted).str(type.name).date(date).str(accountId).bool(accountChosen)
+        .str(toAccountId).str(categoryId).str(currencyCode).str(amountText).str(feeText).strings(tagIds).double(lat).double(lng)
+        .strings(removedPhotoIds.toList()).strings(newPhotos).str(note).str(memo).str(origin).int(installments).str(repeat?.name)
+        .date(repeatEnd).int(timeOfDay).toString()
+
+    /** Puts back [saveState] over the freshly loaded form; a string from another version is ignored. */
+    fun restoreState(saved: String) {
+        runCatching {
+            val r = StateReader(saved)
+            adjustUp = r.bool(); converted = r.bool(); type = DraftType.valueOf(r.need()); date = r.date()!!; accountId = r.str()
+            accountChosen = r.bool(); toAccountId = r.str(); categoryId = r.str(); currencyCode = r.str(); amountText = r.need()
+            feeText = r.need(); tagIds = r.strings(); lat = r.double(); lng = r.double(); removedPhotoIds = r.strings().toSet()
+            newPhotos = r.strings(); note = r.need(); memo = r.need(); origin = r.need(); installments = r.int()!!
+            repeat = r.str()?.let { RepeatType.valueOf(it) }; repeatEnd = r.date(); timeOfDay = r.int()
+            existingPhotos = existingPhotos.filter { it.id !in removedPhotoIds }
+        }
+    }
+
+    companion object {
+        fun saver(make: () -> AddForm) = Saver<AddForm, String>(save = { it.saveState() }, restore = { make().apply { restoreState(it) } })
+    }
 }
 
 private fun shown(f: CurrencyFormat, expr: String) = if (f.symbolAfter) "$expr ${f.symbol}" else "${f.symbol}$expr"
@@ -270,11 +299,12 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     val timeOn = timeInput == "INPUT" || timeInput == "LIST"
     val capture = s.captureId?.let { id -> repo.pendingCaptures.collectAsState(emptyList()).value.firstOrNull { it.id == id } }
 
-    val f = remember { AddForm(repo, s, currency, currencies, timeOn) }
+    // What was typed survives the app being closed in the background (the form is rebuilt, then refilled).
+    val f = rememberSaveable(saver = AddForm.saver { AddForm(repo, s, currency, currencies, timeOn) }) { AddForm(repo, s, currency, currencies, timeOn) }
     val editor = rememberEntryEditor()
     val today = remember { repo.today() }
 
-    var sheet by remember { mutableStateOf(AddSheet.NONE) }
+    var sheet by rememberSaveable { mutableStateOf(AddSheet.NONE) }
     var feeTarget by remember { mutableStateOf(false) }  // transfers: keypad types into the fee
     var datePicker by remember { mutableStateOf(false) }
     var timePicker by remember { mutableStateOf(false) }
@@ -287,14 +317,14 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     val noteFocus = remember { FocusRequester() }
     var noteFocused by remember { mutableStateOf(false) }
     // "Account first" (Settings › Input order) starts a new entry on the account.
-    var step by remember {
+    var step by rememberSaveable {
         mutableStateOf(if (s.txnId == null && s.preset == null && f.accountFirst && f.accountId == null) Step.ACCOUNT else Step.AMOUNT)
     }
     var acctTab by remember { mutableStateOf<String?>(null) }  // the account tray's tab: Recent or a group id
     var subOf by remember { mutableStateOf<String?>(null) }  // a main category whose sub-categories the tray shows
 
     // Keep the photo strip current; capture location once for new entries if the user enabled it.
-    LaunchedEffect(f.existing?.id) { f.existing?.let { t -> repo.photos(t.id).collect { f.existingPhotos = it } } }
+    LaunchedEffect(f.existing?.id) { f.existing?.let { t -> repo.photos(t.id).collect { list -> f.existingPhotos = list.filter { it.id !in f.removedPhotoIds } } } }
     LaunchedEffect(locationOn) {
         if (locationOn && s.txnId == null && f.lat == null) platform.currentLocation({ a, b -> f.lat = a; f.lng = b }, {})
     }
@@ -319,8 +349,10 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     }
 
     // Unsaved-changes guard: compare the form with what it held once loaded.
-    var baseline by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(f.existing, accounts) { if (s.txnId == null || f.existing != null) baseline = f.formKey() }
+    // Saved too, so a restored half-typed entry still asks before it's thrown away.
+    var baseline by rememberSaveable { mutableStateOf<String?>(null) }
+    val baselineRestored = remember { baseline != null }
+    LaunchedEffect(f.existing, accounts) { if (!baselineRestored && (s.txnId == null || f.existing != null)) baseline = f.formKey() }
     val dirty = rememberUpdatedState(baseline != null && f.formKey() != baseline)
     DisposableEffect(nav) {
         val remove = nav.interceptBack {
@@ -937,7 +969,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         AddPhotoViewer(allPhotos, start, onRemove = { i ->
             val file = allPhotos[i]
             val p = f.existingPhotos.firstOrNull { it.fileName == file }
-            if (p != null) f.existingPhotos = f.existingPhotos - p
+            if (p != null) { f.existingPhotos = f.existingPhotos - p; f.removedPhotoIds = f.removedPhotoIds + p.id }
             else { f.newPhotos = f.newPhotos - file; platform.deletePhotoFile(file) }
             viewer = null
             toaster.show(if (p != null) tr("Photo removed. Save to keep the change") else tr("Photo removed"))

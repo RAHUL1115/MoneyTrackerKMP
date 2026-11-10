@@ -99,10 +99,8 @@ internal enum class ActView(val title: String) { LIST("List"), CALENDAR("Calenda
 /** Quick filter on the list: spending (and refunds) only, or only transfers. */
 internal enum class ActKind(val title: String) { ALL("All"), OUT("Out"), MOVED("Moved") }
 
-/** Search › "Apply filter to Activity" hands its filter to the tab through this. */
-internal object ActivityHandoff {
-    var pending by mutableStateOf<ActivityFilterRequest?>(null)
-}
+/** Search › "Apply filter to Activity" leaves its filter for the tab under this navigator result key. */
+internal const val ACTIVITY_FILTER = "activityFilter"
 
 internal data class ActivityFilterRequest(val filter: TxnFilter, val kind: ActKind, val periodKey: Int?)
 
@@ -141,11 +139,10 @@ internal fun ActivityTab() {
     val ym = YearMonth.fromKey(periodKey)
     val range = ps.month(ym)
 
-    val handoff = ActivityHandoff.pending
-    LaunchedEffect(handoff) {
-        val h = handoff ?: return@LaunchedEffect
+    val filterArrived = nav.hasResult(ACTIVITY_FILTER)
+    LaunchedEffect(filterArrived) {
+        val h = nav.takeResult<ActivityFilterRequest>(ACTIVITY_FILTER) ?: return@LaunchedEffect
         filter = h.filter; kind = h.kind; h.periodKey?.let { periodKey = it }; view = ActView.LIST
-        ActivityHandoff.pending = null
     }
     fun endSelect() { selecting = false; selection = emptySet() }
     LaunchedEffect(view, periodKey) { if (selecting) endSelect() }

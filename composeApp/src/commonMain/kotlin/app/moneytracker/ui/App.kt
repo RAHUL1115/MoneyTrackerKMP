@@ -1,8 +1,5 @@
 package app.moneytracker.ui
 
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -137,7 +134,6 @@ fun App(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 return@Surface
             }
-            val stateHolder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
             val toaster = remember { app.moneytracker.ui.fresh.Toaster() }
             val currency by repo.currency.collectAsState(CurrencyFormat())
             val currencies by repo.currencies.collectAsState(emptyList())
@@ -186,7 +182,7 @@ fun App(
                             }
                             LaunchedEffect(launchAction) {
                                 val a = launchAction ?: return@LaunchedEffect
-                                navigator.stack.clear()
+                                navigator.clear()
                                 when (a) {
                                     LaunchAction.ADD_EXPENSE -> navigator.push(Screen.EditTxn())
                                     LaunchAction.ADD_INCOME -> navigator.push(Screen.EditTxn(preset = TxnDraft(DraftType.INCOME, repo.today(), "", amount = 0)))
@@ -198,24 +194,8 @@ fun App(
                                 }
                                 onLaunchHandled()
                             }
-                            // Each screen keeps its saved UI state (selected tab, month, scroll) while others sit on top
-                            // of it, so Back returns exactly where you were. State is dropped once a screen is closed.
-                            val keys = listOf("home") + navigator.stack.mapIndexed { i, sc -> "$i:$sc" }
-                            val seen = remember { mutableSetOf<String>() }
-                            LaunchedEffect(keys) {
-                                (seen - keys.toSet()).forEach { stateHolder.removeState(it) }
-                                seen.retainAll(keys.toSet()); seen.addAll(keys)
-                            }
-                            val top = navigator.stack.lastOrNull()
                             Box(Modifier.fillMaxSize()) {
-                            // Home stays composed (not drawn, not touchable, hidden from accessibility) under other
-                            // screens, so going back shows it at once with its data already loaded instead of blank.
-                            stateHolder.SaveableStateProvider("home") {
-                                Box(Modifier.fillMaxSize().then(if (top != null) Modifier.drawWithContent { }.clearAndSetSemantics { } else Modifier)) { if (newLayout) app.moneytracker.ui.fresh.FreshHome() else Home() }
-                            }
-                            if (top != null) stateHolder.SaveableStateProvider(keys.last()) {
-                            // Takes every touch, so none reach Home underneath.
-                            Box(Modifier.fillMaxSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }) {
+                            navigator.Host(home = { if (newLayout) app.moneytracker.ui.fresh.FreshHome() else Home() }) { top ->
                             val fresh = if (newLayout) app.moneytracker.ui.fresh.freshScreen(top) else null
                             if (fresh != null) fresh() else when (top) {
                                 is Screen.EditTxn -> Unmasked { EditTxnScreen(top) }
@@ -245,7 +225,6 @@ fun App(
                                 Screen.AccountsTrend -> AccountsTrendScreen()
                                 Screen.AccountGroups -> AccountGroupsScreen()
                                 Screen.WebDashboard -> WebDashboardScreen()
-                            }
                             }
                             }
                             // Both layouts: Undo after adding a detected payment, and the new layout's other toasts.

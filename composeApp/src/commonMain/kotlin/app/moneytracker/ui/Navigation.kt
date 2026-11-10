@@ -1,6 +1,17 @@
 package app.moneytracker.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.CategoryKind
 import kotlinx.datetime.LocalDate
@@ -45,10 +56,17 @@ sealed interface Screen {
     data class MoreHub(val id: String) : Screen
 }
 
-/** Minimal back stack on top of the tabbed home screen; the platform wires its back button to [pop]. */
+/**
+ * The back stack on top of the tabbed home screen; the platform wires its back button to [back].
+ *
+ * It outlives the screen it draws: [saveState] / [restoreState] carry the stack through the platform's saved state
+ * (the app closed in the background), and [Host] keeps each open screen's saved UI state until that screen closes.
+ * Screens hand a result to the one below with [setResult]; the one below reads it with [takeResult].
+ */
 class Navigator {
     val stack = mutableStateListOf<Screen>()
     private val backInterceptors = mutableStateListOf<() -> Boolean>()
+    private val results = mutableStateMapOf<String, Any>()
     /** True when Back has something to do in the app: a screen to close, or an interceptor (e.g. a selection on Home). */
     val canPop get() = stack.isNotEmpty() || backInterceptors.isNotEmpty()
 
@@ -59,6 +77,8 @@ class Navigator {
         app.moneytracker.Log.d("Nav") { "← ${gone::class.simpleName} (depth ${stack.size})" }
         true
     }
+    /** Back to the home screen (a shortcut or notification starts from there). */
+    fun clear() { stack.clear() }
 
     /**
      * Lets the top screen handle Back first (close a panel, confirm discarding edits).
@@ -71,4 +91,46 @@ class Navigator {
 
     /** System Back and the top-bar arrow both come here. */
     fun back(): Boolean = backInterceptors.lastOrNull()?.invoke() == true || pop()
+
+    /** Leaves [value] for whichever screen asks for [key] next (e.g. Search's filter for the Activity tab). */
+    fun setResult(key: String, value: Any) { results[key] = value }
+    /** The value left under [key], removed so it's used once. Observable: a screen recomposes when one arrives. */
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> takeResult(key: String): T? = (results[key] as T?)?.also { results.remove(key) }
+    /** Peeks without taking (for keying an effect that then calls [takeResult]). */
+    fun hasResult(key: String): Boolean = results.containsKey(key)
+
+    /** The stack as strings, bottom first. A screen that can't be written ends the list. */
+    fun saveState(): ArrayList<String> = ArrayList(stack.asSequence().map { ScreenCodec.encode(it) }.takeWhile { it != null }.filterNotNull().toList())
+
+    /** Puts back a stack from [saveState]; stops at the first entry that can't be read. */
+    fun restoreState(saved: List<String>) {
+        stack.clear()
+        stack.addAll(saved.asSequence().map { ScreenCodec.decode(it) }.takeWhile { it != null }.filterNotNull())
+        app.moneytracker.Log.d("Nav") { "restored ${stack.size} of ${saved.size} screens" }
+    }
+
+    /**
+     * Draws [home] with the top screen over it. Each screen keeps its saved UI state (tab, month, scroll, what was
+     * typed) while others sit on top of it and across the app being closed in the background; it's dropped once the
+     * screen closes. Home stays composed under other screens (not drawn or touchable) so Back shows it at once.
+     */
+    @Composable
+    fun Host(home: @Composable () -> Unit, screen: @Composable (Screen) -> Unit) {
+        val holder = rememberSaveableStateHolder()
+        val keys = listOf("home") + stack.mapIndexed { i, sc -> "$i:${ScreenCodec.encode(sc) ?: sc.toString()}" }
+        val seen = remember { mutableSetOf<String>() }
+        LaunchedEffect(keys) {
+            (seen - keys.toSet()).forEach { holder.removeState(it) }
+            seen.retainAll(keys.toSet()); seen.addAll(keys)
+        }
+        val top = stack.lastOrNull()
+        holder.SaveableStateProvider("home") {
+            Box(Modifier.fillMaxSize().then(if (top != null) Modifier.drawWithContent { }.clearAndSetSemantics { } else Modifier)) { home() }
+        }
+        if (top != null) holder.SaveableStateProvider(keys.last()) {
+            // Takes every touch, so none reach Home underneath.
+            Box(Modifier.fillMaxSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }) { screen(top) }
+        }
+    }
 }

@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -49,24 +50,24 @@ internal fun AccountEditBody(accountId: String?) {
     val currencies by repo.currencies.collectAsState(emptyList())
     val mainFmt = LocalCurrency.current
 
-    var loaded by remember { mutableStateOf(accountId == null) }
-    var name by remember { mutableStateOf("") }
-    var groupId by remember { mutableStateOf<String?>(null) }
-    var includeInTotals by remember { mutableStateOf(true) }
-    var transferAsExpense by remember { mutableStateOf(false) }
-    var hidden by remember { mutableStateOf(false) }
-    var settlementDay by remember { mutableStateOf("1") }
-    var paymentAccountId by remember { mutableStateOf<String?>(null) }
-    var sortOrder by remember { mutableStateOf(accounts.size) }
-    var accountCurrency by remember { mutableStateOf<String?>(null) }
-    var limitText by remember { mutableStateOf("") }
-    var paymentDay by remember { mutableStateOf("") }
-    var autoPay by remember { mutableStateOf(false) }
-    var targetText by remember { mutableStateOf("") }
-    var targetType by remember { mutableStateOf(1) }
-    var memo by remember { mutableStateOf("") }
-    var smsSender by remember { mutableStateOf("") }
-    var smsMatch by remember { mutableStateOf("") }
+    var loaded by rememberSaveable { mutableStateOf(accountId == null) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var groupId by rememberSaveable { mutableStateOf<String?>(null) }
+    var includeInTotals by rememberSaveable { mutableStateOf(true) }
+    var transferAsExpense by rememberSaveable { mutableStateOf(false) }
+    var hidden by rememberSaveable { mutableStateOf(false) }
+    var settlementDay by rememberSaveable { mutableStateOf("1") }
+    var paymentAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    var sortOrder by rememberSaveable { mutableStateOf(accounts.size) }
+    var accountCurrency by rememberSaveable { mutableStateOf<String?>(null) }
+    var limitText by rememberSaveable { mutableStateOf("") }
+    var paymentDay by rememberSaveable { mutableStateOf("") }
+    var autoPay by rememberSaveable { mutableStateOf(false) }
+    var targetText by rememberSaveable { mutableStateOf("") }
+    var targetType by rememberSaveable { mutableStateOf(1) }
+    var memo by rememberSaveable { mutableStateOf("") }
+    var smsSender by rememberSaveable { mutableStateOf("") }
+    var smsMatch by rememberSaveable { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
     var sheet by remember { mutableStateOf<String?>(null) }
