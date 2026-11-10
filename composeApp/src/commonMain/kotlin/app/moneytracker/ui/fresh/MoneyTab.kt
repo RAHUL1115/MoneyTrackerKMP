@@ -155,6 +155,11 @@ internal fun MoneyTab() {
                     val v = if (group.type.isDebitCard) it.balance else it.effectiveBalance
                     Fx.toMain(v, it.account.currency?.let { c -> currencies[c] }, currency.decimals)
                 }
+                // Cards: under the payable total, what's outstanding in the open cycles. A card in credit doesn't lower it,
+                // since its credit doesn't pay another card's charges.
+                val outstanding = if (isCard) counted.sumOf { l ->
+                    Fx.toMain(maxOf(0L, l.card?.outstanding ?: 0L), l.account.currency?.let { c -> currencies[c] }, currency.decimals)
+                } else null
                 val allHidden = groupLines.all { it.account.hidden }
                 val open = group.id !in collapsed
                 FCard(padding = 0.dp) {
@@ -170,6 +175,9 @@ internal fun MoneyTab() {
                         }
                         Text(currency.format(total), color = if (allHidden) F.muted else balanceTone(total, isCard),
                             fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
+                        // Cards: payable, then outstanding (as on each card row) on the same line, so every group header keeps one height.
+                        if (outstanding != null) Text("  ·  " + currency.format(outstanding), color = F.muted, fontSize = 12.sp,
+                            style = F.money, maxLines = 1)
                         Icon(if (open) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted, modifier = Modifier.padding(start = 6.dp).size(20.dp))
                     }
                     AnimatedVisibility(open, enter = expandVertically(tween(200)), exit = shrinkVertically(tween(200))) {
