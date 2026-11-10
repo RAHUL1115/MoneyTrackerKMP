@@ -89,7 +89,7 @@ class ReadModels internal constructor(private val repo: MoneyRepository) {
 
     /** One card's statement status (same rules as the account summary). Blocking. */
     fun cardStatusNow(a: Account, prepaid: Set<String> = repo.txnIdsWithTag(TAG_PREPAYMENT)): CardStatus =
-        cardStatus(repo.accountTxns(a.id), a.cardSettlementDay ?: 1, repo.today(), prepaid)
+        cardStatus(repo.accountTxns(a.id), a.statementDay, repo.today(), prepaid)
 
     private class Inputs(val groups: List<AccountGroup>, val accounts: List<Account>, val balances: Map<String, Long>, val currencies: List<Currency>)
 

@@ -264,7 +264,7 @@ fun AccountDetailScreen(accountId: String) {
             if (acct != null && acct.memo.isNotBlank()) Text(acct.memo, Modifier.padding(top = 8.dp), color = SubtleText, fontSize = 13.sp)
             val target = acct?.usageTarget
             if (acct != null && target != null) {
-                val usage = cardUsage(history, acct.cardSettlementDay ?: 1, repo.today(), acct.usageTargetType == 2,
+                val usage = cardUsage(history, acct.statementDay, repo.today(), acct.usageTargetType == 2,
                     remember(history) { repo.txnIdsWithTag(TAG_USAGE_EXCEPTION) })
                 val met = usage.measured >= target
                 Text(
@@ -513,7 +513,7 @@ fun EditAccountScreen(accountId: String?) {
     var sortOrder by rememberSaveable { mutableStateOf(accounts.size) }
     var accountCurrency by rememberSaveable { mutableStateOf<String?>(null) }
     var limitText by rememberSaveable { mutableStateOf("") }
-    var paymentDay by rememberSaveable { mutableStateOf("") }
+    var paymentDay by rememberSaveable { mutableStateOf("1") }      // both days start on the 1st
     var autoPay by rememberSaveable { mutableStateOf(false) }
     var targetText by rememberSaveable { mutableStateOf("") }
     var targetType by rememberSaveable { mutableStateOf(1) }
@@ -529,11 +529,11 @@ fun EditAccountScreen(accountId: String?) {
         if (loaded) return@LaunchedEffect
         val a = accounts.firstOrNull { it.id == accountId } ?: return@LaunchedEffect
         name = a.name; groupId = a.groupId; includeInTotals = a.includeInTotals; transferAsExpense = a.transferAsExpense
-        settlementDay = (a.cardSettlementDay ?: 1).toString(); paymentAccountId = a.cardPaymentAccountId; sortOrder = a.sortOrder
+        settlementDay = a.statementDay.toString(); paymentAccountId = a.cardPaymentAccountId; sortOrder = a.sortOrder
         accountCurrency = a.currency
         val fmt = a.currency?.let { c -> currencies.firstOrNull { it.code == c }?.format } ?: mainFmt
         limitText = a.cardLimit?.let { fmt.toInput(it) }.orEmpty()
-        paymentDay = a.cardPaymentDay?.toString().orEmpty(); autoPay = a.cardAutoPay
+        paymentDay = a.dueDay.toString(); autoPay = a.cardAutoPay
         targetText = a.usageTarget?.let { fmt.toInput(it) }.orEmpty(); targetType = a.usageTargetType
         memo = a.memo; smsSender = a.smsSender; smsMatch = a.smsMatch
         loaded = true
@@ -568,7 +568,7 @@ fun EditAccountScreen(accountId: String?) {
                     { it ?: tr("Main currency ({0})", mainFmt.symbol) }, { accountCurrency = it }, Modifier.fillMaxWidth())
             }
             if (group?.type?.isCreditCard == true) {
-                OutlinedTextField(paymentDay, { paymentDay = it.filter(Char::isDigit).take(2) }, label = { Text(tr("Payment day (1–31, optional)")) },
+                OutlinedTextField(paymentDay, { paymentDay = it.filter(Char::isDigit).take(2) }, label = { Text(tr("Payment day (1–31)")) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.fillMaxWidth())
                 SwitchRow(tr("Auto-pay"), autoPay) { autoPay = it }
                 OutlinedTextField(limitText, { limitText = it }, label = { Text(tr("Monthly spending limit (optional)")) },
@@ -601,7 +601,7 @@ fun EditAccountScreen(accountId: String?) {
                         groupId == null -> tr("Choose a group")
                         name.isBlank() -> tr("Enter a name")
                         group?.type?.isCreditCard == true && (day == null || day !in 1..31) -> tr("Billing day must be 1–31")
-                        group?.type?.isCreditCard == true && paymentDay.isNotBlank() && (payDay == null || payDay !in 1..31) -> tr("Payment day must be 1–31")
+                        group?.type?.isCreditCard == true && (payDay == null || payDay !in 1..31) -> tr("Payment day must be 1–31")
                         else -> null
                     }
                     if (error != null) return@clickable

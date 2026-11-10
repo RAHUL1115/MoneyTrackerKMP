@@ -59,7 +59,12 @@ data class Account(
     val smsSender: String = "",
     /** …or containing this text (card or account digits) are assigned to this account. */
     val smsMatch: String = "",
-)
+) {
+    /** Credit cards: the statement (bill) day; a card saved without one counts as the 1st. */
+    val statementDay: Int get() = cardSettlementDay ?: 1
+    /** Credit cards: the day the bill is due; a card saved without one counts as the 1st. */
+    val dueDay: Int get() = cardPaymentDay ?: 1
+}
 
 data class Category(
     val id: String,

@@ -133,7 +133,7 @@ internal fun AccountDetailBody(accountId: String) {
             if (isCredit) {
                 ActionTile(Glyph.Card, if (line.billDue > 0) tr("Pay bill") else tr("Paid ✓"), primary = line.billDue > 0) {
                     if (line.owed > 0) sheet = "pay"
-                    else toaster.show(tr("Nothing to pay. The next statement closes on {0}.", Periods.cardCycle(today, acct.cardSettlementDay ?: 1).endInclusive.short()))
+                    else toaster.show(tr("Nothing to pay. The next statement closes on {0}.", Periods.cardCycle(today, acct.statementDay).endInclusive.short()))
                 }
                 ActionTile(Glyph.Add, tr("Add entry"), onClick = addEntry)
                 ActionTile(Glyph.Edit, tr("Adjust"), onClick = { sheet = "adjust" })
@@ -148,14 +148,12 @@ internal fun AccountDetailBody(accountId: String) {
         }
 
         if (isCredit && statement) FCard {
-            val payDay = acct.cardPaymentDay
             SectionLabel(
-                if (payDay != null) tr("Statements · billing day {0} · pay by day {1}", acct.cardSettlementDay ?: 1, payDay)
-                else tr("Statements · billing day {0}", acct.cardSettlementDay ?: 1),
+                tr("Statements · billing day {0} · pay by day {1}", acct.statementDay, acct.dueDay),
                 Modifier.padding(bottom = 4.dp),
             )
             val due = billDueDate(acct, today)
-            cycles(history, acct.cardSettlementDay ?: 1, today, 6).forEachIndexed { i, c ->
+            cycles(history, acct.statementDay, today, 6).forEachIndexed { i, c ->
                 if (i > 0) Divider()
                 val (status, color) = when {
                     i == 0 -> tr("Open · closes {0}", c.range.endInclusive.short()) to F.muted
@@ -295,7 +293,7 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
         Row {
             Text(listOf(line.group.type.moneyLabel, line.group.name).distinct().joinToString(" · ") + (a.currency?.let { " · $it" } ?: ""),
                 Modifier.weight(1f), color = soft, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (card != null) Text(tr("Cycle {0}", Periods.cardCycle(today, a.cardSettlementDay ?: 1).label()), color = soft, fontSize = 12.sp, maxLines = 1)
+            if (card != null) Text(tr("Cycle {0}", Periods.cardCycle(today, a.statementDay).label()), color = soft, fontSize = 12.sp, maxLines = 1)
         }
         Gap(8.dp)
         if (card != null) {
@@ -322,7 +320,7 @@ private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List<Txn>, tod
             val target = a.usageTarget
             if (target != null) {
                 val excluded = remember(history) { repo.txnIdsWithTag(TAG_USAGE_EXCEPTION) }
-                val usage = cardUsage(history, a.cardSettlementDay ?: 1, today, a.usageTargetType == 2, excluded)
+                val usage = cardUsage(history, a.statementDay, today, a.usageTargetType == 2, excluded)
                 val met = usage.measured >= target
                 Gap(12.dp)
                 Bar(usage.thisCycle.toFloat() / target, fill = F.accent, track = F.fill, height = 6.dp)

@@ -62,7 +62,7 @@ internal fun AccountEditBody(accountId: String?) {
     var sortOrder by rememberSaveable { mutableStateOf(accounts.size) }
     var accountCurrency by rememberSaveable { mutableStateOf<String?>(null) }
     var limitText by rememberSaveable { mutableStateOf("") }
-    var paymentDay by rememberSaveable { mutableStateOf("") }
+    var paymentDay by rememberSaveable { mutableStateOf("1") }      // both days start on the 1st
     var autoPay by rememberSaveable { mutableStateOf(false) }
     var targetText by rememberSaveable { mutableStateOf("") }
     var targetType by rememberSaveable { mutableStateOf(1) }
@@ -77,11 +77,11 @@ internal fun AccountEditBody(accountId: String?) {
         if (loaded) return@LaunchedEffect
         val a = accounts.firstOrNull { it.id == accountId } ?: return@LaunchedEffect
         name = a.name; groupId = a.groupId; includeInTotals = a.includeInTotals; transferAsExpense = a.transferAsExpense; hidden = a.hidden
-        settlementDay = (a.cardSettlementDay ?: 1).toString(); paymentAccountId = a.cardPaymentAccountId; sortOrder = a.sortOrder
+        settlementDay = a.statementDay.toString(); paymentAccountId = a.cardPaymentAccountId; sortOrder = a.sortOrder
         accountCurrency = a.currency
         val fmt = a.currency?.let { c -> currencies.firstOrNull { it.code == c }?.format } ?: mainFmt
         limitText = a.cardLimit?.let { fmt.toInput(it) }.orEmpty()
-        paymentDay = a.cardPaymentDay?.toString().orEmpty(); autoPay = a.cardAutoPay
+        paymentDay = a.dueDay.toString(); autoPay = a.cardAutoPay
         targetText = a.usageTarget?.let { fmt.toInput(it) }.orEmpty(); targetType = a.usageTargetType
         memo = a.memo; smsSender = a.smsSender; smsMatch = a.smsMatch
         loaded = true
@@ -100,7 +100,7 @@ internal fun AccountEditBody(accountId: String?) {
             groupId == null -> tr("Choose a group")
             name.isBlank() -> tr("Enter a name")
             credit && (day == null || day !in 1..31) -> tr("Billing day must be 1–31")
-            credit && paymentDay.isNotBlank() && (payDay == null || payDay !in 1..31) -> tr("Payment day must be 1–31")
+            credit && (payDay == null || payDay !in 1..31) -> tr("Payment day must be 1–31")       // every card has a bill day and a due day
             else -> null
         }
         if (error != null) return
@@ -149,7 +149,7 @@ internal fun AccountEditBody(accountId: String?) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MoneyTextField(tr("Statement day"), settlementDay, { settlementDay = it.filter(Char::isDigit).take(2) }, Modifier.weight(1f), keyboard = KeyboardType.Number)
                     MoneyTextField(tr("Payment day"), paymentDay, { paymentDay = it.filter(Char::isDigit).take(2) }, Modifier.weight(1f),
-                        placeholder = tr("Optional"), keyboard = KeyboardType.Number)
+                        keyboard = KeyboardType.Number)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MoneyTextField(tr("Monthly limit"), limitText, { limitText = it }, Modifier.weight(1f), placeholder = tr("Optional"), keyboard = KeyboardType.Decimal)
