@@ -531,7 +531,7 @@
     const amount = bind(h('input', { class: 'amount-in', inputmode: 'decimal', autocomplete: 'off', value: f.amount, placeholder: '0.00' }), 'amount');
     const accountSel = h('select', { onchange: e => { f.account = e.target.value; if (!f.id) drawDialog(); } }, ...accountOptions(f.account, false));
     const toSel = bind(h('select', null, h('option', { value: '', text: 'Choose…' }), ...accountOptions(f.to, false)), 'to');
-    const catSel = bind(h('select', null, h('option', { value: '', text: 'No category' }), ...categoryOptions([f.type === 'INCOME' ? 'INCOME' : 'EXPENSE'], f.category, false)), 'category');
+    const catSel = bind(h('select', null, h('option', { value: '', text: 'Pick a category' }), ...categoryOptions([f.type === 'INCOME' ? 'INCOME' : 'EXPENSE'], f.category, false)), 'category');
 
     const tagList = h('div', { class: 'chips' });
     const tagInput = h('input', { placeholder: 'Add a tag and press Enter', list: 'mt-tags', autocomplete: 'off' });

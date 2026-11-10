@@ -408,10 +408,10 @@ private fun EntryRow(t: Txn, accountName: Map<String, String>, catById: Map<Stri
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PaySheet(line: AccountLine, fmt: CurrencyFormat, today: LocalDate, onDismiss: () -> Unit) {
+    val editor = app.moneytracker.ui.rememberEntryEditor()
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val toaster = LocalToaster.current
-    val platform = LocalPlatform.current
     val accounts by repo.accounts.collectAsState(emptyList())
     val groups by repo.groups.collectAsState(emptyList())
     val a = line.account
@@ -435,12 +435,11 @@ private fun PaySheet(line: AccountLine, fmt: CurrencyFormat, today: LocalDate, o
                 val name = fromName.orEmpty()
                 onDismiss()
                 repo.moneyIo {
-                    val id = repo.create(d)
+                    val id = editor.save(d)
                     val left = (line.billDue - v).coerceAtLeast(0)
                     onMain {
-                        platform.refreshWidgets()
                         toaster.show(tr("Paid {0} from {1}", fmt.format(v), name) + if (left > 0) " · " + tr("{0} still due", fmt.format(left)) else "") {
-                            repo.moneyIo { repo.txn(id)?.let { repo.delete(it) } }
+                            repo.moneyIo { editor.delete(id) }
                         }
                     }
                 }

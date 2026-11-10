@@ -74,6 +74,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.DraftType
+import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.Category
@@ -99,6 +100,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val scope = rememberCoroutineScope()
+    val editor = rememberEntryEditor()
     val focus = LocalFocusManager.current
     val accounts by repo.accounts.collectAsState(emptyList())
     val groups by repo.groups.collectAsState(emptyList())
@@ -176,9 +178,10 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     // new-entry defaults first.
     remember(screen.txnId) {
         val id = screen.txnId ?: return@remember
-        val t = repo.txn(id) ?: return@remember
-        val d = repo.draftFrom(t)
-        existingPhotos = repo.photosNow(t.id)
+        val opened = editor.open(id) ?: return@remember
+        val t = opened.txn
+        val d = opened.draft
+        existingPhotos = opened.photos
         adjustUp = t.kind == TxnKind.ADJUST_UP
         existing = t
         type = d.type; date = d.date; accountId = d.accountId; toAccountId = d.toAccountId; accountChosen = true
@@ -188,7 +191,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         amountText = fmt.toInput(d.amount)
         if (d.fee > 0) { feeText = fmt.toInput(d.fee); showFee = true }
         note = d.note; memo = d.memo; installments = d.installments; tagIds = d.tagIds; timeOfDay = d.timeOfDay; origin = d.origin
-        lat = t.lat; lng = t.lng
+        lat = d.lat; lng = d.lng
     }
     // Then keep the photo strip current (photos added or removed while editing).
     LaunchedEffect(existing?.id) { existing?.let { t -> repo.photos(t.id).collect { existingPhotos = it } } }
@@ -262,7 +265,8 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         accountChosen = false
         timeOfDay = if (timeOn) nowMinutes() else null
         amountText = ""; feeText = ""; showFee = false; note = ""; memo = ""; categoryId = null; tagIds = emptyList(); newPhotos = emptyList()
-        installments = 1; repeat = null; repeatEnd = null; error = null; panel = if (accountFirst) Panel.ACCOUNT else Panel.AMOUNT
+        installments = 1; repeat = null; repeatEnd = null; error = null; origin = ""
+        panel = if (accountFirst) Panel.ACCOUNT else Panel.AMOUNT
     }
 
     fun save(continueAfter: Boolean) {
@@ -270,44 +274,27 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         fun value(t: String) = if (app.moneytracker.domain.Calc.hasOperator(t)) app.moneytracker.domain.Calc.evaluate(t, enteredFmt.decimals) ?: t else t
         val amount = enteredFmt.parse(value(amountText))
         val fee = if (type == DraftType.TRANSFER && showFee && feeText.isNotBlank()) enteredFmt.parse(value(feeText)) else 0L
-        error = when {
-            amount == null || amount <= 0 -> tr("Enter an amount")
-            fee == null -> tr("Fee is not a valid amount")
-            accountId == null -> tr("Choose an account")
-            // Every entry needs a category (transfers and balance corrections have none of their own).
-            type != DraftType.TRANSFER && !isAdjustment && categoryId == null -> tr("Pick a category")
-            type == DraftType.TRANSFER && toAccountId == null -> tr("Choose the destination account")
-            type == DraftType.TRANSFER && toAccountId == accountId -> tr("Pick two different accounts")
-            else -> null
-        }
+        // Every entry needs a category (transfers and balance corrections have none of their own).
+        error = EntryEditor.check(type, amount, fee, accountId, toAccountId, categoryId, isAdjustment)?.message()
         if (error != null) return
         val adj = existing
         if (adj != null && isAdjustment) {
             scope.launch {
-                withContext(repo.io) { repo.updateAdjustment(adj, date, amount!!, accountId!!, adjustUp, note.trim(), memo.trim(), timeOfDay) }
-                platform.refreshWidgets(); nav.pop()
+                withContext(repo.io) { editor.saveAdjustment(adj, date, amount!!, accountId!!, adjustUp, note.trim(), memo.trim(), timeOfDay) }
+                nav.pop()
             }
             return
         }
         val draft = TxnDraft(
-            type, date, accountId!!, if (type == DraftType.TRANSFER) toAccountId else null,
-            if (type == DraftType.TRANSFER) null else categoryId,
-            amount!!, fee ?: 0, note.trim(), memo.trim(),
-            if (type == DraftType.EXPENSE && isCreditCard) installments else 1,
-            if (existing == null) repeat else null, repeatEnd,
+            type, date, accountId!!, toAccountId, categoryId, amount!!, fee ?: 0, note.trim(), memo.trim(),
+            installments, repeat, repeatEnd,
             currency = currencyCode, tagIds = tagIds, lat = lat, lng = lng, timeOfDay = timeOfDay, origin = origin,
         )
-        val photosToAttach = existingPhotos.map { it.fileName } + newPhotos
+        val photos = existingPhotos.map { it.fileName } + newPhotos
+        val e = existing
+        val cap = capture
         scope.launch {
-            withContext(repo.io) {
-                val e = existing
-                val id = if (e == null) repo.create(draft) else repo.update(e, draft)
-                // Photos follow the (possibly new) row id; recurring rules get none.
-                if (draft.repeat == null) photosToAttach.forEach { repo.addPhoto(id, it) }
-                repo.learnFromDraft(draft)
-                capture?.let { repo.completeCapture(it, draft, id) }
-            }
-            platform.refreshWidgets()
+            withContext(repo.io) { editor.save(draft, e, photos, cap) }
             if (continueAfter) { resetForNext(); baseline = formKey() } else nav.pop()
         }
     }
@@ -760,7 +747,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                 TextButton(onClick = {
                     confirmDelete = false
                     scope.launch {
-                        withContext(repo.io) { repo.delete(e, wholeInstallmentPlan = true) }
+                        withContext(repo.io) { editor.delete(e) }
                         nav.pop()
                     }
                 }) { Text(tr("Delete"), color = DangerColor) }

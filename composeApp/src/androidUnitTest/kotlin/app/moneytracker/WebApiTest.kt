@@ -152,6 +152,11 @@ class WebApiTest {
         assertEquals(400, post("type" to "INCOME", "date" to "2026-11-05", "amount" to "5", "account" to "acc_cash", "category" to "cat_ex_0").status)
         assertEquals(400, post("type" to "TRANSFER", "date" to "2026-11-05", "amount" to "5", "account" to "acc_cash", "to" to "acc_cash").status)
         assertEquals(400, post("type" to "EXPENSE", "date" to "2026-11-05", "amount" to "5", "account" to "missing").status)
+        // Like the phone, every entry needs a category; a transfer doesn't.
+        val noCategory = post("type" to "EXPENSE", "date" to "2026-11-05", "amount" to "5", "account" to "acc_cash")
+        assertEquals(400, noCategory.status)
+        assertEquals("Pick a category", noCategory.json()["error"])
+        assertEquals(200, post("type" to "TRANSFER", "date" to "2026-11-05", "amount" to "5", "account" to "acc_cash", "to" to "acc_bank").status)
     }
 
     @Test fun instalmentsAndTransferFeesStayOnThePhone() {

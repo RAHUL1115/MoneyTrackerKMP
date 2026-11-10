@@ -254,7 +254,7 @@ class MoneyRepository(
     fun restoreGroup(id: String) = q.restoreGroup(now(), id)
     val accounts: CachedFlow<List<Account>> = cached({ q.allAccounts() }) { rows -> rows.map { it.toDomain() } }
     val deletedAccounts: Flow<List<Account>> = q.deletedAccounts().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
-    private fun accountNow(id: String?): Account? = id?.let { a -> q.allAccounts().executeAsList().firstOrNull { it.id == a }?.toDomain() }
+    fun accountNow(id: String?): Account? = id?.let { a -> q.allAccounts().executeAsList().firstOrNull { it.id == a }?.toDomain() }
 
     /**
      * Own-row balance per account as of today, in each account's currency. Future-dated rows
@@ -488,6 +488,9 @@ class MoneyRepository(
         val tagged = tagIds.flatMap { txnIdsWithTag(it) }.toSet()
         return found.filter { it.id in tagged }
     }
+
+    /** Runs [block] as one database transaction (nested repository writes join it). */
+    fun <T> inTransaction(block: () -> T): T = db.transactionWithResult { block() }
 
     fun txn(id: String): Txn? = q.txnById(id).executeAsOneOrNull()?.toDomain()
     /** Like [txn], but null once the entry is deleted. */

@@ -67,6 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.DraftType
+import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.MoneyRepository.Keys
 import app.moneytracker.data.Template
@@ -101,6 +102,8 @@ import app.moneytracker.ui.nowMinutes
 import app.moneytracker.ui.short
 import app.moneytracker.ui.tr
 import app.moneytracker.ui.weekday
+import app.moneytracker.ui.message
+import app.moneytracker.ui.rememberEntryEditor
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -167,9 +170,10 @@ private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: Cu
 
     // Filled before the first frame: a few indexed rows, and loading later would flash the new-entry defaults.
     private fun load(id: String) {
-        val t = repo.txn(id) ?: return
-        val d = repo.draftFrom(t)
-        existingPhotos = repo.photosNow(t.id)
+        val opened = EntryEditor(repo).open(id) ?: return
+        val t = opened.txn
+        val d = opened.draft
+        existingPhotos = opened.photos
         adjustUp = t.kind == TxnKind.ADJUST_UP
         existing = t
         type = d.type; date = d.date; accountId = d.accountId; toAccountId = d.toAccountId; accountChosen = true
@@ -178,7 +182,7 @@ private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: Cu
         amountText = fmt.toInput(d.amount)
         if (d.fee > 0) feeText = fmt.toInput(d.fee)
         note = d.note; memo = d.memo; installments = d.installments; tagIds = d.tagIds; timeOfDay = d.timeOfDay; origin = d.origin
-        lat = t.lat; lng = t.lng
+        lat = d.lat; lng = d.lng
     }
 
     private fun live(id: String?): Account? = id?.let { repo.accounts.current.firstOrNull { a -> a.id == it } }
@@ -267,6 +271,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     val capture = s.captureId?.let { id -> repo.pendingCaptures.collectAsState(emptyList()).value.firstOrNull { it.id == id } }
 
     val f = remember { AddForm(repo, s, currency, currencies, timeOn) }
+    val editor = rememberEntryEditor()
     val today = remember { repo.today() }
 
     var sheet by remember { mutableStateOf(AddSheet.NONE) }
@@ -293,7 +298,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     LaunchedEffect(locationOn) {
         if (locationOn && s.txnId == null && f.lat == null) platform.currentLocation({ a, b -> f.lat = a; f.lng = b }, {})
     }
-    LaunchedEffect(f.amountText, f.accountId, f.toAccountId) { f.error = null }
+    LaunchedEffect(f.amountText, f.accountId, f.toAccountId, f.categoryId, f.type) { f.error = null }
 
     // Learned category from the note's words.
     val suggestion by produceState<MoneyRepository.Suggestion?>(null, f.note, f.type) {
@@ -345,53 +350,32 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     fun save(continueAfter: Boolean) {
         val amount = f.amountValue()
         val fee = if (isTransfer && f.feeText.isNotBlank()) fmt.parse(addSettle(f.feeText, fmt)) else 0L
-        f.error = when {
-            amount == null || amount <= 0 -> tr("Enter an amount")
-            fee == null -> tr("Fee is not a valid amount")
-            f.accountId == null -> tr("Choose an account")
-            // Every entry needs a category (transfers and balance corrections have none of their own).
-            !isTransfer && !f.isAdjustment && f.categoryId == null -> tr("Pick a category")
-            isTransfer && f.toAccountId == null -> tr("Choose the destination account")
-            isTransfer && f.toAccountId == f.accountId -> tr("Pick two different accounts")
-            else -> null
-        }
+        // Every entry needs a category (transfers and balance corrections have none of their own).
+        val problem = EntryEditor.check(f.type, amount, fee, f.accountId, f.toAccountId, f.categoryId, f.isAdjustment)
+        f.error = problem?.message()
         f.error?.let { toaster.show(it); return }
         val adj = f.existing
         if (adj != null && f.isAdjustment) {
             scope.launch {
-                withContext(repo.io) { repo.updateAdjustment(adj, f.date, amount!!, f.accountId!!, f.adjustUp, f.note.trim(), f.memo.trim(), f.timeOfDay) }
-                platform.refreshWidgets(); nav.pop(); toaster.show(tr("Changes saved"))
+                withContext(repo.io) { editor.saveAdjustment(adj, f.date, amount!!, f.accountId!!, f.adjustUp, f.note.trim(), f.memo.trim(), f.timeOfDay) }
+                nav.pop(); toaster.show(tr("Changes saved"))
             }
             return
         }
         val draft = TxnDraft(
-            f.type, f.date, f.accountId!!, if (isTransfer) f.toAccountId else null,
-            if (isTransfer) null else f.categoryId,
-            amount!!, fee ?: 0, f.note.trim(), f.memo.trim(),
-            if (f.type == DraftType.EXPENSE && f.isCreditCard) f.installments else 1,
-            if (f.existing == null) f.repeat else null, f.repeatEnd,
+            f.type, f.date, f.accountId!!, f.toAccountId, f.categoryId,
+            amount!!, fee ?: 0, f.note.trim(), f.memo.trim(), f.installments, f.repeat, f.repeatEnd,
             currency = f.currencyCode, tagIds = f.tagIds, lat = f.lat, lng = f.lng, timeOfDay = f.timeOfDay, origin = f.origin,
         )
-        val photosToAttach = f.existingPhotos.map { it.fileName } + f.newPhotos
+        val photos = f.existingPhotos.map { it.fileName } + f.newPhotos
         val cap = capture
         val label = if (isTransfer) tr("Moved {0}", fmt.format(amount)) else listOfNotNull(tr("Saved {0}", fmt.format(amount)), catLabel).joinToString(" · ")
         scope.launch {
             val e = f.existing
-            val id = withContext(repo.io) {
-                val id = if (e == null) repo.create(draft) else repo.update(e, draft)
-                // Photos follow the (possibly new) row id; recurring rules get none.
-                if (draft.repeat == null) photosToAttach.forEach { repo.addPhoto(id, it) }
-                repo.learnFromDraft(draft)
-                cap?.let { repo.completeCapture(it, draft, id) }
-                id
-            }
-            platform.refreshWidgets()
+            val id = withContext(repo.io) { editor.save(draft, e, photos, cap) }
             // A plain new entry can be taken back from the toast (the screen may be gone by then).
             val undo: (() -> Unit)? = if (e == null && draft.repeat == null && cap == null) ({
-                MainScope().launch {
-                    withContext(repo.io) { repo.txn(id)?.let { repo.delete(it, wholeInstallmentPlan = true) } }
-                    platform.refreshWidgets()
-                }
+                MainScope().launch { withContext(repo.io) { editor.delete(id) } }
                 Unit
             }) else null
             when {
@@ -983,8 +967,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             tr("Delete"), { confirmDelete = false },
         ) {
             scope.launch {
-                withContext(repo.io) { repo.delete(e, wholeInstallmentPlan = true) }
-                platform.refreshWidgets()
+                withContext(repo.io) { editor.delete(e) }
                 nav.pop(); toaster.show(tr("Entry deleted"))
             }
         }

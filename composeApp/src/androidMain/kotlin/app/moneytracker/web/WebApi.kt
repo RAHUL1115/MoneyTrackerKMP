@@ -1,6 +1,8 @@
 package app.moneytracker.web
 
 import app.moneytracker.data.DraftType
+import app.moneytracker.data.EntryEditor
+import app.moneytracker.data.EntryProblem
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.MoneyRepository.Keys
 import app.moneytracker.data.TabularImport
@@ -86,7 +88,7 @@ class WebApi(
 ) {
     private class Session(val token: String, val id: String, val name: String, val ip: String, @Volatile var lastSeen: Long)
     private class Lockout(var wrong: Int, var until: Long)
-    private class Undo(val draft: TxnDraft, val photos: List<String>, val expires: Long)
+    private class Undo(val deleted: EntryEditor.Deleted, val expires: Long)
 
     private val sessions = LinkedHashMap<String, Session>()
     private val lockouts = HashMap<String, Lockout>()
@@ -337,7 +339,7 @@ class WebApi(
         val date = runCatching { LocalDate.parse(str(b, "date")) }.getOrNull() ?: throw ApiError(400, "Pick a date")
         val accounts = r.accountsNow().associateBy { it.id }
         val account = accounts[str(b, "account")] ?: throw ApiError(400, if (type == DraftType.TRANSFER) "Pick the account to move from" else "Pick an account")
-        val base = existing?.let { r.draftFrom(it) }
+        val base = existing?.let { EntryEditor(r).open(it.id)?.draft }
         val currency = if (base != null && base.currency != null) base.currency else account.currency
         val decimals = currency?.let { c -> r.currenciesNow().firstOrNull { it.code == c }?.decimals } ?: r.currencyFormatNow().decimals
         val amount = CurrencyFormat(decimals = decimals).parse(str(b, "amount"))?.takeIf { it > 0 } ?: throw ApiError(400, "Enter an amount above zero")
@@ -354,6 +356,8 @@ class WebApi(
                 if (c.kind != wanted) throw ApiError(400, "Pick a category for this type")
             }
         }
+        // Same rule as the phone: every entry needs a category (transfers have none of their own).
+        if (EntryEditor.check(type, amount, 0, account.id, to?.id, category) == EntryProblem.NO_CATEGORY) throw ApiError(400, "Pick a category")
         val note = str(b, "note").take(500)
         val memo = str(b, "memo").take(2000)
         val tagIds = ((b["tags"] as? List<*>) ?: emptyList<Any?>()).mapNotNull { (it as? String)?.trim()?.removePrefix("#")?.trim()?.takeIf { n -> n.isNotEmpty() }?.take(60) }
@@ -362,17 +366,16 @@ class WebApi(
         return (base ?: TxnDraft(type, date, account.id, amount = amount)).copy(
             type = type, date = date, accountId = account.id, toAccountId = to?.id, categoryId = category,
             amount = amount, fee = fee, note = note, memo = memo, installments = 1, repeat = null, repeatEnd = null,
-            currency = currency, tagIds = tagIds, lat = existing?.lat, lng = existing?.lng,
+            currency = currency, tagIds = tagIds,
         )
     }
 
     private fun create(r: MoneyRepository, b: Map<*, *>): Map<String, Any?> {
-        val d = draft(r, b, null)
-        val id = r.create(d)
-        r.learnFromDraft(d)
-        onChange()
+        val id = editor(r).save(draft(r, b, null))
         return mapOf("id" to id)
     }
+
+    private fun editor(r: MoneyRepository) = EntryEditor(r, onChange)
 
     private fun editable(r: MoneyRepository, id: String): Txn {
         val t = r.liveTxn(id) ?: throw ApiError(404, "This entry was deleted on the phone. Reload to see the latest.")
@@ -382,34 +385,24 @@ class WebApi(
 
     private fun update(r: MoneyRepository, id: String, b: Map<*, *>): Map<String, Any?> {
         val t = editable(r, id)
-        val d = draft(r, b, t)
-        val photos = r.photosNow(t.id).map { it.fileName }
-        val newId = r.update(t, d)
-        photos.forEach { r.addPhoto(newId, it) }
-        r.learnFromDraft(d)
-        onChange()
+        val newId = editor(r).save(draft(r, b, t), existing = t)   // keeps its photos and location
         return mapOf("id" to newId)
     }
 
     private fun delete(r: MoneyRepository, id: String): Map<String, Any?> {
         val t = editable(r, id)
-        val d = r.draftFrom(t).copy(lat = t.lat, lng = t.lng, rate = r.rateOf(t))
-        val photos = r.photosNow(t.id).map { it.fileName }
-        r.delete(t, wholeInstallmentPlan = true)
-        onChange()
+        val gone = editor(r).delete(t) ?: return emptyMap()   // balance corrections are locked above, so never null here
         val token = randomId(12)
         synchronized(undos) {
             undos.values.removeAll { it.expires < now() }
-            undos[token] = Undo(d, photos, now() + UNDO_MS)
+            undos[token] = Undo(gone, now() + UNDO_MS)
         }
         return mapOf("undo" to token)
     }
 
     private fun undo(r: MoneyRepository, token: String): Map<String, Any?> {
         val u = synchronized(undos) { undos.remove(token) }?.takeIf { it.expires >= now() } ?: throw ApiError(410, "Too late to undo")
-        val id = r.create(u.draft)
-        u.photos.forEach { r.addPhoto(id, it) }
-        onChange()
+        val id = editor(r).restore(u.deleted)
         return mapOf("id" to id)
     }
 
