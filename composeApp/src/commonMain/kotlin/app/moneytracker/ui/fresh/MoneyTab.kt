@@ -72,8 +72,8 @@ internal val AccountLine.owed: Long get() = card?.let { it.totalOwed + it.upcomi
 
 /** The day the last closed statement has to be paid, from the card's payment day; null when no payment day is set. */
 internal fun billDueDate(a: Account, today: LocalDate): LocalDate? {
-    val payDay = a.cardPaymentDay ?: return null
-    val closed = Periods.cardCycle(today, a.cardSettlementDay ?: 1).start.minus(DatePeriod(days = 1))
+    val payDay = a.dueDay
+    val closed = Periods.cardCycle(today, a.statementDay).start.minus(DatePeriod(days = 1))
     var ym = YearMonth.of(closed)
     repeat(3) {
         val d = dayIn(ym, payDay)
@@ -164,7 +164,8 @@ internal fun MoneyTab() {
                 val open = group.id !in collapsed
                 FCard(padding = 0.dp) {
                     Row(
-                        Modifier.fillMaxWidth().clickable { collapsed = if (open) collapsed + group.id else collapsed - group.id }.padding(horizontal = 16.dp, vertical = 14.dp),
+                        Modifier.fillMaxWidth().clickable { collapsed = if (open) collapsed + group.id else collapsed - group.id }.padding(horizontal = 16.dp, vertical = 8.dp)
+                            .heightIn(min = 40.dp),                 // room for the card group's two amounts; every group header matches
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         // Name and count on the left, the total on the right.
@@ -173,11 +174,12 @@ internal fun MoneyTab() {
                                 modifier = Modifier.weight(1f, fill = false))
                             Text(" · ${visible.size}" + if (allHidden) " · " + tr("hidden") else "", color = F.muted, fontSize = 13.sp, maxLines = 1)
                         }
-                        Text(currency.format(total), color = if (allHidden) F.muted else balanceTone(total, isCard),
-                            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
-                        // Cards: payable, then outstanding (as on each card row) on the same line, so every group header keeps one height.
-                        if (outstanding != null) Text("  ·  " + currency.format(outstanding), color = F.muted, fontSize = 12.sp,
-                            style = F.money, maxLines = 1)
+                        // Cards: payable on top, outstanding under it, as on each card row.
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(currency.format(total), color = if (allHidden) F.muted else balanceTone(total, isCard),
+                                fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
+                            if (outstanding != null) Text(currency.format(outstanding), color = F.muted, fontSize = 12.sp, style = F.money, maxLines = 1)
+                        }
                         Icon(if (open) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted, modifier = Modifier.padding(start = 6.dp).size(20.dp))
                     }
                     AnimatedVisibility(open, enter = expandVertically(tween(200)), exit = shrinkVertically(tween(200))) {
@@ -296,11 +298,11 @@ private fun AccountRow(l: AccountLine, today: LocalDate) {
     val meta = buildList {
         if (card != null) {
             val due = billDueDate(a, today)
+            // The bold amount is the bill (payable), as in the group header; this line only says what's next for it.
             when {
-                card.overdue > 0 -> add(tr("Payable · {0} overdue", fmt.format(card.overdue)))
-                l.billDue > 0 && due != null -> add(tr("Payable · due {0}", due.short()))
-                l.billDue > 0 -> add(tr("Payable"))
-                else -> add(tr("Payable · statement on day {0}", a.cardSettlementDay ?: 1))
+                card.overdue > 0 -> add(tr("{0} overdue", fmt.format(card.overdue)))
+                l.billDue > 0 && due != null -> add(tr("Due {0}", due.short()))
+                else -> add(tr("Statement on day {0}", a.statementDay))
             }
         }
         if (l.group.type.isDebitCard) add(tr("Debit card"))
