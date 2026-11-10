@@ -36,8 +36,8 @@ object SmartEntry {
 
     suspend fun parser(platform: PlatformServices): SmartParser? = lock.withLock {
         parser ?: if (failed) null else withContext(Dispatchers.Default) {
-            runCatching { SmartParser.load { name -> platform.readSmartModel(name) ?: error("missing $name") } }
-                .onFailure { failed = true }.getOrNull()
+            runCatching { app.moneytracker.Log.timed("Smart", "model load") { SmartParser.load { name -> platform.readSmartModel(name) ?: error("missing $name") } } }
+                .onFailure { failed = true; app.moneytracker.Log.e("Smart", it) { "Smart entry models failed to load" } }.getOrNull()
         }.also { parser = it }
     }
 
@@ -51,7 +51,9 @@ object SmartEntry {
         val expense = categories.filter { it.kind == CategoryKind.EXPENSE }
         val income = categories.filter { it.kind == CategoryKind.INCOME }
         val visible = accounts.filter { !it.hidden }
-        val r = parser.parse(text, expense.map { it.name }.distinct(), income.map { it.name }.distinct(), visible.map { it.name })
+        val r = app.moneytracker.Log.timed("Smart", "parse of ${text.length} chars") {
+            parser.parse(text, expense.map { it.name }.distinct(), income.map { it.name }.distinct(), visible.map { it.name })
+        }
         val type = when (r.type) {
             "income" -> DraftType.INCOME
             "transfer" -> DraftType.TRANSFER

@@ -7,6 +7,7 @@ class MoneyTrackerApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        AndroidLog.install(this)
         Notifications.createChannels(this)
     }
 }

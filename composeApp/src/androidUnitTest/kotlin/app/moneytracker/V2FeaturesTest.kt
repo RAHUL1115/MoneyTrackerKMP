@@ -11,6 +11,7 @@ import app.moneytracker.domain.Currency
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.Periods
+import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.totals
 import kotlinx.coroutines.Dispatchers
@@ -139,6 +140,23 @@ class V2FeaturesTest {
         assertEquals(3_000, totals(repo.reportRows(march).first()).expense)   // counted once, at payment
         repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 1_000))
         assertEquals(3_000, totals(repo.reportRows(march).first()).expense)   // unpaid purchase not yet expense
+    }
+
+    /** Filters and search rebuild report rows from entries; those rows must follow the same rules as the unfiltered ones. */
+    @Test fun rowsBuiltFromEntriesMatchRepositoryRows() = runTest {
+        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 3_000, note = "Shoes"))
+        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 1_000))
+        repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_card", amount = 3_000))
+        repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_savings", amount = 500))
+        repo.create(TxnDraft(DraftType.INCOME, today, "acc_bank", categoryId = "cat_in_0", amount = 9_000))
+        for (cardAtPayment in listOf("0", "1")) {
+            repo.putSetting(MoneyRepository.Keys.CARD_AT_PAYMENT, cardAtPayment)
+            val rules = repo.reportRules.first()
+            val fromEntries = repo.txnsNow(march).filter { it.kind != TxnKind.TRANSFER_IN }.map { rules.row(it) }
+            val fromRepo = repo.reportRows(march).first()
+            assertEquals(fromRepo.sortedBy { it.txnId }, fromEntries.sortedBy { it.txnId }, "cardAtPayment=$cardAtPayment")
+            assertEquals(totals(fromRepo), totals(fromEntries))
+        }
     }
 
     @Test fun importOwnExportRoundTrips() = runTest {

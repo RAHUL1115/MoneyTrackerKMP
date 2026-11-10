@@ -46,7 +46,7 @@ object Translations {
             runCatching {
                 val o = org.json.JSONObject(ctx.assets.open("i18n/$tag.json").bufferedReader().use { it.readText() })
                 o.keys().asSequence().associateWith { o.getString(it) }
-            }.getOrDefault(emptyMap())
+            }.onFailure { Log.w("I18n", it) { "translations '$tag' failed to load" } }.getOrDefault(emptyMap())
         }
     }
 
@@ -187,6 +187,7 @@ object Reminders {
             if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
         }
         ctx.getSystemService(AlarmManager::class.java).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.timeInMillis, pending(ctx))
+        Log.i("Reminder") { "next reminder armed for %02d:%02d".format(hour, minute) }
     }
 
     /** Arms the next reminder from the saved time, if the reminder is on. */
@@ -196,7 +197,10 @@ object Reminders {
         schedule(ctx, h, m)
     }
 
-    fun cancel(ctx: Context) = ctx.getSystemService(AlarmManager::class.java).cancel(pending(ctx))
+    fun cancel(ctx: Context) {
+        ctx.getSystemService(AlarmManager::class.java).cancel(pending(ctx))
+        Log.i("Reminder") { "reminder cancelled" }
+    }
 
     /** Re-applies saved settings (after reboot or app update). */
     fun restore(ctx: Context) {
@@ -210,7 +214,12 @@ object Reminders {
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pending = goAsync()
-        Thread { try { ensureTranslations(ctx); Notifications.showReminder(ctx); Reminders.rearm(ctx) } finally { pending.finish() } }.start()
+        Log.i("Reminder") { "reminder fired" }
+        Thread {
+            try { ensureTranslations(ctx); Notifications.showReminder(ctx); Reminders.rearm(ctx) }
+            catch (e: Exception) { Log.e("Reminder", e) { "showing the reminder failed" } }
+            finally { pending.finish() }
+        }.start()
     }
 }
 
@@ -225,7 +234,14 @@ class QuickAddDismissReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pending = goAsync()
-        Thread { try { Reminders.restore(ctx); runCatching { Detected.catchUp(ctx, alert = true) }; SummaryWidget.updateAll(ctx) } finally { pending.finish() } }.start()
+        Log.i("Boot") { "after boot/update: ${intent.action}" }
+        Thread {
+            try {
+                Log.attempt("Boot", "restoring reminders") { Reminders.restore(ctx) }
+                Log.attempt("Sms", "catch-up after boot") { Detected.catchUp(ctx, alert = true) }
+                Log.attempt("Widget", "widget refresh after boot") { SummaryWidget.updateAll(ctx) }
+            } finally { pending.finish() }
+        }.start()
     }
 }
 
@@ -240,6 +256,7 @@ class SmsReceiver : BroadcastReceiver() {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
         val pending = goAsync()
+        Log.d("Sms") { "received ${messages.size} part(s)" }
         Thread {
             try {
                 val r = repo(ctx)
@@ -247,6 +264,8 @@ class SmsReceiver : BroadcastReceiver() {
                     val text = parts.joinToString("") { it.messageBody.orEmpty() }
                     r.ingestMessage("SMS", sender, text, parts.first().timestampMillis)?.let { Detected.alert(ctx, r, it) }
                 }
+            } catch (e: Exception) {
+                Log.e("Sms", e) { "handling a received SMS failed" }
             } finally { pending.finish() }
         }.start()
     }
@@ -255,7 +274,7 @@ class SmsReceiver : BroadcastReceiver() {
 /** Shared by SMS and the inbox import. */
 object Detected {
     fun alert(ctx: Context, r: app.moneytracker.data.MoneyRepository, c: app.moneytracker.domain.Capture) {
-        if (r.settingNow(Keys.SMS_ALERT) == "0") return
+        if (r.settingNow(Keys.SMS_ALERT) == "0") return Log.d("Sms") { "alert off; no notification for ${c.id}" }
         ensureTranslations(ctx, r)
         val fmt = app.moneytracker.domain.CurrencyFormat(r.settingNow(Keys.CURRENCY_SYMBOL) ?: "₹", r.settingNow(Keys.CURRENCY_DECIMALS)?.toIntOrNull() ?: 2)
         val amount = c.amount?.let { fmt.format(kotlin.math.abs(it)) }.orEmpty()
@@ -285,12 +304,17 @@ object Detected {
      */
     fun repair(ctx: Context, r: app.moneytracker.data.MoneyRepository = repo(ctx)) {
         // The switch never claims detection is on without the permission to do it.
-        if (r.settingNow(Keys.CAPTURE_ENABLED) == "1" && !hasPermissions(ctx)) r.putSetting(Keys.CAPTURE_ENABLED, "0")
+        if (r.settingNow(Keys.CAPTURE_ENABLED) == "1" && !hasPermissions(ctx)) {
+            Log.w("Sms") { "SMS permission was taken away; turning bank SMS detection off" }
+            r.putSetting(Keys.CAPTURE_ENABLED, "0")
+        }
         val on = r.settingNow(Keys.CAPTURE_ENABLED) == "1"
         val component = ComponentName(ctx, SmsReceiver::class.java)
         val state = if (on) android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED else android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-        if (ctx.packageManager.getComponentEnabledSetting(component) != state)
+        if (ctx.packageManager.getComponentEnabledSetting(component) != state) {
+            Log.i("Sms") { "SMS receiver ${if (on) "enabled" else "disabled"} to match the setting" }
             ctx.packageManager.setComponentEnabledSetting(component, state, android.content.pm.PackageManager.DONT_KILL_APP)
+        }
         if (on) SmsCatchUp.schedule(ctx) else SmsCatchUp.cancel(ctx)
     }
 
@@ -305,8 +329,10 @@ object Detected {
         if (r.settingNow(Keys.CAPTURE_ENABLED) != "1" || !granted(ctx, android.Manifest.permission.READ_SMS)) return
         val now = System.currentTimeMillis()
         val last = r.settingNow(Keys.SMS_LAST_SCAN)?.toLongOrNull() ?: (now - DAY_MS)
-        val found = importSince(ctx, maxOf(last - 60 * 60 * 1000, now - 7 * DAY_MS))   // an hour of overlap; at most a week back
+        val since = maxOf(last - 60 * 60 * 1000, now - 7 * DAY_MS)   // an hour of overlap; at most a week back
+        val found = importSince(ctx, since)
         r.putSetting(Keys.SMS_LAST_SCAN, now.toString())
+        Log.i("Sms") { "catch-up: ${found.size} new from the last ${(now - since) / 60_000} min${if (alert) " (alerts on)" else ""}" }
         if (alert) found.forEach { alert(ctx, r, it) }
     }
 
@@ -317,6 +343,7 @@ object Detected {
         val added = mutableListOf<app.moneytracker.domain.Capture>()
         ctx.contentResolver.query(Telephony.Sms.Inbox.CONTENT_URI, arrayOf(Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE),
             "${Telephony.Sms.DATE} >= ?", arrayOf(since.toString()), "${Telephony.Sms.DATE} ASC")?.use { c ->
+            Log.d("Sms") { "inbox scan: ${c.count} message(s) to check" }
             while (c.moveToNext()) {
                 r.ingestMessage("SMS", c.getString(0).orEmpty(), c.getString(1).orEmpty(), c.getLong(2))?.let { added += it }
             }
@@ -347,7 +374,7 @@ object SmsCatchUp {
 class SmsCatchUpReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pending = goAsync()
-        Thread { try { runCatching { Detected.catchUp(ctx, alert = true) } } finally { pending.finish() } }.start()
+        Thread { try { Log.attempt("Sms", "periodic catch-up") { Detected.catchUp(ctx, alert = true) } } finally { pending.finish() } }.start()
     }
 }
 
@@ -428,6 +455,7 @@ abstract class MoneyWidget : AppWidgetProvider() {
         val pending = goAsync()
         Thread {
             try { ids.forEach { manager.updateAppWidget(it, build(ctx, repo(ctx), sizeOf(manager, it))) }; afterUpdate(manager, ids) }
+            catch (e: Exception) { Log.e("Widget", e) { "${this::class.simpleName} update failed" } }
             finally { pending.finish() }
         }.start()
     }
@@ -438,7 +466,11 @@ abstract class MoneyWidget : AppWidgetProvider() {
     /** Resized: rebuild so the layout fits the new width. */
     override fun onAppWidgetOptionsChanged(ctx: Context, manager: AppWidgetManager, id: Int, options: android.os.Bundle) {
         val pending = goAsync()
-        Thread { try { manager.updateAppWidget(id, build(ctx, repo(ctx), sizeOf(manager, id))) } finally { pending.finish() } }.start()
+        Thread {
+            try { manager.updateAppWidget(id, build(ctx, repo(ctx), sizeOf(manager, id))) }
+            catch (e: Exception) { Log.e("Widget", e) { "${this::class.simpleName} resize failed" } }
+            finally { pending.finish() }
+        }.start()
     }
 
     internal abstract fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository, size: WidgetSize): RemoteViews
@@ -474,8 +506,10 @@ class SummaryWidget : MoneyWidget() {
             listOf(SummaryWidget(), QuickAddWidget(), CardsWidget()).forEach { w ->
                 val ids = manager.getAppWidgetIds(ComponentName(ctx, w::class.java))
                 if (ids.isNotEmpty()) Thread {
-                    ids.forEach { manager.updateAppWidget(it, w.build(ctx, repo(ctx), sizeOf(manager, it))) }
-                    w.afterUpdate(manager, ids)
+                    Log.attempt("Widget", "${w::class.simpleName} refresh") {
+                        ids.forEach { manager.updateAppWidget(it, w.build(ctx, repo(ctx), sizeOf(manager, it))) }
+                        w.afterUpdate(manager, ids)
+                    }
                 }.start()
             }
         }

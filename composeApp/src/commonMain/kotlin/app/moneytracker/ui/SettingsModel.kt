@@ -42,7 +42,7 @@ class SettingActions(
     val edit: (key: String) -> Unit,
     val accent: () -> Unit,
     val language: () -> Unit,
-    /** Opens the layout choice: Classic or New (experimental). */
+    /** Opens the layout choice: Classic or New. */
     val switchLayout: () -> Unit,
     /** Turning on Save location shows the disclosure first. */
     val locationOn: () -> Unit,
@@ -119,8 +119,8 @@ fun rememberSettingGroups(newLayout: Boolean, a: SettingActions): List<SettingGr
             link(tr("Week starts on"), week, "weekly start day") { a.choice(Keys.WEEK_START) },
         )),
         SettingGroup("look", tr("Look"), listOf(label(Keys.THEME), tr(accentChoice.label), language).joinToString(" · "), listOf(
-            link(tr("Layout"), if (newLayout) tr("New (experimental)") else tr("Classic"), "layout classic new design restart experimental beta",
-                tr("Classic, or New (experimental)")) { a.switchLayout() },
+            link(tr("Layout"), if (newLayout) tr("New") else tr("Classic"), "layout classic new design restart",
+                tr("Classic or New")) { a.switchLayout() },
             pick(Keys.THEME, tr("Theme"), "style dark light night mode"),
             link(tr("Accent colour"), tr(accentChoice.label), "color colour accent wallpaper") { a.accent() },
             pick(Keys.COLOR_SET, tr("Colours"), "income expense color colour blue green red"),

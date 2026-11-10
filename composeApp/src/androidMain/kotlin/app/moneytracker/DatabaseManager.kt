@@ -31,9 +31,10 @@ class DatabaseManager(private val context: Context) {
         repo?.let { return it }
         val d = AndroidSqliteDriver(MoneyDatabase.Schema, context, DB_NAME)
         driver = d
-        val r = MoneyRepository(MoneyDatabase(d), Dispatchers.IO)
-        r.seedIfEmpty()
-        r.generateRecurring()
+        val r = Log.timed("Db", "open") {
+            MoneyRepository(MoneyDatabase(d), Dispatchers.IO).also { it.seedIfEmpty(); it.generateRecurring() }
+        }
+        Log.i("Db") { "opened ${DB_NAME} (schema ${MoneyDatabase.Schema.version}, ${dbFile.length() / 1024} KB)" }
         repo = r
         return r
     }
@@ -48,6 +49,7 @@ class DatabaseManager(private val context: Context) {
      * database, runs [block] with exclusive access to the file, then reopens. Call on the main thread.
      */
     suspend fun <T> withClosed(block: (File) -> T): T {
+        Log.i("Db") { "closing for a file replace" }
         repo = null
         delay(400)
         driver?.close()
@@ -76,6 +78,7 @@ class DatabaseManager(private val context: Context) {
                 null
             }
         } catch (e: Exception) {
+            Log.w("Db", e) { "backup file check failed" }
             "Not a valid database file"
         }
     }

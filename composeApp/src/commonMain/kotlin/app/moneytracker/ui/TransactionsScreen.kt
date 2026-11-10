@@ -1,6 +1,7 @@
 package app.moneytracker.ui
 
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import app.moneytracker.domain.ReportRules
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -206,10 +207,6 @@ fun AddFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
     ) { Icon(Icons.Filled.Add, tr("Add"), Modifier.size(28.dp)) }
 }
 
-fun Txn.toReportRow(transferAsExpense: Map<String, Boolean>) = ReportRow(
-    kind, amount, categoryId, transferAsExpense[accountId] == true, toAccountId?.let { transferAsExpense[it] } == true, date,
-)
-
 // ───────────────────────── Daily
 
 @Composable
@@ -219,14 +216,13 @@ private fun DailyView(range: DateRange, onType: () -> Unit, onSpeak: () -> Unit)
     val currency = LocalCurrency.current
     val txns by rememberFilteredTxns(range)
     val rows by rememberFilteredRows(range)
-    val accounts by repo.accounts.collectAsState(emptyList())
     val categories by repo.categories.collectAsState(emptyList())
     val tagNames by repo.txnTagNames.collectAsState(emptyMap())
     val photos by repo.txnIdsWithPhotos.collectAsState(emptySet())
     val carry = rememberCarryOver(range)
     val accountName by repo.accountNames.collectAsState(emptyMap())
     val catById by repo.categoryById.collectAsState(emptyMap())
-    val flags = accounts.associate { it.id to it.transferAsExpense }
+    val reportRules by repo.reportRules.collectAsState(ReportRules.Empty)
 
     // Multi-select: long-press starts it, taps toggle, Back clears it.
     var selection by remember(range) { mutableStateOf(emptySet<String>()) }
@@ -294,7 +290,7 @@ private fun DailyView(range: DateRange, onType: () -> Unit, onSpeak: () -> Unit)
                     DayHeader(date, dt?.income ?: 0, dt?.expense ?: 0, currency, inset = ListRowInset)
                     dayTxns.forEach { txn ->
                         TxnLine(
-                            txn, accountName, catById, classify(txn.toReportRow(flags)), tags = tagNames[txn.id].orEmpty(), hasPhoto = txn.id in photos,
+                            txn, accountName, catById, classify(reportRules.row(txn)), tags = tagNames[txn.id].orEmpty(), hasPhoto = txn.id in photos,
                             inset = ListRowInset, selected = txn.id in selection,
                             onLongClick = { selection = selection + txn.id },
                         ) {
@@ -460,13 +456,12 @@ private fun DayDialog(day: LocalDate, onDismiss: () -> Unit) {
     val currency = LocalCurrency.current
     val range = DateRange(day, day)
     val txns by rememberFilteredTxns(range)
-    val accounts by repo.accounts.collectAsState(emptyList())
     val categories by repo.categories.collectAsState(emptyList())
     val accountName by repo.accountNames.collectAsState(emptyMap())
     val catById by repo.categoryById.collectAsState(emptyMap())
-    val flags = accounts.associate { it.id to it.transferAsExpense }
+    val rules by repo.reportRules.collectAsState(ReportRules.Empty)
     val visible = txns.filter { it.kind != TxnKind.TRANSFER_IN }
-    val tt = totals(visible.map { it.toReportRow(flags) })
+    val tt = totals(visible.map { rules.row(it) })
     // A bottom sheet keeps rows full width (a dialog squeezed account names to "Ban…").
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = SurfaceColor) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -485,7 +480,7 @@ private fun DayDialog(day: LocalDate, onDismiss: () -> Unit) {
         Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
             if (visible.isEmpty()) Text(tr("Nothing recorded on this day."), Modifier.padding(20.dp), color = SubtleText)
             visible.forEach { t ->
-                TxnLine(t, accountName, catById, classify(t.toReportRow(flags))) { onDismiss(); nav.push(Screen.EditTxn(txnId = t.id)) }
+                TxnLine(t, accountName, catById, classify(rules.row(t))) { onDismiss(); nav.push(Screen.EditTxn(txnId = t.id)) }
             }
         }
     }

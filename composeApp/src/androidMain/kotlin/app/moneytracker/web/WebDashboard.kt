@@ -1,5 +1,6 @@
 package app.moneytracker.web
 
+import app.moneytracker.Log
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -80,6 +81,7 @@ object WebDashboard {
     fun startServer(ctx: Context): String? {
         stopServer(null)
         val ip = localAddress() ?: run {
+            Log.w("Web") { "not started: no Wi-Fi address" }
             mutable.value = WebDashboardState(wifi = false, error = tr("Connect to Wi-Fi first."))
             return null
         }
@@ -92,7 +94,7 @@ object WebDashboard {
             onVisit = { publish() },
         )
         val s = HttpServer(a::handle)
-        val port = runCatching { s.start(ip, PORT_FIRST..PORT_LAST) }.getOrNull() ?: run {
+        val port = runCatching { s.start(ip, PORT_FIRST..PORT_LAST) }.onFailure { Log.e("Web", it) { "server failed to start" } }.getOrNull() ?: run {
             mutable.value = WebDashboardState(wifi = true, error = tr("Couldn't start: ports {0}–{1} are in use on this phone.", PORT_FIRST, PORT_LAST))
             return null
         }
@@ -100,10 +102,12 @@ object WebDashboard {
         api = a
         host = "${ip.hostAddress}:$port"
         mutable.value = WebDashboardState(running = true, wifi = true, address = host)
+        Log.i("Web") { "dashboard started on port $port" }
         return host
     }
 
     fun stopServer(reason: String?) {
+        if (server != null) Log.i("Web") { "dashboard stopped${reason?.let { ": $it" }.orEmpty()}" }
         server?.stop()
         server = null
         api = null

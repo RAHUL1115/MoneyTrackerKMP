@@ -1,6 +1,7 @@
 package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
+import app.moneytracker.domain.ReportRules
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -54,7 +55,6 @@ import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.TxnFilter
 import app.moneytracker.ui.monthShort
-import app.moneytracker.ui.toReportRow
 import app.moneytracker.ui.tr
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
@@ -104,7 +104,7 @@ internal fun FreshSearch() {
     val min = currency.parse(minText)
     val max = currency.parse(maxText)
     val active = text.isNotBlank() || min != null || max != null || types.isNotEmpty() || accts.isNotEmpty() || tagIds.isNotEmpty() || dates != SearchDates.ALL
-    val found by produceState(emptyList<Txn>(), text, range, min, max, tagIds, accounts) {
+    val found by produceState(emptyList<Txn>(), active, text, range, min, max, tagIds, accounts) {
         value = if (!active) emptyList() else withContext(repo.io) { repo.search(text, range, min, max, tagIds.toSet()) }
     }
     // Each transfer once (its outgoing side), then the type and account chips.
@@ -119,7 +119,7 @@ internal fun FreshSearch() {
             (types.isEmpty() || type in types) && (accts.isEmpty() || t.accountId in accts || t.toAccountId in accts)
         }
         .sortedWith(compareByDescending<Txn> { it.date }.thenByDescending { it.createdAt })
-    val rows = results.map { it.toReportRow(data.flags) }
+    val rows = results.map { data.rules.row(it) }
     val earned = rows.filter { classify(it) == Flow.INCOME }.sumOf { it.amount }
     val spent = rows.filter { classify(it) == Flow.EXPENSE }.sumOf { it.amount }
 

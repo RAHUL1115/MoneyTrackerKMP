@@ -245,7 +245,7 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
     }
 
     override fun readSmartModel(name: String): ByteArray? =
-        runCatching { ctx.assets.open("smart/$name").use { it.readBytes() } }.getOrNull()
+        runCatching { ctx.assets.open("smart/$name").use { it.readBytes() } }.onFailure { Log.e("Smart", it) { "model file $name missing" } }.getOrNull()
 
     /**
      * A fresh fix for a new entry. Asks for precise location; Android 12+ lets the user grant only
@@ -403,7 +403,8 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
         withPermissions(listOf(Manifest.permission.READ_SMS)) { ok ->
             if (!ok) return@withPermissions onResult(null)
             activity.lifecycleScope.launch {
-                val n = withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { Detected.importInbox(ctx, days) }.getOrNull() }
+                val n = withContext(kotlinx.coroutines.Dispatchers.IO) { Log.attempt("Sms", "inbox import ($days days)") { Detected.importInbox(ctx, days) } }
+                Log.i("Sms") { "inbox import of $days days: ${n ?: "failed"} new" }
                 onResult(n)
             }
         }

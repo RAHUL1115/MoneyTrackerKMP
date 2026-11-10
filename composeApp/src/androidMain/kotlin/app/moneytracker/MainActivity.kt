@@ -70,13 +70,14 @@ class MainActivity : FragmentActivity() {
     override fun onStart() {
         super.onStart()
         val returning = backgroundedAt != 0L
+        Log.d("App") { if (returning) "back on screen after ${(SystemClock.elapsedRealtime() - backgroundedAt) / 1000} s" else "on screen" }
         // Re-lock after a minute in the background (App only shows the lock if a passcode is set).
         if (returning && SystemClock.elapsedRealtime() - backgroundedAt > LOCK_AFTER_MS) locked = true
         // One short thread per return to the screen; nothing is scheduled.
         Thread {
-            if (returning) runCatching { (application as MoneyTrackerApp).database.repo?.generateRecurring() }   // cold start already ran it on open
-            Notifications.restoreQuickAdd(applicationContext)
-            runCatching { Detected.catchUp(applicationContext) }
+            if (returning) Log.attempt("App", "repeat entries on return") { (application as MoneyTrackerApp).database.repo?.generateRecurring() }   // cold start already ran it on open
+            Log.attempt("App", "restoring quick add") { Notifications.restoreQuickAdd(applicationContext) }
+            Log.attempt("Sms", "catch-up on open") { Detected.catchUp(applicationContext) }
         }.start()
     }
 

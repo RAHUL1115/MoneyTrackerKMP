@@ -3,6 +3,7 @@ package app.moneytracker.data
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
+import app.moneytracker.Log
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.TAG_PREPAYMENT
@@ -29,6 +30,7 @@ import app.moneytracker.domain.SmsParser
 import app.moneytracker.domain.MessageRules
 import app.moneytracker.domain.TinyBayes
 import app.moneytracker.domain.ReportRow
+import app.moneytracker.domain.ReportRules
 import app.moneytracker.domain.Tag
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
@@ -231,14 +233,17 @@ class MoneyRepository(
     suspend fun updateRates(get: suspend (String) -> String?): RatesUpdate {
         val main = (settingNow(Keys.CURRENCY_CODE) ?: "INR").uppercase()
         val others = q.allCurrencies().executeAsList().map { it.toDomain() }.filter { it.code.uppercase() != main }
-        if (others.isEmpty()) return RatesUpdate.NothingToUpdate
-        val quote = runCatching { get(ExchangeRates.url(main, others.map { it.code }))?.let(ExchangeRates::parse) }.getOrNull() ?: return RatesUpdate.Failed
+        if (others.isEmpty()) return RatesUpdate.NothingToUpdate.also { Log.d("Rates") { "no other currencies; nothing to fetch" } }
+        val quote = runCatching { get(ExchangeRates.url(main, others.map { it.code }))?.let(ExchangeRates::parse) }
+            .onFailure { Log.w("Rates", it) { "fetch failed" } }.getOrNull()
+            ?: return RatesUpdate.Failed.also { Log.w("Rates") { "no usable reply for $main → ${others.joinToString(",") { it.code }}" } }
         val updated = others.filter { it.code.uppercase() in quote.perMain }
         db.transaction {
             updated.forEach { c -> saveCurrency(c.copy(rate = ExchangeRates.mainPerUnit(quote.perMain.getValue(c.code.uppercase())))) }
             putSetting(Keys.RATES_DATE, quote.date)
             putSetting(Keys.RATES_CHECKED, now().toString())
         }
+        Log.i("Rates") { "rates of ${quote.date}: updated ${updated.size}/${others.size}" }
         return RatesUpdate.Done(quote.date, updated.map { it.code }, (others - updated.toSet()).map { it.code })
     }
 
@@ -444,6 +449,11 @@ class MoneyRepository(
         }) { q.reportRows(from, to).executeAsList().map { it.toReportRow(settingNow(Keys.CARD_AT_PAYMENT) == "1") } }
     }
 
+    /** How to build report rows from entries; same rules as [reportRows]. */
+    val reportRules: CachedFlow<ReportRules> = CachedFlow(combine(accounts, groups, flag(Keys.CARD_AT_PAYMENT)) { a, g, card ->
+        ReportRules.of(a, g, card)
+    }) { ReportRules.of(accounts.current, groups.current, settingNow(Keys.CARD_AT_PAYMENT) == "1") }
+
     private fun app.moneytracker.db.ReportRows.toReportRow(cardAtPayment: Boolean) = ReportRow(
         TxnKind.valueOf(kind), amount, categoryId, srcTransferExpense != 0L, dstTransferExpense != 0L,
         LocalDate.fromEpochDays(date.toInt()),
@@ -492,9 +502,10 @@ class MoneyRepository(
                 d.note, d.repeat, d.date, d.date, d.repeatEnd, d.currency, d.memo)
             saveRule(rule)
             generateRecurring()
+            Log.d("Txn") { "repeat rule ${rule.id} created (${d.type}, ${d.repeat})" }
             return@transactionWithResult rule.id
         }
-        writeDraft(d, recurringRuleId = null, fixedId = null)
+        writeDraft(d, recurringRuleId = null, fixedId = null).also { Log.d("Txn") { "created $it (${d.type})" } }
     }
 
     /** Replaces an existing transaction (and its transfer pair / fee / installment group) with [d]. */
@@ -503,6 +514,7 @@ class MoneyRepository(
         val rate = d.rate ?: if (d.currency != null && d.currency == existing.currency) rateOf(existing) else null
         delete(existing, wholeInstallmentPlan = true)
         writeDraft(d.copy(repeat = null, rate = rate), recurringRuleId = existing.recurringRuleId, fixedId = null)
+            .also { Log.d("Txn") { "updated ${existing.id} → $it (${d.type})" } }
     }
 
     /** The rate [t] was made with: stored since v7, worked out from its two amounts for older entries. */
@@ -514,6 +526,7 @@ class MoneyRepository(
     }
 
     fun delete(t: Txn, wholeInstallmentPlan: Boolean = false) = db.transaction {
+        Log.d("Txn") { "deleted ${t.id}${if (t.transferGroupId != null) " (transfer pair)" else if (t.installmentGroupId != null && wholeInstallmentPlan) " (installment plan)" else ""}" }
         val ts = now()
         when {
             t.transferGroupId != null -> q.softDeleteTransferGroup(ts, t.transferGroupId)
@@ -695,7 +708,10 @@ class MoneyRepository(
             c.accountId, c.status.name, c.txnId))
         true
     }
-    fun setCaptureStatus(id: String, status: CaptureStatus, txnId: String? = null) = q.setCaptureStatus(status.name, txnId, id)
+    fun setCaptureStatus(id: String, status: CaptureStatus, txnId: String? = null) {
+        Log.d("Sms") { "capture $id → $status" }
+        q.setCaptureStatus(status.name, txnId, id)
+    }
 
     // ───────────────────────── learning (tiny Naive Bayes) and message inbox
 
@@ -739,9 +755,11 @@ class MoneyRepository(
      * instrument and digits before learning / a unique bank name. Ambiguous accounts need review.
      */
     fun ingestMessage(source: String, sender: String, text: String, receivedAt: Long): Capture? {
+        val from = Log.sender(sender)
         if (MessageRules.isBlocked(sender, text, MessageRules.lines(settingNow(Keys.SMS_BLOCKED_SENDERS)),
-                MessageRules.lines(settingNow(Keys.SMS_BLOCKED_PHRASES)))) return null
-        val p = SmsParser.parse(sender, cleanMessage(text), mainDecimals()) ?: return null
+                MessageRules.lines(settingNow(Keys.SMS_BLOCKED_PHRASES)))) return null.also { Log.d("Sms") { "$source from $from: blocked by your rules" } }
+        val p = SmsParser.parse(sender, cleanMessage(text), mainDecimals())
+            ?: return null.also { Log.d("Sms") { "$source from $from: not a transaction (${text.length} chars)" } }
         val tokens = SmsParser.tokens(p)
         val s = suggest(tokens)
         val accountId = MessageRules.suggestAccount(accountsNow(), groupsNow(), sender, text, p, s.accountId)
@@ -755,16 +773,18 @@ class MoneyRepository(
             accountId = accountId,
             status = CaptureStatus.PENDING,
         )
-        if (!addCapture(capture)) return null
+        if (!addCapture(capture)) return null.also { Log.d("Sms") { "$source from $from: already seen" } }
         // "Auto-save": straight into the books when the account is known.
         if (settingNow(Keys.SMS_AUTO_SAVE) == "1" && capture.accountId != null && (capture.amount ?: 0) != 0L) {
             val d = draftFromCapture(capture)
             // Only complete entries are saved on their own; without a category it waits for review.
             if (d.categoryId != null) {
                 completeCapture(capture, d, create(d))
+                Log.i("Sms") { "$source from $from: ${capture.kind} saved automatically (${capture.id})" }
                 return capture.copy(status = CaptureStatus.SAVED)
             }
         }
+        Log.i("Sms") { "$source from $from: ${capture.kind} waiting for review (${capture.id}); account ${if (accountId != null) "matched" else "unknown"}, category ${if (s.categoryId != null) "learned" else "unknown"}${if (p.isRefund) ", refund" else ""}" }
         return capture
     }
 
@@ -799,6 +819,7 @@ class MoneyRepository(
 
     /** Called when the user saves a capture: marks it and teaches the model vendor/bank/digits → category & account. */
     fun completeCapture(c: Capture, saved: TxnDraft, txnId: String) {
+        Log.d("Sms") { "capture ${c.id} saved as $txnId; learning category=${saved.categoryId != null} account=${saved.accountId.isNotBlank()}" }
         setCaptureStatus(c.id, CaptureStatus.SAVED, txnId)
         SmsParser.parse(c.sender, cleanMessage(c.text), mainDecimals())?.let { learn(SmsParser.tokens(it), saved.categoryId, saved.accountId) }
     }
@@ -842,6 +863,7 @@ class MoneyRepository(
             if (next == null) q.softDeleteRule(now(), rule.id)
             else if (dates.isNotEmpty()) saveRule(rule.copy(nextDate = next))
         }
+        if (created > 0) Log.i("Repeat") { "added $created repeat entr${if (created == 1) "y" else "ies"}" }
         created
     }
 

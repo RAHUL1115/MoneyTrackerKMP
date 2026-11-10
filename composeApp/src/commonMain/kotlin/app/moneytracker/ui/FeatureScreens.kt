@@ -1,6 +1,7 @@
 package app.moneytracker.ui
 
 import androidx.compose.foundation.background
+import app.moneytracker.domain.ReportRules
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -124,7 +125,7 @@ fun SearchScreen() {
     val results by produceState(emptyList<app.moneytracker.domain.Txn>(), text, range, min, max, tagIds, accounts, categories) {
         value = if (!searching) emptyList() else withContext(repo.io) { repo.search(text, range, min, max, tagIds.toSet()) }
     }
-    val flags = accounts.associate { it.id to it.transferAsExpense }
+    val rules by repo.reportRules.collectAsState(ReportRules.Empty)
 
     Column(Modifier.fillMaxSize()) {
         BackTopBar(tr("Search"), nav::pop)
@@ -163,7 +164,7 @@ fun SearchScreen() {
             }
         }
         HorizontalDivider(color = DividerColor)
-        val rows = results.map { it.toReportRow(flags) }
+        val rows = results.map { rules.row(it) }
         val inc = rows.filter { classify(it) == Flow.INCOME }.sumOf { it.amount }
         val exp = rows.filter { classify(it) == Flow.EXPENSE }.sumOf { it.amount }
         if (results.isNotEmpty()) {
@@ -176,7 +177,7 @@ fun SearchScreen() {
             results.groupBy { it.date }.forEach { (date, list) ->
                 item(key = "h$date") { Text(date.long(), Modifier.fillMaxWidth().background(PageBackground).padding(horizontal = 20.dp, vertical = 6.dp), color = SubtleText, fontSize = 13.sp) }
                 items(list, key = { it.id }) { t ->
-                    TxnLine(t, accountName, catById, classify(t.toReportRow(flags)), tags = tagNames[t.id].orEmpty()) { nav.push(Screen.EditTxn(txnId = t.id)) }
+                    TxnLine(t, accountName, catById, classify(rules.row(t)), tags = tagNames[t.id].orEmpty()) { nav.push(Screen.EditTxn(txnId = t.id)) }
                 }
             }
             if (results.isEmpty() && searching) item { EmptyState(tr("No matches"), Icons.Outlined.Search) }

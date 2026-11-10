@@ -20,9 +20,10 @@ fun PlatformServices.unlock(pin: String, stored: String, repo: MoneyRepository):
     when {
         checkPin(pin, stored) -> if (!isPortablePinHash(stored)) repo.putSetting(MoneyRepository.Keys.PASSCODE, hashPin(pin))
         !previous.isNullOrBlank() && checkPin(pin, previous) -> repo.putSetting(MoneyRepository.Keys.PASSCODE, hashPin(pin))
-        else -> return false
+        else -> return false.also { app.moneytracker.Log.i("Lock") { "wrong passcode" } }
     }
     if (previous != null) repo.putSetting(MoneyRepository.Keys.PASSCODE_PREVIOUS, "")
+    app.moneytracker.Log.i("Lock") { "unlocked with passcode" }
     return true
 }
 

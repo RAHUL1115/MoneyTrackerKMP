@@ -180,6 +180,7 @@ class AndroidBackupController(
             }
             _folderProblem.value = false
         } catch (e: Exception) {
+            Log.w("Backup", e) { "copy to the chosen folder failed" }
             _folderProblem.value = true
         }
     }
@@ -232,7 +233,7 @@ class AndroidBackupController(
         val newestAuto = dir.listFiles { f -> f.name.startsWith("auto-") }?.maxOfOrNull { it.lastModified() } ?: 0L
         if (System.currentTimeMillis() - newestAuto > 24 * 60 * 60 * 1000L) {
             activity.lifecycleScope.launch(Dispatchers.IO) {
-                mutex.withLock { runCatching { snapshot("auto") } }
+                mutex.withLock { Log.attempt("Backup", "automatic snapshot") { snapshot("auto") } }
             }
         }
     }
@@ -248,6 +249,7 @@ class AndroidBackupController(
                 _status.value = try {
                     withContext(Dispatchers.IO) { block() }
                 } catch (e: Exception) {
+                    Log.e("Backup", e) { "backup/restore action failed" }
                     tr("Failed: {0}", e.message ?: e::class.simpleName)
                 }
             }
@@ -258,7 +260,8 @@ class AndroidBackupController(
         db.checkpoint()
         val out = File(dir, "$kind-${stamp()}.$EXT")
         db.dbFile.copyTo(out, overwrite = true)
-        DatabaseManager.validate(out)?.let { out.delete(); error(it) }
+        DatabaseManager.validate(out)?.let { out.delete(); Log.e("Backup") { "$kind snapshot failed its check: $it" }; error(it) }
+        Log.i("Backup") { "$kind snapshot written (${out.length() / 1024} KB)" }
         if (kind == "auto" || kind == "manual") copyToFolder(out, kind)
         prune()
         refresh()
@@ -333,6 +336,7 @@ class AndroidBackupController(
             ?: error(tr("Cannot read the selected file"))
         try {
             val ownProblem = DatabaseManager.validate(tmp)
+            Log.i("Backup") { "import: ${if (ownProblem == null) "MoneyTracker backup" else "not ours ($ownProblem), trying Money Manager"}" }
             if (ownProblem == null) return listOfNotNull(tr("Restored backup"), replaceDatabaseWith(tmp)).joinToString(". ")
             val tables = runCatching { SqliteRowSource.open(tmp).use { it.tables() } }.getOrNull() ?: error(ownProblem)
             return when {
@@ -359,7 +363,7 @@ class AndroidBackupController(
         // Same passcode as in Money Manager, so the lock screen keeps working after switching apps.
         data.passcodePin?.let { repo.putSetting(MoneyRepository.Keys.PASSCODE, hashPin(it)) }
         repo.generateRecurring()
-        android.util.Log.i("MoneyTracker", "Money Manager restore: $r")
+        Log.i("Backup") { "Money Manager restore (${if (ios) "iPhone" else "Android"}): ${r.transactions} txns, ${r.accounts} accounts (+${r.deletedAccounts} deleted), ${r.categories} categories, ${r.recurring} repeats, ${r.budgets} budgets, ${r.skipped.size} skipped" }
         return buildString {
             append(tr("Restored Money Manager backup: {0} transactions, {1} accounts", r.transactions, r.accounts))
             if (r.deletedAccounts > 0) append(tr(" (+{0} deleted, restorable)", r.deletedAccounts))

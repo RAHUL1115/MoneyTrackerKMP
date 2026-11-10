@@ -29,11 +29,10 @@ fun LayoutSwitchDialog(toNew: Boolean, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (toNew) tr("Try the new layout?") else tr("Switch to the classic layout?")) },
+        title = { Text(if (toNew) tr("Switch to the new layout?") else tr("Switch to the classic layout?")) },
         text = {
             Text(
-                (if (toNew) tr("The new layout is experimental: some screens may still change or have rough edges. ") else "") +
-                    tr("MoneyTracker restarts to change its layout. Your entries, accounts and settings stay the same, and you can switch back any time in Settings."),
+                tr("MoneyTracker restarts to change its layout. Your entries, accounts and settings stay the same, and you can switch back any time in Settings."),
             )
         },
         confirmButton = {

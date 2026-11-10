@@ -58,7 +58,7 @@ internal class AndroidSpeech(private val ctx: Context) {
         override fun cancel() { done = true; runCatching { recognizer.cancel(); recognizer.destroy() } }
 
         private fun finish(text: String) { if (done) return; done = true; runCatching { recognizer.destroy() }; l.onFinal(text) }
-        private fun finishWithError(e: SpeechError) { if (done) return; done = true; runCatching { recognizer.destroy() }; l.onError(e) }
+        private fun finishWithError(e: SpeechError) { if (done) return; done = true; Log.w("Speech") { "listening ended: $e" }; runCatching { recognizer.destroy() }; l.onError(e) }
 
         override fun onReadyForSpeech(params: Bundle?) {}
         override fun onBeginningOfSpeech() {}

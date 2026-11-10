@@ -52,8 +52,13 @@ class Navigator {
     /** True when Back has something to do in the app: a screen to close, or an interceptor (e.g. a selection on Home). */
     val canPop get() = stack.isNotEmpty() || backInterceptors.isNotEmpty()
 
-    fun push(s: Screen) { stack.add(s) }
-    fun pop(): Boolean = if (stack.isEmpty()) false else { stack.removeAt(stack.lastIndex); true }
+    // Class names only: a screen's fields can hold names the person typed.
+    fun push(s: Screen) { stack.add(s); app.moneytracker.Log.d("Nav") { "→ ${s::class.simpleName} (depth ${stack.size})" } }
+    fun pop(): Boolean = if (stack.isEmpty()) false else {
+        val gone = stack.removeAt(stack.lastIndex)
+        app.moneytracker.Log.d("Nav") { "← ${gone::class.simpleName} (depth ${stack.size})" }
+        true
+    }
 
     /**
      * Lets the top screen handle Back first (close a panel, confirm discarding edits).

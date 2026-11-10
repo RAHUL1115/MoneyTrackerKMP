@@ -1,6 +1,7 @@
 package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import app.moneytracker.domain.ReportRules
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -79,7 +80,6 @@ import app.moneytracker.ui.rememberCarryOver
 import app.moneytracker.ui.rememberFilteredRows
 import app.moneytracker.ui.rememberFilteredTxns
 import app.moneytracker.ui.rememberPeriod
-import app.moneytracker.ui.toReportRow
 import app.moneytracker.ui.tr
 import app.moneytracker.ui.weekday
 import kotlinx.coroutines.CoroutineScope
@@ -457,7 +457,7 @@ private fun UpcomingRepeats(pending: List<Pair<app.moneytracker.domain.Recurring
 internal class ActEntryData(
     val accountName: Map<String, String>,
     val catById: Map<String, Category>,
-    val flags: Map<String, Boolean>,
+    val rules: ReportRules,
     val tags: Map<String, List<String>>,
     val photos: Set<String>,
 )
@@ -465,13 +465,13 @@ internal class ActEntryData(
 @Composable
 internal fun rememberActEntryData(): ActEntryData {
     val repo = LocalRepo.current
-    val accounts by repo.accounts.collectAsState(emptyList())
     val accountName by repo.accountNames.collectAsState(emptyMap())
     val catById by repo.categoryById.collectAsState(emptyMap())
     val tags by repo.txnTagNames.collectAsState(emptyMap())
     val photos by repo.txnIdsWithPhotos.collectAsState(emptySet())
-    return remember(accounts, accountName, catById, tags, photos) {
-        ActEntryData(accountName, catById, accounts.associate { it.id to it.transferAsExpense }, tags, photos)
+    val rules by repo.reportRules.collectAsState(ReportRules.Empty)
+    return remember(accountName, catById, rules, tags, photos) {
+        ActEntryData(accountName, catById, rules, tags, photos)
     }
 }
 
@@ -540,7 +540,7 @@ internal fun ActEntryRow(
             val tags = data.tags[txn.id].orEmpty()
             if (tags.isNotEmpty()) Text(tags.joinToString(" ") { "#$it" }, color = F.accent, fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        val flow = classify(txn.toReportRow(data.flags))
+        val flow = classify(data.rules.row(txn))
         val plus = txn.isRefund || flow == Flow.INCOME
         val color = when {
             plus -> F.income

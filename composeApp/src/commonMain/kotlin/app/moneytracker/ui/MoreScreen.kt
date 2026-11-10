@@ -310,7 +310,7 @@ fun ConfigurationScreen() {
                 Column {
                     listOf(
                         Triple(tr("Classic"), tr("The familiar tabs: Trans., Stats, Accounts, More"), true),
-                        Triple(tr("New (experimental)"), tr("Simpler screens, still being tested"), false),
+                        Triple(tr("New"), tr("Home with today's spending and Smart add, then Activity, Insights and Accounts"), false),
                     ).forEach { (label, hint, current) ->
                         Row(
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { layoutChoice = false; if (!current) layoutSwitch = true }.padding(vertical = 12.dp),

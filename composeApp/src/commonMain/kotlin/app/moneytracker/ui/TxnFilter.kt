@@ -1,6 +1,7 @@
 package app.moneytracker.ui
 
 import androidx.compose.foundation.background
+import app.moneytracker.domain.ReportRules
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -101,11 +102,10 @@ fun rememberFilteredRows(range: DateRange): State<List<ReportRow>> {
     val repo = LocalRepo.current
     val filter = LocalTxnFilter.current
     if (!filter.isActive) return remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
-    val flags = accounts.associate { it.id to it.transferAsExpense }
+    val rules by repo.reportRules.collectAsState(ReportRules.Empty)
     val txns by rememberFilteredTxns(range)
     // TRANSFER_IN mirrors TRANSFER_OUT; report rows count each transfer once.
-    return androidx.compose.runtime.rememberUpdatedState(txns.filter { it.kind != TxnKind.TRANSFER_IN }.map { it.toReportRow(flags) })
+    return androidx.compose.runtime.rememberUpdatedState(txns.filter { it.kind != TxnKind.TRANSFER_IN }.map { rules.row(it) })
 }
 
 /** What the filter bar lists: categories, accounts, then tags as #name. */

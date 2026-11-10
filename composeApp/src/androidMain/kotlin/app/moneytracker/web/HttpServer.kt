@@ -1,5 +1,6 @@
 package app.moneytracker.web
 
+import app.moneytracker.Log
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -90,13 +91,16 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
         val input = BufferedInputStream(c.getInputStream())
         val res = try {
             val req = read(input, c.inetAddress?.hostAddress.orEmpty()) ?: return@use
-            try { handler(req) } catch (e: Exception) { HttpResponse.error(500, "Something went wrong on the phone.") }
+            try { handler(req).also { r -> Log.d("Web") { "${req.method} ${req.path} → ${r.status}" } } }
+            catch (e: Exception) { Log.e("Web", e) { "${req.method} ${req.path} crashed" }; HttpResponse.error(500, "Something went wrong on the phone.") }
         } catch (e: BadRequest) {
+            Log.w("Web") { "bad request: ${e.status}" }
             HttpResponse.error(e.status, e.message ?: "Bad request")
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.d("Web") { "connection dropped: ${e::class.simpleName}" }
             return@use
         }
-        runCatching { write(c, res) }
+        runCatching { write(c, res) }.onFailure { Log.d("Web") { "reply not sent: ${it::class.simpleName}" } }
     }
 
     private class BadRequest(val status: Int, message: String) : Exception(message)

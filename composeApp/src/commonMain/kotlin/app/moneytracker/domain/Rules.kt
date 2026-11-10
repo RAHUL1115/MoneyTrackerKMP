@@ -187,6 +187,35 @@ data class ReportRow(
     val note: String = "",
 )
 
+/**
+ * Everything needed to turn an entry into a [ReportRow], so rows rebuilt from entries (filters, search, entry lines)
+ * follow the same rules as the database's report rows.
+ */
+class ReportRules(
+    private val transferAsExpense: Set<String>,
+    private val cardAccounts: Set<String>,
+    val cardAtPayment: Boolean,
+) {
+    fun row(t: Txn) = ReportRow(
+        t.kind, t.amount, t.categoryId, t.accountId in transferAsExpense, t.toAccountId in transferAsExpense, t.date,
+        srcIsCard = t.accountId in cardAccounts, dstIsCard = t.toAccountId in cardAccounts, cardAtPayment = cardAtPayment,
+        txnId = t.id, accountId = t.accountId, note = t.note,
+    )
+
+    companion object {
+        val Empty = ReportRules(emptySet(), emptySet(), false)
+
+        fun of(accounts: List<Account>, groups: List<AccountGroup>, cardAtPayment: Boolean): ReportRules {
+            val cardGroups = groups.filter { it.type == AccountType.CREDIT_CARD }.map { it.id }.toSet()
+            return ReportRules(
+                accounts.filter { it.transferAsExpense }.map { it.id }.toSet(),
+                accounts.filter { it.groupId in cardGroups }.map { it.id }.toSet(),
+                cardAtPayment,
+            )
+        }
+    }
+}
+
 enum class Flow { INCOME, EXPENSE, NONE }
 
 /**

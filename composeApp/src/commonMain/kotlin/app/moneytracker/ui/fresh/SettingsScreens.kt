@@ -241,7 +241,7 @@ internal fun FreshSettings() {
 
     if (layoutSheet) Sheet(tr("Layout"), { layoutSheet = false }) {
         SheetOption(tr("Classic"), selected = false, subtitle = tr("The familiar tabs: Trans., Stats, Accounts, More")) { layoutSheet = false; layoutSwitch = true }
-        SheetOption(tr("New (experimental)"), selected = true, subtitle = tr("Simpler screens, still being tested")) { layoutSheet = false }
+        SheetOption(tr("New"), selected = true, subtitle = tr("Home with today's spending and Smart add, then Activity, Insights and Accounts")) { layoutSheet = false }
         Text(tr("MoneyTracker restarts to switch. Your entries, accounts and settings stay the same."), Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             color = F.muted, fontSize = 12.sp)
     }
