@@ -79,7 +79,7 @@ fun rememberSettingGroups(newLayout: Boolean, a: SettingActions): List<SettingGr
 
     fun on(key: String) = v[key] == "1"
     // Widgets show colours, currency format and their own style; repaint them after any change.
-    fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) }; platform.refreshWidgets() }
+    fun put(key: String, value: String) = scope.launch(repo.io) { repo.putSetting(key, value) }
     fun setFlag(key: String, on: Boolean) = put(key, if (on) "1" else "0")
     fun label(key: String) = a.choiceLabel(key, v[key])
     fun link(title: String, value: String? = null, words: String = "", subtitle: String? = null, onClick: () -> Unit) =

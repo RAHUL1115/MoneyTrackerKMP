@@ -584,10 +584,9 @@ private fun SelectionPanel(selected: List<Txn>, onDone: () -> Unit, modifier: Mo
         sheet = null
         activityLaunch {
             val changed = withContext(repo.io) { change() }
-            platform.refreshWidgets()
             val msg = if (changed != null && changed < n) tr("{0} of {1} entries changed (transfers keep their accounts and have no category).", changed, n)
                 else tr("{0} for {1}", label, entries(n))
-            toaster.show(msg) { activityLaunch { withContext(repo.io) { undo() }; platform.refreshWidgets() } }
+            toaster.show(msg) { activityLaunch { withContext(repo.io) { undo() } } }
         }
         onDone()
     }
@@ -661,7 +660,6 @@ private fun SelectionPanel(selected: List<Txn>, onDone: () -> Unit, modifier: Mo
             val count = n
             activityLaunch {
                 withContext(repo.io) { repo.deleteMany(ids) }
-                platform.refreshWidgets()
                 toaster.show(tr("{0} deleted", entries(count)))
             }
             onDone()

@@ -2,6 +2,8 @@ package app.moneytracker
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,6 +11,7 @@ import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.watchAllTables
 import app.moneytracker.db.MoneyDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -18,9 +21,17 @@ import java.io.File
 /**
  * Owns the SQLite connection. [repo] is Compose state: it becomes null while the database file
  * is being replaced (restore), so the UI tears down its queries before the driver closes.
+ *
+ * Home-screen widgets follow every write on their own (screens, web dashboard, SMS detection, restore), a moment
+ * after the last one, so no save path has to refresh them.
  */
 class DatabaseManager(private val context: Context) {
     private var driver: SqlDriver? = null
+    private var stopWatching: (() -> Unit)? = null
+    private val main = Handler(Looper.getMainLooper())
+    private val refreshWidgets = Runnable { Log.d("Widget") { "refresh after a data change" }; SummaryWidget.updateAll(context) }
+
+    private fun widgetsSoon() { main.removeCallbacks(refreshWidgets); main.postDelayed(refreshWidgets, 300) }
 
     var repo: MoneyRepository? by mutableStateOf(null)
         private set
@@ -31,6 +42,7 @@ class DatabaseManager(private val context: Context) {
         repo?.let { return it }
         val d = AndroidSqliteDriver(MoneyDatabase.Schema, context, DB_NAME)
         driver = d
+        stopWatching = watchAllTables(d, ::widgetsSoon)
         val r = Log.timed("Db", "open") {
             MoneyRepository(MoneyDatabase(d), Dispatchers.IO).also { it.seedIfEmpty(); it.generateRecurring() }
         }
@@ -52,12 +64,14 @@ class DatabaseManager(private val context: Context) {
         Log.i("Db") { "closing for a file replace" }
         repo = null
         delay(400)
+        stopWatching?.invoke(); stopWatching = null
         driver?.close()
         driver = null
         try {
             return withContext(Dispatchers.IO) { block(dbFile) }
         } finally {
             open()
+            widgetsSoon()                                   // the whole file changed
         }
     }
 

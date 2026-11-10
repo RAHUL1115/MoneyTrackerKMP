@@ -127,7 +127,6 @@ interface PlatformServices {
     fun backgroundState(): BackgroundState
     /** Opens the maker's autostart manager ([autostart]) or the app's own settings page; false if neither opened. */
     fun openBackgroundSettings(autostart: Boolean): Boolean
-    fun refreshWidgets()
 
     // languages
     /** The phone's language tag, e.g. "hi-IN". */

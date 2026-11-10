@@ -81,8 +81,6 @@ class WebApi(
     /** "192.168.1.5:8080": what the browser must send as Host. */
     private val host: () -> String,
     private val now: () -> Long = System::currentTimeMillis,
-    /** After any change from the browser (widgets refresh). */
-    private val onChange: () -> Unit = {},
     /** Sign-ins or visits changed (the phone's connected-computers list). */
     private val onVisit: () -> Unit = {},
 ) {
@@ -377,7 +375,7 @@ class WebApi(
         return mapOf("id" to id)
     }
 
-    private fun editor(r: MoneyRepository) = EntryEditor(r, onChange)
+    private fun editor(r: MoneyRepository) = EntryEditor(r)
 
     private fun editable(r: MoneyRepository, id: String): Txn {
         val t = r.liveTxn(id) ?: throw ApiError(404, "This entry was deleted on the phone. Reload to see the latest.")

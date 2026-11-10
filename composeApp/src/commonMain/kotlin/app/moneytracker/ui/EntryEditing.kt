@@ -4,15 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.EntryProblem
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
 
-/** The shared entry editor for this screen; every change refreshes the home-screen widgets. */
+/** The shared entry editor for this screen (widgets follow the database on their own). */
 @Composable
 internal fun rememberEntryEditor(): EntryEditor {
     val repo = LocalRepo.current
-    val platform = LocalPlatform.current
-    return remember(repo, platform) { EntryEditor(repo) { MainScope().launch { platform.refreshWidgets() } } }
+    return remember(repo) { EntryEditor(repo) }
 }
 
 /** How both phone layouts word a problem that stops a save. */

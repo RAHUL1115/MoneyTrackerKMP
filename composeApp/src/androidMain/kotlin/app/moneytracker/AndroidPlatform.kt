@@ -410,7 +410,6 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
         }
     }
 
-    override fun refreshWidgets() = SummaryWidget.updateAll(ctx)
 
     override fun systemLanguage(): String = android.content.res.Resources.getSystem().configuration.locales[0].toLanguageTag()
     override fun translations(tag: String): Map<String, String> = Translations.load(ctx, tag)

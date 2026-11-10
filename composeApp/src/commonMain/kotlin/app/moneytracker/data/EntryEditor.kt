@@ -13,11 +13,11 @@ enum class EntryProblem { NO_AMOUNT, BAD_FEE, NO_ACCOUNT, NO_CATEGORY, NO_DESTIN
  *
  * It owns what every editor used to repeat by hand: [MoneyRepository.update] rewrites an entry under a new id, so
  * photos are moved over and location is kept; repeat rules get no photos; instalments only on card expenses;
- * learning from the note; marking a detected SMS as saved; and one [onChanged] call (widgets refresh) per change.
+ * learning from the note; and marking a detected SMS as saved.
  *
  * Blocking database calls: run off the main thread. Form state stays in each screen; only the rules live here.
  */
-class EntryEditor(private val repo: MoneyRepository, private val onChanged: () -> Unit = {}) {
+class EntryEditor(private val repo: MoneyRepository) {
 
     /** An entry opened for editing, with what [MoneyRepository.draftFrom] leaves out (location, photos). */
     class Opened(val txn: Txn, val draft: TxnDraft, val photos: List<Photo>) {
@@ -54,14 +54,12 @@ class EntryEditor(private val repo: MoneyRepository, private val onChanged: () -
             capture?.let { repo.completeCapture(it, d, id) }
             id
         }
-        onChanged()
         return id
     }
 
     /** Edits a balance correction in place. [amount] is in the account's currency; [up] = the balance went up. */
     fun saveAdjustment(t: Txn, date: kotlinx.datetime.LocalDate, amount: Long, accountId: String, up: Boolean, note: String, memo: String, timeOfDay: Int? = t.timeOfDay) {
         repo.updateAdjustment(t, date, amount, accountId, up, note, memo, timeOfDay)
-        onChanged()
     }
 
     /**
@@ -73,7 +71,6 @@ class EntryEditor(private val repo: MoneyRepository, private val onChanged: () -
         val gone = if (adjustment) null else
             Deleted(repo.draftFrom(t).copy(lat = t.lat, lng = t.lng, rate = repo.rateOf(t)), repo.photosNow(t.id).map { it.fileName })
         repo.delete(t, wholeInstallmentPlan = true)
-        onChanged()
         return gone
     }
 
@@ -86,7 +83,6 @@ class EntryEditor(private val repo: MoneyRepository, private val onChanged: () -
             d.photos.forEach { repo.addPhoto(id, it) }
             id
         }
-        onChanged()
         return id
     }
 

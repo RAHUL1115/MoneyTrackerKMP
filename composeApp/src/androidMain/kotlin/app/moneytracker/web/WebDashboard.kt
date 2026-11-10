@@ -90,7 +90,6 @@ object WebDashboard {
             repo = { (app as MoneyTrackerApp).database.repo },
             asset = { name -> synchronized(assets) { assets.getOrPut(name) { runCatching { app.assets.open("web/$name").use { it.readBytes() } }.getOrNull() ?: return@synchronized null } } },
             host = { host },
-            onChange = { Handler(Looper.getMainLooper()).post { SummaryWidget.updateAll(app) } },
             onVisit = { publish() },
         )
         val s = HttpServer(a::handle)

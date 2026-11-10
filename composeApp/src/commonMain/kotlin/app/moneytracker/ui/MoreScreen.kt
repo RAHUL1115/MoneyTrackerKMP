@@ -203,7 +203,7 @@ fun ConfigurationScreen() {
     var layoutSwitch by remember { mutableStateOf(false) }
     var layoutChoice by remember { mutableStateOf(false) }
     // Widgets show colours, currency format and their own style; repaint them after any change.
-    fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) }; platform.refreshWidgets() }
+    fun put(key: String, value: String) = scope.launch(repo.io) { repo.putSetting(key, value) }
     fun setFlag(key: String, on: Boolean) = put(key, if (on) "1" else "0")
 
     var resetConfirm by remember { mutableStateOf(false) }

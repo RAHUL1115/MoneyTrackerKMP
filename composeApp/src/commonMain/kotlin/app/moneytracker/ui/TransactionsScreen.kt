@@ -651,7 +651,6 @@ private fun SelectionBar(selected: List<Txn>, onClear: () -> Unit) {
     val ids = selected.map { it.id }
     fun run(block: () -> Int?) = scope.launch {
         val changed = withContext(repo.io) { block() }
-        platform.refreshWidgets()
         if (changed != null && changed < ids.size) message = tr("{0} of {1} entries changed (transfers keep their accounts and have no category).", changed, ids.size)
         onClear()
     }

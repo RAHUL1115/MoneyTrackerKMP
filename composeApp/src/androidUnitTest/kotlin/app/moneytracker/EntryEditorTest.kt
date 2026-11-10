@@ -26,14 +26,13 @@ class EntryEditorTest {
     private val today = LocalDate.parse("2026-03-15")
     private lateinit var repo: MoneyRepository
     private lateinit var editor: EntryEditor
-    private var changes = 0
 
     @BeforeTest fun setUp() {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
         repo.seedIfEmpty()
-        editor = EntryEditor(repo) { changes++ }
+        editor = EntryEditor(repo)
     }
 
     private fun expense(amount: Long = 25_000, account: String = "acc_cash", note: String = "Lunch") =
@@ -64,7 +63,6 @@ class EntryEditorTest {
         val id = editor.save(expense(note = "Pizza at Dominos"), photos = listOf("a.jpg", "b.jpg"))
         assertEquals(listOf("a.jpg", "b.jpg"), repo.photosNow(id).map { it.fileName }.sorted())
         assertEquals("cat_ex_0", repo.suggest(app.moneytracker.domain.SmsParser.words("Pizza"))?.categoryId)
-        assertEquals(1, changes)
     }
 
     @Test fun repeatRulesGetNoPhotos() = runTest {
@@ -147,7 +145,6 @@ class EntryEditorTest {
         editor.saveAdjustment(opened.txn, today, 4_000, "acc_cash", up = false, note = "Fixed", memo = "")
         val t = repo.txn(adj.id)!!
         assertEquals(TxnKind.ADJUST_DOWN, t.kind); assertEquals("Fixed", t.note)
-        assertEquals(1, changes)
     }
 
     // ───────────── delete and undo
@@ -161,7 +158,6 @@ class EntryEditorTest {
         val t = repo.txn(back)!!
         assertEquals(25_000, t.amount); assertEquals(1.0, t.lat)
         assertEquals(listOf("a.jpg"), repo.photosNow(back).map { it.fileName })
-        assertEquals(3, changes)
     }
 
     @Test fun deletingAPlanEntryDeletesTheWholePlan() {

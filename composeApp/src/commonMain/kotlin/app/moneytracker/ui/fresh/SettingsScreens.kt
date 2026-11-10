@@ -126,7 +126,7 @@ internal fun FreshSettings() {
     var layoutSheet by remember { mutableStateOf(false) }
 
     // Widgets show colours, currency format and their own style; repaint them after any change.
-    fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) }; platform.refreshWidgets() }
+    fun put(key: String, value: String) = scope.launch(repo.io) { repo.putSetting(key, value) }
     fun setFlag(key: String, on: Boolean) = put(key, if (on) "1" else "0")
 
     val choices = settingChoices()
@@ -300,7 +300,6 @@ internal fun FreshSettings() {
         editing = null
         scope.launch {
             withContext(repo.io) { repo.putSetting(key, value) }
-            platform.refreshWidgets()
             if (key == Keys.REMINDER_TIME) value.split(":").map { it.toInt() }.let { (h, m) -> platform.setReminder(true, h, m) {} }
         }
     } }

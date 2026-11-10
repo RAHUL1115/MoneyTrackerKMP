@@ -26,7 +26,6 @@ class WebApiTest {
     private var clock = 1_000_000L
     private lateinit var repo: MoneyRepository
     private lateinit var api: WebApi
-    private var changes = 0
     private val host = "192.168.1.5:8080"
 
     @BeforeTest fun setUp() {
@@ -34,7 +33,7 @@ class WebApiTest {
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
         repo.seedIfEmpty()
-        api = WebApi({ repo }, { name -> if (name == "index.html") "<html>".toByteArray() else null }, { host }, now = { clock }, onChange = { changes++ })
+        api = WebApi({ repo }, { name -> if (name == "index.html") "<html>".toByteArray() else null }, { host }, now = { clock })
     }
 
     private fun call(
@@ -141,7 +140,6 @@ class WebApiTest {
         val restored = call("POST", "/api/undo/$undo", emptyMap<String, Any>(), cookie).json()["id"] as String
         assertEquals(25_050L, repo.txn(restored)!!.amount)
         assertEquals(410, call("POST", "/api/undo/$undo", emptyMap<String, Any>(), cookie).status)
-        assertTrue(changes >= 4)
     }
 
     @Test fun rejectsBadEntries() {
