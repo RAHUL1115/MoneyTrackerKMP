@@ -1,5 +1,7 @@
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.data.MonthBudget
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -15,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,26 +56,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
-/** Budgets of one month: the effective amounts, the lines with what's spent, and the whole month's spending. */
-internal class MonthBudget(val budgets: Map<String, Long>, val lines: List<BudgetLine>, val spent: Long) {
-    val total get() = lines.firstOrNull { it.categoryId == TOTAL_BUDGET }
-    val categoryLines get() = lines.filter { it.categoryId != TOTAL_BUDGET }
-}
-
+/** One month's budget from the shared read model (same numbers as the web dashboard and the classic screens). */
 @Composable
 internal fun rememberMonthBudget(ym: YearMonth): MonthBudget {
     val repo = LocalRepo.current
     val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
     val range = ps.month(ym)
-    val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
-    val entries by remember(ym) { repo.budgetEntries(ym) }.collectAsState(emptyList())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val expenseRows = rows.filter { it.kind == TxnKind.EXPENSE && classify(it) == Flow.EXPENSE }
-    val spent = byMainCategory(expenseRows, catById, Flow.EXPENSE)
-    val spentBySub = expenseRows.filter { r -> r.categoryId?.let { catById[it]?.parentId } != null }
-        .groupBy { it.categoryId!! }.mapValues { (_, v) -> v.sumOf { it.amount } }
-    val budgets = effectiveBudgets(entries, ym)
-    return MonthBudget(budgets, budgetLines(budgets, spent, spentBySub) { id -> catById[id]?.parentId != null }, spent.values.sum())
+    return remember(ym, range) { repo.views.budget(ym) }.collectAsState().value
 }
 
 /** The budget card on Insights: how much of the month's budget is used, which categories are over. */

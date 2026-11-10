@@ -55,6 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -497,17 +498,15 @@ private fun MonthlyView(selected: YearMonth, ps: PeriodSettings) {
     val rows by rememberFilteredRows(yearRange)
     var expanded by remember(year) { mutableStateOf(selected.month) }
 
-    val yt = totals(rows)
-    IncomeExpenseStrip(yt.income, yt.expense, currency)
-    val todayLabel = ps.labelFor(repo.today())
-    val byMonth = rows.groupBy { ps.labelFor(it.date!!).month }
-    // Up to the current month, or further if future-dated rows (installments, post-dated entries) exist.
-    val lastMonth = maxOf(if (todayLabel.year == year) todayLabel.month else 12, byMonth.keys.maxOrNull() ?: 1)
+    // Same year → month → week rollup as the new layout's Months view.
+    val rollup = remember(rows, ps, year) { app.moneytracker.data.ReadModels.yearRollup(rows, ps, year, repo.today()) }
+    IncomeExpenseStrip(rollup.totals.income, rollup.totals.expense, currency)
 
     LazyColumn(Modifier.fillMaxSize().background(SurfaceColor)) {
-        for (m in lastMonth downTo 1) {
-            val range = ps.month(YearMonth(year, m))
-            val mt = totals(byMonth[m].orEmpty())
+        for (mr in rollup.months) {
+            val m = mr.month.month
+            val range = mr.range
+            val mt = mr.totals
             item(key = "m$m") {
                 Row(
                     Modifier.fillMaxWidth().clickable { expanded = if (expanded == m) 0 else m }.padding(horizontal = 20.dp, vertical = 12.dp),
@@ -524,9 +523,7 @@ private fun MonthlyView(selected: YearMonth, ps: PeriodSettings) {
                 }
             }
             if (expanded == m) {
-                val weeks = Periods.weeks(range, ps.weekStart)
-                items(weeks.reversed(), key = { "w${it.start}" }) { w ->
-                    val wt = totals(byMonth[m].orEmpty().filter { it.date!! in w })
+                items(mr.weeks, key = { "w${it.first.start}" }) { (w, wt) ->
                     val isCurrent = repo.today() in w
                     Row(
                         Modifier.fillMaxWidth().background(if (isCurrent) AccentTint else PageBackground)
@@ -559,31 +556,15 @@ private fun TotalView(ym: YearMonth, range: DateRange, ps: PeriodSettings) {
     val nav = LocalNavigator.current
     val backup = LocalBackup.current
     val currency = LocalCurrency.current
-    val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
-    val prevRange = ps.month(ym.plus(-1))
-    val prevRows by remember(prevRange) { repo.reportRows(prevRange) }.collectAsState(emptyList())
-    val txns by remember(range) { repo.txnsBetween(range) }.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
-    val groups by repo.groups.collectAsState(emptyList())
-    val entries by remember(ym) { repo.budgetEntries(ym) }.collectAsState(emptyList())
-    val categories by repo.categories.collectAsState(emptyList())
-
-    val t = totals(rows)
+    // One read model for the Total card (same numbers as the new layout's Months view).
+    val m by remember(ym, range) { repo.views.month(ym) }.collectAsState()
+    val t = m.totals
     IncomeExpenseStrip(t.income, t.expense, currency)
-
-    val groupType = groups.associate { it.id to it.type }
-    val accountType = accounts.associate { it.id to groupType[it.groupId] }
-    val cardExpense = txns.filter { it.kind == TxnKind.EXPENSE && accountType[it.accountId] == AccountType.CREDIT_CARD }.sumOf { it.amount }
-    val otherExpense = txns.filter { it.kind == TxnKind.EXPENSE && accountType[it.accountId] != AccountType.CREDIT_CARD }.sumOf { it.amount }
-    val savingsTransfers = rows.filter { it.kind == TxnKind.TRANSFER_OUT && classify(it) == Flow.EXPENSE }.sumOf { it.amount }
-    val prevExpense = totals(prevRows).expense
-    val compared = if (prevExpense == 0L) null else (t.expense * 100 / prevExpense).toInt()
-
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val spentByMain = rows.filter { classify(it) == Flow.EXPENSE && it.kind == TxnKind.EXPENSE }
-        .groupBy { r -> r.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } ?: "__none" }
-        .mapValues { (_, v) -> v.sumOf { it.amount } }
-    val total = budgetLines(effectiveBudgets(entries, ym), spentByMain).firstOrNull { it.categoryId == TOTAL_BUDGET }
+    val cardExpense = m.cardExpense
+    val otherExpense = m.otherExpense
+    val savingsTransfers = m.saved
+    val compared = m.comparedToLastMonth
+    val total = m.budget.total
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(20.dp)) {

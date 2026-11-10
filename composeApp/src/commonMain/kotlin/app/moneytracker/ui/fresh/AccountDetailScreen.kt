@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -95,8 +96,8 @@ internal fun AccountDetailBody(accountId: String) {
     val toaster = LocalToaster.current
     val mainCurrency = LocalCurrency.current
     val currencies = LocalCurrencies.current
-    val summary = rememberMoneySummary()
-    val line = summary?.first?.firstOrNull { it.account.id == accountId }
+    val summary = app.moneytracker.ui.rememberAccountSummary()
+    val line = summary?.lines?.firstOrNull { it.account.id == accountId }
     val fmt = line?.account?.currency?.let { currencies[it]?.format } ?: mainCurrency
     val catById by repo.categoryById.collectAsState(emptyMap())
     val accountName by repo.accountNames.collectAsState(emptyMap())

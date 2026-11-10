@@ -50,6 +50,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -83,31 +84,12 @@ import app.moneytracker.domain.summarize
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Accounts + balances + card statements, recomputed whenever balances change. */
+/** Accounts + balances + card statements (one read model for both layouts); the last one shows at once. */
 @Composable
-private fun rememberAccountSummary(): Pair<List<AccountLine>, NetWorth>? {
+internal fun rememberAccountSummary(): app.moneytracker.data.AccountSummary? {
     val repo = LocalRepo.current
-    val groups by repo.groups.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
-    val balanceFlow = remember(repo) { repo.balances }
-    val balances by balanceFlow.collectAsState(emptyMap())
-    val currencies by repo.currencies.collectAsState(emptyList())
-    val mainDecimals = LocalCurrency.current.decimals
-    val tagged by repo.txnTagNames.collectAsState(emptyMap())     // re-run when tags change (Prepayment)
-    // Starts from the last summary, so reopening the tab draws at once; the fresh one replaces it moments later.
-    @Suppress("UNCHECKED_CAST")
-    val last = repo.screenCache["accountSummary"] as Pair<List<AccountLine>, NetWorth>?
-    val summary by produceState(last, groups, accounts, balances, currencies, tagged) {
-        value = withContext(repo.io) {
-            val prepaid = repo.txnIdsWithTag(TAG_PREPAYMENT)
-            summarize(
-                groups, accounts, balances,
-                cardStatusOf = { a -> cardStatus(repo.accountTxns(a.id), a.cardSettlementDay ?: 1, repo.today(), prepaid) },
-                toMain = { a, v -> Fx.toMain(v, currencies.firstOrNull { it.code == a.currency }, mainDecimals) },
-            )
-        }.also { repo.screenCache["accountSummary"] = it }
-    }
-    return summary
+    val flow = remember(repo) { repo.views.accounts }
+    return flow.collectAsState(repo.views.latestAccounts).value
 }
 
 private fun moneyColor(v: Long) = if (v < 0) ExpenseColor else IncomeColor
@@ -228,7 +210,7 @@ fun AccountDetailScreen(accountId: String) {
     val currencies = LocalCurrencies.current
     val scope = rememberCoroutineScope()
     val summary = rememberAccountSummary()
-    val line = summary?.first?.firstOrNull { it.account.id == accountId }
+    val line = summary?.lines?.firstOrNull { it.account.id == accountId }
     val currency = line?.account?.currency?.let { currencies[it]?.format } ?: mainCurrency
     val categories by repo.categories.collectAsState(emptyList())
     val accounts by repo.accounts.collectAsState(emptyList())
@@ -378,7 +360,7 @@ fun AccountDetailScreen(accountId: String) {
         // + adds an entry on this account; cards also get Pay (from the payment account, what's due).
         Row(Modifier.align(Alignment.BottomEnd), verticalAlignment = Alignment.CenterVertically) {
             val acct = line?.account
-            val isCredit = acct != null && summary?.first?.firstOrNull { it.account.id == accountId }?.group?.type?.isCreditCard == true
+            val isCredit = acct != null && summary?.lines?.firstOrNull { it.account.id == accountId }?.group?.type?.isCreditCard == true
             if (isCredit) {
                 val due = line?.card?.let { it.statementDue + it.overdue } ?: 0
                 androidx.compose.material3.SmallFloatingActionButton(

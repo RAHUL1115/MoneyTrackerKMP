@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -592,8 +593,8 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     }
 
     // Accounts for the account tray: Recent (usual and recently used) first, then one tab per account group.
-    val summary = rememberMoneySummary()
-    val lineById = summary?.first?.associateBy { it.account.id }.orEmpty()
+    val summary = app.moneytracker.ui.rememberAccountSummary()
+    val lineById = summary?.lines?.associateBy { it.account.id }.orEmpty()
     val recentRange = remember { DateRange(today.minus(DatePeriod(days = 60)), today) }
     val recentTxns by remember(recentRange) { repo.txnsBetween(recentRange) }.collectAsState(emptyList())
 

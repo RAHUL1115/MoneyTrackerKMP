@@ -2,6 +2,7 @@ package app.moneytracker.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope

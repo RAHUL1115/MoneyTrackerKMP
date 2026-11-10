@@ -128,8 +128,8 @@ class MoneyRepository(
     /** The most recently viewed periods' rows (months, years, custom ranges), so switching back to one is instant. */
     private val rangeCache = FlowCache(max = 24)
 
-    /** Results screens computed off the main thread (e.g. the accounts summary), shown at once the next time they open. */
-    val screenCache = mutableMapOf<String, Any?>()
+    /** Finished views (accounts, budgets, month totals) for screens, the web dashboard and widgets. */
+    val views: ReadModels by lazy { ReadModels(this) }
 
     // ───────────────────────── settings
 
@@ -216,7 +216,7 @@ class MoneyRepository(
         combine(setting(Keys.CURRENCY_SYMBOL), setting(Keys.CURRENCY_DECIMALS), setting(Keys.SYMBOL_AFTER)) { sym, dec, after -> currencyFormat(sym, dec, after) },
     ) { currencyFormat(settingNow(Keys.CURRENCY_SYMBOL), settingNow(Keys.CURRENCY_DECIMALS), settingNow(Keys.SYMBOL_AFTER)) }
     private fun currencyFormat(sym: String?, dec: String?, after: String?) = CurrencyFormat(sym ?: "₹", dec?.toIntOrNull() ?: 2, after == "1")
-    private fun mainDecimals() = settingNow(Keys.CURRENCY_DECIMALS)?.toIntOrNull() ?: 2
+    fun mainDecimals() = settingNow(Keys.CURRENCY_DECIMALS)?.toIntOrNull() ?: 2
 
     // ───────────────────────── currencies
 
@@ -260,9 +260,8 @@ class MoneyRepository(
      * Own-row balance per account as of today, in each account's currency. Future-dated rows
      * (upcoming installments, post-dated entries) are excluded. Debit-card folding happens in domain.summarize.
      */
-    val balances: CachedFlow<Map<String, Long>> get() = today().toEpochDays().toLong().let { day ->
-        rangeCache.get("balances:$day") { cached({ q.balances(day) }) { rows -> rows.associate { it.accountId to it.balance.toLong() } } }
-    }
+    val balances: CachedFlow<Map<String, Long>> get() = today().toEpochDays().toLong().let { day -> rangeCache.get("balances:$day") { balancesOn(day) } }
+    private fun balancesOn(day: Long) = cached({ q.balances(day) }) { rows -> rows.associate { it.accountId to it.balance.toLong() } }
 
     fun saveAccount(a: Account) = q.upsertAccount(
         AccountRow(a.id, a.groupId, a.name, a.includeInTotals.toLong(), a.transferAsExpense.toLong(),
@@ -274,8 +273,8 @@ class MoneyRepository(
     fun restoreAccount(id: String) = q.restoreAccount(now(), id)
 
     fun accountTxns(accountId: String): List<Txn> = q.txnsForAccount(accountId).executeAsList().map { it.toDomain() }
-    fun accountsNow(): List<Account> = q.allAccounts().executeAsList().map { it.toDomain() }
-    fun groupsNow(): List<AccountGroup> = q.allGroups().executeAsList().map { it.toDomain() }
+    fun accountsNow(): List<Account> = accounts.now()
+    fun groupsNow(): List<AccountGroup> = groups.now()
 
     fun accountTxnsFlow(accountId: String, range: DateRange): Flow<List<Txn>> =
         q.txnsForAccountBetween(accountId, range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong())
@@ -326,30 +325,26 @@ class MoneyRepository(
 
     // ───────────────────────── transactions
 
-    fun txnsBetween(range: DateRange): CachedFlow<List<Txn>> = rangeCache.get("txns:$range") {
+    fun txnsBetween(range: DateRange): CachedFlow<List<Txn>> = rangeCache.get("txns:$range") { txnsIn(range) }
+    private fun txnsIn(range: DateRange): CachedFlow<List<Txn>> = run {
         val from = range.start.toEpochDays().toLong(); val to = range.endInclusive.toEpochDays().toLong()
         CachedFlow(combine(q.txnsBetween(from, to).asFlow().mapToList(io), setting(Keys.TIME_SORT)) { rows, sort ->
             sortWithinDays(rows.map { it.toDomain() }, ascending = sort == "ASC")
         }) { sortWithinDays(q.txnsBetween(from, to).executeAsList().map { it.toDomain() }, ascending = settingNow(Keys.TIME_SORT) == "ASC") }
     }
 
-    // ───────────────────────── synchronous reads for background threads (web dashboard); no shared caches
+    // ───────────────────────── synchronous reads for background threads (web dashboard, widgets)
+    // Each is the matching flow's own mapping read once ([CachedFlow.now]); none touches the per-range cache.
 
-    fun txnsNow(range: DateRange): List<Txn> = sortWithinDays(
-        q.txnsBetween(range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong()).executeAsList().map { it.toDomain() },
-        ascending = settingNow(Keys.TIME_SORT) == "ASC",
-    )
-    fun reportRowsNow(range: DateRange): List<ReportRow> = settingNow(Keys.CARD_AT_PAYMENT).let { card ->
-        q.reportRows(range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong()).executeAsList().map { it.toReportRow(card == "1") }
-    }
-    fun balancesNow(): Map<String, Long> = q.balances(today().toEpochDays().toLong()).executeAsList().associate { it.accountId to it.balance.toLong() }
-    fun budgetEntriesNow(upTo: YearMonth): List<BudgetEntry> =
-        q.budgetAmountsUpTo(upTo.key.toLong()).executeAsList().map { BudgetEntry(it.categoryId, it.period.toInt(), it.amount) }
-    fun categoriesNow(): List<Category> = q.allCategories().executeAsList().map { it.toDomain() }
-    fun categoryByIdNow(): Map<String, Category> = q.categoriesWithDeleted().executeAsList().associate { it.id to it.toDomain() }
-    fun tagsNow(): List<Tag> = q.allTags().executeAsList().map { Tag(it.id, it.name, it.sortOrder.toInt()) }
-    fun txnTagNamesNow(): Map<String, List<String>> = q.allTxnTags().executeAsList().groupBy({ it.txnId }, { it.name })
-    fun currenciesNow(): List<Currency> = q.allCurrencies().executeAsList().map { it.toDomain() }
+    fun txnsNow(range: DateRange): List<Txn> = txnsIn(range).now()
+    fun reportRowsNow(range: DateRange): List<ReportRow> = reportRowsIn(range).now()
+    fun balancesNow(): Map<String, Long> = balancesOn(today().toEpochDays().toLong()).now()
+    fun budgetEntriesNow(upTo: YearMonth): List<BudgetEntry> = budgetEntriesUpTo(upTo).now()
+    fun categoriesNow(): List<Category> = categories.now()
+    fun categoryByIdNow(): Map<String, Category> = categoryById.now()
+    fun tagsNow(): List<Tag> = tags.now()
+    fun txnTagNamesNow(): Map<String, List<String>> = txnTagNames.now()
+    fun currenciesNow(): List<Currency> = currencies.now()
     fun currencyFormatNow(): CurrencyFormat = currencyFormat(settingNow(Keys.CURRENCY_SYMBOL), settingNow(Keys.CURRENCY_DECIMALS), settingNow(Keys.SYMBOL_AFTER))
 
     /** Newest day first; within a day by recorded time (entries without one by entry order), newest first unless [ascending]. */
@@ -442,7 +437,8 @@ class MoneyRepository(
         }
     }
 
-    fun reportRows(range: DateRange): CachedFlow<List<ReportRow>> = rangeCache.get("report:$range") {
+    fun reportRows(range: DateRange): CachedFlow<List<ReportRow>> = rangeCache.get("report:$range") { reportRowsIn(range) }
+    private fun reportRowsIn(range: DateRange): CachedFlow<List<ReportRow>> = run {
         val from = range.start.toEpochDays().toLong(); val to = range.endInclusive.toEpochDays().toLong()
         CachedFlow(combine(q.reportRows(from, to).asFlow().mapToList(io), flag(Keys.CARD_AT_PAYMENT)) { rows, cardAtPayment ->
             rows.map { it.toReportRow(cardAtPayment) }
@@ -461,15 +457,8 @@ class MoneyRepository(
         cardAtPayment = cardAtPayment, txnId = id, accountId = accountId, note = note,
     )
 
-    /** Synchronous totals for widgets / notifications (same rules as [reportRows]). */
-    fun totalsNow(range: DateRange): app.moneytracker.domain.Totals {
-        val cardAtPayment = settingNow(Keys.CARD_AT_PAYMENT) == "1"
-        val rows = q.reportRows(range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong()).executeAsList().map {
-            ReportRow(TxnKind.valueOf(it.kind), it.amount, it.categoryId, it.srcTransferExpense != 0L, it.dstTransferExpense != 0L,
-                srcIsCard = it.srcType == AccountType.CREDIT_CARD.name, dstIsCard = it.dstType == AccountType.CREDIT_CARD.name, cardAtPayment = cardAtPayment)
-        }
-        return app.moneytracker.domain.totals(rows)
-    }
+    /** Synchronous totals for widgets / notifications (same rows as [reportRows]). */
+    fun totalsNow(range: DateRange): app.moneytracker.domain.Totals = app.moneytracker.domain.totals(reportRowsNow(range))
 
     /**
      * Text matches note, memo, category, either account or tag names; text starting with # matches tag names only.
@@ -872,9 +861,9 @@ class MoneyRepository(
 
     // ───────────────────────── budgets
 
-    fun budgetEntries(upTo: YearMonth): CachedFlow<List<BudgetEntry>> = rangeCache.get("budget:${upTo.key}") {
+    fun budgetEntries(upTo: YearMonth): CachedFlow<List<BudgetEntry>> = rangeCache.get("budget:${upTo.key}") { budgetEntriesUpTo(upTo) }
+    private fun budgetEntriesUpTo(upTo: YearMonth) =
         cached({ q.budgetAmountsUpTo(upTo.key.toLong()) }) { rows -> rows.map { BudgetEntry(it.categoryId, it.period.toInt(), it.amount) } }
-    }
 
     /** Sets the budget from [from] onward (later explicit changes are replaced). 0 removes it. */
     fun setBudget(categoryId: String, from: YearMonth, amount: Long) = db.transaction {

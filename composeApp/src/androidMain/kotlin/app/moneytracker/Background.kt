@@ -560,7 +560,7 @@ class CardsWidgetService : android.widget.RemoteViewsService() {
             val cardGroups = r.groupsNow().filter { it.type.isCreditCard }.map { it.id }.toSet()
             val prepaid = r.txnIdsWithTag(app.moneytracker.domain.TAG_PREPAYMENT)
             rows = r.accountsNow().filter { it.groupId in cardGroups && !it.hidden }.map { a ->
-                val s = app.moneytracker.domain.cardStatus(r.accountTxns(a.id), a.cardSettlementDay ?: 1, r.today(), prepaid)
+                val s = r.views.cardStatusNow(a, prepaid)   // same card rules as the app
                 val owed = s.statementDue + s.overdue
                 RemoteViews(ctx.packageName, R.layout.widget_card_item).apply {
                     setInt(R.id.w_card_bg, "setColorFilter", st.panel)

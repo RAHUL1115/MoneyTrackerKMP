@@ -418,11 +418,7 @@ class WebApi(
         }
         val range = ps.month(ym)
         val catById = r.categoryByIdNow()
-        val expenseRows = r.reportRowsNow(range).filter { it.kind == TxnKind.EXPENSE && classify(it) == MoneyFlow.EXPENSE }
-        val spent = byMainCategory(expenseRows, catById, MoneyFlow.EXPENSE)
-        val spentBySub = expenseRows.filter { row -> row.categoryId?.let { catById[it]?.parentId } != null }
-            .groupBy { it.categoryId!! }.mapValues { (_, v) -> v.sumOf { it.amount } }
-        val lines = budgetLines(effectiveBudgets(r.budgetEntriesNow(ym), ym), spent, spentBySub) { id -> catById[id]?.parentId != null }
+        val lines = r.views.budgetNow(ym).lines   // same budget numbers as the phone
         val today = r.today()
         val daysSoFar = when {
             today < range.start -> 0
@@ -443,14 +439,10 @@ class WebApi(
 
     private fun accounts(r: MoneyRepository): Map<String, Any?> {
         val groups = r.groupsNow()
-        val accounts = r.accountsNow()
         val currencies = r.currenciesNow()
         val mainDecimals = r.currencyFormatNow().decimals
-        val prepaid = r.txnIdsWithTag(TAG_PREPAYMENT)
         val today = r.today()
-        val (lines, worth) = summarize(groups, accounts, r.balancesNow(),
-            cardStatusOf = { a -> cardStatus(r.accountTxns(a.id), a.cardSettlementDay ?: 1, today, prepaid) },
-            toMain = { a, v -> Fx.toMain(v, currencies.firstOrNull { it.code == a.currency }, mainDecimals) })
+        val (lines, worth) = r.views.accountsNow()   // same account summary as the phone
         val byGroup = lines.filter { !it.account.hidden }.groupBy { it.group.id }
         return mapOf(
             "today" to today.toString(),

@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -148,14 +149,8 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
     val range = ps.month(ym)
     val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
     val recentRows by remember(today) { repo.reportRows(DateRange(yesterday, today)) }.collectAsState(emptyList())
-    val entries by remember(ym) { repo.budgetEntries(ym) }.collectAsState(emptyList())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val expenseRows = rows.filter { it.kind == TxnKind.EXPENSE && classify(it) == Flow.EXPENSE }
-    val spentByMain = byMainCategory(expenseRows, catById, Flow.EXPENSE)
-    val spentBySub = expenseRows.filter { r -> r.categoryId?.let { catById[it]?.parentId } != null }
-        .groupBy { it.categoryId!! }.mapValues { (_, v) -> v.sumOf { it.amount } }
-    val budget = budgetLines(effectiveBudgets(entries, ym), spentByMain, spentBySub) { id -> catById[id]?.parentId != null }
-        .firstOrNull { it.categoryId == TOTAL_BUDGET }
+    val month by remember(ym, range) { repo.views.budget(ym) }.collectAsState()
+    val budget = month.total
     val daysLeft = (today.daysUntil(range.endInclusive) + 1).coerceAtLeast(1)
     val daysGone = (range.start.daysUntil(today) + 1).coerceAtLeast(1)
 

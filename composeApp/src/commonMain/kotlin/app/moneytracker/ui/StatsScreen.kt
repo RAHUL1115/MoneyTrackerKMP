@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -524,16 +525,11 @@ fun BudgetScreen() {
     var periodKey by rememberPeriod()
     val ym = YearMonth.fromKey(periodKey)
     val range = ps.month(ym)
-    val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
     val categories by repo.categories.collectAsState(emptyList())
-    val entries by remember(ym) { repo.budgetEntries(ym) }.collectAsState(emptyList())
     val catById by repo.categoryById.collectAsState(emptyMap())
-    val expenseRows = rows.filter { it.kind == TxnKind.EXPENSE && classify(it) == Flow.EXPENSE }
-    val spent = byMainCategory(expenseRows, catById, Flow.EXPENSE)
-    val spentBySub = expenseRows.filter { r -> r.categoryId?.let { catById[it]?.parentId } != null }
-        .groupBy { it.categoryId!! }.mapValues { (_, v) -> v.sumOf { it.amount } }
-    val budgets = effectiveBudgets(entries, ym)
-    val lines = budgetLines(budgets, spent, spentBySub) { id -> catById[id]?.parentId != null }
+    val month by remember(ym, range) { repo.views.budget(ym) }.collectAsState()
+    val budgets = month.budgets
+    val lines = month.lines
     var editing by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize()) {
@@ -611,14 +607,8 @@ fun BudgetDetailScreen(initialKey: Int) {
     var periodKey by rememberSaveable { mutableStateOf(initialKey) }
     val ym = YearMonth.fromKey(periodKey)
     val range = ps.month(ym)
-    val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
-    val entries by remember(ym) { repo.budgetEntries(ym) }.collectAsState(emptyList())
     val catById by repo.categoryById.collectAsState(emptyMap())
-    val expenseRows = rows.filter { it.kind == TxnKind.EXPENSE && classify(it) == Flow.EXPENSE }
-    val spent = byMainCategory(expenseRows, catById, Flow.EXPENSE)
-    val spentBySub = expenseRows.filter { r -> r.categoryId?.let { catById[it]?.parentId } != null }
-        .groupBy { it.categoryId!! }.mapValues { (_, v) -> v.sumOf { it.amount } }
-    val lines = budgetLines(effectiveBudgets(entries, ym), spent, spentBySub) { id -> catById[id]?.parentId != null }
+    val lines = remember(ym, range) { repo.views.budget(ym) }.collectAsState().value.lines
 
     Column(Modifier.fillMaxSize()) {
         BackTopBar(tr("Budget"), nav::pop) {

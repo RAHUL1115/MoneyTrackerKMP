@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -94,7 +95,7 @@ internal fun MoneyTab() {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val currencies = LocalCurrencies.current
-    val summary = rememberMoneySummary()
+    val summary = app.moneytracker.ui.rememberAccountSummary()
     var trendOn by rememberSaveable { mutableStateOf(false) }
     var showHidden by rememberSaveable { mutableStateOf(false) }
     var collapsed by rememberSaveable { mutableStateOf(listOf<String>()) }
@@ -207,7 +208,7 @@ internal fun MoneyTab() {
         }
     }
 
-    if (manage) ManageSheet(summary?.first.orEmpty()) { manage = false }
+    if (manage) ManageSheet(summary?.lines.orEmpty()) { manage = false }
 }
 
 @Composable

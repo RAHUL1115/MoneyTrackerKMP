@@ -55,31 +55,6 @@ import kotlin.math.roundToInt
 
 // Pieces shared by the Insights, Budget and Money screens of the new layout.
 
-/** Accounts + balances + card statements, recomputed whenever balances change (same cache as the classic Accounts tab). */
-@Composable
-internal fun rememberMoneySummary(): Pair<List<AccountLine>, NetWorth>? {
-    val repo = LocalRepo.current
-    val groups by repo.groups.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
-    val balanceFlow = remember(repo) { repo.balances }
-    val balances by balanceFlow.collectAsState(emptyMap())
-    val currencies by repo.currencies.collectAsState(emptyList())
-    val mainDecimals = LocalCurrency.current.decimals
-    val tagged by repo.txnTagNames.collectAsState(emptyMap())
-    @Suppress("UNCHECKED_CAST")
-    val last = repo.screenCache["accountSummary"] as Pair<List<AccountLine>, NetWorth>?
-    val summary by produceState(last, groups, accounts, balances, currencies, tagged) {
-        value = withContext(repo.io) {
-            val prepaid = repo.txnIdsWithTag(TAG_PREPAYMENT)
-            summarize(
-                groups, accounts, balances,
-                cardStatusOf = { a -> cardStatus(repo.accountTxns(a.id), a.cardSettlementDay ?: 1, repo.today(), prepaid) },
-                toMain = { a, v -> Fx.toMain(v, currencies.firstOrNull { it.code == a.currency }, mainDecimals) },
-            )
-        }.also { repo.screenCache["accountSummary"] = it }
-    }
-    return summary
-}
 
 internal val AccountType.moneyLabel: String get() = when (this) {
     AccountType.CREDIT_CARD -> tr("Credit card")

@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,11 +72,10 @@ internal fun ActivityMonthsView(
     val currency = LocalCurrency.current
     val year = ym.year
     val rows by rememberFilteredRows(ps.year(year))
-    val yt = totals(rows)
+    // Same year → month → week rollup as the classic Monthly view.
+    val rollup = remember(rows, ps, year) { app.moneytracker.data.ReadModels.yearRollup(rows, ps, year, repo.today()) }
+    val yt = rollup.totals
     val todayLabel = ps.labelFor(repo.today())
-    val byMonth = rows.groupBy { ps.labelFor(it.date!!).month }
-    // Up to the current month, or further if future-dated rows exist.
-    val lastMonth = maxOf(if (todayLabel.year == year) todayLabel.month else if (todayLabel.year > year) 12 else 1, byMonth.keys.maxOrNull() ?: 1)
     var open by rememberSaveable(year) { mutableStateOf(ym.month) }
 
     Column(
@@ -95,10 +95,11 @@ internal fun ActivityMonthsView(
         MonthTotal(ym, ps)
         FCard(padding = 0.dp) {
             Column(Modifier.padding(horizontal = 14.dp)) {
-                for (m in lastMonth downTo 1) {
-                    if (m != lastMonth) Divider()
-                    val month = YearMonth(year, m)
-                    val mt = totals(byMonth[m].orEmpty())
+                rollup.months.forEachIndexed { i, mr ->
+                    if (i > 0) Divider()
+                    val month = mr.month
+                    val m = month.month
+                    val mt = mr.totals
                     val isOpen = open == m
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { onPick(month); open = if (isOpen) 0 else m },
@@ -117,9 +118,7 @@ internal fun ActivityMonthsView(
                         Icon(if (isOpen) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted, modifier = Modifier.size(20.dp))
                     }
                     if (isOpen) Column(Modifier.padding(start = 16.dp, bottom = 10.dp)) {
-                        val range = ps.month(month)
-                        Periods.weeks(range, ps.weekStart).reversed().forEach { w ->
-                            val wt = totals(byMonth[m].orEmpty().filter { it.date!! in w })
+                        mr.weeks.forEach { (w, wt) ->
                             val ahead = w.start > repo.today()
                             DashedDivider()
                             Row(
@@ -153,26 +152,14 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
     val backup = LocalBackup.current
     val currency = LocalCurrency.current
     val range = ps.month(ym)
-    val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
-    val prevRange = ps.month(ym.plus(-1))
-    val prevRows by remember(prevRange) { repo.reportRows(prevRange) }.collectAsState(emptyList())
-    val txns by remember(range) { repo.txnsBetween(range) }.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
-    val groups by repo.groups.collectAsState(emptyList())
-    val entries by remember(ym) { repo.budgetEntries(ym) }.collectAsState(emptyList())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-
-    val t = totals(rows)
-    val groupType = groups.associate { it.id to it.type }
-    val accountType = accounts.associate { it.id to groupType[it.groupId] }
-    val cardExpense = txns.filter { it.kind == TxnKind.EXPENSE && accountType[it.accountId] == AccountType.CREDIT_CARD }.sumOf { it.amount }
-    val otherExpense = txns.filter { it.kind == TxnKind.EXPENSE && accountType[it.accountId] != AccountType.CREDIT_CARD }.sumOf { it.amount }
-    val saved = rows.filter { it.kind == TxnKind.TRANSFER_OUT && classify(it) == Flow.EXPENSE }.sumOf { it.amount }
-    val prevExpense = totals(prevRows).expense
-    val spentByMain = rows.filter { classify(it) == Flow.EXPENSE && it.kind == TxnKind.EXPENSE }
-        .groupBy { r -> r.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } ?: "__none" }
-        .mapValues { (_, v) -> v.sumOf { it.amount } }
-    val budget = budgetLines(effectiveBudgets(entries, ym), spentByMain).firstOrNull { it.categoryId == TOTAL_BUDGET }
+    // One read model for the Total card (same numbers as the classic Total view).
+    val m by remember(ym, range) { repo.views.month(ym) }.collectAsState()
+    val t = m.totals
+    val cardExpense = m.cardExpense
+    val otherExpense = m.otherExpense
+    val saved = m.saved
+    val prevExpense = m.previousExpense
+    val budget = m.budget.total
 
     FCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
