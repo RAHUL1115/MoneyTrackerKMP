@@ -1,0 +1,1 @@
+MoneyTracker 0.4.5. Accounts: the credit-card group shows the amount payable with the total outstanding under it, and all group headers are the same height. Card rows say only what's next: the statement day, the due date or what's overdue. Every credit card now has a statement day and a payment day, both starting on the 1st; cards saved without them count as the 1st.
