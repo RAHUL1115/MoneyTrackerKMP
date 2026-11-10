@@ -1,1 +1,1 @@
-MoneyTracker 0.4.4. Accounts: the credit-card group now shows what is outstanding across your cards next to the amount payable. Opening the app no longer redraws the home-screen widgets when nothing changed, and leftover settings from removed features are cleaned up.
+MoneyTracker 0.4.4. Accounts: the credit-card group header now shows the total outstanding across your cards next to the amount payable, on the same line.
