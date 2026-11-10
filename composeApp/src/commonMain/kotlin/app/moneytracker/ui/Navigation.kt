@@ -7,7 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.pointer.pointerInput
@@ -114,10 +114,12 @@ class Navigator {
      * Draws [home] with the top screen over it. Each screen keeps its saved UI state (tab, month, scroll, what was
      * typed) while others sit on top of it and across the app being closed in the background; it's dropped once the
      * screen closes. Home stays composed under other screens (not drawn or touchable) so Back shows it at once.
+     *
+     * [holder] must outlive anything that can replace the host (the lock screen), so the caller creates it above
+     * that: then locking and unlocking keeps every screen's state, typed entries included.
      */
     @Composable
-    fun Host(home: @Composable () -> Unit, screen: @Composable (Screen) -> Unit) {
-        val holder = rememberSaveableStateHolder()
+    fun Host(holder: SaveableStateHolder, home: @Composable () -> Unit, screen: @Composable (Screen) -> Unit) {
         val keys = listOf("home") + stack.mapIndexed { i, sc -> "$i:${ScreenCodec.encode(sc) ?: sc.toString()}" }
         val seen = remember { mutableSetOf<String>() }
         LaunchedEffect(keys) {

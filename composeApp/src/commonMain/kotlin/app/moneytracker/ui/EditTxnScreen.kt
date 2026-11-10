@@ -210,6 +210,8 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     LaunchedEffect(locationOn) {
         if (locationOn && screen.txnId == null && lat == null) platform.currentLocation({ a, b -> lat = a; lng = b }, {})
     }
+    // A fixed field clears the message that asked for it.
+    LaunchedEffect(amountText, accountId, toAccountId, categoryId, type) { error = null }
     // Learned suggestion for the category from the note's words (tiny Naive Bayes, a few SQL rows).
     val suggestion by androidx.compose.runtime.produceState<app.moneytracker.data.MoneyRepository.Suggestion?>(null, note, type) {
         value = if (note.length < 3 || type == DraftType.TRANSFER) null

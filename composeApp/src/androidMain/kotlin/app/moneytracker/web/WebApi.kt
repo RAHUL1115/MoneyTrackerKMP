@@ -350,6 +350,8 @@ class WebApi(
             if (to.id == account.id) throw ApiError(400, "Pick two different accounts")
         } else {
             category = str(b, "category").ifEmpty { null }
+            // Listed only to name past corrections; it isn't a category an entry can pick.
+            if (category == MODIFIED_BALANCE_CATEGORY) throw ApiError(400, "Balance corrections are made on the phone. Pick a category")
             if (category != null) {
                 val c = r.categoriesNow().firstOrNull { it.id == category } ?: throw ApiError(400, "That category was deleted on the phone")
                 val wanted = if (type == DraftType.INCOME) CategoryKind.INCOME else CategoryKind.EXPENSE

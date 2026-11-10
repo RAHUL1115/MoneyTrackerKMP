@@ -135,6 +135,8 @@ fun App(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 return@Surface
             }
+            // Above the lock screen: open screens keep their state (and what was typed) while the app is locked.
+            val screenState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
             val toaster = remember { app.moneytracker.ui.fresh.Toaster() }
             val currency by repo.currency.collectAsState(CurrencyFormat())
             val currencies by repo.currencies.collectAsState(emptyList())
@@ -196,7 +198,7 @@ fun App(
                                 onLaunchHandled()
                             }
                             Box(Modifier.fillMaxSize()) {
-                            navigator.Host(home = { if (newLayout) app.moneytracker.ui.fresh.FreshHome() else Home() }) { top ->
+                            navigator.Host(screenState, home = { if (newLayout) app.moneytracker.ui.fresh.FreshHome() else Home() }) { top ->
                             val fresh = if (newLayout) app.moneytracker.ui.fresh.freshScreen(top) else null
                             if (fresh != null) fresh() else when (top) {
                                 is Screen.EditTxn -> Unmasked { EditTxnScreen(top) }
