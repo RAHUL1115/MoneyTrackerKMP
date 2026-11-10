@@ -42,6 +42,7 @@ object Launch {
 object Translations {
     private val cache = mutableMapOf<String, Map<String, String>>()
     fun load(ctx: Context, tag: String): Map<String, String> = synchronized(cache) {
+        if (tag == "en") return emptyMap() // the app's own text is English: no table to load
         cache.getOrPut(tag) {
             runCatching {
                 val o = org.json.JSONObject(ctx.assets.open("i18n/$tag.json").bufferedReader().use { it.readText() })

@@ -143,6 +143,9 @@ class MoneyRepository(
     fun <T> settingNow(s: Setting<T>): T = s.read(settingNow(s.key))
     fun <T> putSetting(s: Setting<T>, value: T) = putSetting(s.key, s.write(value))
 
+    /** Removes stored settings no feature reads any more ([Prefs.retired]). */
+    fun dropRetiredSettings() = q.deleteSettings(Prefs.retired)
+
     val monthStartDay: Flow<Int> = setting(Prefs.MONTH_START_DAY)
 
     /** Sub-categories are optional and off unless the user turns them on. */

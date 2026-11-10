@@ -73,6 +73,15 @@ class PrefsTest {
         repo.putSetting(Prefs.CURRENCY_DECIMALS.key, "x"); assertEquals(2, repo.settingNow(Prefs.CURRENCY_DECIMALS))
     }
 
+    @Test fun retiredSettingsAreRemovedAndOthersKept() {
+        Prefs.retired.forEach { repo.putSetting(it, "1") }
+        repo.putSetting(Prefs.CARRY_OVER, true)
+        repo.dropRetiredSettings()
+        Prefs.retired.forEach { assertNull(repo.settingNow(it), it) }
+        assertTrue(repo.settingNow(Prefs.CARRY_OVER))
+        assertTrue(Prefs.retired.none { k -> all.any { it.key == k } })   // never retire a key still in use
+    }
+
     @Test fun clockTimeReadsOnlyRealTimes() {
         assertEquals(ClockTime(9, 5), ClockTime.parse(" 9:5 "))
         assertEquals("09:05", ClockTime(9, 5).toString())

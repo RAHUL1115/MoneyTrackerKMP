@@ -26,7 +26,7 @@ class DataChangesTest {
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
         repo.seedIfEmpty()
-        stop = watchAllTables(driver) { changes++ }
+        stop = watchAllTables(driver, Prefs.bookkeeping) { changes++ }
     }
 
     @Test fun entriesSettingsAndAccountsAreSeen() {
@@ -38,6 +38,17 @@ class DataChangesTest {
         assertEquals(3, changes)
         repo.deleteAccount("acc_bank")
         assertEquals(4, changes)
+    }
+
+    @Test fun bookkeepingAndUnchangedSettingsAreNotChanges() {
+        repo.putSetting(Prefs.SMS_LAST_SCAN, 123L)                 // the inbox catch-up on every open
+        repo.putSetting(Prefs.WIDGET_OPACITY, 100)                  // first save of a value: it is new to the table
+        assertEquals(1, changes)
+        repo.putSetting(Prefs.WIDGET_OPACITY, 100)                  // same again
+        repo.putSetting(Prefs.SMS_LAST_SCAN, 456L)
+        assertEquals(1, changes)
+        repo.putSetting(Prefs.WIDGET_OPACITY, 60)
+        assertEquals(2, changes)
     }
 
     @Test fun readsAreNotChangesAndStoppingEndsIt() {

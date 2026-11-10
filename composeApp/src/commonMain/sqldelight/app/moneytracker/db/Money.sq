@@ -201,6 +201,8 @@ getSetting:
 SELECT value FROM Setting WHERE key = ?;
 putSetting:
 INSERT OR REPLACE INTO Setting(key, value) VALUES (?, ?);
+deleteSettings:
+DELETE FROM Setting WHERE key IN ?;
 
 -- ───────── groups / accounts
 allGroups:

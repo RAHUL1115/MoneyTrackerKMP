@@ -162,6 +162,12 @@ object Prefs {
     val ONBOARDED = FlagSetting("onboarded")
     val SEEDED = FlagSetting("seeded")
 
+    /** Keys of settings whose features are gone; removed when the database opens (old backups can bring them back). */
+    val retired: List<String> = listOf("entryStyle", "keyboardHeightDp", "ratesOnline")
+
+    /** Written by the app for itself, never shown: a change to one alone doesn't redraw the widgets. */
+    val bookkeeping: Set<String> = setOf(SMS_LAST_SCAN.key, RATES_CHECKED.key)
+
     /** Preferences a Money Manager backup can carry ([MoneyManagerExport] writes them; the importer reads them back). */
     val carriedByMoneyManager: List<Setting<*>> = listOf(
         MONTH_START_DAY, WEEKEND_SHIFT, WEEK_START, CARRY_OVER, CARD_AT_PAYMENT, USE_SUBCATEGORIES,

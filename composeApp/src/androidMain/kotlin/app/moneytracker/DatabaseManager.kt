@@ -11,6 +11,7 @@ import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.watchAllTables
 import app.moneytracker.db.MoneyDatabase
 import kotlinx.coroutines.Dispatchers
@@ -42,9 +43,9 @@ class DatabaseManager(private val context: Context) {
         repo?.let { return it }
         val d = AndroidSqliteDriver(MoneyDatabase.Schema, context, DB_NAME)
         driver = d
-        stopWatching = watchAllTables(d, ::widgetsSoon)
+        stopWatching = watchAllTables(d, Prefs.bookkeeping, ::widgetsSoon)
         val r = Log.timed("Db", "open") {
-            MoneyRepository(MoneyDatabase(d), Dispatchers.IO).also { it.seedIfEmpty(); it.generateRecurring() }
+            MoneyRepository(MoneyDatabase(d), Dispatchers.IO).also { it.seedIfEmpty(); it.dropRetiredSettings(); it.generateRecurring() }
         }
         Log.i("Db") { "opened ${DB_NAME} (schema ${MoneyDatabase.Schema.version}, ${dbFile.length() / 1024} KB)" }
         repo = r
