@@ -17,7 +17,7 @@ import android.provider.Telephony
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.ui.LaunchAction
 import app.moneytracker.ui.tr
 import java.util.Calendar
@@ -60,7 +60,7 @@ private fun repo(ctx: Context) = (ctx.applicationContext as MoneyTrackerApp).dat
 
 /** Receivers and widgets can run without the UI: load the user's language before building text. */
 private fun ensureTranslations(ctx: Context, r: app.moneytracker.data.MoneyRepository = repo(ctx)) {
-    if (app.moneytracker.ui.I18n.table.isEmpty()) app.moneytracker.ui.I18n.table = Translations.current(ctx, r.settingNow(Keys.LANGUAGE))
+    if (app.moneytracker.ui.I18n.table.isEmpty()) app.moneytracker.ui.I18n.table = Translations.current(ctx, r.settingNow(Prefs.LANGUAGE))
 }
 
 // ───────────────────────── notifications
@@ -135,7 +135,7 @@ object Notifications {
     /** Puts quick add back if the setting is on and it isn't showing (swiped away, or cleared while the app was stopped). */
     fun restoreQuickAdd(ctx: Context) {
         val r = repo(ctx)
-        if (r.settingNow(Keys.QUICK_ADD_NOTIFICATION) != "1") return
+        if (!r.settingNow(Prefs.QUICK_ADD_NOTIFICATION)) return
         if (ctx.getSystemService(NotificationManager::class.java).activeNotifications.any { it.id == ID_QUICK }) return
         ensureTranslations(ctx, r)
         showQuickAdd(ctx)
@@ -192,9 +192,9 @@ object Reminders {
 
     /** Arms the next reminder from the saved time, if the reminder is on. */
     fun rearm(ctx: Context, r: app.moneytracker.data.MoneyRepository = repo(ctx)) {
-        if (r.settingNow(Keys.REMINDER) != "1") return
-        val (h, m) = (r.settingNow(Keys.REMINDER_TIME) ?: "21:00").split(":").map { it.toIntOrNull() ?: 0 }
-        schedule(ctx, h, m)
+        if (!r.settingNow(Prefs.REMINDER)) return
+        val time = r.settingNow(Prefs.REMINDER_TIME)
+        schedule(ctx, time.hour, time.minute)
     }
 
     fun cancel(ctx: Context) {
@@ -207,7 +207,7 @@ object Reminders {
         val r = repo(ctx)
         ensureTranslations(ctx, r)
         rearm(ctx, r)
-        if (r.settingNow(Keys.QUICK_ADD_NOTIFICATION) == "1") Notifications.showQuickAdd(ctx)
+        if (r.settingNow(Prefs.QUICK_ADD_NOTIFICATION)) Notifications.showQuickAdd(ctx)
     }
 }
 
@@ -274,9 +274,9 @@ class SmsReceiver : BroadcastReceiver() {
 /** Shared by SMS and the inbox import. */
 object Detected {
     fun alert(ctx: Context, r: app.moneytracker.data.MoneyRepository, c: app.moneytracker.domain.Capture) {
-        if (r.settingNow(Keys.SMS_ALERT) == "0") return Log.d("Sms") { "alert off; no notification for ${c.id}" }
+        if (!r.settingNow(Prefs.SMS_ALERT)) return Log.d("Sms") { "alert off; no notification for ${c.id}" }
         ensureTranslations(ctx, r)
-        val fmt = app.moneytracker.domain.CurrencyFormat(r.settingNow(Keys.CURRENCY_SYMBOL) ?: "₹", r.settingNow(Keys.CURRENCY_DECIMALS)?.toIntOrNull() ?: 2)
+        val fmt = r.currencyFormatNow()
         val amount = c.amount?.let { fmt.format(kotlin.math.abs(it)) }.orEmpty()
         val saved = c.status == app.moneytracker.domain.CaptureStatus.SAVED
         val headline = when {
@@ -304,11 +304,11 @@ object Detected {
      */
     fun repair(ctx: Context, r: app.moneytracker.data.MoneyRepository = repo(ctx)) {
         // The switch never claims detection is on without the permission to do it.
-        if (r.settingNow(Keys.CAPTURE_ENABLED) == "1" && !hasPermissions(ctx)) {
+        if (r.settingNow(Prefs.CAPTURE_ENABLED) && !hasPermissions(ctx)) {
             Log.w("Sms") { "SMS permission was taken away; turning bank SMS detection off" }
-            r.putSetting(Keys.CAPTURE_ENABLED, "0")
+            r.putSetting(Prefs.CAPTURE_ENABLED, false)
         }
-        val on = r.settingNow(Keys.CAPTURE_ENABLED) == "1"
+        val on = r.settingNow(Prefs.CAPTURE_ENABLED)
         val component = ComponentName(ctx, SmsReceiver::class.java)
         val state = if (on) android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED else android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
         if (ctx.packageManager.getComponentEnabledSetting(component) != state) {
@@ -326,12 +326,12 @@ object Detected {
     fun catchUp(ctx: Context, alert: Boolean = false) {
         val r = repo(ctx)
         repair(ctx, r)
-        if (r.settingNow(Keys.CAPTURE_ENABLED) != "1" || !granted(ctx, android.Manifest.permission.READ_SMS)) return
+        if (!r.settingNow(Prefs.CAPTURE_ENABLED) || !granted(ctx, android.Manifest.permission.READ_SMS)) return
         val now = System.currentTimeMillis()
-        val last = r.settingNow(Keys.SMS_LAST_SCAN)?.toLongOrNull() ?: (now - DAY_MS)
+        val last = r.settingNow(Prefs.SMS_LAST_SCAN).takeIf { it > 0 } ?: (now - DAY_MS)
         val since = maxOf(last - 60 * 60 * 1000, now - 7 * DAY_MS)   // an hour of overlap; at most a week back
         val found = importSince(ctx, since)
-        r.putSetting(Keys.SMS_LAST_SCAN, now.toString())
+        r.putSetting(Prefs.SMS_LAST_SCAN, now)
         Log.i("Sms") { "catch-up: ${found.size} new from the last ${(now - since) / 60_000} min${if (alert) " (alerts on)" else ""}" }
         if (alert) found.forEach { alert(ctx, r, it) }
     }
@@ -384,9 +384,11 @@ class SmsCatchUpReceiver : BroadcastReceiver() {
 private class WidgetStyle(ctx: Context, r: app.moneytracker.data.MoneyRepository) {
     init { ensureTranslations(ctx, r) }
     private val night = (ctx.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-    val dark = when (r.settingNow(Keys.WIDGET_THEME)) { "DARK" -> true; "LIGHT" -> false; else -> night }
-    private val opacity = (r.settingNow(Keys.WIDGET_OPACITY)?.toIntOrNull() ?: 100).coerceIn(0, 100)
-    private val swapped = r.settingNow(Keys.COLOR_SET) == "B"
+    val dark = when (r.settingNow(Prefs.WIDGET_THEME)) {
+        app.moneytracker.data.ThemeMode.DARK -> true; app.moneytracker.data.ThemeMode.LIGHT -> false; app.moneytracker.data.ThemeMode.SYSTEM -> night
+    }
+    private val opacity = r.settingNow(Prefs.WIDGET_OPACITY)
+    private val swapped = r.settingNow(Prefs.COLOR_SET) == app.moneytracker.data.ColorSet.SWAPPED
     val ink = if (dark) 0xFFECEDEF.toInt() else 0xFF1B1C1F.toInt()
     val subtle = if (dark) 0xFF8F949E.toInt() else 0xFF8A8F99.toInt()
     private val surface = if (dark) 0xFF1A1B1E.toInt() else 0xFFFFFFFF.toInt()
@@ -395,7 +397,7 @@ private class WidgetStyle(ctx: Context, r: app.moneytracker.data.MoneyRepository
     val incomeColor = if (swapped) 0xFFE5484D.toInt() else 0xFF16A34A.toInt()
     val expenseColor = if (swapped) 0xFF16A34A.toInt() else 0xFFE5484D.toInt()
     /** The app's accent and its light tint; "Follow system" reads the wallpaper colours like MainActivity does. */
-    private val accentChoice = app.moneytracker.ui.AccentChoice.entries.firstOrNull { it.name == r.settingNow(Keys.ACCENT) } ?: app.moneytracker.ui.AccentChoice.TEAL
+    private val accentChoice = app.moneytracker.ui.AccentChoice.entries.firstOrNull { it.name == r.settingNow(Prefs.ACCENT) } ?: app.moneytracker.ui.AccentChoice.TEAL
     private val systemAccent = accentChoice == app.moneytracker.ui.AccentChoice.SYSTEM && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val accent: Int =
         if (systemAccent) ctx.getColor(if (dark) android.R.color.system_accent1_200 else android.R.color.system_accent1_600)
@@ -403,8 +405,7 @@ private class WidgetStyle(ctx: Context, r: app.moneytracker.data.MoneyRepository
     val accentTint: Int =
         if (systemAccent) ctx.getColor(if (dark) android.R.color.system_accent1_800 else android.R.color.system_accent1_100)
         else (if (dark) accentChoice.tintDark else accentChoice.tintLight).toInt()
-    val fmt = app.moneytracker.domain.CurrencyFormat(r.settingNow(Keys.CURRENCY_SYMBOL) ?: "₹",
-        r.settingNow(Keys.CURRENCY_DECIMALS)?.toIntOrNull() ?: 2, r.settingNow(Keys.SYMBOL_AFTER) == "1")
+    val fmt = r.currencyFormatNow()
 
     fun background(v: RemoteViews) {
         v.setInt(R.id.w_bg, "setColorFilter", surface)

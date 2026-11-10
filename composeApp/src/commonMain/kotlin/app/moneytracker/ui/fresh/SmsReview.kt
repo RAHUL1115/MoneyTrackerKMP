@@ -1,5 +1,6 @@
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.ui.rememberSetting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,7 +40,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.DraftType
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Capture
 import app.moneytracker.domain.CaptureStatus
@@ -68,9 +69,8 @@ internal fun SmsReviewScreen() {
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
     val captures by repo.pendingCaptures.collectAsState(emptyList())
-    val capture by remember(repo) { repo.flag(Keys.CAPTURE_ENABLED) }.collectAsState(false)
-    val importDays by remember(repo) { repo.setting(Keys.SMS_IMPORT_DAYS) }.collectAsState(null)
-    val days = importDays?.toIntOrNull() ?: 30
+    val capture by rememberSetting(Prefs.CAPTURE_ENABLED)
+    val days by rememberSetting(Prefs.SMS_IMPORT_DAYS)
     var pasting by remember { mutableStateOf(false) }
     var disclosure by remember { mutableStateOf<(() -> Unit)?>(null) }
 

@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import app.moneytracker.data.Prefs
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
@@ -74,7 +75,7 @@ class V2FeaturesTest {
     }
 
     @Test fun updateRatesSavesNewRatesAndReportsMissing() = runTest {
-        repo.putSetting(MoneyRepository.Keys.CURRENCY_CODE, "INR")
+        repo.putSetting(Prefs.CURRENCY_CODE.key, "INR")
         repo.saveCurrency(Currency("USD", "$", 2, 80.0))
         repo.saveCurrency(Currency("AED", "د.إ", 2, 22.0))
         var asked = ""
@@ -83,7 +84,7 @@ class V2FeaturesTest {
         assertEquals(app.moneytracker.data.RatesUpdate.Done("2026-11-03", listOf("USD"), listOf("AED")), r)
         assertEquals(84.0336, repo.currencies.first().first { it.code == "USD" }.rate)
         assertEquals(22.0, repo.currencies.first().first { it.code == "AED" }.rate)                // no ECB rate: unchanged
-        assertEquals("2026-11-03", repo.settingNow(MoneyRepository.Keys.RATES_DATE))
+        assertEquals("2026-11-03", repo.settingNow(Prefs.RATES_DATE.key))
         assertEquals(app.moneytracker.data.RatesUpdate.Failed, repo.updateRates { null })           // offline
     }
 
@@ -136,7 +137,7 @@ class V2FeaturesTest {
         repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 3_000))
         repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_card", amount = 3_000))
         assertEquals(3_000, totals(repo.reportRows(march).first()).expense)
-        repo.putSetting(MoneyRepository.Keys.CARD_AT_PAYMENT, "1")
+        repo.putSetting(Prefs.CARD_AT_PAYMENT.key, "1")
         assertEquals(3_000, totals(repo.reportRows(march).first()).expense)   // counted once, at payment
         repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 1_000))
         assertEquals(3_000, totals(repo.reportRows(march).first()).expense)   // unpaid purchase not yet expense
@@ -150,7 +151,7 @@ class V2FeaturesTest {
         repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_savings", amount = 500))
         repo.create(TxnDraft(DraftType.INCOME, today, "acc_bank", categoryId = "cat_in_0", amount = 9_000))
         for (cardAtPayment in listOf("0", "1")) {
-            repo.putSetting(MoneyRepository.Keys.CARD_AT_PAYMENT, cardAtPayment)
+            repo.putSetting(Prefs.CARD_AT_PAYMENT.key, cardAtPayment)
             val rules = repo.reportRules.first()
             val fromEntries = repo.txnsNow(march).filter { it.kind != TxnKind.TRANSFER_IN }.map { rules.row(it) }
             val fromRepo = repo.reportRows(march).first()
@@ -247,7 +248,7 @@ class SmsLearningTest {
         // Sub-categories are off by default, so the learned "Eating out" is suggested as its main category.
         assertEquals("cat_ex_0", d2.categoryId)
         assertEquals("acc_card", d2.accountId)
-        repo.putSetting(MoneyRepository.Keys.USE_SUBCATEGORIES, "1")
+        repo.putSetting(Prefs.USE_SUBCATEGORIES.key, "1")
         assertEquals("cat_ex_0_1", repo.draftFromCapture(second).categoryId)
     }
 }

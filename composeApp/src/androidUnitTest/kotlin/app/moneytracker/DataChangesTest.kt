@@ -3,7 +3,7 @@ package app.moneytracker
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.data.watchAllTables
 import app.moneytracker.db.MoneyDatabase
@@ -34,7 +34,7 @@ class DataChangesTest {
         assertEquals(1, changes)                                   // one transaction, one call
         repo.deleteMany(listOf(id))
         assertEquals(2, changes)
-        repo.putSetting(Keys.CARD_AT_PAYMENT, "1")
+        repo.putSetting(Prefs.CARD_AT_PAYMENT.key, "1")
         assertEquals(3, changes)
         repo.deleteAccount("acc_bank")
         assertEquals(4, changes)
@@ -44,7 +44,7 @@ class DataChangesTest {
         repo.accountsNow(); repo.views.monthNow(app.moneytracker.domain.YearMonth(2026, 3))
         assertEquals(0, changes)
         stop()
-        repo.putSetting(Keys.CARD_AT_PAYMENT, "1")
+        repo.putSetting(Prefs.CARD_AT_PAYMENT.key, "1")
         assertEquals(0, changes)
     }
 }

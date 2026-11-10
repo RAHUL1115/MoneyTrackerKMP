@@ -1,5 +1,8 @@
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.ui.rememberSetting
+import app.moneytracker.data.Swipe
+import app.moneytracker.data.StartScreen
 import androidx.compose.foundation.ExperimentalFoundationApi
 import app.moneytracker.domain.ReportRules
 import androidx.compose.foundation.background
@@ -47,7 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.Flow
@@ -114,11 +117,11 @@ internal fun YearMonth.actLongLabel() = "${tr(actMonthNames[month - 1])} $year"
 internal fun LocalDate.actDayLabel(today: LocalDate) =
     (if (this == today) tr("Today") + " · " else "") + "${weekday()} $dayOfMonth ${monthShort(monthNumber)}"
 
-private fun startView(s: String?) = when (s) {
-    "CALENDAR" -> ActView.CALENDAR
-    "MONTHLY", "TOTAL" -> ActView.MONTHS
-    "NOTE" -> ActView.NOTES
-    else -> ActView.LIST
+private fun startView(s: StartScreen) = when (s) {
+    StartScreen.CALENDAR -> ActView.CALENDAR
+    StartScreen.MONTHLY, StartScreen.TOTAL -> ActView.MONTHS
+    StartScreen.NOTE -> ActView.NOTES
+    StartScreen.DAILY -> ActView.LIST
 }
 
 @Composable
@@ -127,7 +130,7 @@ internal fun ActivityTab() {
     val nav = LocalNavigator.current
     val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
     var periodKey by rememberPeriod()
-    var view by rememberSaveable { mutableStateOf(startView(repo.settingNow(Keys.START_SCREEN))) }
+    var view by rememberSaveable { mutableStateOf(startView(repo.settingNow(Prefs.START_SCREEN))) }
     var kind by rememberSaveable { mutableStateOf(ActKind.ALL) }
     var filter by remember { mutableStateOf(TxnFilter()) }
     var selecting by remember { mutableStateOf(false) }
@@ -152,13 +155,13 @@ internal fun ActivityTab() {
         onDispose { remove() }
     }
 
-    val swipe by remember(repo) { repo.setting(Keys.SWIPE) }.collectAsState(null)
-    val swipeModifier = if (swipe == "NONE" || selecting) Modifier else Modifier.pointerInput(swipe, view, periodKey) {
+    val swipe by rememberSetting(Prefs.SWIPE)
+    val swipeModifier = if (swipe == Swipe.NONE || selecting) Modifier else Modifier.pointerInput(swipe, view, periodKey) {
         var dx = 0f
         detectHorizontalDragGestures(onDragStart = { dx = 0f }, onDragEnd = {
             val dir = when { dx < -120f -> 1; dx > 120f -> -1; else -> 0 }
             if (dir != 0) {
-                if (swipe == "TAB") view = ActView.entries[(view.ordinal + dir).coerceIn(0, ActView.entries.lastIndex)]
+                if (swipe == Swipe.TAB) view = ActView.entries[(view.ordinal + dir).coerceIn(0, ActView.entries.lastIndex)]
                 else if (view != ActView.NOTES) periodKey = ym.plus(dir * if (view == ActView.MONTHS) 12 else 1).key
             }
         }) { _, amount -> dx += amount }

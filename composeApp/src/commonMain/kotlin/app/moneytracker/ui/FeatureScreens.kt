@@ -74,7 +74,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import kotlinx.datetime.minus
 
 // ───────────────────────── search
@@ -422,9 +422,9 @@ fun CurrenciesScreen() {
     val currencies by repo.currencies.collectAsState(emptyList())
     var editing by remember { mutableStateOf<Currency?>(null) }
     val platform = LocalPlatform.current
-    val auto by remember(repo) { repo.setting(Keys.RATES_AUTO) }.collectAsState(null)
-    val ratesDate by remember(repo) { repo.setting(Keys.RATES_DATE) }.collectAsState(null)
-    val mainCode by remember(repo) { repo.setting(Keys.CURRENCY_CODE) }.collectAsState(null)
+    val auto by rememberSetting(Prefs.RATES_AUTO)
+    val ratesDate = rememberSetting(Prefs.RATES_DATE).value.ifEmpty { null }
+    val mainCode by rememberSetting(Prefs.CURRENCY_CODE)
     var updating by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
     fun update() {
@@ -468,13 +468,13 @@ fun CurrenciesScreen() {
                 }
                 HorizontalDivider(color = DividerColor)
                 // On unless turned off: rates are checked once a day, and only while there are other currencies.
-                ConfigToggle(tr("Update automatically"), tr("Once a day, when you open MoneyTracker"), auto != "0") { on ->
-                    scope.launch { withContext(repo.io) { repo.putSetting(Keys.RATES_AUTO, if (on) "1" else "0") } }
+                ConfigToggle(tr("Update automatically"), tr("Once a day, when you open MoneyTracker"), auto) { on ->
+                    scope.saveSetting(repo, Prefs.RATES_AUTO, on)
                     if (on) update()
                 }
                 HorizontalDivider(color = DividerColor)
                 Text(tr("Rates are the European Central Bank's, from {0}. Only currency codes (like {1} and USD) are sent, nothing about your entries or accounts.",
-                    app.moneytracker.data.ExchangeRates.HOST, mainCode ?: "INR"),
+                    app.moneytracker.data.ExchangeRates.HOST, mainCode),
                     Modifier.padding(horizontal = 20.dp, vertical = 10.dp), color = SubtleText, fontSize = 12.sp)
                 status?.let { Text(it, Modifier.padding(horizontal = 20.dp, vertical = 10.dp), color = SubtleText, fontSize = 13.sp) }
                 Spacer(Modifier.height(12.dp))

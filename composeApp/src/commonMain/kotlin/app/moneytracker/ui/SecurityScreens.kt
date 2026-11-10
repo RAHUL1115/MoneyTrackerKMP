@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -94,7 +94,7 @@ private fun PinPad(title: String, subtitle: String?, error: String?, onComplete:
 fun LockScreen(hash: String, onUnlocked: () -> Unit) {
     val repo = LocalRepo.current
     val platform = LocalPlatform.current
-    val biometricOn by remember(repo) { repo.flag(Keys.BIOMETRIC) }.collectAsState(false)
+    val biometricOn by rememberSetting(Prefs.BIOMETRIC)
     val status by platform.biometricStatus.collectAsState()
     val canUseBiometric = biometricOn && status == BiometricStatus.AVAILABLE
     var error by remember { mutableStateOf<String?>(null) }
@@ -123,21 +123,21 @@ fun SecurityScreen() {
     val nav = LocalNavigator.current
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
-    val passcode by remember(repo) { repo.setting(Keys.PASSCODE) }.collectAsState(null)
-    val biometricOn by remember(repo) { repo.flag(Keys.BIOMETRIC) }.collectAsState(false)
+    val passcode by rememberSetting(Prefs.PASSCODE)
+    val biometricOn by rememberSetting(Prefs.BIOMETRIC)
     val status by platform.biometricStatus.collectAsState()
-    val hasPasscode = !passcode.isNullOrBlank()
+    val hasPasscode = passcode.isNotBlank()
     var step by remember { mutableStateOf(PinStep.NONE) }
     var first by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var offerBiometric by remember { mutableStateOf(false) }
 
-    fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) } }
-    fun turnOff() { put(Keys.PASSCODE, ""); put(Keys.BIOMETRIC, "0"); message = tr("Passcode turned off") }
+    fun <T> put(s: app.moneytracker.data.Setting<T>, value: T) = scope.saveSetting(repo, s, value)
+    fun turnOff() { put(Prefs.PASSCODE, ""); put(Prefs.BIOMETRIC, false); message = tr("Passcode turned off") }
     /** Turning biometrics on requires one successful scan, so we know the sensor works for this user. */
     fun enableBiometric() = platform.authenticate(tr("Confirm it's you"), onSuccess = {
-        put(Keys.BIOMETRIC, "1"); message = tr("Biometric unlock is on")
+        put(Prefs.BIOMETRIC, true); message = tr("Biometric unlock is on")
     }) { msg -> message = msg }
 
     when (step) {
@@ -167,7 +167,7 @@ fun SecurityScreen() {
                 if (step == PinStep.NEW) { first = pin; error = null; step = PinStep.CONFIRM; false }
                 else if (f == pin) {
                     val wasNew = !hasPasscode
-                    put(Keys.PASSCODE, platform.hashPin(pin))
+                    put(Prefs.PASSCODE, platform.hashPin(pin))
                     step = PinStep.NONE; first = null
                     message = tr("Passcode saved")
                     if (wasNew && status == BiometricStatus.AVAILABLE && !biometricOn) offerBiometric = true
@@ -198,7 +198,7 @@ fun SecurityScreen() {
                             when {
                                 !hasPasscode -> message = tr("Set a passcode first; it's the fallback if biometrics fail.")
                                 on -> enableBiometric()
-                                else -> { put(Keys.BIOMETRIC, "0"); message = tr("Biometric unlock is off") }
+                                else -> { put(Prefs.BIOMETRIC, false); message = tr("Biometric unlock is off") }
                             }
                         }
                         Text(tr("Uses whatever your phone has set up — fingerprint, face or iris."), fontSize = 12.sp, color = SubtleText)
@@ -312,10 +312,10 @@ fun OnboardingScreen() {
                 if (page <= pages.size) page++
                 else scope.launch {
                     withContext(repo.io) {
-                        repo.putSetting(Keys.CURRENCY_SYMBOL, symbol.ifBlank { "₹" })
-                        repo.putSetting(Keys.CURRENCY_DECIMALS, decimals.toString())
-                        repo.putSetting(Keys.UI_LAYOUT, if (newLayout) "NEW" else "CLASSIC")
-                        repo.putSetting(Keys.ONBOARDED, "1")
+                        repo.putSetting(Prefs.CURRENCY_SYMBOL, symbol.ifBlank { "₹" })
+                        repo.putSetting(Prefs.CURRENCY_DECIMALS, decimals)
+                        repo.putSetting(Prefs.UI_LAYOUT, if (newLayout) app.moneytracker.data.UiLayout.NEW else app.moneytracker.data.UiLayout.CLASSIC)
+                        repo.putSetting(Prefs.ONBOARDED, true)
                     }
                     // The layout is chosen when the app starts, so the new one needs a quick restart.
                     if (newLayout) platform.restartApp()

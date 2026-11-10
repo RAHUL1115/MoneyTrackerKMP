@@ -26,7 +26,7 @@ import app.moneytracker.MainActivity
 import app.moneytracker.MoneyTrackerApp
 import app.moneytracker.R
 import app.moneytracker.SummaryWidget
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.ui.WebDashboardState
 import app.moneytracker.ui.WebVisitor
 import app.moneytracker.ui.tr
@@ -174,14 +174,12 @@ class WebDashboardService : Service() {
     private fun check() {
         if (!WebDashboard.state.value.running) return shutdown(null)
         if (!WebDashboard.stillOnNetwork()) return shutdown(tr("Stopped because the phone left the Wi-Fi network."))
-        val minutes = repoSetting(Keys.WEB_AUTO_STOP)?.toIntOrNull() ?: DEFAULT_AUTO_STOP
+        val minutes = runCatching { (application as MoneyTrackerApp).database.repo?.settingNow(Prefs.WEB_AUTO_STOP) }.getOrNull() ?: Prefs.WEB_AUTO_STOP.default
         if (minutes > 0 && System.currentTimeMillis() - WebDashboard.lastVisit() > minutes * 60_000L) {
             return shutdown(tr("Stopped after {0} minutes with no visits.", minutes))
         }
         WebDashboard.publish()
     }
-
-    private fun repoSetting(key: String) = runCatching { (application as MoneyTrackerApp).database.repo?.settingNow(key) }.getOrNull()
 
     private fun shutdown(reason: String?, keepError: Boolean = false) {
         if (stopping) return

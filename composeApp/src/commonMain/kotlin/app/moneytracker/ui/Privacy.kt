@@ -1,5 +1,6 @@
 package app.moneytracker.ui
 
+import app.moneytracker.data.Prefs
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -29,13 +30,13 @@ object Privacy {
     private var peekJob: Job? = null
 
     /** Reads the saved choice (call once the database is open). */
-    fun load(repo: MoneyRepository) { hidden = repo.settingNow(MoneyRepository.Keys.HIDE_AMOUNTS) == "1" }
+    fun load(repo: MoneyRepository) { hidden = repo.settingNow(Prefs.HIDE_AMOUNTS) }
 
     /** The eye: hide or show amounts, and remember it. */
     fun toggle(repo: MoneyRepository) {
         hidden = !hidden
         peekJob?.cancel(); peeking = false
-        MainScope().launch(repo.io) { repo.putSetting(MoneyRepository.Keys.HIDE_AMOUNTS, if (hidden) "1" else "0") }
+        MainScope().launch(repo.io) { repo.putSetting(Prefs.HIDE_AMOUNTS, hidden) }
     }
 
     /** Shows the amounts for a few seconds without turning privacy off. */

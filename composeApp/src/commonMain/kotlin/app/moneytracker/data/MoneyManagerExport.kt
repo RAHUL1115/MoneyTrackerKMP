@@ -1,6 +1,5 @@
 package app.moneytracker.data
 
-import app.moneytracker.data.MoneyRepository.Keys
 import app.moneytracker.domain.AccountType
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
@@ -44,7 +43,7 @@ object MoneyManagerExport {
         // Currencies: the main one, then the others ("INR_USD" = USD in an INR book).
         sink.insert("CURRENCY", synced + mapOf(
             "uid" to currencyUid(null), "NAME" to main, "ISO" to main, "MAIN_ISO" to main, "IS_DEL" to 0, "ORDER_SEQ" to 100, "RATE" to 1.0,
-            "SYMBOL" to d.mainSymbol, "INSERT_TYPE" to "I", "SYMBOL_POSITION" to if (d.settings[Keys.SYMBOL_AFTER] == "1") "S" else "P",
+            "SYMBOL" to d.mainSymbol, "INSERT_TYPE" to "I", "SYMBOL_POSITION" to if (d.settings[Prefs.SYMBOL_AFTER.key] == "1") "S" else "P",
             "IS_MAIN_CURRENCY" to 1, "IS_SHOW" to 1, "MODIFY_DATE" to now, "DECIMAL_POINT" to d.mainDecimals,
         ))
         d.currencies.forEachIndexed { i, c ->
@@ -161,35 +160,35 @@ object MoneyManagerExport {
     private fun etcRows(s: Map<String, String>): List<Triple<Int, String, String>> = buildList {
         fun add(type: Int, key: String, value: String?) { if (value != null) add(Triple(type, key, value)) }
         fun flag(setting: String, default: String) = when (s[setting]) { "1" -> "1"; "0" -> "0"; else -> default }
-        add(-23459, "start_day", s[Keys.MONTH_START_DAY] ?: "1")
+        add(-23459, "start_day", s[Prefs.MONTH_START_DAY.key] ?: "1")
         // Written even when unset: without it Money Manager falls back to swapped income/expense colours.
-        add(-6179, "money_color", if (s[Keys.COLOR_SET] == "B") "1" else "0")
-        add(-5457, "carry_over", flag(Keys.CARRY_OVER, "0"))
-        add(-30009, "card_accounting_type", flag(Keys.CARD_AT_PAYMENT, "0"))
-        add(19810, "use_sub_category", flag(Keys.USE_SUBCATEGORIES, "0"))
-        add(10002, "week_start_day", when (s[Keys.WEEK_START]) { "SUNDAY" -> "0"; "MONDAY" -> "1"; "SATURDAY" -> "6"; else -> null })
-        add(10008, "month_start_weekend_type", when (s[Keys.WEEKEND_SHIFT]) { "BEFORE" -> "1"; "AFTER" -> "2"; else -> "0" })
-        add(10003, "main_tab_first_view", if (s[Keys.START_SCREEN] == "CALENDAR") "1" else "0")
-        add(10014, "main_tab_scroll_type", when (s[Keys.SWIPE]) { "TAB" -> "0"; "DATE" -> "1"; "NONE" -> "2"; else -> null })
-        val asc = s[Keys.TIME_SORT] == "ASC"
-        add(10004, "time_display_order", when (s[Keys.TIME_INPUT]) {
+        add(-6179, "money_color", if (s[Prefs.COLOR_SET.key] == "B") "1" else "0")
+        add(-5457, "carry_over", flag(Prefs.CARRY_OVER.key, "0"))
+        add(-30009, "card_accounting_type", flag(Prefs.CARD_AT_PAYMENT.key, "0"))
+        add(19810, "use_sub_category", flag(Prefs.USE_SUBCATEGORIES.key, "0"))
+        add(10002, "week_start_day", when (s[Prefs.WEEK_START.key]) { "SUNDAY" -> "0"; "MONDAY" -> "1"; "SATURDAY" -> "6"; else -> null })
+        add(10008, "month_start_weekend_type", when (s[Prefs.WEEKEND_SHIFT.key]) { "BEFORE" -> "1"; "AFTER" -> "2"; else -> "0" })
+        add(10003, "main_tab_first_view", if (s[Prefs.START_SCREEN.key] == "CALENDAR") "1" else "0")
+        add(10014, "main_tab_scroll_type", when (s[Prefs.SWIPE.key]) { "TAB" -> "0"; "DATE" -> "1"; "NONE" -> "2"; else -> null })
+        val asc = s[Prefs.TIME_SORT.key] == "ASC"
+        add(10004, "time_display_order", when (s[Prefs.TIME_INPUT.key]) {
             "LIST" -> if (asc) "3" else "1"; "INPUT" -> if (asc) "4" else "2"; "NONE" -> if (asc) "0" else "5"; else -> null
         })
-        add(10011, "show_tx_memo_on_day_list", s[Keys.SHOW_DESCRIPTION]?.takeIf { it == "0" || it == "1" })
-        add(23274, "use_auto_complete", s[Keys.AUTOCOMPLETE]?.takeIf { it == "0" || it == "1" })
-        add(10016, "memo_btn_on_daily", s[Keys.NOTE_BUTTON]?.takeIf { it == "0" || it == "1" })
-        add(10017, "input_form_order", when (s[Keys.INPUT_ORDER]) { "AMOUNT" -> "1"; "ACCOUNT" -> "2"; else -> null })
-        add(10009, "repeat_reflect_type", when (s[Keys.REPEAT_TIMING]) { "ON_DATE" -> "0"; "MONTH_START" -> "1"; else -> null })
-        add(10006, "sms_auto_save_to_tx", s[Keys.SMS_AUTO_SAVE]?.takeIf { it == "0" || it == "1" })
-        add(1078, "sms_show_noti", s[Keys.SMS_ALERT]?.takeIf { it == "0" || it == "1" })
-        add(-12649, "sms_show_org_on_tx", s[Keys.SMS_SHOW_ORIGINAL]?.takeIf { it in setOf("0", "1", "2") })
-        add(1077, "sms_search_day", s[Keys.SMS_IMPORT_DAYS])
-        add(10000, "use_quick_add_noti", flag(Keys.QUICK_ADD_NOTIFICATION, "0"))
+        add(10011, "show_tx_memo_on_day_list", s[Prefs.SHOW_DESCRIPTION.key]?.takeIf { it == "0" || it == "1" })
+        add(23274, "use_auto_complete", s[Prefs.AUTOCOMPLETE.key]?.takeIf { it == "0" || it == "1" })
+        add(10016, "memo_btn_on_daily", s[Prefs.NOTE_BUTTON.key]?.takeIf { it == "0" || it == "1" })
+        add(10017, "input_form_order", when (s[Prefs.INPUT_ORDER.key]) { "AMOUNT" -> "1"; "ACCOUNT" -> "2"; else -> null })
+        add(10009, "repeat_reflect_type", when (s[Prefs.REPEAT_TIMING.key]) { "ON_DATE" -> "0"; "MONTH_START" -> "1"; else -> null })
+        add(10006, "sms_auto_save_to_tx", s[Prefs.SMS_AUTO_SAVE.key]?.takeIf { it == "0" || it == "1" })
+        add(1078, "sms_show_noti", s[Prefs.SMS_ALERT.key]?.takeIf { it == "0" || it == "1" })
+        add(-12649, "sms_show_org_on_tx", s[Prefs.SMS_SHOW_ORIGINAL.key]?.takeIf { it in setOf("0", "1", "2") })
+        add(1077, "sms_search_day", s[Prefs.SMS_IMPORT_DAYS.key])
+        add(10000, "use_quick_add_noti", flag(Prefs.QUICK_ADD_NOTIFICATION.key, "0"))
         // List settings: one row per line.
         fun lines(setting: String) = s[setting].orEmpty().lines().map { it.trim() }.filter { it.isNotEmpty() }
-        lines(Keys.SMS_BLOCKED_SENDERS).forEach { add(4838, "sms_reject_call_number", it) }
-        lines(Keys.SMS_BLOCKED_PHRASES).forEach { add(4839, "sms_reject_str", it) }
-        lines(Keys.SMS_CONTENT_FILTER).forEach { add(100, "sms_content_auto_del", it) }
+        lines(Prefs.SMS_BLOCKED_SENDERS.key).forEach { add(4838, "sms_reject_call_number", it) }
+        lines(Prefs.SMS_BLOCKED_PHRASES.key).forEach { add(4839, "sms_reject_str", it) }
+        lines(Prefs.SMS_CONTENT_FILTER.key).forEach { add(100, "sms_content_auto_del", it) }
     }
 
     private fun kindCode(k: TxnKind) = when (k) {

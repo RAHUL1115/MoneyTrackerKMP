@@ -75,7 +75,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.LocalBackup
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
+import app.moneytracker.data.RepeatTiming
 import app.moneytracker.data.newId
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.Category
@@ -191,35 +192,26 @@ fun ConfigurationScreen() {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val scope = rememberCoroutineScope()
-    val startDay by repo.monthStartDay.collectAsState(1)
     val platform = LocalPlatform.current
-    var editing by remember { mutableStateOf<String?>(null) }
-    var choice by remember { mutableStateOf<String?>(null) }   // key of a multiple-choice setting being edited
+    var editing by remember { mutableStateOf<app.moneytracker.data.Setting<*>?>(null) }
+    var choice by remember { mutableStateOf<ChoiceSpec<*>?>(null) }   // a multiple-choice setting being edited
     var accentDialog by remember { mutableStateOf(false) }
     var languageDialog by remember { mutableStateOf(false) }
     var locationDisclosure by remember { mutableStateOf(false) }
-    val reminderTime by remember(repo) { repo.setting(Keys.REMINDER_TIME) }.collectAsState(null)
-    var timeDialog by remember { mutableStateOf(false) }
     var layoutSwitch by remember { mutableStateOf(false) }
     var layoutChoice by remember { mutableStateOf(false) }
-    // Widgets show colours, currency format and their own style; repaint them after any change.
-    fun put(key: String, value: String) = scope.launch(repo.io) { repo.putSetting(key, value) }
-    fun setFlag(key: String, on: Boolean) = put(key, if (on) "1" else "0")
 
     var resetConfirm by remember { mutableStateOf(false) }
     var groupId by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
     val actions = SettingActions(
         choice = { choice = it },
-        edit = { if (it == Keys.REMINDER_TIME) timeDialog = true else editing = it },
+        edit = { editing = it },
         accent = { accentDialog = true },
         language = { languageDialog = true },
         switchLayout = { layoutChoice = true },
         locationOn = { locationDisclosure = true },
         resetSuggestions = { resetConfirm = true },
-        choiceLabel = { key, value ->
-            if (key in CHOICES) choiceLabel(key, value) else tr((value ?: "DAILY").lowercase().replaceFirstChar { it.uppercase() })
-        },
     )
     val groups = rememberSettingGroups(newLayout = false, a = actions)
     val hubs = rememberSettingHubs()
@@ -336,11 +328,11 @@ fun ConfigurationScreen() {
         DisclosureDialog(tr("Save location"),
             tr("When you add a new entry, MoneyTracker saves where you are (latitude and longitude) with it. " +
                 "Location is read only while you add an entry, never in the background, and stays on your phone."),
-            { locationDisclosure = false }) { locationDisclosure = false; setFlag(Keys.LOCATION, true) }
+            { locationDisclosure = false }) { locationDisclosure = false; scope.saveSetting(repo, Prefs.LOCATION, true) }
     }
     if (languageDialog) {
         ChoiceDialog(tr("Language"), I18n.LANGUAGES.map { (tag, name) -> tag.ifEmpty { "system" } to (if (tag.isEmpty()) tr(name) else name) }, { languageDialog = false }) { tag ->
-            put(Keys.LANGUAGE, if (tag == "system") "" else tag); languageDialog = false
+            scope.saveSetting(repo, Prefs.LANGUAGE, if (tag == "system") "" else tag); languageDialog = false
         }
     }
     if (accentDialog) {
@@ -354,7 +346,7 @@ fun ConfigurationScreen() {
                         val c = a.tones().let { androidx.compose.ui.graphics.Color(if (darkTheme) it.dark else it.light) }
                         Box(
                             Modifier.size(36.dp).clip(androidx.compose.foundation.shape.CircleShape).background(c)
-                                .clickable { put(Keys.ACCENT, a.name); accentDialog = false },
+                                .clickable { scope.saveSetting(repo, Prefs.ACCENT, a.name); accentDialog = false },
                             contentAlignment = Alignment.Center,
                         ) { if (a == accentChoice) Icon(Icons.Filled.Check, tr(a.label), tint = androidx.compose.ui.graphics.Color.White) }
                     }
@@ -364,74 +356,55 @@ fun ConfigurationScreen() {
         )
     }
 
-    choice?.let { key ->
-        val options: List<Pair<String, String>> = CHOICES[key] ?: when (key) {
-            Keys.WEEKEND_SHIFT -> listOf("NONE" to tr("Keep the date"), "BEFORE" to tr("Move to the Friday before"), "AFTER" to tr("Move to the Monday after"))
-            Keys.WEEK_START -> listOf("SUNDAY", "MONDAY", "SATURDAY").map { it to tr(it.lowercase().replaceFirstChar { c -> c.uppercase() }) }
-            else -> listOf("DAILY", "CALENDAR", "MONTHLY", "TOTAL", "NOTE").map { it to tr(it.lowercase().replaceFirstChar { c -> c.uppercase() }) }
-        }
+    choice?.let { spec -> ClassicChoiceDialog(spec, scope) { choice = null } }
+    editing?.let { key -> ClassicEditDialog(key, scope) { editing = null } }
+}
+
+@Composable
+private fun <T> ClassicChoiceDialog(spec: ChoiceSpec<T>, scope: kotlinx.coroutines.CoroutineScope, onClose: () -> Unit) {
+    ChoiceHost(spec, scope, content = { _, options, pick ->
         AlertDialog(
-            onDismissRequest = { choice = null },
-            title = { Text(CHOICE_TITLES[key] ?: when (key) { Keys.WEEKEND_SHIFT -> tr("Start date on a weekend"); Keys.WEEK_START -> tr("Week starts on"); else -> tr("Open the app on") }) },
+            onDismissRequest = onClose,
+            title = { Text(spec.title) },
             text = {
                 Column {
                     options.forEach { (value, label) ->
-                        Text(label, Modifier.fillMaxWidth().clickable { put(key, value); choice = null }.padding(vertical = 12.dp))
+                        Text(label, Modifier.fillMaxWidth().clickable { pick(value, label); onClose() }.padding(vertical = 12.dp))
                     }
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = { choice = null }) { Text(tr("Cancel")) } },
+            dismissButton = { TextButton(onClick = onClose) { Text(tr("Cancel")) } },
         )
-    }
+    })
+}
 
-    if (timeDialog) {
-        var text by remember { mutableStateOf(reminderTime ?: "21:00") }
-        val parts = text.split(":").map { it.toIntOrNull() }
-        val valid = parts.size == 2 && parts[0] in 0..23 && parts[1] in 0..59
-        AlertDialog(
-            onDismissRequest = { timeDialog = false },
-            title = { Text(tr("Reminder time (24h, HH:mm)")) },
-            text = { OutlinedTextField(text, { text = it.take(5) }, singleLine = true, isError = !valid) },
-            confirmButton = {
-                TextButton(enabled = valid, onClick = {
-                    put(Keys.REMINDER_TIME, "${parts[0].toString().padStart(2, '0')}:${parts[1].toString().padStart(2, '0')}")
-                    platform.setReminder(true, parts[0]!!, parts[1]!!) {}
-                    timeDialog = false
-                }) { Text(tr("Save"), color = Accent) }
-            },
-            dismissButton = { TextButton(onClick = { timeDialog = false }) { Text(tr("Cancel")) } },
-        )
-    }
-
-    editing?.let { key ->
-        val initial = when (key) {
-            Keys.MONTH_START_DAY -> startDay.toString()
-            Keys.CURRENCY_SYMBOL -> currency.symbol
-            else -> currency.decimals.toString()
-        }
-        var text by remember(key) { mutableStateOf(initial) }
-        val valid = when (key) {
-            Keys.MONTH_START_DAY -> text.toIntOrNull() in 1..31
-            Keys.CURRENCY_DECIMALS -> text.toIntOrNull() in 0..3
-            else -> text.isNotBlank() && text.length <= 4
-        }
-        AlertDialog(
-            onDismissRequest = { editing = null },
-            title = { Text(when (key) { Keys.MONTH_START_DAY -> tr("Monthly start date (1–31)"); Keys.CURRENCY_SYMBOL -> tr("Currency symbol"); else -> tr("Decimal places (0–3)") }) },
-            text = {
-                OutlinedTextField(text, { text = it }, singleLine = true, isError = !valid,
-                    keyboardOptions = KeyboardOptions(keyboardType = if (key == Keys.CURRENCY_SYMBOL) KeyboardType.Text else KeyboardType.Number))
-            },
-            confirmButton = {
-                TextButton(enabled = valid, onClick = {
-                    scope.launch { withContext(repo.io) { repo.putSetting(key, text.trim()) } }
-                    editing = null
-                }) { Text(tr("Save"), color = Accent) }
-            },
-            dismissButton = { TextButton(onClick = { editing = null }) { Text(tr("Cancel")) } },
-        )
-    }
+/** Currency symbol, decimals, month start day or reminder time. */
+@Composable
+private fun ClassicEditDialog(key: app.moneytracker.data.Setting<*>, scope: kotlinx.coroutines.CoroutineScope, onClose: () -> Unit) {
+    val repo = LocalRepo.current
+    val platform = LocalPlatform.current
+    val edit = rememberTextEdit(key)
+    var text by remember(key) { mutableStateOf(edit.initial) }
+    val valid = edit.valid(text)
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(edit.title) },
+        text = {
+            OutlinedTextField(text, { text = if (key == Prefs.REMINDER_TIME) it.take(5) else it }, singleLine = true, isError = !valid,
+                keyboardOptions = KeyboardOptions(keyboardType = if (edit.number) KeyboardType.Number else KeyboardType.Text))
+        },
+        confirmButton = {
+            TextButton(enabled = valid, onClick = {
+                scope.launch {
+                    withContext(repo.io) { edit.save(repo, text) }
+                    if (key == Prefs.REMINDER_TIME) app.moneytracker.data.ClockTime.parse(text)?.let { platform.setReminder(true, it.hour, it.minute) {} }
+                }
+                onClose()
+            }) { Text(tr("Save"), color = Accent) }
+        },
+        dismissButton = { TextButton(onClick = onClose) { Text(tr("Cancel")) } },
+    )
 }
 
 @Composable
@@ -590,7 +563,7 @@ fun RecurringScreen() {
     val categories by repo.categories.collectAsState(emptyList())
     val accountName by repo.accountNames.collectAsState(emptyMap())
     val catById by repo.categoryById.collectAsState(emptyMap())
-    val timing by remember(repo) { repo.setting(Keys.REPEAT_TIMING) }.collectAsState(null)
+    val timing = choiceSpec(Prefs.REPEAT_TIMING, newLayout = false)
     var editing by remember { mutableStateOf<RecurringRule?>(null) }
     var deleting by remember { mutableStateOf(false) }
     var timingDialog by remember { mutableStateOf(false) }
@@ -600,9 +573,9 @@ fun RecurringScreen() {
         scope.launch { withContext(repo.io) { repo.saveRule(updated); repo.generateRecurring() } }
     } }
     if (timingDialog) {
-        ChoiceDialog(tr("Timing of reflection"), CHOICES.getValue(Keys.REPEAT_TIMING), { timingDialog = false }) { v ->
+        ChoiceDialog(tr("Timing of reflection"), timing.options.map { (v, label) -> v.name to label }, { timingDialog = false }) { v ->
             timingDialog = false
-            scope.launch { withContext(repo.io) { repo.putSetting(Keys.REPEAT_TIMING, v); repo.generateRecurring() } }
+            scope.launch { withContext(repo.io) { repo.putSetting(Prefs.REPEAT_TIMING, RepeatTiming.valueOf(v)); repo.generateRecurring() } }
         }
     }
 
@@ -618,7 +591,7 @@ fun RecurringScreen() {
             }) { Icon(Icons.Outlined.Add, tr("Add")) }
         }
         HorizontalDivider(color = DividerColor)
-        ConfigRow(tr("Timing of reflection"), CHOICES.getValue(Keys.REPEAT_TIMING).firstOrNull { it.first == (timing ?: "ON_DATE") }?.second) { timingDialog = true }
+        ConfigRow(tr("Timing of reflection"), timing.label(rememberSetting(Prefs.REPEAT_TIMING).value)) { timingDialog = true }
         if (rules.isEmpty()) {
             EmptyState(tr("No repeating transactions. Use “Rep/Inst.” when adding one."), Icons.Outlined.Repeat)
             return@Column
@@ -851,27 +824,6 @@ private fun RestoreConfirm(title: String, onDismiss: () -> Unit, onConfirm: () -
     )
 }
 
-/** Multiple-choice settings: stored value → label. The first option is the default. */
-private val CHOICES: Map<String, List<Pair<String, String>>> get() = mapOf(
-    Keys.SWIPE to listOf("DATE" to tr("Change month"), "TAB" to tr("Change tab"), "NONE" to tr("Off")),
-    Keys.COLOR_SET to listOf("A" to tr("Income green, expense red"), "B" to tr("Income red, expense green")),
-    Keys.TIME_INPUT to listOf("NONE" to tr("Off"), "INPUT" to tr("Record time"), "LIST" to tr("Record and show in lists")),
-    Keys.TIME_SORT to listOf("DESC" to tr("Latest first"), "ASC" to tr("Earliest first")),
-    Keys.INPUT_ORDER to listOf("AMOUNT" to tr("Amount first"), "ACCOUNT" to tr("Account first")),
-    Keys.THEME to listOf("SYSTEM" to tr("Follow system"), "LIGHT" to tr("Light"), "DARK" to tr("Dark")),
-    Keys.REPEAT_TIMING to listOf("ON_DATE" to tr("On the date"), "MONTH_START" to tr("On the first day of the month")),
-    Keys.WIDGET_THEME to listOf("SYSTEM" to tr("Follow system"), "LIGHT" to tr("Light"), "DARK" to tr("Dark")),
-    Keys.WIDGET_OPACITY to listOf("100", "80", "60", "40", "20").map { it to tr("{0}% opaque", it) },
-)
-private val CHOICE_TITLES: Map<String, String> get() = mapOf(
-    Keys.SWIPE to tr("Swipe left / right"), Keys.COLOR_SET to tr("Income / expense colors"), Keys.TIME_INPUT to tr("Time input"),
-    Keys.TIME_SORT to tr("Order within a day"), Keys.INPUT_ORDER to tr("Input order"), Keys.THEME to tr("Style"),
-    Keys.REPEAT_TIMING to tr("Add repeat entries"), Keys.WIDGET_THEME to tr("Widget style"), Keys.WIDGET_OPACITY to tr("Widget background"),
-)
-private fun choiceLabel(key: String, value: String?): String {
-    val options = CHOICES.getValue(key)
-    return (options.firstOrNull { it.first == value } ?: options.first()).second
-}
 
 /** Change a repeating rule: what it adds and when. Entries already added stay as they are. */
 @Composable

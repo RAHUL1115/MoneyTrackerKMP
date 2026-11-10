@@ -49,7 +49,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.ClockTime
+import app.moneytracker.data.Prefs
+import app.moneytracker.data.Setting
+import app.moneytracker.ui.rememberSetting
+import app.moneytracker.ui.saveSetting
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.ui.AccentChoice
 import app.moneytracker.ui.DisclosureDialog
@@ -70,36 +74,6 @@ import kotlinx.coroutines.withContext
 
 private typealias SRow = app.moneytracker.ui.SettingRow
 
-/** Multiple-choice settings: stored value → label. The first option is the default. */
-private fun settingChoices(): Map<String, List<Pair<String, String>>> = mapOf(
-    Keys.SWIPE to listOf("DATE" to tr("Change month"), "TAB" to tr("Change tab"), "NONE" to tr("Off")),
-    Keys.COLOR_SET to listOf("A" to tr("Income blue, expense red"), "B" to tr("Income red, expense blue")),
-    Keys.TIME_INPUT to listOf("NONE" to tr("Off"), "INPUT" to tr("Record time"), "LIST" to tr("Record and show in lists")),
-    Keys.TIME_SORT to listOf("DESC" to tr("Latest first"), "ASC" to tr("Earliest first")),
-    Keys.INPUT_ORDER to listOf("AMOUNT" to tr("Amount first"), "ACCOUNT" to tr("Account first")),
-    Keys.THEME to listOf("SYSTEM" to tr("Follow system"), "LIGHT" to tr("Light"), "DARK" to tr("Dark")),
-    Keys.REPEAT_TIMING to listOf("ON_DATE" to tr("On the date"), "MONTH_START" to tr("On the first day of the month")),
-    Keys.WIDGET_THEME to listOf("SYSTEM" to tr("Follow system"), "LIGHT" to tr("Light"), "DARK" to tr("Dark")),
-    Keys.WIDGET_OPACITY to listOf("100", "80", "60", "40", "20").map { it to tr("{0}% opaque", it) },
-    Keys.WEEKEND_SHIFT to listOf("NONE" to tr("Keep the date"), "BEFORE" to tr("Move to the Friday before"), "AFTER" to tr("Move to the Monday after")),
-    Keys.WEEK_START to listOf("SUNDAY", "MONDAY", "SATURDAY").map { it to tr(it.lowercase().replaceFirstChar { c -> c.uppercase() }) },
-    Keys.START_SCREEN to listOf("DAILY" to tr("List (Daily)"), "CALENDAR" to tr("Calendar"), "MONTHLY" to tr("Months (Monthly)"), "TOTAL" to tr("Months (Total)"), "NOTE" to tr("Notes")),
-)
-
-private fun choiceTitle(key: String): String = when (key) {
-    Keys.SWIPE -> tr("Swipe left / right"); Keys.COLOR_SET -> tr("Income / expense colours"); Keys.TIME_INPUT -> tr("Time input")
-    Keys.TIME_SORT -> tr("Order within a day"); Keys.INPUT_ORDER -> tr("Input order"); Keys.THEME -> tr("Theme")
-    Keys.REPEAT_TIMING -> tr("Repeat entries are added"); Keys.WIDGET_THEME -> tr("Widget style"); Keys.WIDGET_OPACITY -> tr("Widget background")
-    Keys.WEEKEND_SHIFT -> tr("Start date on a weekend"); Keys.WEEK_START -> tr("Week starts on"); else -> tr("Start view")
-}
-
-private val STORED_KEYS = listOf(
-    Keys.LANGUAGE, Keys.CARRY_OVER, Keys.CARD_AT_PAYMENT, Keys.REMINDER, Keys.QUICK_ADD_NOTIFICATION, Keys.CAPTURE_ENABLED, Keys.LOCATION,
-    Keys.USE_SUBCATEGORIES, Keys.PASSCODE, Keys.REMINDER_TIME, Keys.START_SCREEN, Keys.SWIPE, Keys.COLOR_SET, Keys.TIME_INPUT, Keys.TIME_SORT,
-    Keys.INPUT_ORDER, Keys.THEME, Keys.WIDGET_THEME, Keys.WIDGET_OPACITY, Keys.REPEAT_TIMING, Keys.AUTOCOMPLETE, Keys.HABIT_ACCOUNT,
-    Keys.SHOW_DESCRIPTION, Keys.NOTE_BUTTON, Keys.SYMBOL_AFTER,
-)
-
 @Composable
 internal fun FreshSettings() {
     val repo = LocalRepo.current
@@ -110,14 +84,10 @@ internal fun FreshSettings() {
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
 
-    val v: Map<String, String?> = STORED_KEYS.associateWith { k -> remember(repo, k) { repo.setting(k) }.collectAsState(null).value }
-    fun on(key: String) = v[key] == "1"
-    val startDay by repo.monthStartDay.collectAsState(1)
-    val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
 
     var query by rememberSaveable { mutableStateOf("") }
-    var choice by remember { mutableStateOf<String?>(null) }
-    var editing by remember { mutableStateOf<String?>(null) }
+    var choice by remember { mutableStateOf<app.moneytracker.ui.ChoiceSpec<*>?>(null) }
+    var editing by remember { mutableStateOf<Setting<*>?>(null) }
     var accentSheet by remember { mutableStateOf(false) }
     var languageSheet by remember { mutableStateOf(false) }
     var locationDisclosure by remember { mutableStateOf(false) }
@@ -125,19 +95,9 @@ internal fun FreshSettings() {
     var layoutSwitch by remember { mutableStateOf(false) }
     var layoutSheet by remember { mutableStateOf(false) }
 
-    // Widgets show colours, currency format and their own style; repaint them after any change.
-    fun put(key: String, value: String) = scope.launch(repo.io) { repo.putSetting(key, value) }
-    fun setFlag(key: String, on: Boolean) = put(key, if (on) "1" else "0")
-
-    val choices = settingChoices()
-    fun raw(key: String): String? = when (key) {
-        Keys.WEEKEND_SHIFT -> ps.shift.name
-        Keys.WEEK_START -> ps.weekStart.name
-        else -> v[key]
-    }
     fun link(title: String, value: String? = null, words: String = "", subtitle: String? = null, onClick: () -> Unit) =
         SRow(title, value, subtitle, words, onClick = onClick)
-    val capture = on(Keys.CAPTURE_ENABLED)
+    val capture by rememberSetting(Prefs.CAPTURE_ENABLED)
 
     val actions = app.moneytracker.ui.SettingActions(
         choice = { choice = it },
@@ -147,7 +107,6 @@ internal fun FreshSettings() {
         switchLayout = { layoutSheet = true },
         locationOn = { locationDisclosure = true },
         resetSuggestions = { confirmReset = true },
-        choiceLabel = { key, value -> choices[key]?.let { opts -> (opts.firstOrNull { it.first == value } ?: opts.first()).second } ?: "" },
     )
     val groups = app.moneytracker.ui.rememberSettingGroups(newLayout = true, a = actions)
     val hubs = app.moneytracker.ui.rememberSettingHubs()
@@ -251,7 +210,7 @@ internal fun FreshSettings() {
         DisclosureDialog(tr("Save location"),
             tr("When you add a new entry, MoneyTracker saves where you are (latitude and longitude) with it. " +
                 "Location is read only while you add an entry, never in the background, and stays on your phone."),
-            { locationDisclosure = false }) { locationDisclosure = false; setFlag(Keys.LOCATION, true) }
+            { locationDisclosure = false }) { locationDisclosure = false; scope.saveSetting(repo, Prefs.LOCATION, true) }
     }
     if (confirmReset) {
         Confirm(tr("Reset note suggestions?"),
@@ -260,26 +219,14 @@ internal fun FreshSettings() {
             scope.launch { withContext(repo.io) { repo.resetAutocomplete() }; toaster.show(tr("Note suggestions reset")) }
         }
     }
-    choice?.let { key ->
-        val options = choices.getValue(key)
-        val current = raw(key) ?: options.first().first
-        Sheet(choiceTitle(key), { choice = null }) {
-            options.forEach { (value, text) ->
-                SheetOption(text, selected = value == current) {
-                    choice = null
-                    if (value != current) {
-                        put(key, value)
-                        toaster.show(tr("{0}: {1}", choiceTitle(key), text)) { put(key, current) }
-                    }
-                }
-            }
-        }
-    }
+    choice?.let { spec -> ChoiceSheet(spec, scope) { choice = null } }
     if (languageSheet) {
-        val currentTag = v[Keys.LANGUAGE].orEmpty()
+        val currentTag by rememberSetting(Prefs.LANGUAGE)
         Sheet(tr("Language"), { languageSheet = false }) {
             I18n.LANGUAGES.forEach { (tag, name) ->
-                SheetOption(if (tag.isEmpty()) tr(name) else name, selected = tag == currentTag) { languageSheet = false; put(Keys.LANGUAGE, tag) }
+                SheetOption(if (tag.isEmpty()) tr(name) else name, selected = tag == currentTag) {
+                    languageSheet = false; scope.saveSetting(repo, Prefs.LANGUAGE, tag)
+                }
             }
         }
     }
@@ -291,53 +238,48 @@ internal fun FreshSettings() {
                 SheetOption(tr(a.label), selected = a == accentChoice, leading = { Box(Modifier.size(24.dp).clip(CircleShape).background(c)) }) {
                     accentSheet = false
                     val before = accentChoice
-                    if (a != before) { put(Keys.ACCENT, a.name); toaster.show(tr("{0}: {1}", tr("Accent colour"), tr(a.label))) { put(Keys.ACCENT, before.name) } }
+                    if (a != before) {
+                        scope.saveSetting(repo, Prefs.ACCENT, a.name)
+                        toaster.show(tr("{0}: {1}", tr("Accent colour"), tr(a.label))) { scope.saveSetting(repo, Prefs.ACCENT, before.name) }
+                    }
                 }
             }
         }
     }
-    editing?.let { key -> EditValueSheet(key, startDay, v[Keys.REMINDER_TIME], { editing = null }) { value ->
-        editing = null
-        scope.launch {
-            withContext(repo.io) { repo.putSetting(key, value) }
-            if (key == Keys.REMINDER_TIME) value.split(":").map { it.toInt() }.let { (h, m) -> platform.setReminder(true, h, m) {} }
+    editing?.let { key -> EditValueSheet(key, scope, { editing = null }) { editing = null } }
+}
+
+/** A sheet or toast-backed choice for one multiple-choice setting; Undo puts the old value back. */
+@Composable
+private fun <T> ChoiceSheet(spec: app.moneytracker.ui.ChoiceSpec<T>, scope: kotlinx.coroutines.CoroutineScope, onClose: () -> Unit) {
+    val repo = LocalRepo.current
+    val toaster = LocalToaster.current
+    app.moneytracker.ui.ChoiceHost(spec, scope, content = { current, options, pick ->
+        Sheet(spec.title, onClose) {
+            options.forEach { (value, text) -> SheetOption(text, selected = value == current) { onClose(); pick(value, text) } }
         }
-    } }
+    }) { _, text, before -> toaster.show(tr("{0}: {1}", spec.title, text)) { scope.saveSetting(repo, spec.setting, before) } }
 }
 
 /** Text settings: currency symbol, decimals, month start day, reminder time. */
 @Composable
-private fun EditValueSheet(key: String, startDay: Int, reminderTime: String?, onDismiss: () -> Unit, onSave: (String) -> Unit) {
-    val currency = LocalCurrency.current
-    var text by remember(key) {
-        mutableStateOf(when (key) {
-            Keys.MONTH_START_DAY -> startDay.toString()
-            Keys.CURRENCY_SYMBOL -> currency.symbol
-            Keys.REMINDER_TIME -> reminderTime ?: "21:00"
-            else -> currency.decimals.toString()
-        })
-    }
-    val t = text.trim()
-    val time = t.split(":").map { it.toIntOrNull() }
-    val valid = when (key) {
-        Keys.MONTH_START_DAY -> t.toIntOrNull() in 1..31
-        Keys.CURRENCY_DECIMALS -> t.toIntOrNull() in 0..3
-        Keys.REMINDER_TIME -> time.size == 2 && time[0] in 0..23 && time[1] in 0..59
-        else -> t.isNotBlank() && t.length <= 4
-    }
-    val title = when (key) {
-        Keys.MONTH_START_DAY -> tr("Monthly start date (1–31)")
-        Keys.CURRENCY_SYMBOL -> tr("Currency symbol")
-        Keys.REMINDER_TIME -> tr("Reminder time (24h, HH:mm)")
-        else -> tr("Decimal places (0–3)")
-    }
-    Sheet(title, onDismiss, bottom = {
+private fun EditValueSheet(key: Setting<*>, scope: kotlinx.coroutines.CoroutineScope, onDismiss: () -> Unit, onSaved: () -> Unit) {
+    val repo = LocalRepo.current
+    val platform = LocalPlatform.current
+    val edit = app.moneytracker.ui.rememberTextEdit(key)
+    var text by remember(key) { mutableStateOf(edit.initial) }
+    val valid = edit.valid(text)
+    Sheet(edit.title, onDismiss, bottom = {
         PrimaryButton(tr("Save"), enabled = valid, onClick = {
-            onSave(if (key == Keys.REMINDER_TIME) "${time[0].toString().padStart(2, '0')}:${time[1].toString().padStart(2, '0')}" else t)
+            onSaved()
+            scope.launch {
+                withContext(repo.io) { edit.save(repo, text) }
+                if (key == Prefs.REMINDER_TIME) ClockTime.parse(text)?.let { platform.setReminder(true, it.hour, it.minute) {} }
+            }
         })
     }) {
-        StgField(text, { text = if (key == Keys.REMINDER_TIME) it.take(5) else it }, number = key != Keys.CURRENCY_SYMBOL && key != Keys.REMINDER_TIME, error = !valid)
-        if (key == Keys.CURRENCY_DECIMALS) Text(tr("Set decimal places before entering data; existing amounts are not converted."),
+        StgField(text, { text = if (key == Prefs.REMINDER_TIME) it.take(5) else it }, number = edit.number, error = !valid)
+        if (key == Prefs.CURRENCY_DECIMALS) Text(tr("Set decimal places before entering data; existing amounts are not converted."),
             Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.sp)
     }
 }

@@ -1,5 +1,9 @@
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.ui.saveSetting
+import app.moneytracker.ui.rememberSetting
+import app.moneytracker.data.SmsOriginal
+import app.moneytracker.data.Setting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,7 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.domain.MessageRules
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalPlatform
@@ -60,25 +64,23 @@ internal fun SmsSettingsScreen() {
     val platform = LocalPlatform.current
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
-    @Composable fun opt(key: String) = remember(repo, key) { repo.setting(key) }
     val pending by repo.pendingCaptures.collectAsState(emptyList())
-    val captureSetting by remember(repo) { repo.flag(Keys.CAPTURE_ENABLED) }.collectAsState(false)
-    val alert by opt(Keys.SMS_ALERT).collectAsState(null)
-    val autoSave by opt(Keys.SMS_AUTO_SAVE).collectAsState(null)
-    val showOriginal by opt(Keys.SMS_SHOW_ORIGINAL).collectAsState(null)
-    val blockedSenders by opt(Keys.SMS_BLOCKED_SENDERS).collectAsState(null)
-    val blockedPhrases by opt(Keys.SMS_BLOCKED_PHRASES).collectAsState(null)
-    val contentFilter by opt(Keys.SMS_CONTENT_FILTER).collectAsState(null)
-    val importDays by opt(Keys.SMS_IMPORT_DAYS).collectAsState(null)
+    val captureSetting by rememberSetting(Prefs.CAPTURE_ENABLED)
+    val alert by rememberSetting(Prefs.SMS_ALERT)
+    val autoSave by rememberSetting(Prefs.SMS_AUTO_SAVE)
+    val showOriginal by rememberSetting(Prefs.SMS_SHOW_ORIGINAL)
+    val blockedSenders by rememberSetting(Prefs.SMS_BLOCKED_SENDERS)
+    val blockedPhrases by rememberSetting(Prefs.SMS_BLOCKED_PHRASES)
+    val contentFilter by rememberSetting(Prefs.SMS_CONTENT_FILTER)
+    val days by rememberSetting(Prefs.SMS_IMPORT_DAYS)
     var disclosure by remember { mutableStateOf<(() -> Unit)?>(null) }   // action waiting on the SMS disclosure
-    var editing by remember { mutableStateOf<String?>(null) }
+    var editing by remember { mutableStateOf<app.moneytracker.data.TextSetting?>(null) }
     var customDays by remember { mutableStateOf(false) }
     var keepRunning by remember { mutableStateOf(false) }
     val health = app.moneytracker.ui.rememberSmsHealth()
     val capture = captureSetting && health.permission
 
-    fun put(key: String, value: String) = scope.launch { withContext(repo.io) { repo.putSetting(key, value) } }
-    val days = importDays?.toIntOrNull() ?: 30
+    fun <T> put(s: Setting<T>, value: T) = scope.saveSetting(repo, s, value)
     fun import() = platform.importInboxMessages(days) { n ->
         when (n) {
             null -> toaster.show(tr("SMS permission was not granted"))
@@ -109,7 +111,7 @@ internal fun SmsSettingsScreen() {
         FCard(padding = 0.dp) {
             Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
                 SwitchLine(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture) { on ->
-                    val apply = { platform.setMessageCapture(on) { active -> put(Keys.CAPTURE_ENABLED, if (active) "1" else "0") } }
+                    val apply = { platform.setMessageCapture(on) { active -> put(Prefs.CAPTURE_ENABLED, active) } }
                     if (on) disclosure = apply else apply()
                 }
                 if (!health.permission) {
@@ -122,16 +124,16 @@ internal fun SmsSettingsScreen() {
                         tr("Check ›"), warn = health.background.restricted) { keepRunning = true }
                 }
                 Divider()
-                SwitchLine(tr("Alert for detected messages"), tr("A notification when a bank message is detected"), alert != "0", dimmed = !capture) { on ->
-                    if (!capture) toaster.show(tr("Turn on “Detect bank SMS” first")) else put(Keys.SMS_ALERT, if (on) "1" else "0")
+                SwitchLine(tr("Alert for detected messages"), tr("A notification when a bank message is detected"), alert, dimmed = !capture) { on ->
+                    if (!capture) toaster.show(tr("Turn on “Detect bank SMS” first")) else put(Prefs.SMS_ALERT, on)
                 }
                 Divider()
-                SwitchLine(tr("Save automatically"), tr("Add the entry right away when the account is recognised"), autoSave == "1") { on ->
-                    put(Keys.SMS_AUTO_SAVE, if (on) "1" else "0")
+                SwitchLine(tr("Save automatically"), tr("Add the entry right away when the account is recognised"), autoSave) { on ->
+                    put(Prefs.SMS_AUTO_SAVE, on)
                 }
                 Divider()
                 val origHint = when (showOriginal) {
-                    "0" -> tr("Not kept on entries"); "2" -> tr("Shown only while editing an entry"); else -> tr("Always shown in entry details")
+                    SmsOriginal.OFF -> tr("Not kept on entries"); SmsOriginal.WHILE_EDITING -> tr("Shown only while editing an entry"); SmsOriginal.KEEP -> tr("Always shown in entry details")
                 }
                 // A compact choice on the right of its row, like a switch would sit.
                 Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 12.dp),
@@ -140,9 +142,9 @@ internal fun SmsSettingsScreen() {
                         Text(tr("Original message on entries"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         Text(origHint, color = F.muted, fontSize = 12.sp)
                     }
-                    val opts = listOf("0" to tr("Hide"), "2" to tr("While editing"), "1" to tr("Show"))
-                    val selected = opts.indexOfFirst { it.first == (showOriginal ?: "1") }.coerceAtLeast(0)
-                    SmsSegmented(opts.map { it.second }, selected, { put(Keys.SMS_SHOW_ORIGINAL, opts[it].first) },
+                    val opts = listOf(SmsOriginal.OFF to tr("Hide"), SmsOriginal.WHILE_EDITING to tr("While editing"), SmsOriginal.KEEP to tr("Show"))
+                    val selected = opts.indexOfFirst { it.first == showOriginal }.coerceAtLeast(0)
+                    SmsSegmented(opts.map { it.second }, selected, { put(Prefs.SMS_SHOW_ORIGINAL, opts[it].first) },
                         segmentHeight = 36.dp, outer = 10.dp, inner = 8.dp, inset = 3.dp, track = F.page, fill = false)
                 }
             }
@@ -155,7 +157,7 @@ internal fun SmsSettingsScreen() {
             val presets = listOf(7, 30, 90, 180)
             val opts = presets.map { tr("{0} days", it) } + (if (days in presets) tr("Other") else tr("{0} days", days))
             val sel = presets.indexOf(days).let { if (it < 0) presets.size else it }
-            SmsSegmented(opts, sel, { i -> if (i < presets.size) put(Keys.SMS_IMPORT_DAYS, "${presets[i]}") else customDays = true },
+            SmsSegmented(opts, sel, { i -> if (i < presets.size) put(Prefs.SMS_IMPORT_DAYS, presets[i]) else customDays = true },
                 Modifier.padding(top = 14.dp), segmentHeight = 40.dp, outer = 12.dp, inner = 9.dp, inset = 4.dp, track = F.track, fill = true)
             PrimaryButton(tr("Import messages"), { if (capture) import() else disclosure = { import() } }, Modifier.padding(top = 12.dp))
         }
@@ -164,9 +166,9 @@ internal fun SmsSettingsScreen() {
             Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
                 Text(tr("Filters").uppercase(), Modifier.padding(top = 12.dp, bottom = 2.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
                 listOf(
-                    Triple(Keys.SMS_BLOCKED_SENDERS, tr("Blocked numbers"), tr("Messages from these senders are ignored")) to blockedSenders,
-                    Triple(Keys.SMS_BLOCKED_PHRASES, tr("Blocked words"), tr("Messages containing these are ignored")) to blockedPhrases,
-                    Triple(Keys.SMS_CONTENT_FILTER, tr("Content filter"), tr("Removed from a message before it is read")) to contentFilter,
+                    Triple(Prefs.SMS_BLOCKED_SENDERS, tr("Blocked numbers"), tr("Messages from these senders are ignored")) to blockedSenders,
+                    Triple(Prefs.SMS_BLOCKED_PHRASES, tr("Blocked words"), tr("Messages containing these are ignored")) to blockedPhrases,
+                    Triple(Prefs.SMS_CONTENT_FILTER, tr("Content filter"), tr("Removed from a message before it is read")) to contentFilter,
                 ).forEach { (def, value) ->
                     val (key, label, hint) = def
                     FilterLine(key, label, hint, value, open = editing == key, onToggle = { editing = if (editing == key) null else key }) { text ->
@@ -201,7 +203,7 @@ internal fun SmsSettingsScreen() {
         var text by remember { mutableStateOf(days.toString()) }
         val value = text.toIntOrNull()?.takeIf { it in 1..365 }
         Sheet(tr("Days to import"), { customDays = false }, bottom = {
-            PrimaryButton(tr("Save"), { value?.let { put(Keys.SMS_IMPORT_DAYS, "$it") }; customDays = false }, enabled = value != null)
+            PrimaryButton(tr("Save"), { value?.let { put(Prefs.SMS_IMPORT_DAYS, it) }; customDays = false }, enabled = value != null)
         }) {
             Text(tr("How far back to read the SMS inbox (1 to 365 days)."), color = F.muted, fontSize = 13.sp)
             BasicTextField(
@@ -250,7 +252,7 @@ internal fun SmsSwitch(checked: Boolean) {
 }
 
 @Composable
-private fun FilterLine(key: String, label: String, hint: String, value: String?, open: Boolean, onToggle: () -> Unit, onSave: (String) -> Unit) {
+private fun FilterLine(key: app.moneytracker.data.TextSetting, label: String, hint: String, value: String?, open: Boolean, onToggle: () -> Unit, onSave: (String) -> Unit) {
     val items = MessageRules.lines(value)
     Column {
         Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable(onClick = onToggle).padding(vertical = 12.dp),

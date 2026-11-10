@@ -39,6 +39,7 @@ import app.moneytracker.domain.splitInstallments
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
@@ -133,90 +134,31 @@ class MoneyRepository(
 
     // ───────────────────────── settings
 
-    object Keys {
-        const val MONTH_START_DAY = "monthStartDay"
-        const val WEEKEND_SHIFT = "weekendShift"          // NONE | BEFORE | AFTER
-        const val WEEK_START = "weekStart"                // DayOfWeek name
-        const val START_SCREEN = "startScreen"            // DAILY | CALENDAR | MONTHLY | TOTAL | NOTE
-        const val CARRY_OVER = "carryOver"                // "1" = show previous balance in period totals
-        const val CARD_AT_PAYMENT = "cardAtPayment"       // "1" = card purchases count as expense when the bill is paid
-        const val USE_SUBCATEGORIES = "useSubcategories"  // "1" = pick sub-categories; off by default (main categories only)
-        const val CURRENCY_SYMBOL = "currencySymbol"
-        const val CURRENCY_DECIMALS = "currencyDecimals"
-        const val CURRENCY_CODE = "currencyCode"
-        const val RATES_AUTO = "ratesAuto"                 // "0" turns off the daily exchange-rate update (on by default)
-        const val RATES_DATE = "ratesDate"                 // ECB date (yyyy-mm-dd) of the rates last fetched
-        const val RATES_CHECKED = "ratesChecked"           // epoch ms of the last successful fetch
-        const val PASSCODE = "passcodeHash"
-        /** The passcode in use before a restore, accepted once at the lock screen in case the backup's can't be checked here. */
-        const val PASSCODE_PREVIOUS = "passcodeHashBeforeRestore"
-        const val BIOMETRIC = "biometric"
-        const val REMINDER = "reminder"                   // "1" = daily reminder on
-        const val REMINDER_TIME = "reminderTime"          // "HH:mm"
-        const val QUICK_ADD_NOTIFICATION = "quickAddNotification"
-        const val CAPTURE_ENABLED = "captureEnabled"
-        const val LOCATION = "locationTagging"
-        const val ONBOARDED = "onboarded"
-        const val SEEDED = "seeded"
-        const val AUTOCOMPLETE = "autocomplete"           // "0" = off; default on
-        const val AUTOCOMPLETE_SINCE = "autocompleteSince" // epoch ms; notes used before this are not suggested ("Reset")
-        const val HABIT_ACCOUNT = "habitAccount"          // "0" = off; default on: new entries pre-select the account usually used
-        const val TIME_INPUT = "timeInput"                // NONE | INPUT (ask for time) | LIST (ask and show it in lists)
-        const val TIME_SORT = "timeSort"                  // DESC (default) | ASC: order of entries within a day
-        const val SHOW_DESCRIPTION = "showDescription"    // "1" = description under the note in lists
-        const val HIDE_AMOUNTS = "hideAmounts"            // "1" = privacy: amounts show as •••• until the eye is tapped
-        const val INPUT_ORDER = "inputOrder"              // AMOUNT (default) | ACCOUNT: which picker opens first
-        const val COLOR_SET = "colorSet"                  // A (income green, expense red) | B (swapped)
-        const val SYMBOL_AFTER = "symbolAfter"            // "1" = "1,000.00 ₹"
-        const val SWIPE = "swipe"                         // DATE (default) | TAB | NONE: horizontal swipe on Trans.
-        const val LANGUAGE = "language"                   // tag from I18n.LANGUAGES; empty = phone language
-        const val NOTE_BUTTON = "noteButton"              // "0" hides the note button next to + on Daily (on by default)
-        const val ACCENT = "accent"                       // AccentChoice name; TEAL by default
-        const val THEME = "theme"                         // SYSTEM (default) | LIGHT | DARK
-        const val REPEAT_TIMING = "repeatTiming"          // ON_DATE (default) | MONTH_START: when recurring entries are added
-        const val WIDGET_THEME = "widgetTheme"            // SYSTEM | LIGHT | DARK
-        const val WIDGET_OPACITY = "widgetOpacity"        // 20..100 (%)
-        const val SMS_ALERT = "smsAlert"                  // "0" = no notification when a message is detected
-        const val SMS_AUTO_SAVE = "smsAutoSave"           // "1" = save detected messages as entries right away
-        const val SMS_SHOW_ORIGINAL = "smsShowOriginal"   // "1" (default) keep the message on the entry, "0" don't, "2" show it only while editing
-        const val SMS_BLOCKED_SENDERS = "smsBlockedSenders" // one per line
-        const val SMS_BLOCKED_PHRASES = "smsBlockedPhrases" // one per line
-        const val SMS_CONTENT_FILTER = "smsContentFilter"   // one per line: removed from messages before reading them
-        const val SMS_IMPORT_DAYS = "smsImportDays"       // "Import SMS": how far back to read the inbox
-        const val SMS_LAST_SCAN = "smsLastScan"           // epoch ms of the last catch-up read of the inbox
-        const val ACCOUNTS_GROUPED = "accountsGrouped"    // "1" = account picker shows groups on the left, accounts on the right
-        const val UI_LAYOUT = "uiLayout"                  // CLASSIC (default) | NEW; read once at start, so a change needs a restart
-        const val WEB_PASSWORD = "webPassword"            // salted hash of the web dashboard password; empty = no password
-        const val WEB_AUTO_STOP = "webAutoStop"           // minutes without a visit before the web dashboard stops; "0" = never; default 30
-    }
-
-    fun setting(key: String): Flow<String?> = q.getSetting(key).asFlow().mapToOneOrNull(io)
+    /** Raw stored text by key, for backups and file formats that carry settings as they are. Screens use [Prefs]. */
     fun settingNow(key: String): String? = q.getSetting(key).executeAsOneOrNull()
     fun putSetting(key: String, value: String) = q.putSetting(key, value)
-    fun flag(key: String): Flow<Boolean> = setting(key).map { it == "1" }
 
-    val monthStartDay: Flow<Int> = setting(Keys.MONTH_START_DAY).map { it?.toIntOrNull() ?: 1 }
+    /** A setting, live: emits when its value changes. */
+    fun <T> setting(s: Setting<T>): Flow<T> = q.getSetting(s.key).asFlow().mapToOneOrNull(io).map(s::read).distinctUntilChanged()
+    fun <T> settingNow(s: Setting<T>): T = s.read(settingNow(s.key))
+    fun <T> putSetting(s: Setting<T>, value: T) = putSetting(s.key, s.write(value))
+
+    val monthStartDay: Flow<Int> = setting(Prefs.MONTH_START_DAY)
 
     /** Sub-categories are optional and off unless the user turns them on. */
-    val useSubcategories: Flow<Boolean> = flag(Keys.USE_SUBCATEGORIES)
+    val useSubcategories: Flow<Boolean> = setting(Prefs.USE_SUBCATEGORIES)
 
     val periodSettings: CachedFlow<PeriodSettings> = CachedFlow(combine(
-        setting(Keys.MONTH_START_DAY), setting(Keys.WEEKEND_SHIFT), setting(Keys.WEEK_START),
-    ) { day, shift, week -> parsePeriodSettings(day, shift, week) }) { periodSettingsNow() }
+        setting(Prefs.MONTH_START_DAY), setting(Prefs.WEEKEND_SHIFT), setting(Prefs.WEEK_START), ::PeriodSettings,
+    )) { periodSettingsNow() }
 
-    fun periodSettingsNow() = parsePeriodSettings(settingNow(Keys.MONTH_START_DAY), settingNow(Keys.WEEKEND_SHIFT), settingNow(Keys.WEEK_START))
-
-    private fun parsePeriodSettings(day: String?, shift: String?, week: String?) = PeriodSettings(
-        day?.toIntOrNull() ?: 1,
-        shift?.let { runCatching { Periods.WeekendShift.valueOf(it) }.getOrNull() } ?: Periods.WeekendShift.NONE,
-        week?.let { runCatching { DayOfWeek.valueOf(it) }.getOrNull() } ?: DayOfWeek.SUNDAY,
-    )
+    fun periodSettingsNow() = PeriodSettings(settingNow(Prefs.MONTH_START_DAY), settingNow(Prefs.WEEKEND_SHIFT), settingNow(Prefs.WEEK_START))
 
     val currency: CachedFlow<CurrencyFormat> = CachedFlow(
-        combine(setting(Keys.CURRENCY_SYMBOL), setting(Keys.CURRENCY_DECIMALS), setting(Keys.SYMBOL_AFTER)) { sym, dec, after -> currencyFormat(sym, dec, after) },
-    ) { currencyFormat(settingNow(Keys.CURRENCY_SYMBOL), settingNow(Keys.CURRENCY_DECIMALS), settingNow(Keys.SYMBOL_AFTER)) }
-    private fun currencyFormat(sym: String?, dec: String?, after: String?) = CurrencyFormat(sym ?: "₹", dec?.toIntOrNull() ?: 2, after == "1")
-    fun mainDecimals() = settingNow(Keys.CURRENCY_DECIMALS)?.toIntOrNull() ?: 2
+        combine(setting(Prefs.CURRENCY_SYMBOL), setting(Prefs.CURRENCY_DECIMALS), setting(Prefs.SYMBOL_AFTER), ::CurrencyFormat),
+    ) { currencyFormatNow() }
+    fun currencyFormatNow() = CurrencyFormat(settingNow(Prefs.CURRENCY_SYMBOL), settingNow(Prefs.CURRENCY_DECIMALS), settingNow(Prefs.SYMBOL_AFTER))
+    fun mainDecimals() = settingNow(Prefs.CURRENCY_DECIMALS)
 
     // ───────────────────────── currencies
 
@@ -231,7 +173,7 @@ class MoneyRepository(
      * Entries already saved keep the rate they were entered with.
      */
     suspend fun updateRates(get: suspend (String) -> String?): RatesUpdate {
-        val main = (settingNow(Keys.CURRENCY_CODE) ?: "INR").uppercase()
+        val main = settingNow(Prefs.CURRENCY_CODE).uppercase()
         val others = q.allCurrencies().executeAsList().map { it.toDomain() }.filter { it.code.uppercase() != main }
         if (others.isEmpty()) return RatesUpdate.NothingToUpdate.also { Log.d("Rates") { "no other currencies; nothing to fetch" } }
         val quote = runCatching { get(ExchangeRates.url(main, others.map { it.code }))?.let(ExchangeRates::parse) }
@@ -240,8 +182,8 @@ class MoneyRepository(
         val updated = others.filter { it.code.uppercase() in quote.perMain }
         db.transaction {
             updated.forEach { c -> saveCurrency(c.copy(rate = ExchangeRates.mainPerUnit(quote.perMain.getValue(c.code.uppercase())))) }
-            putSetting(Keys.RATES_DATE, quote.date)
-            putSetting(Keys.RATES_CHECKED, now().toString())
+            putSetting(Prefs.RATES_DATE, quote.date)
+            putSetting(Prefs.RATES_CHECKED, now())
         }
         Log.i("Rates") { "rates of ${quote.date}: updated ${updated.size}/${others.size}" }
         return RatesUpdate.Done(quote.date, updated.map { it.code }, (others - updated.toSet()).map { it.code })
@@ -328,9 +270,9 @@ class MoneyRepository(
     fun txnsBetween(range: DateRange): CachedFlow<List<Txn>> = rangeCache.get("txns:$range") { txnsIn(range) }
     private fun txnsIn(range: DateRange): CachedFlow<List<Txn>> = run {
         val from = range.start.toEpochDays().toLong(); val to = range.endInclusive.toEpochDays().toLong()
-        CachedFlow(combine(q.txnsBetween(from, to).asFlow().mapToList(io), setting(Keys.TIME_SORT)) { rows, sort ->
-            sortWithinDays(rows.map { it.toDomain() }, ascending = sort == "ASC")
-        }) { sortWithinDays(q.txnsBetween(from, to).executeAsList().map { it.toDomain() }, ascending = settingNow(Keys.TIME_SORT) == "ASC") }
+        CachedFlow(combine(q.txnsBetween(from, to).asFlow().mapToList(io), setting(Prefs.TIME_SORT)) { rows, sort ->
+            sortWithinDays(rows.map { it.toDomain() }, ascending = sort == TimeSort.ASC)
+        }) { sortWithinDays(q.txnsBetween(from, to).executeAsList().map { it.toDomain() }, ascending = settingNow(Prefs.TIME_SORT) == TimeSort.ASC) }
     }
 
     // ───────────────────────── synchronous reads for background threads (web dashboard, widgets)
@@ -345,7 +287,6 @@ class MoneyRepository(
     fun tagsNow(): List<Tag> = tags.now()
     fun txnTagNamesNow(): Map<String, List<String>> = txnTagNames.now()
     fun currenciesNow(): List<Currency> = currencies.now()
-    fun currencyFormatNow(): CurrencyFormat = currencyFormat(settingNow(Keys.CURRENCY_SYMBOL), settingNow(Keys.CURRENCY_DECIMALS), settingNow(Keys.SYMBOL_AFTER))
 
     /** Newest day first; within a day by recorded time (entries without one by entry order), newest first unless [ascending]. */
     fun sortWithinDays(txns: List<Txn>, ascending: Boolean = false): List<Txn> {
@@ -360,9 +301,9 @@ class MoneyRepository(
 
     /** Past notes starting with [prefix], most recently used first, with the category/account/amount used last time. */
     fun noteSuggestions(prefix: String): List<NoteSuggestion> {
-        if (prefix.isBlank() || settingNow(Keys.AUTOCOMPLETE) == "0") return emptyList()
+        if (prefix.isBlank() || !settingNow(Prefs.AUTOCOMPLETE)) return emptyList()
         val escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        val since = settingNow(Keys.AUTOCOMPLETE_SINCE)?.toLongOrNull() ?: 0L
+        val since = settingNow(Prefs.AUTOCOMPLETE_SINCE)
         return q.noteSuggestions(escaped, since).executeAsList()
             .filter { !it.note.equals(prefix, ignoreCase = false) }
             .map { NoteSuggestion(it.note, it.categoryId, it.accountId, TxnKind.valueOf(it.kind), it.amount ?: 0L, it.currency) }
@@ -374,14 +315,14 @@ class MoneyRepository(
      * history or the setting is off. A category's own default account is the caller's to prefer.
      */
     fun habitAccount(kind: TxnKind, categoryId: String?): String? {
-        if (settingNow(Keys.HABIT_ACCOUNT) == "0") return null
+        if (!settingNow(Prefs.HABIT_ACCOUNT)) return null
         val usable = q.allAccounts().executeAsList().filter { it.hidden == 0L }.map { it.id }.toSet()
         fun mostUsed(days: Int, category: String?) = q.habitAccounts(kind.name, today().toEpochDays().toLong() - days, category)
             .executeAsList().firstOrNull { it.accountId in usable }?.accountId
         return categoryId?.let { mostUsed(90, it) } ?: mostUsed(30, null)
     }
 
-    fun resetAutocomplete() = putSetting(Keys.AUTOCOMPLETE_SINCE, now().toString())
+    fun resetAutocomplete() = putSetting(Prefs.AUTOCOMPLETE_SINCE, now())
 
     // ───────────────────────── ordering / visibility
 
@@ -432,7 +373,7 @@ class MoneyRepository(
         if (everything) {
             listOf(q::wipeAccount, q::wipeAccountGroup, q::wipeCategory, q::wipeTags, q::wipeCurrencies, q::wipeLearning, q::wipeLearnLabels)
                 .forEach { it() }
-            q.putSetting(Keys.SEEDED, "0")
+            putSetting(Prefs.SEEDED, false)
             seedIfEmpty()
         }
     }
@@ -440,15 +381,15 @@ class MoneyRepository(
     fun reportRows(range: DateRange): CachedFlow<List<ReportRow>> = rangeCache.get("report:$range") { reportRowsIn(range) }
     private fun reportRowsIn(range: DateRange): CachedFlow<List<ReportRow>> = run {
         val from = range.start.toEpochDays().toLong(); val to = range.endInclusive.toEpochDays().toLong()
-        CachedFlow(combine(q.reportRows(from, to).asFlow().mapToList(io), flag(Keys.CARD_AT_PAYMENT)) { rows, cardAtPayment ->
+        CachedFlow(combine(q.reportRows(from, to).asFlow().mapToList(io), setting(Prefs.CARD_AT_PAYMENT)) { rows, cardAtPayment ->
             rows.map { it.toReportRow(cardAtPayment) }
-        }) { q.reportRows(from, to).executeAsList().map { it.toReportRow(settingNow(Keys.CARD_AT_PAYMENT) == "1") } }
+        }) { q.reportRows(from, to).executeAsList().map { it.toReportRow(settingNow(Prefs.CARD_AT_PAYMENT)) } }
     }
 
     /** How to build report rows from entries; same rules as [reportRows]. */
-    val reportRules: CachedFlow<ReportRules> = CachedFlow(combine(accounts, groups, flag(Keys.CARD_AT_PAYMENT)) { a, g, card ->
+    val reportRules: CachedFlow<ReportRules> = CachedFlow(combine(accounts, groups, setting(Prefs.CARD_AT_PAYMENT)) { a, g, card ->
         ReportRules.of(a, g, card)
-    }) { ReportRules.of(accounts.current, groups.current, settingNow(Keys.CARD_AT_PAYMENT) == "1") }
+    }) { ReportRules.of(accounts.current, groups.current, settingNow(Prefs.CARD_AT_PAYMENT)) }
 
     private fun app.moneytracker.db.ReportRows.toReportRow(cardAtPayment: Boolean) = ReportRow(
         TxnKind.valueOf(kind), amount, categoryId, srcTransferExpense != 0L, dstTransferExpense != 0L,
@@ -728,7 +669,7 @@ class MoneyRepository(
         val acc = TinyBayes.predict(tokens, tc, lc.filterKeys { it in liveAccs }, "acc:")
         var catId = cat?.label?.removePrefix("cat:")
         // With sub-categories off, suggest the main category even if history learned a sub-category.
-        if (catId != null && settingNow(Keys.USE_SUBCATEGORIES) != "1") {
+        if (catId != null && !settingNow(Prefs.USE_SUBCATEGORIES)) {
             catId = q.allCategories().executeAsList().firstOrNull { it.id == catId }?.parentId ?: catId
         }
         return Suggestion(catId, acc?.label?.removePrefix("acc:"), cat?.confidence ?: 0.0, acc?.confidence ?: 0.0)
@@ -748,8 +689,8 @@ class MoneyRepository(
      */
     fun ingestMessage(source: String, sender: String, text: String, receivedAt: Long): Capture? {
         val from = Log.sender(sender)
-        if (MessageRules.isBlocked(sender, text, MessageRules.lines(settingNow(Keys.SMS_BLOCKED_SENDERS)),
-                MessageRules.lines(settingNow(Keys.SMS_BLOCKED_PHRASES)))) return null.also { Log.d("Sms") { "$source from $from: blocked by your rules" } }
+        if (MessageRules.isBlocked(sender, text, MessageRules.lines(settingNow(Prefs.SMS_BLOCKED_SENDERS)),
+                MessageRules.lines(settingNow(Prefs.SMS_BLOCKED_PHRASES)))) return null.also { Log.d("Sms") { "$source from $from: blocked by your rules" } }
         val p = SmsParser.parse(sender, cleanMessage(text), mainDecimals())
             ?: return null.also { Log.d("Sms") { "$source from $from: not a transaction (${text.length} chars)" } }
         val tokens = SmsParser.tokens(p)
@@ -767,7 +708,7 @@ class MoneyRepository(
         )
         if (!addCapture(capture)) return null.also { Log.d("Sms") { "$source from $from: already seen" } }
         // "Auto-save": straight into the books when the account is known.
-        if (settingNow(Keys.SMS_AUTO_SAVE) == "1" && capture.accountId != null && (capture.amount ?: 0) != 0L) {
+        if (settingNow(Prefs.SMS_AUTO_SAVE) && capture.accountId != null && (capture.amount ?: 0) != 0L) {
             val d = draftFromCapture(capture)
             // Only complete entries are saved on their own; without a category it waits for review.
             if (d.categoryId != null) {
@@ -780,7 +721,7 @@ class MoneyRepository(
         return capture
     }
 
-    private fun cleanMessage(text: String) = MessageRules.clean(text, MessageRules.lines(settingNow(Keys.SMS_CONTENT_FILTER)))
+    private fun cleanMessage(text: String) = MessageRules.clean(text, MessageRules.lines(settingNow(Prefs.SMS_CONTENT_FILTER)))
 
     /** Builds an editor draft from a pending capture, filling category/account from what was learned. */
     fun draftFromCapture(c: Capture): TxnDraft {
@@ -805,7 +746,7 @@ class MoneyRepository(
             c.accountId ?: p?.let { MessageRules.suggestAccount(accountsNow(), groupsNow(), c.sender, c.text, it, s?.accountId) }.orEmpty(),
             categoryId = category, amount = (c.amount ?: 0) * type.sign,
             note = p?.vendor.orEmpty(), currency = knownCurrency,
-            origin = if (settingNow(Keys.SMS_SHOW_ORIGINAL) == "0") "" else c.text,
+            origin = if (settingNow(Prefs.SMS_SHOW_ORIGINAL) == SmsOriginal.OFF) "" else c.text,
         )
     }
 
@@ -834,7 +775,7 @@ class MoneyRepository(
     fun generateRecurring(): Int = db.transactionWithResult {
         var created = 0
         // "On the first day of every month": the whole month's repeats are added as soon as it starts.
-        val horizon = if (settingNow(Keys.REPEAT_TIMING) == "MONTH_START") {
+        val horizon = if (settingNow(Prefs.REPEAT_TIMING) == RepeatTiming.MONTH_START) {
             val ps = periodSettingsNow()
             ps.month(ps.labelFor(today())).endInclusive
         } else today()
@@ -938,13 +879,10 @@ class MoneyRepository(
      */
     /** Everything a Money Manager backup can hold, in the importer's shape, for [MoneyManagerExport]. Deleted accounts and categories are kept so old entries keep their names. */
     fun moneyManagerData(): MoneyManagerBackup.Data {
-        val keys = listOf(Keys.MONTH_START_DAY, Keys.WEEKEND_SHIFT, Keys.WEEK_START, Keys.CARRY_OVER, Keys.CARD_AT_PAYMENT, Keys.USE_SUBCATEGORIES,
-            Keys.START_SCREEN, Keys.SWIPE, Keys.COLOR_SET, Keys.TIME_INPUT, Keys.TIME_SORT, Keys.SHOW_DESCRIPTION, Keys.AUTOCOMPLETE, Keys.NOTE_BUTTON,
-            Keys.INPUT_ORDER, Keys.REPEAT_TIMING, Keys.SMS_BLOCKED_SENDERS, Keys.SMS_BLOCKED_PHRASES, Keys.SMS_CONTENT_FILTER, Keys.SMS_AUTO_SAVE,
-            Keys.SMS_ALERT, Keys.SMS_SHOW_ORIGINAL, Keys.SMS_IMPORT_DAYS, Keys.SYMBOL_AFTER, Keys.QUICK_ADD_NOTIFICATION)
-        val mainCode = settingNow(Keys.CURRENCY_CODE) ?: "INR"
+        val keys = Prefs.carriedByMoneyManager.map { it.key }
+        val mainCode = settingNow(Prefs.CURRENCY_CODE)
         return MoneyManagerBackup.Data(
-            mainCode = mainCode, mainSymbol = settingNow(Keys.CURRENCY_SYMBOL) ?: "₹", mainDecimals = mainDecimals(),
+            mainCode = mainCode, mainSymbol = settingNow(Prefs.CURRENCY_SYMBOL), mainDecimals = mainDecimals(),
             currencies = q.allCurrencies().executeAsList().filter { it.code != mainCode }
                 .map { MoneyManagerBackup.Currency(it.code, it.symbol, it.decimals.toInt(), it.rate) },
             groups = q.everyGroup().executeAsList().map { MoneyManagerBackup.Group(it.id, it.name, AccountType.valueOf(it.type), it.sortOrder.toInt(), it.deleted != 0L) },
@@ -981,9 +919,9 @@ class MoneyRepository(
             q::wipeTxnTags, q::wipeCurrencies, q::wipeNotes, q::wipePhotos, q::wipeTemplates, q::wipeLearning, q::wipeLearnLabels, q::wipeCaptures)
             .forEach { it() }
         val ts = now()
-        putSetting(Keys.CURRENCY_SYMBOL, d.mainSymbol)
-        putSetting(Keys.CURRENCY_DECIMALS, d.mainDecimals.toString())
-        putSetting(Keys.CURRENCY_CODE, d.mainCode)
+        putSetting(Prefs.CURRENCY_SYMBOL, d.mainSymbol)
+        putSetting(Prefs.CURRENCY_DECIMALS, d.mainDecimals)
+        putSetting(Prefs.CURRENCY_CODE, d.mainCode)
         d.settings.forEach { (k, v) -> putSetting(k, v) }
         d.currencies.forEachIndexed { i, c -> saveCurrency(Currency(c.code, c.symbol, c.decimals, c.rate, i)) }
         d.groups.forEach { g -> q.upsertGroupRaw(g.id, g.name, g.type.name, g.sortOrder.toLong(), g.deleted.toLong(), ts) }
@@ -1025,7 +963,7 @@ class MoneyRepository(
 
     fun seedIfEmpty() = db.transaction {
         ensureSystemTags()
-        if (settingNow(Keys.SEEDED) == "1") return@transaction
+        if (settingNow(Prefs.SEEDED)) return@transaction
         val ts = now()
         val groups = listOf(
             "Cash" to AccountType.CASH, "Bank Accounts" to AccountType.BANK, "Credit Cards" to AccountType.CREDIT_CARD,
@@ -1053,7 +991,7 @@ class MoneyRepository(
             q.upsertCategory(CategoryRow(id, main, CategoryKind.EXPENSE.name, null, i.toLong(), 0, ts, null))
             subs.forEachIndexed { j, s -> q.upsertCategory(CategoryRow("${id}_$j", s, CategoryKind.EXPENSE.name, id, j.toLong(), 0, ts, null)) }
         }
-        q.putSetting(Keys.SEEDED, "1")
+        putSetting(Prefs.SEEDED, true)
     }
 }
 

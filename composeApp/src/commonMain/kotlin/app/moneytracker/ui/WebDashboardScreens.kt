@@ -50,7 +50,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -102,8 +102,8 @@ internal fun rememberWebDashboardUi(onMessage: (String) -> Unit): WebDashboardUi
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
     val state by platform.webDashboard.collectAsState()
-    val password by remember(repo) { repo.setting(Keys.WEB_PASSWORD) }.collectAsState(null)
-    val autoStop by remember(repo) { repo.setting(Keys.WEB_AUTO_STOP) }.collectAsState(null)
+    val password by rememberSetting(Prefs.WEB_PASSWORD)
+    val autoStop by rememberSetting(Prefs.WEB_AUTO_STOP)
     var now by remember { mutableLongStateOf(Clock.System.now().toEpochMilliseconds()) }
     var copied by remember { mutableStateOf(false) }
     // No lifecycle hook in common code: a cheap re-check notices Wi-Fi changes and keeps "Active 2 min ago" current.
@@ -117,8 +117,8 @@ internal fun rememberWebDashboardUi(onMessage: (String) -> Unit): WebDashboardUi
     LaunchedEffect(copied) { if (copied) { delay(2000); copied = false } }
     return WebDashboardUi(
         state = state,
-        passwordSet = !password.isNullOrEmpty(),
-        autoStop = autoStop?.toIntOrNull()?.takeIf { it in WEB_AUTO_STOPS } ?: WEB_AUTO_STOPS.first(),
+        passwordSet = password.isNotEmpty(),
+        autoStop = autoStop.takeIf { it in WEB_AUTO_STOPS } ?: Prefs.WEB_AUTO_STOP.default,
         now = now,
         start = { platform.startWebDashboard { ok -> if (!ok) onMessage(platform.webDashboard.value.error ?: tr("Couldn't start the web dashboard")) } },
         stop = { platform.stopWebDashboard() },
@@ -130,7 +130,7 @@ internal fun rememberWebDashboardUi(onMessage: (String) -> Unit): WebDashboardUi
                 onMessage(if (pw == null) tr("Password turned off") else tr("Password saved. Computers sign in again."))
             }
         },
-        setAutoStop = { m -> scope.launch { withContext(repo.io) { repo.putSetting(Keys.WEB_AUTO_STOP, m.toString()) } } },
+        setAutoStop = { m -> scope.saveSetting(repo, Prefs.WEB_AUTO_STOP, m) },
         openWifi = { platform.openWifiSettings() },
         copied = copied,
     )

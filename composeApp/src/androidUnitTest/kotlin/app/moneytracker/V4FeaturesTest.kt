@@ -3,7 +3,7 @@ package app.moneytracker
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.DateRange
@@ -50,7 +50,7 @@ class V4FeaturesTest {
         assertTrue(repo.noteSuggestions("L").isEmpty())
         expense("Lemonade")
         assertEquals(listOf("Lemonade"), repo.noteSuggestions("L").map { it.note })
-        repo.putSetting(Keys.AUTOCOMPLETE, "0")
+        repo.putSetting(Prefs.AUTOCOMPLETE.key, "0")
         assertTrue(repo.noteSuggestions("L").isEmpty())
     }
 
@@ -59,7 +59,7 @@ class V4FeaturesTest {
         expense("evening", time = 20 * 60)
         expense("no time")
         assertEquals(listOf("evening", "morning", "no time"), repo.txnsBetween(all).first().map { it.note })
-        repo.putSetting(Keys.TIME_SORT, "ASC")
+        repo.putSetting(Prefs.TIME_SORT.key, "ASC")
         assertEquals(listOf("no time", "morning", "evening"), repo.txnsBetween(all).first().map { it.note })
         assertEquals(20 * 60, repo.txnsBetween(all).first().last().timeOfDay)
     }

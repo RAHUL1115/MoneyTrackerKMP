@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import app.moneytracker.data.Prefs
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.MoneyManagerBackup
 import app.moneytracker.data.MoneyRepository
@@ -127,17 +128,17 @@ class MoneyManagerImportTest {
         assertEquals(listOf("a3"), repo.deletedAccounts.first().map { it.id })
         assertEquals("Closed bank", repo.accountNames.first()["a3"])     // history still shows its name
 
-        assertEquals("25", repo.settingNow(MoneyRepository.Keys.MONTH_START_DAY))
-        assertEquals("MONDAY", repo.settingNow(MoneyRepository.Keys.WEEK_START))
-        assertEquals("INPUT", repo.settingNow(MoneyRepository.Keys.TIME_INPUT)); assertEquals("DESC", repo.settingNow(MoneyRepository.Keys.TIME_SORT))
-        assertEquals("0", repo.settingNow(MoneyRepository.Keys.AUTOCOMPLETE)); assertEquals("ACCOUNT", repo.settingNow(MoneyRepository.Keys.INPUT_ORDER))
-        assertEquals("1", repo.settingNow(MoneyRepository.Keys.SHOW_DESCRIPTION))
+        assertEquals("25", repo.settingNow(Prefs.MONTH_START_DAY.key))
+        assertEquals("MONDAY", repo.settingNow(Prefs.WEEK_START.key))
+        assertEquals("INPUT", repo.settingNow(Prefs.TIME_INPUT.key)); assertEquals("DESC", repo.settingNow(Prefs.TIME_SORT.key))
+        assertEquals("0", repo.settingNow(Prefs.AUTOCOMPLETE.key)); assertEquals("ACCOUNT", repo.settingNow(Prefs.INPUT_ORDER.key))
+        assertEquals("1", repo.settingNow(Prefs.SHOW_DESCRIPTION.key))
         assertEquals("1530", data.passcodePin)
-        assertEquals("1", repo.settingNow(MoneyRepository.Keys.CARRY_OVER))
+        assertEquals("1", repo.settingNow(Prefs.CARRY_OVER.key))
         assertEquals(listOf("Trip"), repo.txnTagNames.first()["t1"])
         assertEquals(listOf(30_000_00L), repo.budgetEntries(app.moneytracker.domain.YearMonth(2026, 10)).first().map { it.amount })
         // Money Manager had sub-categories off, so suggestions use the main category.
-        assertEquals("0", repo.settingNow(MoneyRepository.Keys.USE_SUBCATEGORIES))
+        assertEquals("0", repo.settingNow(Prefs.USE_SUBCATEGORIES.key))
         assertEquals("c1", repo.suggest(listOf("pizza")).categoryId)       // learned "Lunch", suggested as "Food"
     }
 

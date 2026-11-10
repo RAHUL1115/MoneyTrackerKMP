@@ -333,7 +333,7 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
 
     override fun setWebPassword(password: String?) {
         val repo = (ctx as MoneyTrackerApp).database.repo ?: return
-        repo.putSetting(app.moneytracker.data.MoneyRepository.Keys.WEB_PASSWORD, password?.let { app.moneytracker.web.WebPassword.hash(it) } ?: "")
+        repo.putSetting(app.moneytracker.data.Prefs.WEB_PASSWORD, password?.let { app.moneytracker.web.WebPassword.hash(it) } ?: "")
         app.moneytracker.web.WebDashboard.signOutAll()
     }
 

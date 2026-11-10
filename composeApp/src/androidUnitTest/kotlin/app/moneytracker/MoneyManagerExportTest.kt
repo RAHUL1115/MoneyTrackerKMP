@@ -5,7 +5,7 @@ import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyManagerBackup
 import app.moneytracker.data.MoneyManagerExport
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.RowSink
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
@@ -69,8 +69,8 @@ class MoneyManagerExportTest {
         val tag = repo.tagNamed("Trip")
         repo.allTxns().first { it.note == "Dinner" }.let { repo.setTags(it.id, listOf(tag, TAG_PREPAYMENT)) }
         repo.saveNote(Note("n1", "Plan", "Save more", pinned = true, createdAt = 1_776_000_000_000, updatedAt = 1_776_000_000_000))
-        repo.putSetting(Keys.MONTH_START_DAY, "25"); repo.putSetting(Keys.COLOR_SET, "B"); repo.putSetting(Keys.WEEK_START, "MONDAY")
-        repo.putSetting(Keys.TIME_INPUT, "LIST"); repo.putSetting(Keys.TIME_SORT, "ASC"); repo.putSetting(Keys.SMS_BLOCKED_SENDERS, "AD-PROMO\nVM-SPAM")
+        repo.putSetting(Prefs.MONTH_START_DAY.key, "25"); repo.putSetting(Prefs.COLOR_SET.key, "B"); repo.putSetting(Prefs.WEEK_START.key, "MONDAY")
+        repo.putSetting(Prefs.TIME_INPUT.key, "LIST"); repo.putSetting(Prefs.TIME_SORT.key, "ASC"); repo.putSetting(Prefs.SMS_BLOCKED_SENDERS.key, "AD-PROMO\nVM-SPAM")
     }
 
     private fun export(d: MoneyManagerBackup.Data): Connection =

@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import app.moneytracker.data.Prefs
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.IosMoneyManagerSource
 import app.moneytracker.data.MoneyManagerBackup
@@ -127,10 +128,10 @@ class IosMoneyManagerImportTest {
 
         assertEquals(listOf(30_000_00L), repo.budgetEntries(YearMonth(2026, 10)).first().map { it.amount })
         assertEquals(listOf("Trip"), repo.txnTagNames.first()["t1"])
-        assertEquals("25", repo.settingNow(MoneyRepository.Keys.MONTH_START_DAY))
-        assertEquals("MONDAY", repo.settingNow(MoneyRepository.Keys.WEEK_START))
-        assertEquals("1", repo.settingNow(MoneyRepository.Keys.USE_SUBCATEGORIES))
-        assertEquals("A", repo.settingNow(MoneyRepository.Keys.COLOR_SET))   // default colours written when missing
+        assertEquals("25", repo.settingNow(Prefs.MONTH_START_DAY.key))
+        assertEquals("MONDAY", repo.settingNow(Prefs.WEEK_START.key))
+        assertEquals("1", repo.settingNow(Prefs.USE_SUBCATEGORIES.key))
+        assertEquals("A", repo.settingNow(Prefs.COLOR_SET.key))   // default colours written when missing
         assertEquals("1530", data.passcodePin)
     }
 

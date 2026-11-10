@@ -3,7 +3,7 @@ package app.moneytracker
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.Currency
@@ -72,7 +72,7 @@ class HabitAccountTest {
 
     @Test fun settingOffSuggestsNothing() {
         add(DraftType.EXPENSE, "acc_cash", "cat_ex_0")
-        repo.putSetting(Keys.HABIT_ACCOUNT, "0")
+        repo.putSetting(Prefs.HABIT_ACCOUNT.key, "0")
         assertNull(repo.habitAccount(TxnKind.EXPENSE, "cat_ex_0"))
         assertNull(repo.habitAccount(TxnKind.EXPENSE, null))
     }

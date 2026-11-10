@@ -93,8 +93,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toLocalDateTime
 
-private const val PHOTO_NOTICE_KEY = "photoNoticeShown"
-
 private enum class Panel { NONE, AMOUNT, FEE, CATEGORY, ACCOUNT, TO_ACCOUNT }
 
 @Composable
@@ -114,7 +112,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     var adjustUp by rememberSaveable { mutableStateOf(true) }
     // Picking Income / Expense / Transfer on an adjustment turns it into a normal entry.
     var convertedFromAdjustment by rememberSaveable { mutableStateOf(false) }
-    val accountFirst = remember { repo.settingNow(app.moneytracker.data.MoneyRepository.Keys.INPUT_ORDER) == "ACCOUNT" }
+    val accountFirst = remember { repo.settingNow(app.moneytracker.data.Prefs.INPUT_ORDER) == app.moneytracker.data.InputOrder.ACCOUNT }
     var type by rememberSaveable { mutableStateOf(screen.preset?.type ?: DraftType.EXPENSE) }
     var date by rememberSaveable(stateSaver = DateSaver) { mutableStateOf(screen.date ?: screen.preset?.date ?: repo.today()) }
     var accountId by rememberSaveable { mutableStateOf(screen.preset?.accountId?.ifBlank { null }) }
@@ -144,7 +142,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     var photoMenu by remember { mutableStateOf(false) }
     var photoNotice by remember { mutableStateOf(false) }
     val tags by repo.tags.collectAsState(emptyList())
-    val locationOn by remember(repo) { repo.flag(app.moneytracker.data.MoneyRepository.Keys.LOCATION) }.collectAsState(false)
+    val locationOn by rememberSetting(app.moneytracker.data.Prefs.LOCATION)
     val capture = screen.captureId?.let { id -> repo.pendingCaptures.collectAsState(emptyList()).value.firstOrNull { it.id == id } }
     var feeText by rememberSaveable { mutableStateOf("") }
     var showFee by rememberSaveable { mutableStateOf(false) }
@@ -164,8 +162,8 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     var copyDialog by remember { mutableStateOf(false) }
     val noteFocus = remember { FocusRequester() }
     var noteFocused by remember { mutableStateOf(false) }
-    val timeInput by remember(repo) { repo.setting(app.moneytracker.data.MoneyRepository.Keys.TIME_INPUT) }.collectAsState(repo.settingNow(app.moneytracker.data.MoneyRepository.Keys.TIME_INPUT))
-    val timeOn = timeInput == "INPUT" || timeInput == "LIST"
+    val timeInput by rememberSetting(app.moneytracker.data.Prefs.TIME_INPUT, remember(repo) { repo.settingNow(app.moneytracker.data.Prefs.TIME_INPUT) })
+    val timeOn = timeInput != app.moneytracker.data.TimeInput.NONE
     // New entries get the current time when time input is on; edits keep what was stored.
     var timeOfDay by rememberSaveable { mutableStateOf(screen.preset?.timeOfDay ?: if (screen.txnId == null && timeOn) nowMinutes() else null) }
     var timePicker by remember { mutableStateOf(false) }
@@ -510,7 +508,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                     if (!isAdjustment) Box {
                         IconButton(onClick = {
                             focus.clearFocus(); panel = Panel.NONE
-                            if (repo.settingNow(PHOTO_NOTICE_KEY) == "1") photoMenu = true else photoNotice = true
+                            if (repo.settingNow(app.moneytracker.data.Prefs.PHOTO_NOTICE_SHOWN)) photoMenu = true else photoNotice = true
                         }) {
                             Icon(Icons.Outlined.PhotoCamera, tr("Add photo"), tint = SubtleText)
                         }
@@ -521,7 +519,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                     }
                 }
                 // The bank message this entry came from, read-only.
-                if (origin.isNotBlank() && repo.settingNow(app.moneytracker.data.MoneyRepository.Keys.SMS_SHOW_ORIGINAL) != "0") {
+                if (origin.isNotBlank() && repo.settingNow(app.moneytracker.data.Prefs.SMS_SHOW_ORIGINAL) != app.moneytracker.data.SmsOriginal.OFF) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp)) {
                         Text(tr("Original message"), color = SubtleText, fontSize = 12.sp)
                         Text(origin, Modifier.padding(top = 2.dp), color = InkSoft, fontSize = 13.sp)
@@ -675,7 +673,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
             confirmButton = {
                 TextButton(onClick = {
                     photoNotice = false; photoMenu = true
-                    scope.launch { withContext(repo.io) { repo.putSetting(PHOTO_NOTICE_KEY, "1") } }
+                    scope.saveSetting(repo, app.moneytracker.data.Prefs.PHOTO_NOTICE_SHOWN, true)
                 }) { Text(tr("OK"), color = Accent) }
             },
         )
@@ -986,12 +984,12 @@ private fun AccountPanel(title: String, accounts: List<Account>, selectedIds: Se
     val repo = LocalRepo.current
     val scope = rememberCoroutineScope()
     val groups by repo.groups.collectAsState(emptyList())
-    val grouped by remember(repo) { repo.flag(app.moneytracker.data.MoneyRepository.Keys.ACCOUNTS_GROUPED) }.collectAsState(false)
+    val grouped by rememberSetting(app.moneytracker.data.Prefs.ACCOUNTS_GROUPED)
     Column(Modifier.sheet()) {
         PanelHeader(title, onEdit, onClose, extra = {
             // Grid of all accounts, or groups on the left and their accounts on the right (remembered).
             IconButton(onClick = {
-                scope.launch { withContext(repo.io) { repo.putSetting(app.moneytracker.data.MoneyRepository.Keys.ACCOUNTS_GROUPED, if (grouped) "0" else "1") } }
+                scope.saveSetting(repo, app.moneytracker.data.Prefs.ACCOUNTS_GROUPED, !grouped)
             }) { Icon(if (grouped) Icons.Outlined.GridView else Icons.Outlined.ViewList, if (grouped) tr("Show all accounts") else tr("Show by group"), tint = InkSoft) }
         })
         // The grid leaves hidden accounts out; the group view lists them greyed, so they stay reachable.
@@ -1004,7 +1002,7 @@ private fun AccountPanel(title: String, accounts: List<Account>, selectedIds: Se
                     Text(tr("Pick one from the group view, or show accounts again in Settings › Accounts."), Modifier.padding(top = 6.dp),
                         color = SubtleText, fontSize = 13.sp, textAlign = TextAlign.Center)
                     TextButton(onClick = {
-                        scope.launch { withContext(repo.io) { repo.putSetting(app.moneytracker.data.MoneyRepository.Keys.ACCOUNTS_GROUPED, "1") } }
+                        scope.saveSetting(repo, app.moneytracker.data.Prefs.ACCOUNTS_GROUPED, true)
                     }, Modifier.padding(top = 8.dp)) { Text(tr("Show by group"), color = Accent) }
                 }
             } else GridPanel(visible, { it.name }, onPick)

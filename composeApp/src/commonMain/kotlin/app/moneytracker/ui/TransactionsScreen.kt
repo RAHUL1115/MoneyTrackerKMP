@@ -1,5 +1,7 @@
 package app.moneytracker.ui
 
+import app.moneytracker.data.Swipe
+import app.moneytracker.data.Prefs
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import app.moneytracker.domain.ReportRules
 import androidx.compose.ui.input.pointer.pointerInput
@@ -113,7 +115,7 @@ fun TransactionsTab() {
     val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
     var periodKey by rememberPeriod()
     var view by rememberSaveable {
-        mutableStateOf(repo.settingNow(MoneyRepository.Keys.START_SCREEN)?.let { s -> TransView.entries.firstOrNull { it.name == s } } ?: TransView.DAILY)
+        mutableStateOf(repo.settingNow(Prefs.START_SCREEN).let { s -> TransView.entries.first { it.name == s.name } })
     }
     val ym = YearMonth.fromKey(periodKey)
     val range = ps.month(ym)
@@ -147,14 +149,14 @@ fun TransactionsTab() {
             if (filter.isActive && view != TransView.TOTAL && view != TransView.NOTE) {
                 FilterBar(filter, filterCats.associateBy { it.id }, filterAccounts, onEdit = { filterSheet = true }, onClear = { filter = TxnFilter() })
             }
-            val swipe by remember(repo) { repo.setting(MoneyRepository.Keys.SWIPE) }.collectAsState(null)
+            val swipe by rememberSetting(Prefs.SWIPE)
             // Horizontal swipe: next/previous month (default) or tab, per Configuration.
-            val swipeModifier = if (swipe == "NONE") Modifier else Modifier.pointerInput(swipe, view, periodKey) {
+            val swipeModifier = if (swipe == Swipe.NONE) Modifier else Modifier.pointerInput(swipe, view, periodKey) {
                 var dx = 0f
                 detectHorizontalDragGestures(onDragStart = { dx = 0f }, onDragEnd = {
                     val dir = when { dx < -120f -> 1; dx > 120f -> -1; else -> 0 }
                     if (dir != 0) {
-                        if (swipe == "TAB") view = TransView.entries[(view.ordinal + dir).coerceIn(0, TransView.entries.lastIndex)]
+                        if (swipe == Swipe.TAB) view = TransView.entries[(view.ordinal + dir).coerceIn(0, TransView.entries.lastIndex)]
                         else periodKey = ym.plus(dir * if (view == TransView.MONTHLY) 12 else 1).key
                     }
                 }) { _, amount -> dx += amount }
@@ -174,9 +176,9 @@ fun TransactionsTab() {
         if (listening) ListenSheet(onDismiss = { listening = false }, startTyping = listenTyping) { g -> nav.push(Screen.EditTxn(preset = g?.draft)) }
         if (filterSheet) FilterSheet(range, filter, onDismiss = { filterSheet = false }) { filter = it; filterSheet = false }
         // Note button beside + on the Daily view (Configuration › Note button).
-        val noteButton by remember(repo) { repo.setting(app.moneytracker.data.MoneyRepository.Keys.NOTE_BUTTON) }.collectAsState(null)
+        val noteButton by rememberSetting(Prefs.NOTE_BUTTON)
         Row(Modifier.align(Alignment.BottomEnd), verticalAlignment = Alignment.CenterVertically) {
-            if (view == TransView.DAILY && noteButton != "0") {
+            if (view == TransView.DAILY && noteButton) {
                 androidx.compose.material3.SmallFloatingActionButton(
                     onClick = { nav.push(Screen.EditNote()) }, modifier = Modifier.padding(end = 0.dp, bottom = 20.dp),
                     containerColor = SurfaceColor, contentColor = Accent, shape = RoundedCornerShape(14.dp),
@@ -193,7 +195,7 @@ fun TransactionsTab() {
 @Composable
 fun rememberCarryOver(range: DateRange): Long? {
     val repo = LocalRepo.current
-    val on by remember(repo) { repo.flag(MoneyRepository.Keys.CARRY_OVER) }.collectAsState(false)
+    val on by rememberSetting(Prefs.CARRY_OVER)
     val before = DateRange(LocalDate(1970, 1, 1), range.start.minus(DatePeriod(days = 1)))
     val rows by remember(before) { repo.reportRows(before) }.collectAsState(emptyList())
     return if (on) totals(rows).net else null

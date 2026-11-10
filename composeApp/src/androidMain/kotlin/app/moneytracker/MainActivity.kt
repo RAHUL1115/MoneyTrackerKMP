@@ -33,9 +33,9 @@ class MainActivity : FragmentActivity() {
         platform = AndroidPlatform(this)
         // Older passcode hashes only work with this install's salt; store them with it so backups carry the passcode.
         db.repo?.let { repo ->
-            val hash = repo.settingNow(app.moneytracker.data.MoneyRepository.Keys.PASSCODE)
+            val hash = repo.settingNow(app.moneytracker.data.Prefs.PASSCODE)
             if (!hash.isNullOrBlank() && !app.moneytracker.ui.isPortablePinHash(hash))
-                platform.portablePinHash(hash)?.let { repo.putSetting(app.moneytracker.data.MoneyRepository.Keys.PASSCODE, it) }
+                platform.portablePinHash(hash)?.let { repo.putSetting(app.moneytracker.data.Prefs.PASSCODE, it) }
         }
         val backup = AndroidBackupController(this, db, hashPin = platform::hashPin, portablePinHash = platform::portablePinHash)
         backup.autoBackupIfDue()
@@ -46,7 +46,7 @@ class MainActivity : FragmentActivity() {
         if (skipLockOnce) { skipLockOnce = false; process.unlocked = true }
         locked = !process.unlocked
         // Layout is fixed for the life of this activity; Settings restarts the app to switch it.
-        val newLayout = db.repo?.settingNow(app.moneytracker.data.MoneyRepository.Keys.UI_LAYOUT) == "NEW"
+        val newLayout = db.repo?.settingNow(app.moneytracker.data.Prefs.UI_LAYOUT) == app.moneytracker.data.UiLayout.NEW
         readSystemAccent()
 
         val back = object : OnBackPressedCallback(false) {

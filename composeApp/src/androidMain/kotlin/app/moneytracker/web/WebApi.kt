@@ -4,7 +4,7 @@ import app.moneytracker.data.DraftType
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.EntryProblem
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.TabularImport
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Account
@@ -144,7 +144,7 @@ class WebApi(
 
     // ───────────────────────── sign-in
 
-    private fun passwordSet(r: MoneyRepository) = !r.settingNow(Keys.WEB_PASSWORD).isNullOrEmpty()
+    private fun passwordSet(r: MoneyRepository) = !r.settingNow(Prefs.WEB_PASSWORD).isNullOrEmpty()
 
     private fun cookieToken(req: HttpRequest): String? = req.header("cookie")?.split(';')
         ?.map { it.trim() }?.firstOrNull { it.startsWith("$COOKIE=") }?.substringAfter('=')
@@ -194,7 +194,7 @@ class WebApi(
         if (wait > 0) return HttpResponse.json(mapOf("error" to "Too many tries. Wait a minute, then try again.", "wait" to wait), 429)
         val body = runCatching { Json.parse(req.bodyText) as? Map<*, *> }.getOrNull()
         val password = body?.get("password") as? String ?: return HttpResponse.error(400, "Enter the password")
-        val stored = r.settingNow(Keys.WEB_PASSWORD)
+        val stored = r.settingNow(Prefs.WEB_PASSWORD)
         if (stored.isNullOrEmpty() || WebPassword.check(password, stored)) {
             synchronized(lockouts) { lockouts.remove(req.remote) }
             val (_, cookie) = newSession(req)
@@ -266,7 +266,7 @@ class WebApi(
         val groupType = groups.associate { it.id to it.type }
         return mapOf(
             "currency" to mapOf("symbol" to fmt.symbol, "decimals" to fmt.decimals, "after" to fmt.symbolAfter,
-                "code" to (r.settingNow(Keys.CURRENCY_CODE) ?: "INR")),
+                "code" to (r.settingNow(Prefs.CURRENCY_CODE) ?: "INR")),
             "currencies" to r.currenciesNow().map { mapOf("code" to it.code, "symbol" to it.symbol, "decimals" to it.decimals) },
             "today" to r.today().toString(),
             "month" to ps.labelFor(r.today()).key,
@@ -278,7 +278,7 @@ class WebApi(
             "categories" to r.categoriesNow().map { mapOf("id" to it.id, "name" to it.name, "kind" to it.kind.name, "parentId" to it.parentId) } +
                 mapOf("id" to MODIFIED_BALANCE_CATEGORY, "name" to MODIFIED_BALANCE_NAME, "kind" to "SYSTEM", "parentId" to null),
             "tags" to r.tagsNow().map { mapOf("id" to it.id, "name" to it.name) },
-            "subcategories" to (r.settingNow(Keys.USE_SUBCATEGORIES) == "1"),
+            "subcategories" to r.settingNow(Prefs.USE_SUBCATEGORIES),
         )
     }
 

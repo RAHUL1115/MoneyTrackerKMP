@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.newId
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.Category
@@ -110,7 +110,7 @@ internal fun FreshCategories(kind: CategoryKind) {
         if (!useSubcategories) FCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(tr("Sub-categories are off, so Add shows only main categories."), Modifier.weight(1f), color = F.muted, fontSize = 13.sp)
-                StgTextButton(tr("Turn on"), { write { repo.putSetting(Keys.USE_SUBCATEGORIES, "1") } })
+                StgTextButton(tr("Turn on"), { write { repo.putSetting(Prefs.USE_SUBCATEGORIES, true) } })
             }
         }
     }

@@ -2,6 +2,11 @@
 
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.ui.rememberSetting
+import app.moneytracker.ui.saveSetting
+import app.moneytracker.data.TimeInput
+import app.moneytracker.data.SmsOriginal
+import app.moneytracker.data.InputOrder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
@@ -74,7 +79,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.Saver
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.Template
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.data.newId
@@ -117,7 +122,6 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 
-private const val PHOTO_NOTICE_KEY = "photoNoticeShown"
 private const val RECENT_TAB = "recent"
 private const val OTHER_TAB = "other"
 
@@ -130,7 +134,7 @@ private enum class AddSheet { NONE, TAGS, REPEAT, CURRENCY, BOOKMARK, COPY, DATE
 /** The entry being added or edited. Mirrors the classic editor's state and rules; only the screens differ. */
 @Stable
 private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: CurrencyFormat, val currencies: Map<String, Currency>, timeOn: Boolean) {
-    val accountFirst = repo.settingNow(Keys.INPUT_ORDER) == "ACCOUNT"
+    val accountFirst = repo.settingNow(Prefs.INPUT_ORDER) == InputOrder.ACCOUNT
     var existing by mutableStateOf<Txn?>(null)
     // Balance adjustments edit as Increase / Decrease; picking a type turns one into a normal entry.
     var adjustUp by mutableStateOf(true)
@@ -295,9 +299,9 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     val catById by repo.categoryById.collectAsState(emptyMap())
     val tags by repo.tags.collectAsState(emptyList())
     val useSubcategories by repo.useSubcategories.collectAsState(false)
-    val locationOn by remember(repo) { repo.flag(Keys.LOCATION) }.collectAsState(false)
-    val timeInput by remember(repo) { repo.setting(Keys.TIME_INPUT) }.collectAsState(repo.settingNow(Keys.TIME_INPUT))
-    val timeOn = timeInput == "INPUT" || timeInput == "LIST"
+    val locationOn by rememberSetting(Prefs.LOCATION)
+    val timeInput by rememberSetting(Prefs.TIME_INPUT, remember(repo) { repo.settingNow(Prefs.TIME_INPUT) })
+    val timeOn = timeInput != TimeInput.NONE
     val capture = s.captureId?.let { id -> repo.pendingCaptures.collectAsState(emptyList()).value.firstOrNull { it.id == id } }
 
     // What was typed survives the app being closed in the background (the form is rebuilt, then refilled).
@@ -817,10 +821,10 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
                     ExtraChip(if (bookmarked) tr("Bookmarked ★") else tr("Bookmark"), bookmarked) { focus.clearFocus(); sheet = AddSheet.BOOKMARK }
                 }
                 if (f.lat != null && f.lng != null) ExtraChip(tr("Location"), true) { sheet = AddSheet.PLACE }
-                if (f.origin.isNotBlank() && repo.settingNow(Keys.SMS_SHOW_ORIGINAL) != "0") ExtraChip(tr("Bank SMS"), true) { sheet = AddSheet.ORIGIN }
+                if (f.origin.isNotBlank() && repo.settingNow(Prefs.SMS_SHOW_ORIGINAL) != SmsOriginal.OFF) ExtraChip(tr("Bank SMS"), true) { sheet = AddSheet.ORIGIN }
                 if (!f.isAdjustment) ExtraChip(when (allPhotos.size) { 0 -> tr("Photo"); 1 -> tr("1 photo"); else -> tr("{0} photos", allPhotos.size) }, allPhotos.isNotEmpty()) {
                     focus.clearFocus()
-                    if (allPhotos.isEmpty() && repo.settingNow(PHOTO_NOTICE_KEY) != "1") photoNotice = true else sheet = AddSheet.PHOTO
+                    if (allPhotos.isEmpty() && !repo.settingNow(app.moneytracker.data.Prefs.PHOTO_NOTICE_SHOWN)) photoNotice = true else sheet = AddSheet.PHOTO
                 }
                 ExtraChip(if (f.memo.isBlank()) tr("Description") else tr("Description ✓"), f.memo.isNotBlank()) { focus.clearFocus(); sheet = AddSheet.DESC }
             }
@@ -987,7 +991,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         tr("OK"), { photoNotice = false }, danger = false,
     ) {
         sheet = AddSheet.PHOTO
-        scope.launch { withContext(repo.io) { repo.putSetting(PHOTO_NOTICE_KEY, "1") } }
+        scope.saveSetting(repo, app.moneytracker.data.Prefs.PHOTO_NOTICE_SHOWN, true)
     }
     if (confirmDelete) f.existing?.let { e ->
         Confirm(

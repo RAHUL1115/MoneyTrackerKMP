@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import app.moneytracker.data.Prefs
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.db.MoneyDatabase
@@ -58,7 +59,7 @@ class SmsAccountMatchingTest {
     }
 
     @Test fun bankOnlyAmbiguityDoesNotGuessOrAutoSave() {
-        repo.putSetting(MoneyRepository.Keys.SMS_AUTO_SAVE, "1")
+        repo.putSetting(Prefs.SMS_AUTO_SAVE.key, "1")
         val c = capture("Rs.250 spent at SHOP via slice.")
         assertEquals(null, c.accountId)
         assertEquals(app.moneytracker.domain.CaptureStatus.PENDING, c.status)
@@ -71,7 +72,7 @@ class SmsAccountMatchingTest {
         repo.saveAccount(card.copy(id = "icici_card", name = "ICICI credit card"))
         val old = SmsParser.parse("AD-HDFCBK", "Rs.250 spent on credit card xx5678 at FIRSTSHOP.")!!
         repo.learn(SmsParser.tokens(old), null, "hdfc_card")
-        repo.putSetting(MoneyRepository.Keys.SMS_AUTO_SAVE, "1")
+        repo.putSetting(Prefs.SMS_AUTO_SAVE.key, "1")
         val c = repo.ingestMessage("SMS", "AD-ICICIT", "Rs.350 spent on credit card xx1234 at SECONDSHOP.", 1)!!
         assertEquals("icici_card", c.accountId)
         // Auto-save only saves complete entries: with no category known yet, it waits for review.

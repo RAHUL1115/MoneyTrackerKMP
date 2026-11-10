@@ -1,5 +1,6 @@
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.ui.rememberSetting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.DraftType
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.Category
@@ -53,7 +54,7 @@ import app.moneytracker.ui.tr
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private fun timingOptions() = listOf("ON_DATE" to tr("On the date"), "MONTH_START" to tr("On the first day of the month"))
+private fun timingOptions() = app.moneytracker.ui.choiceSpec(Prefs.REPEAT_TIMING, newLayout = true)
 
 @Composable
 internal fun FreshRepeats() {
@@ -68,7 +69,7 @@ internal fun FreshRepeats() {
     val categories by repo.categories.collectAsState(emptyList())
     val accountName by repo.accountNames.collectAsState(emptyMap())
     val catById by repo.categoryById.collectAsState(emptyMap())
-    val timing by remember(repo) { repo.setting(Keys.REPEAT_TIMING) }.collectAsState(null)
+    val timing by rememberSetting(Prefs.REPEAT_TIMING)
     var editing by remember { mutableStateOf<RecurringRule?>(null) }
     var stopping by remember { mutableStateOf<RecurringRule?>(null) }
     var timingSheet by remember { mutableStateOf(false) }
@@ -78,7 +79,7 @@ internal fun FreshRepeats() {
     val addNew = {
         nav.push(Screen.EditTxn(preset = TxnDraft(DraftType.EXPENSE, repo.today(), "", amount = 0, repeat = RepeatType.MONTHLY)))
     }
-    val timingLabel = timingOptions().firstOrNull { it.first == (timing ?: "ON_DATE") }?.second ?: timingOptions().first().second
+    val timingLabel = timingOptions().label(timing)
 
     SubScreen(tr("Repeat entries"), nav::pop, add = tr("New repeat") to addNew) {
         // The summary is the screen's hero, so it gets the hero's rounder corners.
@@ -135,10 +136,10 @@ internal fun FreshRepeats() {
     }
     if (timingSheet) {
         Sheet(tr("Repeat entries are added"), { timingSheet = false }) {
-            timingOptions().forEach { (value, text) ->
-                SheetOption(text, selected = value == (timing ?: "ON_DATE")) {
+            timingOptions().options.forEach { (value, text) ->
+                SheetOption(text, selected = value == timing) {
                     timingSheet = false
-                    write { repo.putSetting(Keys.REPEAT_TIMING, value); repo.generateRecurring() }
+                    write { repo.putSetting(Prefs.REPEAT_TIMING, value); repo.generateRecurring() }
                 }
             }
         }

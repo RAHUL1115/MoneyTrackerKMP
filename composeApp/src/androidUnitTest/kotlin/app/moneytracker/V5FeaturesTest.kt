@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import app.moneytracker.data.Prefs
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
@@ -85,8 +86,8 @@ class MessageRulesTest {
     }
 
     @Test fun blockedSendersAndWordsAreIgnored() {
-        repo.putSetting(MoneyRepository.Keys.SMS_BLOCKED_SENDERS, "VM-PROMO")
-        repo.putSetting(MoneyRepository.Keys.SMS_BLOCKED_PHRASES, "OTP")
+        repo.putSetting(Prefs.SMS_BLOCKED_SENDERS.key, "VM-PROMO")
+        repo.putSetting(Prefs.SMS_BLOCKED_PHRASES.key, "OTP")
         assertEquals(null, repo.ingestMessage("SMS", "VM-PROMO", sms, 1))
         assertEquals(null, repo.ingestMessage("SMS", "AD-HDFCBK", "$sms OTP 1234", 2))
         assertTrue(repo.ingestMessage("SMS", "AD-HDFCBK", sms, 3) != null)
@@ -95,7 +96,7 @@ class MessageRulesTest {
     @Test fun accountRuleFilesTheMessageAndAutoSaveKeepsTheOriginal() = runTest {
         val card = repo.accounts.first().first { it.id == "acc_card" }
         repo.saveAccount(card.copy(smsMatch = "x1234"))
-        repo.putSetting(MoneyRepository.Keys.SMS_AUTO_SAVE, "1")
+        repo.putSetting(Prefs.SMS_AUTO_SAVE.key, "1")
         // Auto-save needs a category too; this shop was filed under one before.
         val food = repo.categoriesNow().first { it.kind == app.moneytracker.domain.CategoryKind.EXPENSE && it.parentId == null }
         repo.learn(app.moneytracker.domain.SmsParser.tokens(app.moneytracker.domain.SmsParser.parse("AD-HDFCBK", sms)!!), food.id, null)

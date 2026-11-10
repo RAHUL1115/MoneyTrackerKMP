@@ -260,39 +260,39 @@ object MoneyManagerBackup {
         // Settings worth carrying over (ZETC key → value).
         val etc = rows("ZETC").filterNot { it.isDeleted("isDel") }.associate { it.str("dataTypeKey").ifEmpty { it.str("ZDATATYPE") } to it.str("ZDATA") }
         val settings = buildMap {
-            etc["start_day"]?.toIntOrNull()?.takeIf { it in 1..31 }?.let { put(MoneyRepository.Keys.MONTH_START_DAY, it.toString()) }
-            when (etc["month_start_weekend_type"]) { "1" -> put(MoneyRepository.Keys.WEEKEND_SHIFT, "BEFORE"); "2" -> put(MoneyRepository.Keys.WEEKEND_SHIFT, "AFTER") }
-            when (etc["week_start_day"]) { "0" -> put(MoneyRepository.Keys.WEEK_START, "SUNDAY"); "1" -> put(MoneyRepository.Keys.WEEK_START, "MONDAY"); "6" -> put(MoneyRepository.Keys.WEEK_START, "SATURDAY") }
-            if (etc["carry_over"] == "1") put(MoneyRepository.Keys.CARRY_OVER, "1")
-            if (etc["card_accounting_type"] == "1") put(MoneyRepository.Keys.CARD_AT_PAYMENT, "1")
+            etc["start_day"]?.toIntOrNull()?.takeIf { it in 1..31 }?.let { put(Prefs.MONTH_START_DAY.key, it.toString()) }
+            when (etc["month_start_weekend_type"]) { "1" -> put(Prefs.WEEKEND_SHIFT.key, "BEFORE"); "2" -> put(Prefs.WEEKEND_SHIFT.key, "AFTER") }
+            when (etc["week_start_day"]) { "0" -> put(Prefs.WEEK_START.key, "SUNDAY"); "1" -> put(Prefs.WEEK_START.key, "MONDAY"); "6" -> put(Prefs.WEEK_START.key, "SATURDAY") }
+            if (etc["carry_over"] == "1") put(Prefs.CARRY_OVER.key, "1")
+            if (etc["card_accounting_type"] == "1") put(Prefs.CARD_AT_PAYMENT.key, "1")
             // Money Manager's own "Subcategory" switch (off unless the user enabled it there).
-            put(MoneyRepository.Keys.USE_SUBCATEGORIES, if (etc["use_sub_category"] == "1") "1" else "0")
+            put(Prefs.USE_SUBCATEGORIES.key, if (etc["use_sub_category"] == "1") "1" else "0")
             // Configuration screen choices.
-            etc["main_tab_first_view"]?.toIntOrNull()?.let { put(MoneyRepository.Keys.START_SCREEN, if (it > 0) "CALENDAR" else "DAILY") }
-            when (etc["main_tab_scroll_type"]) { "0" -> put(MoneyRepository.Keys.SWIPE, "TAB"); "1" -> put(MoneyRepository.Keys.SWIPE, "DATE"); "2" -> put(MoneyRepository.Keys.SWIPE, "NONE") }
-            when (etc["money_color"]) { "0" -> put(MoneyRepository.Keys.COLOR_SET, "A"); "1" -> put(MoneyRepository.Keys.COLOR_SET, "B") }
+            etc["main_tab_first_view"]?.toIntOrNull()?.let { put(Prefs.START_SCREEN.key, if (it > 0) "CALENDAR" else "DAILY") }
+            when (etc["main_tab_scroll_type"]) { "0" -> put(Prefs.SWIPE.key, "TAB"); "1" -> put(Prefs.SWIPE.key, "DATE"); "2" -> put(Prefs.SWIPE.key, "NONE") }
+            when (etc["money_color"]) { "0" -> put(Prefs.COLOR_SET.key, "A"); "1" -> put(Prefs.COLOR_SET.key, "B") }
             // Time: 5/0 = not asked (desc/asc), 1/3 = asked and shown in lists, 2/4 = asked only.
             etc["time_display_order"]?.let { t ->
-                when (t) { "1", "3" -> "LIST"; "2", "4" -> "INPUT"; "0", "5" -> "NONE"; else -> null }?.let { put(MoneyRepository.Keys.TIME_INPUT, it) }
-                when (t) { "0", "3", "4" -> "ASC"; "1", "2", "5" -> "DESC"; else -> null }?.let { put(MoneyRepository.Keys.TIME_SORT, it) }
+                when (t) { "1", "3" -> "LIST"; "2", "4" -> "INPUT"; "0", "5" -> "NONE"; else -> null }?.let { put(Prefs.TIME_INPUT.key, it) }
+                when (t) { "0", "3", "4" -> "ASC"; "1", "2", "5" -> "DESC"; else -> null }?.let { put(Prefs.TIME_SORT.key, it) }
             }
-            when (etc["show_tx_memo_on_day_list"]) { "0" -> put(MoneyRepository.Keys.SHOW_DESCRIPTION, "0"); "1" -> put(MoneyRepository.Keys.SHOW_DESCRIPTION, "1") }
-            when (etc["use_auto_complete"]) { "0" -> put(MoneyRepository.Keys.AUTOCOMPLETE, "0"); "1" -> put(MoneyRepository.Keys.AUTOCOMPLETE, "1") }
-            when (etc["memo_btn_on_daily"]) { "0" -> put(MoneyRepository.Keys.NOTE_BUTTON, "0"); "1" -> put(MoneyRepository.Keys.NOTE_BUTTON, "1") }
-            when (etc["input_form_order"]) { "1" -> put(MoneyRepository.Keys.INPUT_ORDER, "AMOUNT"); "2" -> put(MoneyRepository.Keys.INPUT_ORDER, "ACCOUNT") }
-            when (etc["repeat_reflect_type"]) { "0" -> put(MoneyRepository.Keys.REPEAT_TIMING, "ON_DATE"); "1" -> put(MoneyRepository.Keys.REPEAT_TIMING, "MONTH_START") }
+            when (etc["show_tx_memo_on_day_list"]) { "0" -> put(Prefs.SHOW_DESCRIPTION.key, "0"); "1" -> put(Prefs.SHOW_DESCRIPTION.key, "1") }
+            when (etc["use_auto_complete"]) { "0" -> put(Prefs.AUTOCOMPLETE.key, "0"); "1" -> put(Prefs.AUTOCOMPLETE.key, "1") }
+            when (etc["memo_btn_on_daily"]) { "0" -> put(Prefs.NOTE_BUTTON.key, "0"); "1" -> put(Prefs.NOTE_BUTTON.key, "1") }
+            when (etc["input_form_order"]) { "1" -> put(Prefs.INPUT_ORDER.key, "AMOUNT"); "2" -> put(Prefs.INPUT_ORDER.key, "ACCOUNT") }
+            when (etc["repeat_reflect_type"]) { "0" -> put(Prefs.REPEAT_TIMING.key, "ON_DATE"); "1" -> put(Prefs.REPEAT_TIMING.key, "MONTH_START") }
             // Messages: lists are one ZETC row per entry; switches by name.
             val etcRows = rows("ZETC").filterNot { it.isDeleted("isDel") }
             fun etcList(type: String) = etcRows.filter { it.str("ZDATATYPE") == type }.map { it.str("ZDATA").trim() }.filter { it.isNotEmpty() }
                 .distinct().joinToString("\n").takeIf { it.isNotEmpty() }
-            etcList("4838")?.let { put(MoneyRepository.Keys.SMS_BLOCKED_SENDERS, it) }
-            etcList("4839")?.let { put(MoneyRepository.Keys.SMS_BLOCKED_PHRASES, it) }
-            etcList("100")?.let { put(MoneyRepository.Keys.SMS_CONTENT_FILTER, it) }
-            when (etc["sms_auto_save_to_tx"]) { "0" -> put(MoneyRepository.Keys.SMS_AUTO_SAVE, "0"); "1" -> put(MoneyRepository.Keys.SMS_AUTO_SAVE, "1") }
-            when (etc["sms_show_noti"]) { "0" -> put(MoneyRepository.Keys.SMS_ALERT, "0"); "1" -> put(MoneyRepository.Keys.SMS_ALERT, "1") }
-            (etc["sms_show_org_on_tx"] ?: etc["-12649"])?.takeIf { it in setOf("0", "1", "2") }?.let { put(MoneyRepository.Keys.SMS_SHOW_ORIGINAL, it) }
-            etc["sms_search_day"]?.toIntOrNull()?.takeIf { it > 0 }?.let { put(MoneyRepository.Keys.SMS_IMPORT_DAYS, it.toString()) }
-            when (main?.str("SYMBOL_POSITION")) { "P" -> put(MoneyRepository.Keys.SYMBOL_AFTER, "0"); "S" -> put(MoneyRepository.Keys.SYMBOL_AFTER, "1") }
+            etcList("4838")?.let { put(Prefs.SMS_BLOCKED_SENDERS.key, it) }
+            etcList("4839")?.let { put(Prefs.SMS_BLOCKED_PHRASES.key, it) }
+            etcList("100")?.let { put(Prefs.SMS_CONTENT_FILTER.key, it) }
+            when (etc["sms_auto_save_to_tx"]) { "0" -> put(Prefs.SMS_AUTO_SAVE.key, "0"); "1" -> put(Prefs.SMS_AUTO_SAVE.key, "1") }
+            when (etc["sms_show_noti"]) { "0" -> put(Prefs.SMS_ALERT.key, "0"); "1" -> put(Prefs.SMS_ALERT.key, "1") }
+            (etc["sms_show_org_on_tx"] ?: etc["-12649"])?.takeIf { it in setOf("0", "1", "2") }?.let { put(Prefs.SMS_SHOW_ORIGINAL.key, it) }
+            etc["sms_search_day"]?.toIntOrNull()?.takeIf { it > 0 }?.let { put(Prefs.SMS_IMPORT_DAYS.key, it.toString()) }
+            when (main?.str("SYMBOL_POSITION")) { "P" -> put(Prefs.SYMBOL_AFTER.key, "0"); "S" -> put(Prefs.SYMBOL_AFTER.key, "1") }
         }
 
         if (rows("PHOTO").any { !it.isDeleted("IS_DEL") }) skipped += "receipt photos are not inside .mmbak files and were not imported"

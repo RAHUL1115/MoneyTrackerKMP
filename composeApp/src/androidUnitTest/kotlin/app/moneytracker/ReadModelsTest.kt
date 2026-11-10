@@ -3,7 +3,7 @@ package app.moneytracker
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.ReadModels
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
@@ -61,7 +61,7 @@ class ReadModelsTest {
     @Test fun cardSpendingFollowsTheCardAtPaymentSetting() {
         spend(10_000, account = "acc_card")
         assertEquals(10_000, repo.views.budgetNow(march).spent)
-        repo.putSetting(Keys.CARD_AT_PAYMENT, "1")
+        repo.putSetting(Prefs.CARD_AT_PAYMENT.key, "1")
         assertEquals(0, repo.views.budgetNow(march).spent)                    // counted when the bill is paid instead
     }
 

@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import app.moneytracker.data.Prefs
 import app.moneytracker.ui.isPortablePinHash
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
@@ -361,7 +362,7 @@ class AndroidBackupController(
         snapshot("pre-restore")
         val r = repo.replaceWithMoneyManager(data)
         // Same passcode as in Money Manager, so the lock screen keeps working after switching apps.
-        data.passcodePin?.let { repo.putSetting(MoneyRepository.Keys.PASSCODE, hashPin(it)) }
+        data.passcodePin?.let { repo.putSetting(Prefs.PASSCODE, hashPin(it)) }
         repo.generateRecurring()
         Log.i("Backup") { "Money Manager restore (${if (ios) "iPhone" else "Android"}): ${r.transactions} txns, ${r.accounts} accounts (+${r.deletedAccounts} deleted), ${r.categories} categories, ${r.recurring} repeats, ${r.budgets} budgets, ${r.skipped.size} skipped" }
         return buildString {
@@ -400,14 +401,14 @@ class AndroidBackupController(
      * this phone), and the passcode in use until now is kept as a fallback, so a restore never locks you out.
      */
     private suspend fun keepWorkingPasscode(staged: File): String? {
-        val key = MoneyRepository.Keys.PASSCODE
-        val current = db.repo?.setting(key)?.first().orEmpty()
+        val key = Prefs.PASSCODE.key
+        val current = db.repo?.setting(Prefs.PASSCODE)?.first().orEmpty()
         val out = SQLiteDatabase.openDatabase(staged.path, null, SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
         fun put(k: String, v: String) = out.execSQL("INSERT OR REPLACE INTO Setting(key, value) VALUES (?, ?)", arrayOf(k, v))
         try {
             val restored = out.rawQuery("SELECT value FROM Setting WHERE key = ?", arrayOf(key))
                 .use { if (it.moveToFirst()) it.getString(0) else null }.orEmpty()
-            put(MoneyRepository.Keys.PASSCODE_PREVIOUS, "")
+            put(Prefs.PASSCODE_PREVIOUS.key, "")
             if (restored.isBlank() || isPortablePinHash(restored)) return null
             val portable = portablePinHash(restored)
             if (portable == null) {
@@ -417,7 +418,7 @@ class AndroidBackupController(
                 else tr("The backup's passcode can't be used on this phone, so your current passcode stays")
             }
             put(key, portable)
-            if (current.isNotBlank() && current != restored) put(MoneyRepository.Keys.PASSCODE_PREVIOUS, portablePinHash(current) ?: current)
+            if (current.isNotBlank() && current != restored) put(Prefs.PASSCODE_PREVIOUS.key, portablePinHash(current) ?: current)
         } finally { out.close() }
         return null
     }

@@ -49,7 +49,10 @@ import androidx.compose.ui.unit.sp
 import app.moneytracker.data.BackupController
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.ColorSet
+import app.moneytracker.data.Prefs
+import app.moneytracker.data.ThemeMode
+import app.moneytracker.data.TimeInput
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.CurrencyFormat
 
@@ -106,18 +109,18 @@ fun App(
     newLayout: Boolean = false,
 ) {
     // Style: follow the system unless Configuration pins light or dark.
-    val themeSetting by remember(repo) { repo?.setting(Keys.THEME) ?: kotlinx.coroutines.flow.flowOf(null) }
-        .collectAsState(repo?.settingNow(Keys.THEME))
-    val wantDark = when (themeSetting) { "DARK" -> true; "LIGHT" -> false; else -> androidx.compose.foundation.isSystemInDarkTheme() }
+    val themeSetting by remember(repo) { repo?.setting(Prefs.THEME) ?: kotlinx.coroutines.flow.flowOf(null) }
+        .collectAsState(repo?.settingNow(Prefs.THEME))
+    val wantDark = when (themeSetting) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; else -> androidx.compose.foundation.isSystemInDarkTheme() }
     if (darkTheme != wantDark) darkTheme = wantDark
-    val accentSetting by remember(repo) { repo?.setting(Keys.ACCENT) ?: kotlinx.coroutines.flow.flowOf(null) }
-        .collectAsState(repo?.settingNow(Keys.ACCENT))
+    val accentSetting by remember(repo) { repo?.setting(Prefs.ACCENT) ?: kotlinx.coroutines.flow.flowOf(null) }
+        .collectAsState(repo?.settingNow(Prefs.ACCENT))
     val wantAccent = AccentChoice.entries.firstOrNull { it.name == accentSetting } ?: AccentChoice.TEAL
     if (accentChoice != wantAccent) accentChoice = wantAccent
     // Language: Configuration › Language, or the phone's language.
     val platformForLanguage = platform
-    val languageSetting by remember(repo) { repo?.setting(Keys.LANGUAGE) ?: kotlinx.coroutines.flow.flowOf(null) }
-        .collectAsState(repo?.settingNow(Keys.LANGUAGE))
+    val languageSetting by remember(repo) { repo?.setting(Prefs.LANGUAGE) ?: kotlinx.coroutines.flow.flowOf(null) }
+        .collectAsState(repo?.settingNow(Prefs.LANGUAGE))
     LaunchedEffect(languageSetting) {
         val tag = languageSetting?.takeIf { it.isNotEmpty() } ?: I18n.resolve(platformForLanguage.systemLanguage())
         I18n.rtl = tag.substringBefore('-') in I18n.RTL
@@ -140,19 +143,20 @@ fun App(
             val toaster = remember { app.moneytracker.ui.fresh.Toaster() }
             val currency by repo.currency.collectAsState(CurrencyFormat())
             val currencies by repo.currencies.collectAsState(emptyList())
-            val passcode by remember(repo) { repo.setting(Keys.PASSCODE) }.collectAsState("loading")
-            val onboarded by remember(repo) { repo.setting(Keys.ONBOARDED) }.collectAsState("loading")
-            val colorSet by remember(repo) { repo.setting(Keys.COLOR_SET) }.collectAsState(repo.settingNow(Keys.COLOR_SET))
-            LaunchedEffect(colorSet) { colorsSwapped = colorSet == "B" }
-            val timeInput by remember(repo) { repo.setting(Keys.TIME_INPUT) }.collectAsState(null)
-            val showDescription by remember(repo) { repo.flag(Keys.SHOW_DESCRIPTION) }.collectAsState(false)
+            // null until read, so neither the lock screen nor onboarding flashes up.
+            val passcode by remember(repo) { repo.setting(Prefs.PASSCODE) }.collectAsState(null as String?)
+            val onboarded by remember(repo) { repo.setting(Prefs.ONBOARDED) }.collectAsState(null as Boolean?)
+            val colorSet by remember(repo) { repo.setting(Prefs.COLOR_SET) }.collectAsState(remember(repo) { repo.settingNow(Prefs.COLOR_SET) })
+            LaunchedEffect(colorSet) { colorsSwapped = colorSet == ColorSet.SWAPPED }
+            val timeInput by remember(repo) { repo.setting(Prefs.TIME_INPUT) }.collectAsState(Prefs.TIME_INPUT.default)
+            val showDescription by remember(repo) { repo.setting(Prefs.SHOW_DESCRIPTION) }.collectAsState(false)
             // Privacy eye: the saved choice, then every amount below is masked while it's on.
             LaunchedEffect(repo) { Privacy.load(repo) }
             // Exchange rates, once a day unless "Update automatically" is off. No request is made without other currencies.
             LaunchedEffect(repo) {
                 kotlinx.coroutines.withContext(repo.io) {
-                    val due = (repo.settingNow(Keys.RATES_CHECKED)?.toLongOrNull() ?: 0L) < kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - 20 * 3_600_000L
-                    if (repo.settingNow(Keys.RATES_AUTO) != "0" && due) repo.updateRates(platform::httpGet)
+                    val due = repo.settingNow(Prefs.RATES_CHECKED) < kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - 20 * 3_600_000L
+                    if (repo.settingNow(Prefs.RATES_AUTO) && due) repo.updateRates(platform::httpGet)
                 }
             }
             val masked = Privacy.masked
@@ -163,18 +167,18 @@ fun App(
                 LocalBackup provides backup,
                 LocalPlatform provides platform,
                 LocalCurrencies provides currencies.associate { it.code to it.copy(masked = masked) },
-                LocalListPrefs provides ListPrefs(showTime = timeInput == "LIST", showDescription = showDescription),
+                LocalListPrefs provides ListPrefs(showTime = timeInput == TimeInput.LIST, showDescription = showDescription),
                 app.moneytracker.ui.fresh.LocalNewLayout provides newLayout,
                 app.moneytracker.ui.fresh.LocalToaster provides toaster,
             ) {
                 // Content stays above the gesture bar and, when typing, above the keyboard.
                 Box(Modifier.fillMaxSize().navigationBarsPadding().then(if (app.moneytracker.ui.fresh.KeyboardOverlay.active) Modifier else Modifier.imePadding())) {
                     when {
-                        passcode == "loading" || onboarded == "loading" -> Unit
+                        passcode == null || onboarded == null -> Unit
                         // One lock screen for both layouts: the classic PIN pad.
                         locked && !passcode.isNullOrBlank() -> LockScreen(passcode!!, onUnlocked)
                         // First launch always uses the classic welcome screens; both layouts start after them.
-                        onboarded != "1" -> OnboardingScreen()
+                        onboarded != true -> OnboardingScreen()
                         else -> {
                             // You're in: a passcode that appears now (turned on, or brought by a restore) asks only after the next restart or a while away.
                             if (locked) SideEffect { onUnlocked() }

@@ -6,7 +6,20 @@ import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.ClockTime
+import app.moneytracker.data.ColorSet
+import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.FlagSetting
+import app.moneytracker.data.InputOrder
+import app.moneytracker.data.Prefs
+import app.moneytracker.data.RepeatTiming
+import app.moneytracker.data.Setting
+import app.moneytracker.data.StartScreen
+import app.moneytracker.data.Swipe
+import app.moneytracker.data.ThemeMode
+import app.moneytracker.data.TimeInput
+import app.moneytracker.data.TimeSort
+import kotlinx.datetime.DayOfWeek
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.domain.Periods
 import kotlinx.coroutines.launch
@@ -36,11 +49,11 @@ class MorePlace(val id: String, val title: String, val status: String, val open:
 /** A screen that gathers related places: Categories & tags, Repeat & bookmarks, Bank SMS, Backup & security, Help & about. */
 class SettingHub(val id: String, val title: String, val intro: String, val rows: List<SettingRow>)
 
-/** What a row needs from the layout: its own dialogs or sheets, and its wording for choices. */
+/** What a row needs from the layout: its own dialogs or sheets. */
 class SettingActions(
-    val choice: (key: String) -> Unit,
+    val choice: (ChoiceSpec<*>) -> Unit,
     /** Text values: currency symbol, decimals, month start day, reminder time. */
-    val edit: (key: String) -> Unit,
+    val edit: (Setting<*>) -> Unit,
     val accent: () -> Unit,
     val language: () -> Unit,
     /** Opens the layout choice: Classic or New. */
@@ -48,21 +61,44 @@ class SettingActions(
     /** Turning on Save location shows the disclosure first. */
     val locationOn: () -> Unit,
     val resetSuggestions: () -> Unit,
-    val choiceLabel: (key: String, value: String?) -> String,
 )
 
-private val SETTING_KEYS = listOf(
-    Keys.LANGUAGE, Keys.CARRY_OVER, Keys.CARD_AT_PAYMENT, Keys.REMINDER, Keys.QUICK_ADD_NOTIFICATION, Keys.CAPTURE_ENABLED, Keys.LOCATION,
-    Keys.USE_SUBCATEGORIES, Keys.PASSCODE, Keys.REMINDER_TIME, Keys.START_SCREEN, Keys.SWIPE, Keys.COLOR_SET, Keys.TIME_INPUT, Keys.TIME_SORT,
-    Keys.INPUT_ORDER, Keys.THEME, Keys.WIDGET_THEME, Keys.WIDGET_OPACITY, Keys.REPEAT_TIMING, Keys.AUTOCOMPLETE, Keys.HABIT_ACCOUNT,
-    Keys.SHOW_DESCRIPTION, Keys.NOTE_BUTTON, Keys.SYMBOL_AFTER,
-)
-
-@Composable
-private fun settingValues(): Map<String, String?> {
-    val repo = LocalRepo.current
-    return SETTING_KEYS.associateWith { k -> remember(repo, k) { repo.setting(k) }.collectAsState(null).value }
+/** A multiple-choice setting as both layouts show it: a title and each option's label. */
+class ChoiceSpec<T>(val setting: Setting<T>, val title: String, val options: List<Pair<T, String>>) {
+    fun label(value: T): String = (options.firstOrNull { it.first == value } ?: options.first()).second
 }
+
+/** The one list of multiple-choice settings, their titles and wording. Colours are named as each layout draws them. */
+fun choiceSpecs(newLayout: Boolean): List<ChoiceSpec<*>> {
+    fun day(d: DayOfWeek) = tr(d.name.lowercase().replaceFirstChar { it.uppercase() })
+    val (income, expense) = if (newLayout) tr("Income blue, expense red") to tr("Income red, expense blue")
+        else tr("Income green, expense red") to tr("Income red, expense green")
+    return listOf(
+        ChoiceSpec(Prefs.SWIPE, tr("Swipe left / right"), listOf(Swipe.DATE to tr("Change month"), Swipe.TAB to tr("Change tab"), Swipe.NONE to tr("Off"))),
+        ChoiceSpec(Prefs.COLOR_SET, tr("Income / expense colours"), listOf(ColorSet.NORMAL to income, ColorSet.SWAPPED to expense)),
+        ChoiceSpec(Prefs.TIME_INPUT, tr("Time input"),
+            listOf(TimeInput.NONE to tr("Off"), TimeInput.INPUT to tr("Record time"), TimeInput.LIST to tr("Record and show in lists"))),
+        ChoiceSpec(Prefs.TIME_SORT, tr("Order within a day"), listOf(TimeSort.DESC to tr("Latest first"), TimeSort.ASC to tr("Earliest first"))),
+        ChoiceSpec(Prefs.INPUT_ORDER, tr("Input order"), listOf(InputOrder.AMOUNT to tr("Amount first"), InputOrder.ACCOUNT to tr("Account first"))),
+        ChoiceSpec(Prefs.THEME, tr("Theme"), themeOptions()),
+        ChoiceSpec(Prefs.REPEAT_TIMING, tr("Repeat entries are added"),
+            listOf(RepeatTiming.ON_DATE to tr("On the date"), RepeatTiming.MONTH_START to tr("On the first day of the month"))),
+        ChoiceSpec(Prefs.WIDGET_THEME, tr("Widget style"), themeOptions()),
+        ChoiceSpec(Prefs.WIDGET_OPACITY, tr("Widget background"), listOf(100, 80, 60, 40, 20).map { it to tr("{0}% opaque", it.toString()) }),
+        ChoiceSpec(Prefs.WEEKEND_SHIFT, tr("Start date on a weekend"), listOf(Periods.WeekendShift.NONE to tr("Keep the date"),
+            Periods.WeekendShift.BEFORE to tr("Move to the Friday before"), Periods.WeekendShift.AFTER to tr("Move to the Monday after"))),
+        ChoiceSpec(Prefs.WEEK_START, tr("Week starts on"), listOf(DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.SATURDAY).map { it to day(it) }),
+        ChoiceSpec(Prefs.START_SCREEN, tr("Start screen"),
+            if (newLayout) listOf(StartScreen.DAILY to tr("List (Daily)"), StartScreen.CALENDAR to tr("Calendar"),
+                StartScreen.MONTHLY to tr("Months (Monthly)"), StartScreen.TOTAL to tr("Months (Total)"), StartScreen.NOTE to tr("Notes"))
+            else StartScreen.entries.map { it to tr(it.name.lowercase().replaceFirstChar { c -> c.uppercase() }) }),
+    )
+}
+
+private fun themeOptions() = listOf(ThemeMode.SYSTEM to tr("Follow system"), ThemeMode.LIGHT to tr("Light"), ThemeMode.DARK to tr("Dark"))
+
+@Suppress("UNCHECKED_CAST")
+fun <T> choiceSpec(s: Setting<T>, newLayout: Boolean): ChoiceSpec<T> = choiceSpecs(newLayout).first { it.setting == s } as ChoiceSpec<T>
 
 /** Money, Calendar, Look, Entering, Lists, Reminders. */
 @Composable
@@ -72,104 +108,171 @@ fun rememberSettingGroups(newLayout: Boolean, a: SettingActions): List<SettingGr
     val currency = LocalCurrency.current
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
-    val v = settingValues()
-    val startDay by repo.monthStartDay.collectAsState(1)
-    val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
     val currencies by repo.currencies.collectAsState(emptyList())
+    val specs = choiceSpecs(newLayout)
 
-    fun on(key: String) = v[key] == "1"
-    // Widgets show colours, currency format and their own style; repaint them after any change.
-    fun put(key: String, value: String) = scope.launch(repo.io) { repo.putSetting(key, value) }
-    fun setFlag(key: String, on: Boolean) = put(key, if (on) "1" else "0")
-    fun label(key: String) = a.choiceLabel(key, v[key])
+    fun setFlag(s: FlagSetting, on: Boolean) = scope.saveSetting(repo, s, on)
     fun link(title: String, value: String? = null, words: String = "", subtitle: String? = null, onClick: () -> Unit) =
         SettingRow(title, value, subtitle, words, onClick = onClick)
     fun toggle(title: String, checked: Boolean, subtitle: String? = null, words: String = "", onChange: (Boolean) -> Unit) =
         SettingRow(title, null, subtitle, words, checked) { onChange(!checked) }
-    fun pick(key: String, title: String, words: String = "") = SettingRow(title, label(key), null, words) { a.choice(key) }
+    // Each choice's current label, read live.
+    val labels: Map<Setting<*>, String> = specs.associate { spec -> spec.setting to currentLabel(spec) }
+    fun label(s: Setting<*>) = labels.getValue(s)
+    fun pick(s: Setting<*>, title: String, words: String = "") = SettingRow(title, label(s), null, words) { a.choice(specs.first { it.setting == s }) }
 
-    val weekend = when (ps.shift) {
-        Periods.WeekendShift.NONE -> tr("Keep")
-        Periods.WeekendShift.BEFORE -> tr("Friday before")
-        Periods.WeekendShift.AFTER -> tr("Monday after")
-    }
-    val week = tr(ps.weekStart.name.lowercase().replaceFirstChar { it.uppercase() })
-    val language = I18n.LANGUAGES.firstOrNull { it.first == v[Keys.LANGUAGE].orEmpty() }?.takeIf { it.first.isNotEmpty() }?.second ?: tr("Phone language")
+    val startDay by rememberSetting(Prefs.MONTH_START_DAY)
+    val week = label(Prefs.WEEK_START)
+    val language = I18n.LANGUAGES.firstOrNull { it.first == rememberSetting(Prefs.LANGUAGE).value }?.takeIf { it.first.isNotEmpty() }?.second ?: tr("Phone language")
     val others = currencies.joinToString(", ") { it.code }
-    val reminder = on(Keys.REMINDER)
-    val reminderTime = v[Keys.REMINDER_TIME] ?: "21:00"
+    val reminder by rememberSetting(Prefs.REMINDER)
+    val reminderTime by rememberSetting(Prefs.REMINDER_TIME)
+    val symbolAfter by rememberSetting(Prefs.SYMBOL_AFTER)
+    val carryOver by rememberSetting(Prefs.CARRY_OVER)
+    val cardAtPayment by rememberSetting(Prefs.CARD_AT_PAYMENT)
+    val habitAccount by rememberSetting(Prefs.HABIT_ACCOUNT)
+    val autocomplete by rememberSetting(Prefs.AUTOCOMPLETE)
+    val location by rememberSetting(Prefs.LOCATION)
+    val showDescription by rememberSetting(Prefs.SHOW_DESCRIPTION)
+    val noteButton by rememberSetting(Prefs.NOTE_BUTTON)
+    val quickAdd by rememberSetting(Prefs.QUICK_ADD_NOTIFICATION)
 
     return listOf(
         SettingGroup("money", tr("Money"),
             listOfNotNull(currency.symbol, tr("{0} decimals", currency.decimals), others.takeIf { it.isNotEmpty() }?.let { tr("also {0}", it) }).joinToString(" · "),
             listOf(
-                link(tr("Currency symbol"), currency.symbol, "rupee money") { a.edit(Keys.CURRENCY_SYMBOL) },
-                toggle(tr("Symbol after amount"), on(Keys.SYMBOL_AFTER),
-                    if (on(Keys.SYMBOL_AFTER)) "1,000.00 ${currency.symbol}" else "${currency.symbol} 1,000.00", "currency") { setFlag(Keys.SYMBOL_AFTER, it) },
+                link(tr("Currency symbol"), currency.symbol, "rupee money") { a.edit(Prefs.CURRENCY_SYMBOL) },
+                toggle(tr("Symbol after amount"), symbolAfter,
+                    if (symbolAfter) "1,000.00 ${currency.symbol}" else "${currency.symbol} 1,000.00", "currency") { setFlag(Prefs.SYMBOL_AFTER, it) },
                 link(tr("Decimal places"), currency.decimals.toString(), "paise cents rounding",
-                    tr("Set before entering data; existing amounts are not converted.")) { a.edit(Keys.CURRENCY_DECIMALS) },
+                    tr("Set before entering data; existing amounts are not converted.")) { a.edit(Prefs.CURRENCY_DECIMALS) },
                 link(tr("Other currencies"), others.ifEmpty { null }, "sub currency dollar exchange rate foreign") { nav.push(Screen.Currencies) },
-                toggle(tr("Carry-over"), on(Keys.CARRY_OVER), tr("Show the balance carried from earlier months"), "previous month balance") { setFlag(Keys.CARRY_OVER, it) },
-                toggle(tr("Card expenses at payment"), on(Keys.CARD_AT_PAYMENT), tr("Count credit-card purchases when the bill is paid, not when you buy"), "credit bill") {
-                    setFlag(Keys.CARD_AT_PAYMENT, it)
+                toggle(tr("Carry-over"), carryOver, tr("Show the balance carried from earlier months"), "previous month balance") { setFlag(Prefs.CARRY_OVER, it) },
+                toggle(tr("Card expenses at payment"), cardAtPayment, tr("Count credit-card purchases when the bill is paid, not when you buy"), "credit bill") {
+                    setFlag(Prefs.CARD_AT_PAYMENT, it)
                 },
             )),
         SettingGroup("calendar", tr("Calendar"), tr("Month from day {0} · week from {1}", startDay, week), listOf(
-            link(tr("Month starts on"), tr("Every {0}", startDay), "monthly start date salary period cycle") { a.edit(Keys.MONTH_START_DAY) },
-            link(tr("If that day is a weekend"), weekend, "friday monday shift") { a.choice(Keys.WEEKEND_SHIFT) },
-            link(tr("Week starts on"), week, "weekly start day") { a.choice(Keys.WEEK_START) },
+            link(tr("Month starts on"), tr("Every {0}", startDay), "monthly start date salary period cycle") { a.edit(Prefs.MONTH_START_DAY) },
+            link(tr("If that day is a weekend"), weekendShort(rememberSetting(Prefs.WEEKEND_SHIFT).value), "friday monday shift") {
+                a.choice(specs.first { it.setting == Prefs.WEEKEND_SHIFT })
+            },
+            pick(Prefs.WEEK_START, tr("Week starts on"), "weekly start day"),
         )),
-        SettingGroup("look", tr("Look"), listOf(label(Keys.THEME), tr(accentChoice.label), language).joinToString(" · "), listOf(
+        SettingGroup("look", tr("Look"), listOf(label(Prefs.THEME), tr(accentChoice.label), language).joinToString(" · "), listOf(
             link(tr("Layout"), if (newLayout) tr("New") else tr("Classic"), "layout classic new design restart",
                 tr("Classic or New")) { a.switchLayout() },
-            pick(Keys.THEME, tr("Theme"), "style dark light night mode"),
+            pick(Prefs.THEME, tr("Theme"), "style dark light night mode"),
             link(tr("Accent colour"), tr(accentChoice.label), "color colour accent wallpaper") { a.accent() },
-            pick(Keys.COLOR_SET, tr("Colours"), "income expense color colour blue green red"),
+            pick(Prefs.COLOR_SET, tr("Colours"), "income expense color colour blue green red"),
             link(tr("Language"), language, "translate translation hindi") { a.language() },
-            pick(Keys.WIDGET_THEME, tr("Widget style"), "home screen widget dark light"),
-            pick(Keys.WIDGET_OPACITY, tr("Widget background"), "home screen widget transparent opacity"),
+            pick(Prefs.WIDGET_THEME, tr("Widget style"), "home screen widget dark light"),
+            pick(Prefs.WIDGET_OPACITY, tr("Widget background"), "home screen widget transparent opacity"),
         )),
         SettingGroup("entering", tr("Entering"),
-            listOf(label(Keys.INPUT_ORDER), if (v[Keys.AUTOCOMPLETE] != "0") tr("suggestions on") else tr("suggestions off")).joinToString(" · "),
+            listOf(label(Prefs.INPUT_ORDER), if (autocomplete) tr("suggestions on") else tr("suggestions off")).joinToString(" · "),
             listOf(
-                pick(Keys.INPUT_ORDER, tr("Input order"), "keypad form"),
-                pick(Keys.TIME_INPUT, tr("Time"), "clock hour time input"),
-                toggle(tr("Remember usual accounts"), v[Keys.HABIT_ACCOUNT] != "0",
+                pick(Prefs.INPUT_ORDER, tr("Input order"), "keypad form"),
+                pick(Prefs.TIME_INPUT, tr("Time"), "clock hour time input"),
+                toggle(tr("Remember usual accounts"), habitAccount,
                     tr("Pre-select the account you usually use; a category's preferred account comes first"), "default account preselect habit") {
-                    setFlag(Keys.HABIT_ACCOUNT, it)
+                    setFlag(Prefs.HABIT_ACCOUNT, it)
                 },
-                toggle(tr("Suggest past notes"), v[Keys.AUTOCOMPLETE] != "0", tr("Picks their category and account too"), "autocomplete") {
-                    setFlag(Keys.AUTOCOMPLETE, it)
+                toggle(tr("Suggest past notes"), autocomplete, tr("Picks their category and account too"), "autocomplete") {
+                    setFlag(Prefs.AUTOCOMPLETE, it)
                 },
                 link(tr("Reset suggestions"), null, "autocomplete clear forget notes") { a.resetSuggestions() },
-                toggle(tr("Save location"), on(Keys.LOCATION), tr("Attach your current location to new entries"), "gps map place") {
-                    if (it) a.locationOn() else setFlag(Keys.LOCATION, false)
+                toggle(tr("Save location"), location, tr("Attach your current location to new entries"), "gps map place") {
+                    if (it) a.locationOn() else setFlag(Prefs.LOCATION, false)
                 },
-                pick(Keys.REPEAT_TIMING, tr("Repeat entries are added"), "recurring timing"),
+                pick(Prefs.REPEAT_TIMING, tr("Repeat entries are added"), "recurring timing"),
             )),
-        SettingGroup("lists", tr("Lists"), tr("Opens on {0} · swipe: {1}", label(Keys.START_SCREEN), label(Keys.SWIPE)), listOfNotNull(
-            pick(Keys.START_SCREEN, tr("Start screen"), "start screen open view list calendar months notes"),
-            pick(Keys.SWIPE, tr("Swipe left / right"), "gesture tab month"),
-            pick(Keys.TIME_SORT, tr("Order within a day"), "sort"),
-            toggle(tr("Show description"), on(Keys.SHOW_DESCRIPTION), tr("Description under the note in lists"), "details memo") { setFlag(Keys.SHOW_DESCRIPTION, it) },
-            if (!newLayout) toggle(tr("Note button"), v[Keys.NOTE_BUTTON] != "0", tr("Add a note from the Daily view, next to +"), "memo") {
-                setFlag(Keys.NOTE_BUTTON, it)
+        SettingGroup("lists", tr("Lists"), tr("Opens on {0} · swipe: {1}", label(Prefs.START_SCREEN), label(Prefs.SWIPE)), listOfNotNull(
+            pick(Prefs.START_SCREEN, tr("Start screen"), "start screen open view list calendar months notes"),
+            pick(Prefs.SWIPE, tr("Swipe left / right"), "gesture tab month"),
+            pick(Prefs.TIME_SORT, tr("Order within a day"), "sort"),
+            toggle(tr("Show description"), showDescription, tr("Description under the note in lists"), "details memo") { setFlag(Prefs.SHOW_DESCRIPTION, it) },
+            if (!newLayout) toggle(tr("Note button"), noteButton, tr("Add a note from the Daily view, next to +"), "memo") {
+                setFlag(Prefs.NOTE_BUTTON, it)
             } else null,
         )),
         SettingGroup("reminders", tr("Reminders"),
-            listOf(if (reminder) tr("Reminder at {0}", reminderTime) else tr("Reminder off"),
-                if (on(Keys.QUICK_ADD_NOTIFICATION)) tr("quick add on") else tr("quick add off")).joinToString(" · "),
+            listOf(if (reminder) tr("Reminder at {0}", reminderTime.toString()) else tr("Reminder off"),
+                if (quickAdd) tr("quick add on") else tr("quick add off")).joinToString(" · "),
             listOfNotNull(
                 toggle(tr("Daily reminder"), reminder, tr("A nudge to record the day's spending"), "notification alert") { turnOn ->
-                    val (h, m) = reminderTime.split(":").map { it.toIntOrNull() ?: 0 }
-                    platform.setReminder(turnOn, h, m) { active -> setFlag(Keys.REMINDER, active) }
+                    platform.setReminder(turnOn, reminderTime.hour, reminderTime.minute) { active -> setFlag(Prefs.REMINDER, active) }
                 },
-                if (reminder) link(tr("Reminder time"), reminderTime, "notification clock hour") { a.edit(Keys.REMINDER_TIME) } else null,
-                toggle(tr("Quick add in notification bar"), on(Keys.QUICK_ADD_NOTIFICATION), tr("Expense / Income / Transfer buttons"), "notification shortcut") { turnOn ->
-                    platform.setQuickAddNotification(turnOn) { active -> setFlag(Keys.QUICK_ADD_NOTIFICATION, active) }
+                if (reminder) link(tr("Reminder time"), reminderTime.toString(), "notification clock hour") { a.edit(Prefs.REMINDER_TIME) } else null,
+                toggle(tr("Quick add in notification bar"), quickAdd, tr("Expense / Income / Transfer buttons"), "notification shortcut") { turnOn ->
+                    platform.setQuickAddNotification(turnOn) { active -> setFlag(Prefs.QUICK_ADD_NOTIFICATION, active) }
                 },
             )),
     )
+}
+
+/** One of the text settings (currency symbol, decimal places, month start day, reminder time): its title, starting text, check and save. */
+class TextEdit(
+    val title: String,
+    val initial: String,
+    /** Number keyboard. */
+    val number: Boolean,
+    private val check: (String) -> Boolean,
+    private val store: (MoneyRepository, String) -> Unit,
+) {
+    fun valid(text: String) = check(text.trim())
+    /** Blocking; call off the main thread. */
+    fun save(repo: MoneyRepository, text: String) = store(repo, text.trim())
+}
+
+@Composable
+fun rememberTextEdit(s: Setting<*>): TextEdit {
+    val repo = LocalRepo.current
+    return remember(repo, s) {
+        when (s) {
+            Prefs.MONTH_START_DAY -> TextEdit(tr("Monthly start date (1–31)"), repo.settingNow(Prefs.MONTH_START_DAY).toString(), true,
+                { it.toIntOrNull() in 1..31 }) { r, t -> r.putSetting(Prefs.MONTH_START_DAY, t.toInt()) }
+            Prefs.CURRENCY_DECIMALS -> TextEdit(tr("Decimal places (0–3)"), repo.settingNow(Prefs.CURRENCY_DECIMALS).toString(), true,
+                { it.toIntOrNull() in 0..3 }) { r, t -> r.putSetting(Prefs.CURRENCY_DECIMALS, t.toInt()) }
+            Prefs.CURRENCY_SYMBOL -> TextEdit(tr("Currency symbol"), repo.settingNow(Prefs.CURRENCY_SYMBOL), false,
+                { it.isNotEmpty() && it.length <= 4 }) { r, t -> r.putSetting(Prefs.CURRENCY_SYMBOL, t) }
+            Prefs.REMINDER_TIME -> TextEdit(tr("Reminder time (24h, HH:mm)"), repo.settingNow(Prefs.REMINDER_TIME).toString(), false,
+                { ClockTime.parse(it) != null }) { r, t -> ClockTime.parse(t)?.let { r.putSetting(Prefs.REMINDER_TIME, it) } }
+            else -> error("$s is not a text setting")
+        }
+    }
+}
+
+/** The current value's label, read live. */
+@Composable
+private fun <T> currentLabel(spec: ChoiceSpec<T>): String = spec.label(rememberSetting(spec.setting).value)
+
+private fun weekendShort(shift: Periods.WeekendShift) = when (shift) {
+    Periods.WeekendShift.NONE -> tr("Keep")
+    Periods.WeekendShift.BEFORE -> tr("Friday before")
+    Periods.WeekendShift.AFTER -> tr("Monday after")
+}
+
+/**
+ * The sheet or dialog for a multiple-choice setting: [onPick] gets the option picked with its label and the value
+ * before, so a layout can offer Undo. Each layout draws the options its own way through [content]. Saves run in
+ * [scope], the screen's, since the sheet is gone by the time they (or an Undo) run.
+ */
+@Composable
+fun <T> ChoiceHost(
+    spec: ChoiceSpec<T>,
+    scope: kotlinx.coroutines.CoroutineScope,
+    content: @Composable (current: T, options: List<Pair<T, String>>, pick: (T, String) -> Unit) -> Unit,
+    onPick: (value: T, label: String, before: T) -> Unit = { _, _, _ -> },
+) {
+    val repo = LocalRepo.current
+    val current by rememberSetting(spec.setting)
+    content(current, spec.options) { value, label ->
+        if (value != current) {
+            scope.saveSetting(repo, spec.setting, value)
+            onPick(value, label, current)
+        }
+    }
 }
 
 /** The screens that gather related places. */
@@ -179,7 +282,6 @@ fun rememberSettingHubs(): List<SettingHub> {
     val nav = LocalNavigator.current
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
-    val v = settingValues()
     val categories by repo.categories.collectAsState(emptyList())
     val tags by repo.tags.collectAsState(emptyList())
     val rules by repo.rules.collectAsState(emptyList())
@@ -187,7 +289,9 @@ fun rememberSettingHubs(): List<SettingHub> {
     val snapshots by LocalBackup.current.localBackups.collectAsState()
     val pending by repo.pendingCaptures.collectAsState(emptyList())
     val mains = { k: CategoryKind -> categories.count { it.kind == k && it.parentId == null } }
-    val subs = v[Keys.USE_SUBCATEGORIES] == "1"
+    val subs by rememberSetting(Prefs.USE_SUBCATEGORIES)
+    val capture by rememberSetting(Prefs.CAPTURE_ENABLED)
+    val passcode = rememberSetting(Prefs.PASSCODE).value.isNotBlank()
     val last = snapshots.firstOrNull()?.let { app.moneytracker.ui.fresh.snapshotWhen(it.name, repo.today()) }
     return listOf(
         SettingHub("labels", tr("Categories & tags"), tr("Everything you label entries with."), listOf(
@@ -198,7 +302,7 @@ fun rememberSettingHubs(): List<SettingHub> {
                 nav.push(Screen.Categories(CategoryKind.INCOME))
             },
             SettingRow(tr("Sub-categories"), null, tr("Pick a sub-category (Food › Lunch) when adding an entry"), "category", subs) {
-                scope.launch { withContext(repo.io) { repo.putSetting(Keys.USE_SUBCATEGORIES, if (subs) "0" else "1") } }
+                scope.saveSetting(repo, Prefs.USE_SUBCATEGORIES, !subs)
             },
             SettingRow(tr("Tags"), tags.size.toString(), tr("Extra labels like “Goa trip”; search them with #"), "label hashtag") { nav.push(Screen.Tags) },
         )),
@@ -213,7 +317,7 @@ fun rememberSettingHubs(): List<SettingHub> {
                 if (pending.isEmpty()) tr("Nothing to review") else tr("{0} to review", pending.size), "message inbox review bank detected paste") {
                 nav.push(Screen.Inbox)
             },
-            SettingRow(tr("Bank SMS settings"), if (v[Keys.CAPTURE_ENABLED] == "1") tr("On") else tr("Off"),
+            SettingRow(tr("Bank SMS settings"), if (capture) tr("On") else tr("Off"),
                 tr("Detection, blocked senders and words, import from the inbox"), "message text detect auto block filter import") {
                 nav.push(Screen.MessageSettings)
             },
@@ -221,7 +325,7 @@ fun rememberSettingHubs(): List<SettingHub> {
         SettingHub("safety", tr("Backup & security"), tr("Keep your data safe and private."), listOf(
             SettingRow(tr("Backup & restore"), null, last?.let { tr("Last backup: {0}", it) } ?: tr("Not backed up yet"),
                 "backup restore export import csv excel mmbak snapshot reset") { nav.push(Screen.Backup) },
-            SettingRow(tr("Passcode"), if (v[Keys.PASSCODE].isNullOrBlank()) tr("Off") else tr("On"), tr("Lock with a PIN, fingerprint or face"),
+            SettingRow(tr("Passcode"), if (passcode) tr("On") else tr("Off"), tr("Lock with a PIN, fingerprint or face"),
                 "pin lock password fingerprint face biometric security") { nav.push(Screen.Security) },
         )),
         SettingHub("help", tr("Help & about"), tr("How things work, and who made this."), listOf(
@@ -239,7 +343,7 @@ fun rememberSettingHubs(): List<SettingHub> {
 fun rememberMorePlaces(newLayout: Boolean): List<MorePlace> {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val v = settingValues()
+    val capture by rememberSetting(Prefs.CAPTURE_ENABLED)
     val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
     val categories by repo.categories.collectAsState(emptyList())
     val tags by repo.tags.collectAsState(emptyList())
@@ -252,14 +356,14 @@ fun rememberMorePlaces(newLayout: Boolean): List<MorePlace> {
     val budgeted = budgets.groupBy { it.categoryId }.count { (_, e) -> (e.maxByOrNull { it.period }?.amount ?: 0L) > 0L }
     val mains = { k: CategoryKind -> categories.count { it.kind == k && it.parentId == null } }
     val last = snapshots.firstOrNull()?.let { app.moneytracker.ui.fresh.snapshotWhen(it.name, repo.today()) }
-    val passcode = !v[Keys.PASSCODE].isNullOrBlank()
+    val passcode = rememberSetting(Prefs.PASSCODE).value.isNotBlank()
     return listOf(
         MorePlace("labels", tr("Categories & tags"),
             tr("{0} expense · {1} income · {2} tags", mains(CategoryKind.EXPENSE), mains(CategoryKind.INCOME), tags.size)) { nav.push(Screen.MoreHub("labels")) },
         MorePlace("budget", tr("Budget"), if (budgeted == 0) tr("Not set") else tr("Set for {0} categories", budgeted)) { nav.push(Screen.Budget) },
         MorePlace("reuse", tr("Repeat & bookmarks"), tr("{0} repeats · {1} bookmarks", rules.size, templates.size)) { nav.push(Screen.MoreHub("reuse")) },
         MorePlace("sms", tr("Bank SMS"),
-            if (v[Keys.CAPTURE_ENABLED] != "1") tr("Off") else if (pending.isEmpty()) tr("On") else tr("On · {0} to review", pending.size)) {
+            if (!capture) tr("Off") else if (pending.isEmpty()) tr("On") else tr("On · {0} to review", pending.size)) {
             nav.push(Screen.MoreHub("sms"))
         },
         MorePlace("safety", tr("Backup & security"),

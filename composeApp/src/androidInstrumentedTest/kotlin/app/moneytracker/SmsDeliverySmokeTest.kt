@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import app.moneytracker.data.Prefs
 import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -47,9 +48,9 @@ class SmsDeliverySmokeTest {
         repo.saveAccount(Account("smoke_hdfc_bank", "grp_bank", "HDFC Bank", smsSender = "HDFCBK"))
         repo.saveAccount(Account("smoke_hdfc_card", "grp_credit_card", "HDFC Credit Card", cardSettlementDay = 1,
             cardPaymentAccountId = "smoke_hdfc_bank", smsSender = "HDFCBK"))
-        repo.putSetting(MoneyRepository.Keys.SMS_AUTO_SAVE, "0")
-        repo.putSetting(MoneyRepository.Keys.SMS_ALERT, "1")
-        repo.putSetting(MoneyRepository.Keys.QUICK_ADD_NOTIFICATION, "1")
+        repo.putSetting(Prefs.SMS_AUTO_SAVE.key, "0")
+        repo.putSetting(Prefs.SMS_ALERT.key, "1")
+        repo.putSetting(Prefs.QUICK_ADD_NOTIFICATION.key, "1")
         Notifications.showQuickAdd(ctx)
         val manager = ctx.getSystemService(NotificationManager::class.java)
         // Opt-in synthetic test: discard previous debug-app SMS alerts before checking grouping.

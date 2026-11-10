@@ -3,7 +3,7 @@ package app.moneytracker
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.web.HttpRequest
@@ -85,7 +85,7 @@ class WebApiTest {
     }
 
     @Test fun passwordIsCheckedAndWrongTriesLockOut() {
-        repo.putSetting(Keys.WEB_PASSWORD, WebPassword.hash("secret1"))
+        repo.putSetting(Prefs.WEB_PASSWORD.key, WebPassword.hash("secret1"))
         val s = call("GET", "/api/session").json()
         assertEquals(false, s["signedIn"])
         assertEquals(true, s["password"])

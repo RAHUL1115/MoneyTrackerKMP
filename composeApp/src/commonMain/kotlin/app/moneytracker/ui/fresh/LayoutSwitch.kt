@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.font.FontWeight
-import app.moneytracker.data.MoneyRepository.Keys
+import app.moneytracker.data.Prefs
 import app.moneytracker.ui.Accent
 import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.LocalRepo
@@ -38,7 +38,7 @@ fun LayoutSwitchDialog(toNew: Boolean, onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(onClick = {
                 scope.launch {
-                    withContext(repo.io) { repo.putSetting(Keys.UI_LAYOUT, if (toNew) "NEW" else "CLASSIC") }
+                    withContext(repo.io) { repo.putSetting(Prefs.UI_LAYOUT, if (toNew) app.moneytracker.data.UiLayout.NEW else app.moneytracker.data.UiLayout.CLASSIC) }
                     platform.restartApp()
                 }
             }) { Text(tr("Restart now"), color = Accent, fontWeight = FontWeight.Medium) }
