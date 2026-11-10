@@ -1,0 +1,3 @@
+# A transfer is two linked entries, plus an optional fee
+
+A transfer is stored as two entries, one going out of the source account and one coming into the target, plus a fee entry when there is a fee. They share a `transferGroupId` and are edited and deleted together. This keeps each account's balance a plain sum of its own entries, and a transfer between accounts in different currencies records the amount on each side. Reports count only the outgoing side, so a transfer is never counted twice. The one exception is the "counts as expense" accounts such as savings: there, money moving in counts as spending and money moving back out counts as income.

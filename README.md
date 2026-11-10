@@ -146,6 +146,8 @@ composeApp/src/
 
 ### Core rules
 
+The words used across the app are defined in [GLOSSARY.md](GLOSSARY.md), and the reasons behind the rules below are in the [decision records](docs/adr/).
+
 - Amounts are `Long` minor units. A transaction's `kind` gives its sign: INCOME, TRANSFER_IN and ADJUST_UP add to the balance; EXPENSE, TRANSFER_OUT and ADJUST_DOWN subtract.
 - A transfer is two rows (OUT + IN) plus an optional fee row, all sharing `transferGroupId`. Delete removes all of them.
 - Installments (credit-card expenses) are N monthly rows sharing `installmentGroupId`. The first row takes the rounding remainder.
