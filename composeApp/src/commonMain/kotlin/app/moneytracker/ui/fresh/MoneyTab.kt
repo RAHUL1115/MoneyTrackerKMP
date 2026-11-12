@@ -183,9 +183,10 @@ internal fun MoneyTab() {
                         Icon(if (open) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted, modifier = Modifier.padding(start = 6.dp).size(20.dp))
                     }
                     AnimatedVisibility(open, enter = expandVertically(tween(200)), exit = shrinkVertically(tween(200))) {
-                        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp)) {
+                        // No side padding here: each row pads itself so its tap highlight spans the card.
+                        Column(Modifier.padding(bottom = 6.dp)) {
                             visible.forEachIndexed { i, l ->
-                                if (i > 0) Divider()
+                                if (i > 0) Divider(ACCOUNT_INSET)
                                 AccountRow(l, today)
                             }
                         }
@@ -287,6 +288,9 @@ private fun Legend(label: String, value: String, dot: Color) {
     }
 }
 
+/** Side padding of an account row inside its group card; the dividers between rows use the same inset. */
+private val ACCOUNT_INSET = 16.dp
+
 @Composable
 private fun AccountRow(l: AccountLine, today: LocalDate) {
     val nav = LocalNavigator.current
@@ -313,7 +317,7 @@ private fun AccountRow(l: AccountLine, today: LocalDate) {
     // A card has two balances: payable from closed statements, and outstanding in the open cycle.
     val amount = if (card != null) card.statementDue + card.overdue else if (l.group.type.isDebitCard) l.balance else l.effectiveBalance
     val dim = a.hidden
-    Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.AccountDetail(a.id)) }.padding(vertical = 12.dp)) {
+    Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.AccountDetail(a.id)) }.padding(horizontal = ACCOUNT_INSET, vertical = 12.dp)) {
         // Every row is as tall as a two-line card row, so the list keeps one rhythm.
         Row(Modifier.heightIn(min = 38.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {

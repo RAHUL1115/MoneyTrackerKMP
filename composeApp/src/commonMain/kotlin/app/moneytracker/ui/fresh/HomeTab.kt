@@ -255,9 +255,9 @@ private fun RecentDays() {
                 )
             }
             // An empty day is just its heading with "Nothing yet"; no empty card.
-            if (dayTxns.isNotEmpty()) Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).padding(horizontal = CARD_INSET, vertical = 4.dp)) {
+            if (dayTxns.isNotEmpty()) Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card)) {
                 dayTxns.forEachIndexed { i, txn ->
-                    if (i > 0) Divider()
+                    if (i > 0) Divider(ENTRY_INSET)
                     ActEntryRow(txn, data) { nav.push(Screen.EditTxn(txnId = txn.id)) }
                 }
             }

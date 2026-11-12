@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.PeriodSettings
@@ -249,9 +250,10 @@ internal fun InsightsTab() {
             // Breakdown by category, account or tag.
             val parts = parts(groupBy, rows, previousRows, flow, catById, accountName, tagNames, range, side == Side.INCOME, nav)
             val partsTotal = parts.sumOf { it.amount.coerceAtLeast(0) }
-            FCard {
+            // No side padding on the card: rows pad themselves so their tap highlight spans the card, like Activity's entry rows.
+            FCard(padding = 0.dp) { Column(Modifier.padding(vertical = ENTRY_INSET)) {
                 // Title with the Category / Account / Tag switch beside it.
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.padding(horizontal = ENTRY_INSET), verticalAlignment = Alignment.CenterVertically) {
                     Text(if (side == Side.INCOME) tr("Income by") else tr("Spending by"), Modifier.weight(1f), color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -261,25 +263,25 @@ internal fun InsightsTab() {
                 Gap(6.dp)
                 if (parts.isEmpty()) Text(
                     if (side == Side.INCOME) tr("No income recorded {0}.", phrase) else tr("Nothing spent {0} yet. Entries you add will show up here.", phrase),
-                    Modifier.padding(vertical = 16.dp), color = F.muted, fontSize = 14.sp,
+                    Modifier.padding(horizontal = ENTRY_INSET, vertical = 16.dp), color = F.muted, fontSize = 14.sp,
                 )
                 val top = parts.maxOfOrNull { it.amount }?.coerceAtLeast(1) ?: 1
                 parts.forEachIndexed { i, part ->
-                    if (i > 0) Divider()
+                    if (i > 0) Divider(ENTRY_INSET)
                     PartRow(part, partsTotal, top, groupBy, side == Side.INCOME, openKey == part.key, accountName, catById) {
                         openKey = if (openKey == part.key) null else part.key
                     }
                 }
                 if (groupBy == GroupBy.TAG && parts.isNotEmpty()) Text(tr("An entry with several tags counts once for each tag."),
-                    Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.sp)
-            }
+                    Modifier.padding(horizontal = ENTRY_INSET).padding(top = 8.dp), color = F.muted, fontSize = 12.sp)
+            } }
 
             // The biggest single entries of the period.
             val biggest = rows.filter { classify(it) == flow && it.amount > 0 }.sortedByDescending { it.amount }.take(5)
-            if (biggest.isNotEmpty()) FCard {
-                CardTitle(tr("Top entries"))
-                biggest.forEach { r -> EntryLine(r, accountName, catById) }
-            }
+            if (biggest.isNotEmpty()) FCard(padding = 0.dp) { Column(Modifier.padding(vertical = ENTRY_INSET)) {
+                Box(Modifier.padding(horizontal = ENTRY_INSET)) { CardTitle(tr("Top entries")) }
+                biggest.forEach { r -> EntryLine(r, accountName, catById, inset = ENTRY_INSET) }
+            } }
             Gap(24.dp)
         }
     }
@@ -376,7 +378,7 @@ private fun PartRow(
 ) {
     val currency = LocalCurrency.current
     val pct = if (total > 0 && part.amount > 0) (part.amount * 100.0 / total).roundToInt() else null
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onTap).padding(vertical = 10.dp)) {
+    Column(Modifier.fillMaxWidth().clickable(onClick = onTap).padding(horizontal = ENTRY_INSET, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Mark(if (groupBy == GroupBy.TAG && part.key != NO_TAG) "# ${part.name}" else part.name, 28.dp)
             HGap(10.dp)
@@ -397,7 +399,7 @@ private fun PartRow(
         Gap(8.dp)
         Bar(part.amount.coerceAtLeast(0).toFloat() / top, Modifier.padding(start = 38.dp), fill = if (income) F.income else F.accent, height = 6.dp)
     }
-    if (open) Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(horizontal = 12.dp, vertical = 8.dp)) {
+    if (open) Column(Modifier.fillMaxWidth().padding(horizontal = ENTRY_INSET).padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).padding(horizontal = 12.dp, vertical = 8.dp)) {
         Text(tr("Top entries").uppercase(), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
         part.entries.sortedByDescending { it.amount }.take(3).forEach { r -> EntryLine(r, accountName, catById) }
         if (part.seeAll != null) Text(
@@ -414,13 +416,15 @@ private fun changeText(current: Long, previous: Long): String {
 }
 
 @Composable
-private fun EntryLine(r: ReportRow, accountName: Map<String, String>, catById: Map<String, Category>) {
+private fun EntryLine(r: ReportRow, accountName: Map<String, String>, catById: Map<String, Category>, inset: Dp = 0.dp) {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val refund = r.amount < 0
     val title = r.note.ifBlank { if (r.kind == TxnKind.TRANSFER_OUT) tr("Saved / invested") else app.moneytracker.ui.categoryPath(r.categoryId, catById) }
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { nav.push(Screen.EditTxn(txnId = r.txnId)) }.padding(vertical = 8.dp),
+        // Inside a card (inset > 0) the highlight spans the card; inside the open breakdown panel it's a rounded chip.
+        Modifier.fillMaxWidth().then(if (inset == 0.dp) Modifier.clip(RoundedCornerShape(10.dp)) else Modifier)
+            .clickable { nav.push(Screen.EditTxn(txnId = r.txnId)) }.padding(horizontal = inset, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {

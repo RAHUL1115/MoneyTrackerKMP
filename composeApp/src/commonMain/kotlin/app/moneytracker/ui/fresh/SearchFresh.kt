@@ -235,10 +235,10 @@ internal fun FreshSearch() {
                         color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
                 }
             } else item(key = "results") {
-                Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).padding(horizontal = 16.dp)) {
+                Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card)) {
                     results.forEachIndexed { i, t ->
-                        if (i > 0) Divider()
-                        ActEntryRow(t, data, showDate = true) { nav.push(Screen.EditTxn(txnId = t.id)) }
+                        if (i > 0) Divider(16.dp)
+                        ActEntryRow(t, data, showDate = true, inset = 16.dp) { nav.push(Screen.EditTxn(txnId = t.id)) }
                     }
                 }
             }

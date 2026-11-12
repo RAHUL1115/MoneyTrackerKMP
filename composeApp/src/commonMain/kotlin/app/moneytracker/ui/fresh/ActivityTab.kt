@@ -48,6 +48,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.Prefs
@@ -402,9 +403,9 @@ private fun ActList(
                                 color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, style = F.money,
                             )
                         }
-                        Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).padding(horizontal = 18.dp)) {
+                        Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card)) {
                             dayTxns.forEachIndexed { i, txn ->
-                                if (i > 0) Divider()
+                                if (i > 0) Divider(ENTRY_INSET)
                                 ActEntryRow(
                                     txn, data, selecting = selecting, selected = txn.id in selection,
                                     onLongClick = { onSelect(txn.id) },
@@ -476,6 +477,9 @@ internal fun rememberActEntryData(): ActEntryData {
     }
 }
 
+/** Side padding inside an entry card: [ActEntryRow] pads itself, and dividers between rows use the same inset. */
+internal val ENTRY_INSET = 18.dp
+
 /** Category mark · note and details · amount. Refunds show as +amount in the income colour. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -486,6 +490,8 @@ internal fun ActEntryRow(
     selected: Boolean = false,
     showDate: Boolean = false,
     compact: Boolean = false,
+    /** Space from the card's edges to the content; the tap highlight still spans the full width. */
+    inset: Dp = ENTRY_INSET,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
@@ -515,7 +521,7 @@ internal fun ActEntryRow(
     ).joinToString(" · ")
     Row(
         Modifier.fillMaxWidth().heightIn(min = if (compact) 52.dp else 64.dp)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(vertical = 10.dp),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(horizontal = inset, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 14.dp),
     ) {
         if (selecting) Box(

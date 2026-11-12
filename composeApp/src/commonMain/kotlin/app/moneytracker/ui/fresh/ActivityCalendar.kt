@@ -159,17 +159,17 @@ private fun DayCard(day: LocalDate, today: LocalDate, onAdd: () -> Unit) {
     val data = rememberActEntryData()
     val visible = txns.filter { it.kind != TxnKind.TRANSFER_IN }
     FCard(padding = 0.dp) {
-        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 10.dp)) {
-            Row(Modifier.fillMaxWidth().height(42.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.padding(top = 6.dp, bottom = 10.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(42.dp), verticalAlignment = Alignment.CenterVertically) {
                 val label = (if (day == today) tr("Today") + ", " else day.weekday() + " ") + "${day.dayOfMonth} ${tr(actMonthNames[day.monthNumber - 1])}"
                 Text(label, Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Text(tr("+ Add on this day"), Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onAdd).padding(6.dp),
                     color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
-            if (visible.isEmpty()) Text(tr("Nothing recorded on this day."), Modifier.padding(top = 6.dp, bottom = 4.dp), color = F.muted, fontSize = 13.sp)
+            if (visible.isEmpty()) Text(tr("Nothing recorded on this day."), Modifier.padding(horizontal = 16.dp).padding(top = 6.dp, bottom = 4.dp), color = F.muted, fontSize = 13.sp)
             visible.forEach { t ->
-                Divider()
-                ActEntryRow(t, data, compact = true) { nav.push(Screen.EditTxn(txnId = t.id)) }
+                Divider(16.dp)
+                ActEntryRow(t, data, compact = true, inset = 16.dp) { nav.push(Screen.EditTxn(txnId = t.id)) }
             }
         }
     }

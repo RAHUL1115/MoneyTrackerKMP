@@ -424,7 +424,7 @@ fun FSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?) {
 }
 
 @Composable
-fun Divider() = Box(Modifier.fillMaxWidth().height(1.dp).background(F.line))
+fun Divider(inset: Dp = 0.dp) = Box(Modifier.fillMaxWidth().padding(horizontal = inset).height(1.dp).background(F.line))
 
 /** Progress bar on a card or the hero (pass track/fill for the hero's white-on-green look). */
 @Composable
