@@ -1,0 +1,1 @@
+MoneyTracker 0.4.8. Entry and account lists on Home, Activity, Search, Insights and Accounts: tapping a row now highlights it across the whole card, and rows line up the same way on every tab.
