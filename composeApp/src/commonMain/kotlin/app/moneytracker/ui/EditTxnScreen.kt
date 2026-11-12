@@ -173,7 +173,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     fun applyHabitAccount(category: String?) {
         if (accountChosen) return
         val kind = when (type) { DraftType.INCOME -> TxnKind.INCOME; DraftType.EXPENSE, DraftType.REFUND -> TxnKind.EXPENSE; DraftType.TRANSFER -> return }
-        val a = repo.habitAccount(kind, category)?.let { id -> accounts.firstOrNull { it.id == id } } ?: return
+        val a = repo.habitAccount(kind, category, note = note)?.let { id -> accounts.firstOrNull { it.id == id } } ?: return
         accountId = a.id
         if (amountText.isEmpty() || currencyCode == null) currencyCode = a.currency
     }
@@ -615,7 +615,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                     // unless the user already picked one.
                     fun live(id: String?) = id?.let { accounts.firstOrNull { a -> a.id == it } }
                     val default = live(defaultAccountFor(c.id, catById))
-                        ?: live(repo.habitAccount(if (catKind == CategoryKind.INCOME) TxnKind.INCOME else TxnKind.EXPENSE, c.id))
+                        ?: live(repo.habitAccount(if (catKind == CategoryKind.INCOME) TxnKind.INCOME else TxnKind.EXPENSE, c.id, note = note))
                     if (!accountChosen && default != null) {
                         accountId = default.id
                         if (amountText.isEmpty() || currencyCode == null) currencyCode = default.currency

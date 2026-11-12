@@ -109,6 +109,8 @@ private fun ListenSheetBody(onDismiss: () -> Unit, startTyping: Boolean, onDone:
     val accounts by repo.accounts.collectAsState(emptyList())
     val scope = rememberCoroutineScope()
     val learned: suspend (List<String>) -> app.moneytracker.data.MoneyRepository.Suggestion? = { words -> withContext(repo.io) { repo.suggest(words) } }
+    val usual: suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -> String? =
+        { kind, category, note, amount -> withContext(repo.io) { repo.habitAccount(kind, category, note = note, amount = amount.takeIf { it > 0 }) } }
 
     var heard by remember { mutableStateOf("") }
     var state by remember { mutableStateOf(ListenState.LISTENING) }
@@ -131,7 +133,7 @@ private fun ListenSheetBody(onDismiss: () -> Unit, startTyping: Boolean, onDone:
         parseJob?.cancel()
         if (p == null || text.isBlank()) { then(guess); return }
         parseJob = scope.launch {
-            val g = SmartEntry.guess(p, text, repo.today(), currency, categories, accounts, learned)
+            val g = SmartEntry.guess(p, text, repo.today(), currency, categories, accounts, learned, usual)
             guess = g; then(g)
         }
     }
@@ -140,7 +142,7 @@ private fun ListenSheetBody(onDismiss: () -> Unit, startTyping: Boolean, onDone:
         session?.cancel()
         scope.launch {
             val p = parser ?: SmartEntry.parser(platform)
-            val g = if (p != null && text.isNotBlank()) SmartEntry.guess(p, text, repo.today(), currency, categories, accounts, learned) else null
+            val g = if (p != null && text.isNotBlank()) SmartEntry.guess(p, text, repo.today(), currency, categories, accounts, learned, usual) else null
             onDismiss()
             onDone(g)
         }

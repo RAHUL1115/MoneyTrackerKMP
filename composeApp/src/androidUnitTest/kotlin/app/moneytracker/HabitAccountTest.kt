@@ -46,13 +46,24 @@ class HabitAccountTest {
         assertEquals("acc_bank", repo.habitAccount(TxnKind.INCOME, null))
     }
 
-    @Test fun oldHistoryAndNoHistoryGiveNothing() {
+    @Test fun olderHistoryFadesAndOverAYearGivesNothing() {
         assertNull(repo.habitAccount(TxnKind.EXPENSE, null))
+        add(DraftType.EXPENSE, "acc_bank", "cat_ex_3", daysAgo = 400)
+        assertNull(repo.habitAccount(TxnKind.EXPENSE, "cat_ex_3"))               // only the last year counts
         add(DraftType.EXPENSE, "acc_card", "cat_ex_1", daysAgo = 60)
-        assertNull(repo.habitAccount(TxnKind.EXPENSE, null))                    // kind habit looks back 30 days
-        assertEquals("acc_card", repo.habitAccount(TxnKind.EXPENSE, "cat_ex_1")) // category habit looks back 90
-        add(DraftType.EXPENSE, "acc_bank", "cat_ex_3", daysAgo = 100)
-        assertNull(repo.habitAccount(TxnKind.EXPENSE, "cat_ex_3"))
+        assertEquals("acc_card", repo.habitAccount(TxnKind.EXPENSE, null))       // someone who adds entries rarely still gets one
+        repeat(2) { add(DraftType.EXPENSE, "acc_cash", "cat_ex_1", daysAgo = 200) }
+        assertEquals("acc_card", repo.habitAccount(TxnKind.EXPENSE, "cat_ex_1")) // one recent use outweighs two old ones
+    }
+
+    @Test fun noteAndCategoryPickTheAccountTogether() {
+        // Food usually on the card, but fuel (also Transport-ish notes) on its own prepaid account.
+        repeat(4) { add(DraftType.EXPENSE, "acc_card", "cat_ex_0", note = "burger", daysAgo = it + 1) }
+        repeat(3) { add(DraftType.EXPENSE, "acc_cash", "cat_ex_1", note = "for fuel", daysAgo = it + 1) }
+        add(DraftType.EXPENSE, "acc_card", "cat_ex_1", note = "taxi", daysAgo = 1)
+        assertEquals("acc_card", repo.habitAccount(TxnKind.EXPENSE, "cat_ex_0", note = "pizza"))
+        assertEquals("acc_cash", repo.habitAccount(TxnKind.EXPENSE, "cat_ex_1", note = "fuel"))
+        assertEquals("acc_card", repo.habitAccount(TxnKind.EXPENSE, "cat_ex_1", note = "taxi"))
     }
 
     @Test fun hiddenAccountsAreSkippedForTheNextOne() {

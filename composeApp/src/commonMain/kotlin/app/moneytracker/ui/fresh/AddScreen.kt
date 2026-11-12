@@ -196,12 +196,14 @@ private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: Cu
         lat = d.lat; lng = d.lng
     }
 
+    private fun enteredAmount(): Long? = amountText.takeIf { it.isNotBlank() }?.let { fmt.parse(it) }?.takeIf { it > 0 }
+
     private fun live(id: String?): Account? = id?.let { repo.accounts.current.firstOrNull { a -> a.id == it } }
 
     /** The account usually used for this kind of entry (and category), unless one was chosen. */
     fun applyHabitAccount(category: String?) {
         if (accountChosen || type == DraftType.TRANSFER) return
-        val a = live(repo.habitAccount(txnKind, category)) ?: return
+        val a = live(repo.habitAccount(txnKind, category, note = note, amount = enteredAmount())) ?: return
         accountId = a.id
         if (amountText.isEmpty() || currencyCode == null) currencyCode = a.currency
     }
@@ -219,7 +221,7 @@ private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: Cu
     /** Category's preferred account (or its main category's), else the one usually used with it, unless one was picked. */
     fun pickCategory(c: Category) {
         categoryId = c.id
-        val default = live(defaultAccountFor(c.id, repo.categoryById.current)) ?: live(repo.habitAccount(txnKind, c.id))
+        val default = live(defaultAccountFor(c.id, repo.categoryById.current)) ?: live(repo.habitAccount(txnKind, c.id, note = note, amount = enteredAmount()))
         if (!accountChosen && default != null) {
             accountId = default.id
             if (amountText.isEmpty() || currencyCode == null) currencyCode = default.currency
@@ -624,7 +626,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         val forTo = step == Step.TO
         val currentAcct = if (forTo) f.toAccountId else f.accountId
         val pickable = accounts.filter { (!it.hidden || it.id == currentAcct) && (!forTo || it.id != f.accountId) }
-        val usual = remember(step, f.categoryId) { if (step == Step.ACCOUNT) repo.habitAccount(f.txnKind, f.categoryId) else null }
+        val usual = remember(step, f.categoryId) { if (step == Step.ACCOUNT) repo.habitAccount(f.txnKind, f.categoryId, note = f.note) else null }
         val recent = if (!acctStep) emptyList() else (listOfNotNull(usual, currentAcct) + recentTxns.sortedByDescending { it.createdAt }
             .map { if (forTo) it.toAccountId else it.accountId }).filterNotNull().distinct()
             .mapNotNull { id -> pickable.firstOrNull { it.id == id } }.take(6)
@@ -853,7 +855,8 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         if (d.note.isNotBlank()) f.note = d.note
         f.date = d.date
         if (d.type != DraftType.REFUND && d.categoryId != null) f.categoryId = d.categoryId
-        if (d.accountId.isNotBlank()) { f.accountId = d.accountId; f.accountChosen = true }
+        // A guessed account stays a default: picking another category afterwards may still move it.
+        if (d.accountId.isNotBlank() && (!f.accountChosen || !g.accountGuessed)) { f.accountId = d.accountId; f.accountChosen = !g.accountGuessed }
         toaster.show(tr("Filled in from what you said. Check and save."))
     }
 

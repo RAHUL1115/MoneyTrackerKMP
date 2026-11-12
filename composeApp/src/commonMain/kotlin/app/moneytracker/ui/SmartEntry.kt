@@ -26,6 +26,8 @@ data class SmartGuess(
     val daysAgo: Int,
     /** The category came from the person's own past entries rather than the built-in model. */
     val categoryLearned: Boolean = false,
+    /** The account wasn't said: it's the category's default or the usual one, so a later category change may replace it. */
+    val accountGuessed: Boolean = false,
 )
 
 /** The on-device Smart entry engine, loaded once (about half a second) the first time it's needed. */
@@ -47,6 +49,8 @@ object SmartEntry {
         categories: List<Category>, accounts: List<Account>,
         /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */
         learned: (suspend (List<String>) -> MoneyRepository.Suggestion?)? = null,
+        /** The account usually used for (kind, category id, note, amount); null to skip. */
+        usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -> String?)? = null,
     ): SmartGuess = withContext(Dispatchers.Default) {
         val expense = categories.filter { it.kind == CategoryKind.EXPENSE }
         val income = categories.filter { it.kind == CategoryKind.INCOME }
@@ -70,9 +74,15 @@ object SmartEntry {
         val modelCategory = ranked.firstOrNull()?.let { n -> pool.firstOrNull { it.name == n } }
         val category = learnedCategory ?: modelCategory
         val spoken = r.account.takeIf { it.isNotEmpty() }?.let { n -> visible.firstOrNull { it.name == n } }
-        // An account said out loud always wins; otherwise the one these words usually go with, when history is clear.
-        val account = spoken ?: mine?.takeIf { it.accountConfidence >= LEARNED_ACCOUNT }?.accountId?.let { id -> visible.firstOrNull { it.id == id } }
         val amount = r.amount?.let { currency.parse(plain(it, currency.decimals)) } ?: 0L
+        // An account said out loud always wins; then the category's own default account; then the one usually used
+        // with this category, note and amount ("500 for burger" → wherever food usually goes).
+        val kind = if (type == DraftType.INCOME) app.moneytracker.domain.TxnKind.INCOME else app.moneytracker.domain.TxnKind.EXPENSE
+        val guessed = if (spoken != null || type == DraftType.TRANSFER) null else
+            app.moneytracker.domain.defaultAccountFor(category?.id, categories.associateBy { it.id })?.let { id -> visible.firstOrNull { it.id == id } }
+                ?: usualAccount?.invoke(kind, category?.id, note, amount)?.let { id -> visible.firstOrNull { it.id == id } }
+                ?: mine?.takeIf { it.accountConfidence >= LEARNED_ACCOUNT }?.accountId?.let { id -> visible.firstOrNull { it.id == id } }
+        val account = spoken ?: guessed
         val days = r.daysAgo.coerceIn(0, 31)
         SmartGuess(
             draft = TxnDraft(type, today.minus(DatePeriod(days = days)), account?.id.orEmpty(), categoryId = category?.id, amount = amount, note = note),
@@ -81,6 +91,7 @@ object SmartEntry {
             accountName = account?.name,
             daysAgo = days,
             categoryLearned = learnedCategory != null,
+            accountGuessed = spoken == null && account != null,
         )
     }
 

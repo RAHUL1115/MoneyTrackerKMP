@@ -34,7 +34,9 @@ class SmartEntryLearningTest {
     }
 
     private fun guess(text: String) = runBlocking {
-        SmartEntry.guess(parser, text, today, fmt, repo.categoriesNow(), repo.accountsNow()) { repo.suggest(it) }
+        SmartEntry.guess(parser, text, today, fmt, repo.categoriesNow(), repo.accountsNow(),
+            learned = { repo.suggest(it) },
+            usualAccount = { kind, category, note, amount -> repo.habitAccount(kind, category, note = note, amount = amount.takeIf { it > 0 }) })
     }
 
     @Test fun pastNotesSteerTheCategoryAndAccount() {
@@ -53,6 +55,19 @@ class SmartEntryLearningTest {
         assertEquals(account.id, after.draft.accountId, "learned account")
         assertEquals("Zorbles", after.draft.note)
         assertEquals(12000L, after.draft.amount)
+    }
+
+    @Test fun voiceEntryGetsTheCategorysUsualAccount() {
+        // "500 for burger": Food is understood, and the account is where food spending usually goes, not the overall habit.
+        val food = guess("500 for burger").draft.categoryId!!
+        val foodMain = repo.categoriesNow().first { it.id == food }.let { it.parentId ?: it.id }
+        val other = repo.categoriesNow().first { it.kind == CategoryKind.EXPENSE && it.parentId == null && it.id != foodMain }
+        repeat(3) { repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = food, amount = 300_00, note = "pizza")) }
+        repeat(6) { repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_bank", categoryId = other.id, amount = 900_00, note = "stuff")) }
+        val g = guess("500 for burger")
+        assertEquals(food, g.draft.categoryId)
+        assertEquals("acc_card", g.draft.accountId)
+        assertTrue(g.accountGuessed)
     }
 
     @Test fun anAccountSaidOutLoudBeatsHistoryAndNoHistoryMeansTheModel() {

@@ -7,6 +7,7 @@ import app.moneytracker.Log
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.defaultAccountFor
+import app.moneytracker.domain.AccountPredictor
 import app.moneytracker.domain.TAG_PREPAYMENT
 import app.moneytracker.domain.TAG_USAGE_EXCEPTION
 import app.moneytracker.domain.AccountGroup
@@ -314,17 +315,20 @@ class MoneyRepository(
     }
 
     /**
-     * The account usually used for this kind of entry: the most used with [categoryId] (or its sub-categories) in the
-     * last 90 days, else the most used for [kind] in the last 30. Only live, visible accounts; null when there's no
-     * history or the setting is off. A category's own default account is the caller's to prefer.
+     * The account this entry probably goes in, from the person's recent entries of the same [kind]: its category,
+     * note words and amount, and the accounts used just before (see [AccountPredictor]). Only live, visible accounts
+     * (and only [allowed] ones when given); null when none was used in the last year or the setting is off.
+     * A category's own default account is the caller's to prefer.
      */
-    /** The account most used for [kind] (and [categoryId]) lately, limited to [allowed] when given. */
-    fun habitAccount(kind: TxnKind, categoryId: String?, allowed: Set<String>? = null): String? {
+    fun habitAccount(kind: TxnKind, categoryId: String?, allowed: Set<String>? = null, note: String = "", amount: Long? = null): String? {
         if (!settingNow(Prefs.HABIT_ACCOUNT)) return null
         val usable = q.allAccounts().executeAsList().filter { it.hidden == 0L && (allowed == null || it.id in allowed) }.map { it.id }.toSet()
-        fun mostUsed(days: Int, category: String?) = q.habitAccounts(kind.name, today().toEpochDays().toLong() - days, category)
-            .executeAsList().firstOrNull { it.accountId in usable }?.accountId
-        return categoryId?.let { mostUsed(90, it) } ?: mostUsed(30, null)
+        val today = today().toEpochDays().toLong()
+        val history = q.accountHistory(kind.name, today - AccountPredictor.WINDOW_DAYS).executeAsList().asReversed().map {
+            AccountPredictor.Past(it.accountId, it.categoryId, it.parentId ?: it.categoryId, it.note, it.amount, it.date)
+        }
+        val main = categoryId?.let { id -> q.allCategories().executeAsList().firstOrNull { it.id == id }?.parentId } ?: categoryId
+        return AccountPredictor.rank(history, AccountPredictor.Ask(categoryId, main, note, amount, today), usable).firstOrNull()?.first
     }
 
     fun resetAutocomplete() = putSetting(Prefs.AUTOCOMPLETE_SINCE, now())
@@ -772,7 +776,7 @@ class MoneyRepository(
         val ids = pool.map { it.id }.toSet()
         if (ids.isEmpty()) return null
         return defaultAccountFor(categoryId, categoryById.now())?.takeIf { it in ids }
-            ?: habitAccount(kind, categoryId, ids)
+            ?: habitAccount(kind, categoryId, ids, p?.vendor.orEmpty(), p?.amount)
             ?: ids.singleOrNull()
     }
 
