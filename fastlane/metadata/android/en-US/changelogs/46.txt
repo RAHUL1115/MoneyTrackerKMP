@@ -1,0 +1,1 @@
+MoneyTracker 0.4.6. Bank SMS: when a message doesn't say which account it's from, the entry now fills in your usual account (the category's default account, or the one you use most) so you only need to check it. A guessed account is never saved automatically; it waits for your review.
