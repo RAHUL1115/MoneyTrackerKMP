@@ -1,0 +1,1 @@
+MoneyTracker 0.4.7. The account is now guessed from the category, the note and the amount, learning from your own recent entries, so it gets better the more you use it. Saying or typing an entry like "500 for burger" now fills in the account you usually use for that category.
