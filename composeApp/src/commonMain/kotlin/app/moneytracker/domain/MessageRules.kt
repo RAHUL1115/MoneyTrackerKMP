@@ -25,8 +25,29 @@ object MessageRules {
         // A configured content rule is deliberate; a shared bank sender alone is not enough
         // to override an explicit credit-card/account reference in the message.
         matchAccount(accounts.filter { it.smsMatch.isNotEmpty() }, sender, text)?.let { return it }
+        val candidates = candidates(accounts, groups, parsed)
+        matchAccount(candidates, sender, text)?.let { return it }
+        val digitMatches = parsed.accountDigits?.let { digits ->
+            val pattern = Regex("""(?<!\d)$digits(?!\d)""")
+            candidates.filter { pattern.containsMatchIn(it.name) }
+        }.orEmpty()
+        if (digitMatches.isNotEmpty()) {
+            return digitMatches.singleOrNull()?.id ?: learnedAccountId?.takeIf { id -> digitMatches.any { it.id == id } }
+        }
+        learnedAccountId?.takeIf { id -> candidates.any { it.id == id } }?.let { return it }
+        return parsed.bank?.let { bank ->
+            candidates.filter { it.name.contains(bank.substringBefore(' '), ignoreCase = true) }.singleOrNull()?.id
+        }
+    }
+
+    /**
+     * Accounts the message could belong to: the instrument it names (credit card, debit card, bank
+     * account) and, when both are known, the same bank. With nothing parsed, every account fits.
+     */
+    fun candidates(accounts: List<Account>, groups: List<AccountGroup>, parsed: SmsParser.Parsed?): List<Account> {
+        if (parsed == null) return accounts
         val types = groups.associate { it.id to it.type }
-        val candidates = accounts.filter { a ->
+        return accounts.filter { a ->
             val type = types[a.groupId]
             val namedBank = SmsParser.bankOf("", a.name)
             val bankCompatible = parsed.bank == null || namedBank == null || namedBank == parsed.bank
@@ -39,18 +60,6 @@ object MessageRules {
                 SmsParser.Instrument.BANK_ACCOUNT -> type == AccountType.BANK || type == AccountType.SAVINGS || type == AccountType.OVERDRAFT
                 null -> true
             }
-        }
-        matchAccount(candidates, sender, text)?.let { return it }
-        val digitMatches = parsed.accountDigits?.let { digits ->
-            val pattern = Regex("""(?<!\d)$digits(?!\d)""")
-            candidates.filter { pattern.containsMatchIn(it.name) }
-        }.orEmpty()
-        if (digitMatches.isNotEmpty()) {
-            return digitMatches.singleOrNull()?.id ?: learnedAccountId?.takeIf { id -> digitMatches.any { it.id == id } }
-        }
-        learnedAccountId?.takeIf { id -> candidates.any { it.id == id } }?.let { return it }
-        return parsed.bank?.let { bank ->
-            candidates.filter { it.name.contains(bank.substringBefore(' '), ignoreCase = true) }.singleOrNull()?.id
         }
     }
 

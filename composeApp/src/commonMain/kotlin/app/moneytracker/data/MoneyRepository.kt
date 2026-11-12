@@ -6,6 +6,7 @@ import app.cash.sqldelight.coroutines.mapToOneOrNull
 import app.moneytracker.Log
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.Account
+import app.moneytracker.domain.defaultAccountFor
 import app.moneytracker.domain.TAG_PREPAYMENT
 import app.moneytracker.domain.TAG_USAGE_EXCEPTION
 import app.moneytracker.domain.AccountGroup
@@ -317,9 +318,10 @@ class MoneyRepository(
      * last 90 days, else the most used for [kind] in the last 30. Only live, visible accounts; null when there's no
      * history or the setting is off. A category's own default account is the caller's to prefer.
      */
-    fun habitAccount(kind: TxnKind, categoryId: String?): String? {
+    /** The account most used for [kind] (and [categoryId]) lately, limited to [allowed] when given. */
+    fun habitAccount(kind: TxnKind, categoryId: String?, allowed: Set<String>? = null): String? {
         if (!settingNow(Prefs.HABIT_ACCOUNT)) return null
-        val usable = q.allAccounts().executeAsList().filter { it.hidden == 0L }.map { it.id }.toSet()
+        val usable = q.allAccounts().executeAsList().filter { it.hidden == 0L && (allowed == null || it.id in allowed) }.map { it.id }.toSet()
         fun mostUsed(days: Int, category: String?) = q.habitAccounts(kind.name, today().toEpochDays().toLong() - days, category)
             .executeAsList().firstOrNull { it.accountId in usable }?.accountId
         return categoryId?.let { mostUsed(90, it) } ?: mostUsed(30, null)
@@ -713,8 +715,8 @@ class MoneyRepository(
         // "Auto-save": straight into the books when the account is known.
         if (settingNow(Prefs.SMS_AUTO_SAVE) && capture.accountId != null && (capture.amount ?: 0) != 0L) {
             val d = draftFromCapture(capture)
-            // Only complete entries are saved on their own; without a category it waits for review.
-            if (d.categoryId != null) {
+            // Only complete entries are saved on their own: never without an account or a category.
+            if (d.categoryId != null && d.accountId.isNotBlank()) {
                 completeCapture(capture, d, create(d))
                 Log.i("Sms") { "$source from $from: ${capture.kind} saved automatically (${capture.id})" }
                 return capture.copy(status = CaptureStatus.SAVED)
@@ -744,13 +746,34 @@ class MoneyRepository(
         // were filed under (the same suggestion the editor shows), so a one-tap Add lands in the right category.
         val category = s?.categoryId?.takeIf(fits)
             ?: p?.vendor?.let { SmsParser.words(it) }?.takeIf { it.isNotEmpty() }?.let { suggest(it).categoryId }?.takeIf(fits)
+        val kind = if (type == DraftType.INCOME) TxnKind.INCOME else TxnKind.EXPENSE
         return TxnDraft(
             type, date,
-            c.accountId ?: p?.let { MessageRules.suggestAccount(accountsNow(), groupsNow(), c.sender, c.text, it, s?.accountId) }.orEmpty(),
+            c.accountId ?: p?.let { MessageRules.suggestAccount(accountsNow(), groupsNow(), c.sender, c.text, it, s?.accountId) }
+                ?: usualSmsAccount(p, kind, category).orEmpty(),
             categoryId = category, amount = (c.amount ?: 0) * type.sign,
             note = p?.vendor.orEmpty(), currency = knownCurrency,
             origin = if (settingNow(Prefs.SMS_SHOW_ORIGINAL) == SmsOriginal.OFF) "" else c.text,
         )
+    }
+
+    /**
+     * When the message doesn't say which account, pre-fill the usual one so the entry is one tap
+     * from done: the category's default account, then the account most used for this category,
+     * then for this kind of entry, then the only account that fits. Only accounts that fit what
+     * the message does say (credit card, bank, …) are considered. It's a pre-fill for review,
+     * so auto-save still waits for a confident match.
+     */
+    private fun usualSmsAccount(p: SmsParser.Parsed?, kind: TxnKind, categoryId: String?): String? {
+        val fits = MessageRules.candidates(accountsNow().filter { !it.hidden }, groupsNow(), p)
+        // "… via slice" with "Slice account" and "HDFC card": the slice ones are the likelier pool.
+        val pool = p?.bank?.let { bank -> fits.filter { it.name.contains(bank.substringBefore(' '), ignoreCase = true) } }
+            ?.takeIf { it.isNotEmpty() } ?: fits
+        val ids = pool.map { it.id }.toSet()
+        if (ids.isEmpty()) return null
+        return defaultAccountFor(categoryId, categoryById.now())?.takeIf { it in ids }
+            ?: habitAccount(kind, categoryId, ids)
+            ?: ids.singleOrNull()
     }
 
     /** Called when the user saves a capture: marks it and teaches the model vendor/bank/digits → category & account. */

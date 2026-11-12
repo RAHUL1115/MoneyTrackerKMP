@@ -140,7 +140,7 @@ fun MessageSettingsScreen() {
             if (!health.permission) Text(smsPermissionSteps(), Modifier.padding(horizontal = 28.dp, vertical = 8.dp), fontSize = 12.sp, color = SubtleText)
             if (capture) ConfigRow(tr("Keep detection running"), if (health.background.restricted) tr("Restricted") else tr("Check")) { keepRunning = true }
             ConfigToggle(tr("Alert for detected messages"), null, alert) { put(Prefs.SMS_ALERT, it) }
-            ConfigToggle(tr("Save automatically"), tr("Add the entry right away when the account is recognised"), autoSave) {
+            ConfigToggle(tr("Save automatically"), tr("Add the entry right away when the account is recognised. A guessed usual account, or no account, waits for your review"), autoSave) {
                 put(Prefs.SMS_AUTO_SAVE, it)
             }
             ConfigRow(tr("Original message on entries"), originalLabel) { choosingOriginal = true }

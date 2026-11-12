@@ -128,7 +128,7 @@ internal fun SmsSettingsScreen() {
                     if (!capture) toaster.show(tr("Turn on “Detect bank SMS” first")) else put(Prefs.SMS_ALERT, on)
                 }
                 Divider()
-                SwitchLine(tr("Save automatically"), tr("Add the entry right away when the account is recognised"), autoSave) { on ->
+                SwitchLine(tr("Save automatically"), tr("Add the entry right away when the account is recognised. A guessed usual account, or no account, waits for your review"), autoSave) { on ->
                     put(Prefs.SMS_AUTO_SAVE, on)
                 }
                 Divider()

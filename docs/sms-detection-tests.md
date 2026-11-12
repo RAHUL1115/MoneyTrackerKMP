@@ -8,7 +8,7 @@
 ```
 
 - `SmsParserTest` checks extraction and instrument classification independently of money direction (a credit to a bank account is not a credit-card transaction).
-- `SmsAccountMatchingTest` exercises ingestion through the real SQLite repository and checks the account suggested in the editor. It covers same-bank accounts/cards, shared senders, known digits, learned suggestions, ambiguity, and auto-save safety.
+- `SmsAccountMatchingTest` exercises ingestion through the real SQLite repository and checks the account suggested in the editor. It covers same-bank accounts/cards, shared senders, known digits, learned suggestions, ambiguity, the usual-account pre-fill when the message names no account, and auto-save safety (a guessed or missing account never auto-saves).
 - Synthetic examples contain invented identifiers. The Slice UPI credit-card format was supplied by the user; its amount, merchant, suffix, reference, and phone number are synthetic.
 
 ## Public-format corpus

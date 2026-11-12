@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -58,11 +59,58 @@ class SmsAccountMatchingTest {
         assertEquals("acc_card", capture("Rs.250 spent on slice card x1234 at SHOP.").accountId)
     }
 
-    @Test fun bankOnlyAmbiguityDoesNotGuessOrAutoSave() {
+    @Test fun bankOnlyAmbiguityDoesNotAutoSave() {
         repo.putSetting(Prefs.SMS_AUTO_SAVE.key, "1")
         val c = capture("Rs.250 spent at SHOP via slice.")
         assertEquals(null, c.accountId)
         assertEquals(app.moneytracker.domain.CaptureStatus.PENDING, c.status)
+    }
+
+    private fun spend(accountId: String, daysAgo: Int = 1, categoryId: String? = null) = repo.create(
+        app.moneytracker.data.TxnDraft(app.moneytracker.data.DraftType.EXPENSE, LocalDate.parse("2026-04-20").minus(kotlinx.datetime.DatePeriod(days = daysAgo)),
+            accountId, categoryId = categoryId, amount = 100_00, note = "x"))
+
+    @Test fun messageWithoutAccountPrefillsUsualAccount() = runTest {
+        repeat(3) { spend("acc_card") }
+        spend("acc_bank")
+        val c = capture("Rs.250 spent at SHOP via slice.")
+        assertEquals(null, c.accountId)  // a guess, so it's not auto-saved…
+        assertEquals("acc_card", repo.draftFromCapture(c).accountId)  // …but the review form is filled
+    }
+
+    @Test fun usualAccountRespectsTheInstrumentTheMessageNames() = runTest {
+        val card = repo.accounts.first().first { it.id == "acc_card" }
+        repo.saveAccount(card.copy(id = "acc_card_two", name = "Slice second credit card"))
+        repeat(5) { spend("acc_bank") }  // most used overall, but not a credit card
+        spend("acc_card_two")
+        val c = capture("Rs.250 spent on slice credit card at SHOP.")
+        assertEquals("acc_card_two", repo.draftFromCapture(c).accountId)
+    }
+
+    @Test fun categoryDefaultAccountBeatsHabit() = runTest {
+        repeat(3) { spend("acc_bank") }
+        val vendorCat = repo.categoryById.now().values.first { it.kind == app.moneytracker.domain.CategoryKind.EXPENSE && it.parentId == null }
+        repo.saveCategory(vendorCat.copy(defaultAccountId = "acc_card"))
+        val old = SmsParser.parse("AD-SLICE", "Rs.99 spent at SHOP via slice.")!!
+        repo.learn(SmsParser.tokens(old).filter { !it.startsWith("bank:") }, vendorCat.id, null)
+        val c = capture("Rs.250 spent at SHOP via slice.")
+        assertEquals(vendorCat.id, repo.draftFromCapture(c).categoryId)
+        assertEquals("acc_card", repo.draftFromCapture(c).accountId)
+    }
+
+    @Test fun guessedUsualAccountIsNeverAutoSaved() = runTest {
+        repo.putSetting(Prefs.SMS_AUTO_SAVE.key, "1")
+        repeat(3) { spend("acc_card") }
+        val cat = repo.categoryById.now().values.first { it.kind == app.moneytracker.domain.CategoryKind.EXPENSE && it.parentId == null }
+        repo.learn(SmsParser.words("SHOP"), cat.id, null)
+        val c = capture("Rs.250 spent at SHOP via slice.")
+        assertEquals(app.moneytracker.domain.CaptureStatus.PENDING, c.status)
+        assertEquals("acc_card", repo.draftFromCapture(c).accountId)
+        assertEquals(3, repo.accountTxns("acc_card").size)
+    }
+
+    @Test fun noHistoryAndSeveralFittingAccountsStaysBlank() {
+        val c = capture("Rs.250 spent at SHOP via slice.")
         assertEquals("", repo.draftFromCapture(c).accountId)
     }
 
@@ -170,6 +218,8 @@ class SmsAccountMatchingTest {
         val c = capture("Rs.250 spent on slice credit card xx1234 at SHOP.")
         assertEquals(null, c.accountId)
         assertEquals("", repo.draftFromCapture(c).accountId)
+        spend("acc_card_two")
+        assertEquals("acc_card_two", repo.draftFromCapture(c).accountId)  // the usual card fills in once there is one
     }
 
     @Test fun digitMatchMustBeWholeSuffixNotPartOfLongerNumber() = runTest {
