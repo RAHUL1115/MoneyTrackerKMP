@@ -196,7 +196,7 @@ private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: Cu
         lat = d.lat; lng = d.lng
     }
 
-    private fun enteredAmount(): Long? = amountText.takeIf { it.isNotBlank() }?.let { fmt.parse(it) }?.takeIf { it > 0 }
+    fun enteredAmount(): Long? = amountText.takeIf { it.isNotBlank() }?.let { fmt.parse(it) }?.takeIf { it > 0 }
 
     private fun live(id: String?): Account? = id?.let { repo.accounts.current.firstOrNull { a -> a.id == it } }
 
@@ -626,7 +626,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         val forTo = step == Step.TO
         val currentAcct = if (forTo) f.toAccountId else f.accountId
         val pickable = accounts.filter { (!it.hidden || it.id == currentAcct) && (!forTo || it.id != f.accountId) }
-        val usual = remember(step, f.categoryId) { if (step == Step.ACCOUNT) repo.habitAccount(f.txnKind, f.categoryId, note = f.note) else null }
+        val usual = remember(step, f.categoryId) { if (step == Step.ACCOUNT) repo.habitAccount(f.txnKind, f.categoryId, note = f.note, amount = f.enteredAmount()) else null }
         val recent = if (!acctStep) emptyList() else (listOfNotNull(usual, currentAcct) + recentTxns.sortedByDescending { it.createdAt }
             .map { if (forTo) it.toAccountId else it.accountId }).filterNotNull().distinct()
             .mapNotNull { id -> pickable.firstOrNull { it.id == id } }.take(6)

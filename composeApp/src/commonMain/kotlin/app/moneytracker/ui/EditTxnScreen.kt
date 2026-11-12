@@ -168,12 +168,15 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     var timeOfDay by rememberSaveable { mutableStateOf(screen.preset?.timeOfDay ?: if (screen.txnId == null && timeOn) nowMinutes() else null) }
     var timePicker by remember { mutableStateOf(false) }
 
+    // The amount typed so far, when it's a plain number (not a sum still being worked out); helps guess the account.
+    fun enteredAmount(): Long? = amountText.takeIf { it.isNotBlank() }?.let { enteredFmt.parse(it) }?.takeIf { it > 0 }
+
     // The account usually used for this kind of entry (and category), unless one was chosen; a refund goes back
     // where the spending came from. Keeps accountChosen false, so a category's preferred account still wins.
     fun applyHabitAccount(category: String?) {
         if (accountChosen) return
         val kind = when (type) { DraftType.INCOME -> TxnKind.INCOME; DraftType.EXPENSE, DraftType.REFUND -> TxnKind.EXPENSE; DraftType.TRANSFER -> return }
-        val a = repo.habitAccount(kind, category, note = note)?.let { id -> accounts.firstOrNull { it.id == id } } ?: return
+        val a = repo.habitAccount(kind, category, note = note, amount = enteredAmount())?.let { id -> accounts.firstOrNull { it.id == id } } ?: return
         accountId = a.id
         if (amountText.isEmpty() || currencyCode == null) currencyCode = a.currency
     }
@@ -615,7 +618,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                     // unless the user already picked one.
                     fun live(id: String?) = id?.let { accounts.firstOrNull { a -> a.id == it } }
                     val default = live(defaultAccountFor(c.id, catById))
-                        ?: live(repo.habitAccount(if (catKind == CategoryKind.INCOME) TxnKind.INCOME else TxnKind.EXPENSE, c.id, note = note))
+                        ?: live(repo.habitAccount(if (catKind == CategoryKind.INCOME) TxnKind.INCOME else TxnKind.EXPENSE, c.id, note = note, amount = enteredAmount()))
                     if (!accountChosen && default != null) {
                         accountId = default.id
                         if (amountText.isEmpty() || currencyCode == null) currencyCode = default.currency
