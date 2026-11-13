@@ -3,22 +3,12 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>ComplexCondition:AndroidSpeech.kt$AndroidSpeech.RealSession$lastPartial.isNotEmpty() &amp;&amp; (stopping || error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)</ID>
-    <ID>ComplexCondition:IosMoneyManagerSource.kt$IosMoneyManagerSource$type == -8540 || type == -25159 || type == 30121401 || type == 25278</ID>
-    <ID>ComplexCondition:MoneyManagerImport.kt$MoneyManagerBackup$k == null || type == null || next == null || account !in accountById</ID>
-    <ID>ComplexCondition:MoneyManagerImport.kt$MoneyManagerBackup$t.kind.isTransfer &amp;&amp; (t.transferGroupId == null || legs[t.transferGroupId]?.size != 2 || t.toAccountId == null)</ID>
-    <ID>ComplexCondition:Prefs.kt$ClockTime.Companion$h != null &amp;&amp; m != null &amp;&amp; h in 0..23 &amp;&amp; m in 0..59</ID>
-    <ID>ComplexCondition:TabularImport.kt$TabularImport$v.any { it == ',' || it == '"' || it == '\n' || it == '\r' }</ID>
     <ID>ComplexCondition:WebApi.kt$WebApi.Companion$ip.isEmpty() || ip.any { !(it.isLetterOrDigit() || it == '.' || it == ':' || it == '%') }</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
     <ID>CyclomaticComplexMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:FreshApp.kt$fun freshScreen(screen: Screen): (@Composable () -&gt; Unit)?</ID>
     <ID>CyclomaticComplexMethod:I18n.kt$I18n$fun resolve(tag: String): String</ID>
-    <ID>CyclomaticComplexMethod:IosMoneyManagerSource.kt$IosMoneyManagerSource$private fun txns()</ID>
-    <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
-    <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$private fun etcRows(s: Map&lt;String, String&gt;): List&lt;Triple&lt;Int, String, String&gt;&gt;</ID>
-    <ID>CyclomaticComplexMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
     <ID>CyclomaticComplexMethod:SmartEntry.kt$SmartEntry$suspend fun guess( parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */ learned: (suspend (List&lt;String&gt;) -&gt; Suggestion?)? = null, /** The account usually used for (kind, category id, note, amount); null to skip. */ usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -&gt; String?)? = null, ): SmartGuess</ID>
-    <ID>CyclomaticComplexMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
     <ID>CyclomaticComplexMethod:WebApi.kt$WebApi$private fun draft(r: MoneyRepository, b: Map&lt;*, *&gt;, existing: Txn?): TxnDraft</ID>
     <ID>CyclomaticComplexMethod:Xlsx.kt$Xlsx$private fun readSheet(bytes: ByteArray, shared: List&lt;String&gt;): List&lt;List&lt;String&gt;&gt;</ID>
     <ID>EmptyElseBlock:AndroidPlatform.kt$AndroidPlatform$if (ok) Notifications.showQuickAdd(ctx)</ID>
@@ -35,10 +25,7 @@
     <ID>LongMethod:AboutScreen.kt$@Composable fun AboutScreen()</ID>
     <ID>LongMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:Common.kt$@Composable fun MonthPickerDialog(selected: YearMonth, current: YearMonth, onDismiss: () -&gt; Unit, onPick: (YearMonth) -&gt; Unit)</ID>
-    <ID>LongMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
-    <ID>LongMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
     <ID>LongMethod:SmartEntry.kt$SmartEntry$suspend fun guess( parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */ learned: (suspend (List&lt;String&gt;) -&gt; Suggestion?)? = null, /** The account usually used for (kind, category id, note, amount); null to skip. */ usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -&gt; String?)? = null, ): SmartGuess</ID>
-    <ID>LongMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
     <ID>LongMethod:WebDashboardFresh.kt$@Composable internal fun FreshWebDashboard()</ID>
     <ID>LongParameterList:WebDashboardScreens.kt$WebDashboardUi$( val state: WebDashboardState, val passwordSet: Boolean, val autoStop: Int, val now: Long, val start: () -&gt; Unit, val stop: () -&gt; Unit, val copy: () -&gt; Unit, val disconnect: (String) -&gt; Unit, val setPassword: (String?) -&gt; Unit, val setAutoStop: (Int) -&gt; Unit, val openWifi: () -&gt; Unit, /** Set briefly after Copy. */ val copied: Boolean, )</ID>
     <ID>LoopWithTooManyJumpStatements:HttpServer.kt$HttpServer$while</ID>
@@ -55,7 +42,6 @@
     <ID>ReturnCount:TxnFilter.kt$TxnFilter$fun matches(t: Txn, catById: Map&lt;String, Category&gt;, tagged: Set&lt;String&gt; = emptySet()): Boolean</ID>
     <ID>ReturnCount:WebApi.kt$WebApi$fun handle(req: HttpRequest): HttpResponse</ID>
     <ID>ReturnCount:WebApi.kt$WebPassword$fun check(password: String, stored: String?): Boolean</ID>
-    <ID>SpreadOperator:DataChanges.kt$(*others, listener = listener)</ID>
     <ID>ThrowsCount:HttpServer.kt$HttpServer$private fun read(input: InputStream, remote: String): HttpRequest?</ID>
     <ID>ThrowsCount:WebApi.kt$WebApi$private fun draft(r: MoneyRepository, b: Map&lt;*, *&gt;, existing: Txn?): TxnDraft</ID>
     <ID>ThrowsCount:WebApi.kt$WebApi$private fun range(req: HttpRequest, r: MoneyRepository): Pair&lt;DateRange, String&gt;</ID>

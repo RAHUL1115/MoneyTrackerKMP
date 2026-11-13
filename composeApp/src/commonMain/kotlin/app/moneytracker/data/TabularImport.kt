@@ -49,45 +49,76 @@ object TabularImport {
         if (rows.isEmpty()) return Parsed(emptyList(), listOf("The file is empty"))
         val header = rows.first().map { it.trim().lowercase() }
         fun col(key: String) = synonyms.getValue(key).firstNotNullOfOrNull { s -> header.indexOf(s).takeIf { it >= 0 } } ?: -1
-        val c = synonyms.keys.associateWith { col(it) }
-        if (c.getValue("date") < 0 || c.getValue("amount") < 0 || c.getValue("account") < 0) {
+        val columns = synonyms.keys.associateWith { col(it) }
+        if (columns.getValue("date") < 0 || columns.getValue("amount") < 0 || columns.getValue("account") < 0) {
             return Parsed(emptyList(), listOf("Missing required columns. Need at least: Date, Account, Amount (found: ${rows.first().joinToString()})"))
         }
         val out = mutableListOf<Row>()
         val errors = mutableListOf<String>()
         rows.drop(1).forEachIndexed { i, raw ->
             if (raw.all { it.isBlank() }) return@forEachIndexed
-            fun v(key: String) = c.getValue(key).let { if (it >= 0) raw.getOrNull(it).orEmpty().trim() else "" }
-            val line = i + 2
-            val date = parseDate(v("date")) ?: run { errors += "Row $line: unreadable date '${v("date")}'"; return@forEachIndexed }
-            val rawAmount = v("amount")
-            val negative = rawAmount.trim().startsWith("-") || (rawAmount.startsWith("(") && rawAmount.endsWith(")"))
-            val code = v("currency").uppercase().ifBlank { null }
-            val cur = code?.let { k -> currencies.firstOrNull { it.code == k } }
-            val decimals = cur?.decimals ?: mainDecimals
-            val amount = parseAmount(rawAmount, decimals) ?: run { errors += "Row $line: unreadable amount '$rawAmount'"; return@forEachIndexed }
-            if (amount == 0L) { errors += "Row $line: amount is zero"; return@forEachIndexed }
-            val typeText = v("type").lowercase()
-            val to = v("to").ifBlank { null }
-            val type = when {
-                typeText.startsWith("transfer-in") || typeText == "transfer_in" -> return@forEachIndexed   // mirror of a transfer-out row
-                typeText.startsWith("transfer") || to != null -> DraftType.TRANSFER
-                typeText.startsWith("inc") || typeText == "income balance" || typeText == "adjust_up" -> DraftType.INCOME
-                typeText.startsWith("refund") -> DraftType.REFUND
-                // A negative expense is how Money Manager and many sheets write a refund.
-                typeText.startsWith("exp") && negative -> DraftType.REFUND
-                typeText.startsWith("exp") || typeText == "adjust_down" -> DraftType.EXPENSE
-                typeText.isBlank() -> if (negative) DraftType.EXPENSE else DraftType.INCOME
-                else -> { errors += "Row $line: unknown type '${v("type")}'"; return@forEachIndexed }
-            }
-            if (type == DraftType.TRANSFER && to == null) { errors += "Row $line: transfer without 'To account'"; return@forEachIndexed }
-            val account = v("account").ifBlank { "Imported" }
-            out += Row(
-                date, type, account, to, v("category"), v("subcategory"), kotlin.math.abs(amount), v("note"), v("memo"),
-                cur?.code, v("tags").split(';', '|').map { it.trim() }.filter { it.isNotEmpty() },
-            )
+            val row = readRow(Cells(columns, raw), mainDecimals, currencies) { errors += "Row ${i + 2}: $it" }
+            if (row != null) out += row
         }
         return Parsed(out, errors)
+    }
+
+    /** One sheet row read through the header's column positions; a missing column reads as "". */
+    private class Cells(private val columns: Map<String, Int>, private val raw: List<String>) {
+        operator fun get(key: String) = columns.getValue(key).let { if (it >= 0) raw.getOrNull(it).orEmpty().trim() else "" }
+    }
+
+    /** An amount in minor units, its currency (null = main) and whether it was written negative. */
+    private class SheetAmount(val minor: Long, val currency: Currency?, val negative: Boolean)
+
+    /** The entry on one row, or null when it is skipped; [problem] hears why, except for transfer-in mirrors. */
+    private fun readRow(v: Cells, mainDecimals: Int, currencies: List<Currency>, problem: (String) -> Unit): Row? {
+        val date = parseDate(v["date"]) ?: return rejected(problem, "unreadable date '${v["date"]}'")
+        val amount = readAmount(v, mainDecimals, currencies, problem) ?: return null
+        val type = readType(v, amount.negative, problem) ?: return null
+        return Row(
+            date, type, v["account"].ifBlank { "Imported" }, v["to"].ifBlank { null }, v["category"], v["subcategory"], kotlin.math.abs(amount.minor),
+            v["note"], v["memo"], amount.currency?.code, v["tags"].split(';', '|').map { it.trim() }.filter { it.isNotEmpty() },
+        )
+    }
+
+    /** Reports [reason] and gives null, for a row that can't be imported. */
+    private fun <T> rejected(problem: (String) -> Unit, reason: String): T? {
+        problem(reason)
+        return null
+    }
+
+    private fun readAmount(v: Cells, mainDecimals: Int, currencies: List<Currency>, problem: (String) -> Unit): SheetAmount? {
+        val rawAmount = v["amount"]
+        val negative = rawAmount.trim().startsWith("-") || (rawAmount.startsWith("(") && rawAmount.endsWith(")"))
+        val code = v["currency"].uppercase().ifBlank { null }
+        val currency = code?.let { k -> currencies.firstOrNull { it.code == k } }
+        return when (val minor = parseAmount(rawAmount, currency?.decimals ?: mainDecimals)) {
+            null -> rejected(problem, "unreadable amount '$rawAmount'")
+            0L -> rejected(problem, "amount is zero")
+            else -> SheetAmount(minor, currency, negative)
+        }
+    }
+
+    private fun readType(v: Cells, negative: Boolean, problem: (String) -> Unit): DraftType? {
+        val typeText = v["type"].lowercase()
+        val hasTo = v["to"].isNotBlank()
+        if (typeText.startsWith("transfer-in") || typeText == "transfer_in") return null   // mirror of a transfer-out row
+        val type = draftType(typeText, hasTo, negative) ?: return rejected(problem, "unknown type '${v["type"]}'")
+        if (type == DraftType.TRANSFER && !hasTo) return rejected(problem, "transfer without 'To account'")
+        return type
+    }
+
+    /** The entry type for a sheet's Type text (lower case; not a transfer-in mirror); null when it isn't one we know. */
+    internal fun draftType(typeText: String, hasTo: Boolean, negative: Boolean): DraftType? = when {
+        typeText.startsWith("transfer") || hasTo -> DraftType.TRANSFER
+        typeText.startsWith("inc") || typeText == "income balance" || typeText == "adjust_up" -> DraftType.INCOME
+        typeText.startsWith("refund") -> DraftType.REFUND
+        // A negative expense is how Money Manager and many sheets write a refund.
+        typeText.startsWith("exp") && negative -> DraftType.REFUND
+        typeText.startsWith("exp") || typeText == "adjust_down" -> DraftType.EXPENSE
+        typeText.isBlank() -> if (negative) DraftType.EXPENSE else DraftType.INCOME
+        else -> null
     }
 
     /** Accepts 2026-10-13, 13/10/2026, 10/13/2026 (if unambiguous), 13.10.2026, 2026/10/13, and Excel serial numbers. */
@@ -174,7 +205,10 @@ object TabularImport {
     }
 
     private fun escape(v: String): String =
-        if (v.any { it == ',' || it == '"' || it == '\n' || it == '\r' }) "\"" + v.replace("\"", "\"\"") + "\"" else v
+        if (v.any { it in CSV_SPECIAL }) "\"" + v.replace("\"", "\"\"") + "\"" else v
+
+    /** Characters that make a CSV cell need quotes. */
+    private const val CSV_SPECIAL = ",\"\n\r"
 
     /** RFC-4180 CSV (also accepts ';' or tab separators, detected from the header line). */
     fun parseCsv(text: String): List<List<String>> {

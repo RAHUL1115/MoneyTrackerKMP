@@ -19,11 +19,12 @@ fun watchAllTables(driver: SqlDriver, ignoredSettings: Set<String> = emptySet(),
         while (c.next().value) c.getString(0)?.let(names::add)
         QueryResult.Value(names)
     }, 0).value
-    val others = tables.filter { it != SETTINGS_TABLE }.toTypedArray()
+    val others = tables.filter { it != SETTINGS_TABLE }
     val listener = Query.Listener { onChange() }
-    driver.addListener(*others, listener = listener)
+    others.forEach { driver.addListener(it, listener = listener) }
+    val stopOthers = { others.forEach { driver.removeListener(it, listener = listener) } }
 
-    if (SETTINGS_TABLE !in tables) return { driver.removeListener(*others, listener = listener) }
+    if (SETTINGS_TABLE !in tables) return stopOthers
     // Compared on the writing thread; two writers racing can at worst cause one extra call.
     var last = settingsSnapshot(driver, ignoredSettings)
     val settingsListener = Query.Listener {
@@ -32,7 +33,7 @@ fun watchAllTables(driver: SqlDriver, ignoredSettings: Set<String> = emptySet(),
     }
     driver.addListener(SETTINGS_TABLE, listener = settingsListener)
     return {
-        driver.removeListener(*others, listener = listener)
+        stopOthers()
         driver.removeListener(SETTINGS_TABLE, listener = settingsListener)
     }
 }

@@ -130,36 +130,54 @@ class IosMoneyManagerSource(private val ios: RowSource) : RowSource {
 
     // ───────────────────────── entries
 
-    private fun txns() = src("ZINOUTCOME").mapNotNull { t ->
+    private fun txns() = src("ZINOUTCOME").mapNotNull(::txn)
+
+    /** One entry as an INOUTCOME row; null for old-style recurring templates and rows without a date. */
+    private fun txn(t: Map<String, String?>): Map<String, String?>? {
         // Card-installment month 1903911 marks old-style recurring templates, which are not entries.
-        if (t.either("ZCARDDIVIDEMONTH", "ZCARDDIVIDMONTH")?.trim()?.toDoubleOrNull()?.toInt() == 1903911) return@mapNotNull null
+        if (t.either("ZCARDDIVIDEMONTH", "ZCARDDIVIDMONTH")?.trim()?.toDoubleOrNull()?.toInt() == 1903911) return null
         // Core Data dates are seconds since 2001-01-01 UTC; kept as whole seconds in epoch millis.
-        val date = t.num("ZDATE")?.let { (floor(it).toLong() + 978_307_200L) * 1000 } ?: return@mapNotNull null
+        val date = t.num("ZDATE")?.let { (floor(it).toLong() + 978_307_200L) * 1000 } ?: return null
         val doType = t.int("ZDO_TYPE")
         val transfer = doType == 3 || doType == 4
-        val uid = if (uids) t.s("ZUID") else t.long("ZAID")?.toString()
         val currency = currencyOf(t)
-        // ZAMOUNT is in the main currency; an entry in the main currency may only have ZAMOUNTSUB filled.
         val sub = t.num("ZAMOUNTSUB") ?: 0.0
-        val amount = (t.num("ZAMOUNT") ?: 0.0).let { if (it == 0.0 && sub != 0.0 && currency == mainUid) sub else it }
-        mapOf(
-            "uid" to uid,
+        return mapOf(
+            "uid" to if (uids) t.s("ZUID") else t.long("ZAID")?.toString(),
             "assetUid" to if (uids) t.s("ZASSETUID") else t.long("ZASSET_ID")?.toString(),
-            "toAssetUid" to if (!transfer) null else if (uids) t.s("ZTOASSETUID") else t.aid("ZCATEGORY_ID"),   // legacy transfers keep the other account in ZCATEGORY_ID
-            "ctgUid" to if (transfer) null else if (uids) t.s("ZCATEGORYUID") else t.aid("ZCATEGORYID"),
-            // Legacy legs point at each other via ZOPPOSITEAID; they are paired by the sorted
-            // (ZAID, ZOPPOSITEAID) pair so two different transfers can't collide.
-            "txUidTrans" to if (uids) t.s("ZTXUIDTRANS") else if (!transfer) null
-                else listOfNotNull(t.long("ZAID"), t.long("ZOPPOSITEAID")).sorted().joinToString("_"),
+            "toAssetUid" to if (transfer) otherAccountOf(t) else null,
+            "ctgUid" to if (transfer) null else categoryOf(t),
+            "txUidTrans" to transferKeyOf(t, transfer),
             "txUidFee" to (if (uids) t.s("ZTXUIDFEE") else t.s("ZFEE_ID"))?.takeUnless { it.trim() == "0" },
             "cardDivideUid" to if (uids) t.s("ZCARDDIVIDEUID") else t.s("ZCARDDIVIDID"),
             "CARD_DIVIDE_MONTH_STR" to t.either("ZCARDDIVIDEMONTHSTR", "ZCARDDIVIDMONTHSTR"),
             // No WDATE: the importer then takes the day and time from ZDATE in the device time zone.
             "ZDATE" to date.toString(), "UTIME" to t.s("ZUTIME"),
             "DO_TYPE" to doType?.toString(), "ZCONTENT" to t.s("ZCONTENT"), "ZDATA" to t.either("ZMEMO", "ZZDATA"),
-            "currencyUid" to currency, "ZMONEY" to amount.toString(), "IN_ZMONEY" to sub.toString(),
+            "currencyUid" to currency, "ZMONEY" to mainAmountOf(t, sub, currency).toString(), "IN_ZMONEY" to sub.toString(),
             "AMOUNT_ACCOUNT" to t.s("ZAMOUNTACCOUNT"), "IS_DEL" to t.s("ZISDEL"),
         )
+    }
+
+    /** ZAMOUNT is in the main currency; an entry in the main currency may only have ZAMOUNTSUB filled. */
+    private fun mainAmountOf(t: Map<String, String?>, sub: Double, currency: String?): Double {
+        val amount = t.num("ZAMOUNT") ?: 0.0
+        return if (amount == 0.0 && sub != 0.0 && currency == mainUid) sub else amount
+    }
+
+    /** A transfer's other account; legacy transfers keep it in ZCATEGORY_ID. */
+    private fun otherAccountOf(t: Map<String, String?>) = if (uids) t.s("ZTOASSETUID") else t.aid("ZCATEGORY_ID")
+
+    private fun categoryOf(t: Map<String, String?>) = if (uids) t.s("ZCATEGORYUID") else t.aid("ZCATEGORYID")
+
+    /**
+     * What pairs a transfer's two legs. Legacy legs point at each other via ZOPPOSITEAID; they are paired by the
+     * sorted (ZAID, ZOPPOSITEAID) pair so two different transfers can't collide.
+     */
+    private fun transferKeyOf(t: Map<String, String?>, transfer: Boolean): String? = when {
+        uids -> t.s("ZTXUIDTRANS")
+        !transfer -> null
+        else -> listOfNotNull(t.long("ZAID"), t.long("ZOPPOSITEAID")).sorted().joinToString("_")
     }
 
     private fun repeats() = src("ZREPEATTRANSACTION").filter { (it.int("ZREPEATTYPE") ?: 0) in 1..17 }.map { r ->
@@ -221,8 +239,7 @@ class IosMoneyManagerSource(private val ios: RowSource) : RowSource {
     private fun etc(): List<Map<String, String?>> {
         val rows = src("ZETC").mapNotNull { e ->
             val type = e.int("ZDATATYPE") ?: return@mapNotNull null
-            // -8540 = exchange-rate history, -25159 = pre-2190 main currency symbol; 30121401/25278 are skipped.
-            if (type == -8540 || type == -25159 || type == 30121401 || type == 25278) return@mapNotNull null
+            if (type in SKIPPED_ETC_TYPES) return@mapNotNull null
             val data = when (type) {
                 -6179 -> (e.int("ZDATA") ?: 0).toString()
                 -29898 -> "0"
@@ -236,6 +253,9 @@ class IosMoneyManagerSource(private val ios: RowSource) : RowSource {
     }
 
     private companion object {
+        /** -8540 = exchange-rate history, -25159 = pre-2190 main currency symbol; 30121401/25278 are skipped. */
+        val SKIPPED_ETC_TYPES = setOf(-8540, -25159, 30121401, 25278)
+
         /** ZETC type → Android dataTypeKey; others keep only their number (e.g. -8457 passcode). */
         val ETC_KEYS = mapOf(
             -23459 to "start_day", -6179 to "money_color", -5457 to "carry_over", 19810 to "use_sub_category",
