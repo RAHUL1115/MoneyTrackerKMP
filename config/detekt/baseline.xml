@@ -2,13 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ComplexCondition:AddScreen.kt$AddForm$amountText.isEmpty() &amp;&amp; m.amount &gt; 0 &amp;&amp; (m.currency == null || currencies.containsKey(m.currency))</ID>
-    <ID>ComplexCondition:AddScreen.kt$e != null &amp;&amp; e.kind == TxnKind.EXPENSE &amp;&amp; !e.isRefund &amp;&amp; e.transferGroupId == null</ID>
-    <ID>ComplexCondition:AddScreen.kt$s.txnId == null &amp;&amp; s.preset == null &amp;&amp; f.accountFirst &amp;&amp; f.accountId == null</ID>
     <ID>ComplexCondition:AndroidSpeech.kt$AndroidSpeech.RealSession$lastPartial.isNotEmpty() &amp;&amp; (stopping || error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)</ID>
-    <ID>ComplexCondition:EditTxnScreen.kt$!restoring &amp;&amp; screen.txnId == null &amp;&amp; screen.preset == null &amp;&amp; !accountFirst</ID>
-    <ID>ComplexCondition:EditTxnScreen.kt$amountText.isEmpty() &amp;&amp; m.amount &gt; 0 &amp;&amp; (m.currency == null || currencies.containsKey(m.currency))</ID>
-    <ID>ComplexCondition:EditTxnScreen.kt$panel != Panel.NONE || noteFocused || datePicker || timePicker || repeatDialog || tagDialog || dirtyState.value</ID>
     <ID>ComplexCondition:IosMoneyManagerSource.kt$IosMoneyManagerSource$type == -8540 || type == -25159 || type == 30121401 || type == 25278</ID>
     <ID>ComplexCondition:MoneyManagerImport.kt$MoneyManagerBackup$k == null || type == null || next == null || account !in accountById</ID>
     <ID>ComplexCondition:MoneyManagerImport.kt$MoneyManagerBackup$t.kind.isTransfer &amp;&amp; (t.transferGroupId == null || legs[t.transferGroupId]?.size != 2 || t.toAccountId == null)</ID>
@@ -37,7 +31,6 @@
     <ID>CyclomaticComplexMethod:ActivityTab.kt$@Composable private fun ActList( range: DateRange, ym: YearMonth, kind: ActKind, onKind: (ActKind) -&gt; Unit, onPrev: () -&gt; Unit, onNext: () -&gt; Unit, onPickMonth: () -&gt; Unit, selecting: Boolean, selection: Set&lt;String&gt;, onSelect: (String) -&gt; Unit, onEndSelect: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:ActivityTab.kt$@Composable private fun SelectionPanel(selected: List&lt;Txn&gt;, onDone: () -&gt; Unit, modifier: Modifier)</ID>
     <ID>CyclomaticComplexMethod:ActivityTab.kt$@OptIn(ExperimentalFoundationApi::class) @Composable internal fun ActEntryRow( txn: Txn, data: ActEntryData, selecting: Boolean = false, selected: Boolean = false, showDate: Boolean = false, compact: Boolean = false, /** Space from the card's edges to the content; the tap highlight still spans the full width. */ inset: Dp = ENTRY_INSET, onLongClick: (() -&gt; Unit)? = null, onClick: () -&gt; Unit, )</ID>
-    <ID>CyclomaticComplexMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
     <ID>CyclomaticComplexMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backups: Backups, navigator: Navigator, platform: Platform, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
     <ID>CyclomaticComplexMethod:BackupScreens.kt$@Composable internal fun FreshBackup()</ID>
@@ -45,8 +38,6 @@
     <ID>CyclomaticComplexMethod:CategoriesScreens.kt$@Composable internal fun FreshCategories(kind: CategoryKind)</ID>
     <ID>CyclomaticComplexMethod:CategoriesScreens.kt$@Composable private fun CategorySheet( c: Category, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, accountNames: Map&lt;String, String&gt;, useSubcategories: Boolean, onDismiss: () -&gt; Unit, onDelete: () -&gt; Unit, onSave: (Category) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
-    <ID>CyclomaticComplexMethod:EditTxnScreen.kt$@Composable fun EditTxnScreen(screen: Screen.EditTxn)</ID>
-    <ID>CyclomaticComplexMethod:EditTxnScreen.kt$@Composable private fun AmountKeypad( title: String, currency: CurrencyFormat, text: String, onChange: (String) -&gt; Unit, onClose: () -&gt; Unit, onDone: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:FeatureScreens.kt$@Composable fun CurrenciesScreen()</ID>
     <ID>CyclomaticComplexMethod:FeatureScreens.kt$@Composable fun EditNoteScreen(noteId: String?)</ID>
     <ID>CyclomaticComplexMethod:FeatureScreens.kt$@Composable fun SearchScreen()</ID>
@@ -103,7 +94,6 @@
     <ID>EmptyElseBlock:AndroidSpeech.kt$AndroidSpeech.FakeSession$if (done) return</ID>
     <ID>EmptyElseBlock:AndroidSpeech.kt$AndroidSpeech.RealSession$if (done) return</ID>
     <ID>EmptyElseBlock:Calc.kt$Calc$if (rhs == 0.0) return null</ID>
-    <ID>EmptyElseBlock:EditTxnScreen.kt$if (!sameCategories) categoryId = null</ID>
     <ID>EmptyElseBlock:Json.kt$Json$if (!first) out.append(',')</ID>
     <ID>EmptyElseBlock:NotesFresh.kt$if (original == null) original = notes.firstOrNull { it.id == noteId }</ID>
     <ID>EmptyElseBlock:SettingsScreens.kt$if (i &gt; 0) Divider()</ID>
@@ -135,9 +125,6 @@
     <ID>LongMethod:ActivityTab.kt$@Composable private fun ActList( range: DateRange, ym: YearMonth, kind: ActKind, onKind: (ActKind) -&gt; Unit, onPrev: () -&gt; Unit, onNext: () -&gt; Unit, onPickMonth: () -&gt; Unit, selecting: Boolean, selection: Set&lt;String&gt;, onSelect: (String) -&gt; Unit, onEndSelect: () -&gt; Unit, )</ID>
     <ID>LongMethod:ActivityTab.kt$@Composable private fun SelectionPanel(selected: List&lt;Txn&gt;, onDone: () -&gt; Unit, modifier: Modifier)</ID>
     <ID>LongMethod:ActivityTab.kt$@OptIn(ExperimentalFoundationApi::class) @Composable internal fun ActEntryRow( txn: Txn, data: ActEntryData, selecting: Boolean = false, selected: Boolean = false, showDate: Boolean = false, compact: Boolean = false, /** Space from the card's edges to the content; the tap highlight still spans the full width. */ inset: Dp = ENTRY_INSET, onLongClick: (() -&gt; Unit)? = null, onClick: () -&gt; Unit, )</ID>
-    <ID>LongMethod:AddScreen.kt$@Composable fun receiptCard()</ID>
-    <ID>LongMethod:AddScreen.kt$@Composable fun tray(modifier: Modifier)</ID>
-    <ID>LongMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>LongMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backups: Backups, navigator: Navigator, platform: Platform, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
     <ID>LongMethod:App.kt$@Composable private fun Home()</ID>
     <ID>LongMethod:BackupScreens.kt$@Composable internal fun FreshBackup()</ID>
@@ -146,10 +133,6 @@
     <ID>LongMethod:CategoriesScreens.kt$@Composable internal fun FreshCategories(kind: CategoryKind)</ID>
     <ID>LongMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:Common.kt$@Composable fun MonthPickerDialog(selected: YearMonth, current: YearMonth, onDismiss: () -&gt; Unit, onPick: (YearMonth) -&gt; Unit)</ID>
-    <ID>LongMethod:EditTxnScreen.kt$@Composable fun EditTxnScreen(screen: Screen.EditTxn)</ID>
-    <ID>LongMethod:EditTxnScreen.kt$@Composable private fun AccountPanel(title: String, accounts: List&lt;Account&gt;, selectedIds: Set&lt;String&gt;, onPick: (Account) -&gt; Unit, onEdit: () -&gt; Unit, onClose: () -&gt; Unit)</ID>
-    <ID>LongMethod:EditTxnScreen.kt$@Composable private fun AmountKeypad( title: String, currency: CurrencyFormat, text: String, onChange: (String) -&gt; Unit, onClose: () -&gt; Unit, onDone: () -&gt; Unit, )</ID>
-    <ID>LongMethod:EditTxnScreen.kt$@Composable private fun CategoryPanel( categories: List&lt;Category&gt;, useSubcategories: Boolean, currentId: String?, onPick: (Category) -&gt; Unit, onEdit: () -&gt; Unit, onClose: () -&gt; Unit, )</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun CurrenciesScreen()</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun EditNoteScreen(noteId: String?)</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun InboxScreen()</ID>
