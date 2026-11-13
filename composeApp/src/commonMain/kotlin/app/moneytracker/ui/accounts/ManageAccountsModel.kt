@@ -1,5 +1,6 @@
 package app.moneytracker.ui.accounts
 
+import app.moneytracker.ui.outlivingScope
 import app.moneytracker.data.AccountStore
 import app.moneytracker.data.newId
 import app.moneytracker.domain.Account
@@ -27,7 +28,7 @@ data class ManageAccountsState(
  * Account groups screen. Writes outlive the screen so their Undo keeps working.
  */
 class ManageAccountsModel(private val store: AccountStore, private val io: CoroutineDispatcher, private val scope: CoroutineScope) {
-    private val outliving = scope.outliving()
+    private val outliving = outlivingScope(scope.coroutineContext)
 
     val state: StateFlow<ManageAccountsState> =
         combine(store.groups, store.accounts, store.deletedAccounts, store.deletedGroups, ::ManageAccountsState)

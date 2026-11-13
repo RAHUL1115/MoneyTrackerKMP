@@ -24,7 +24,6 @@ import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -239,7 +238,7 @@ class EntryFormModel(
 
     // The screen may be gone by the time the toast's Undo is tapped.
     private fun undoAdd(id: String) {
-        MainScope().launch { withContext(io) { editor.delete(id) } }
+        outlivingScope().launch { withContext(io) { editor.delete(id) } }
     }
 
     /** Deletes the entry being edited (a transfer with its pair and fee, an instalment with its whole plan). */

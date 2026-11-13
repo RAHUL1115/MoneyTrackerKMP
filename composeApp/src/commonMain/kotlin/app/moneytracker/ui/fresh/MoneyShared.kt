@@ -1,5 +1,6 @@
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.ui.outlivingScope
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -205,7 +206,7 @@ internal fun HeaderTextTile(text: String, onClick: () -> Unit) {
 
 /** Runs a repository write off the main thread, independent of any screen (so an Undo still works after the screen closed). */
 internal fun app.moneytracker.data.MoneyRepository.moneyIo(block: suspend () -> Unit) {
-    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + io).launch { block() }
+    outlivingScope(io).launch { block() }
 }
 
 /** Back on the main thread (to show a toast after a background write). */

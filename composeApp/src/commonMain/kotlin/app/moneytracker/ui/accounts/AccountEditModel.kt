@@ -1,5 +1,6 @@
 package app.moneytracker.ui.accounts
 
+import app.moneytracker.ui.outlivingScope
 import androidx.compose.runtime.saveable.Saver
 import app.moneytracker.data.AccountStore
 import app.moneytracker.data.CurrencyStore
@@ -145,7 +146,7 @@ class AccountEditModel(
     /** Undo for [delete]; works after the screen has closed. */
     fun restore() {
         val id = accountId ?: return
-        scope.outliving().launch { withContext(io) { store.restoreAccount(id) } }
+        outlivingScope(scope.coroutineContext).launch { withContext(io) { store.restoreAccount(id) } }
     }
 
     /** Amounts are typed in the account's own currency. */
