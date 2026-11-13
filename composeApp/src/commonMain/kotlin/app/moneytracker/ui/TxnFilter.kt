@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -26,9 +27,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -93,7 +95,7 @@ fun FilterBar(names: List<String>, onEdit: () -> Unit, onClear: () -> Unit) {
     ) {
         Text(tr("Filter: {0}", names.joinToString(", ")), Modifier.weight(1f), color = Accent, fontSize = 13.sp,
             fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(tr("Edit"), Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onEdit).padding(horizontal = 10.dp, vertical = 10.dp),
+        Text(tr("Edit"), Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onEdit).padding(horizontal = 10.dp, vertical = 10.dp),
             color = Accent, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
         IconButton(onClick = onClear) { Icon(Icons.Filled.Close, tr("Clear filter"), tint = Accent) }
     }
@@ -140,7 +142,7 @@ private fun FilterChecklist(lines: List<FilterLine>, selected: Set<String>, onTo
     LazyColumn(Modifier.fillMaxWidth().heightIn(max = 380.dp)) {
         items(lines, key = { it.id }) { l ->
             Row(
-                Modifier.fillMaxWidth().clickable { onToggle(l.id) }.padding(start = 8.dp, end = 20.dp),
+                Modifier.fillMaxWidth().toggleable(l.id in selected, role = Role.Checkbox) { onToggle(l.id) }.padding(start = 8.dp, end = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Checkbox(l.id in selected, null, colors = CheckboxDefaults.colors(checkedColor = Accent), modifier = Modifier.padding(12.dp))
@@ -155,11 +157,11 @@ private fun FilterChecklist(lines: List<FilterLine>, selected: Set<String>, onTo
 private fun FilterSheetButtons(onClear: () -> Unit, onApply: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(
-            Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(FillColor).clickable(onClick = onClear),
+            Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(FillColor).clickable(role = Role.Button, onClick = onClear),
             contentAlignment = Alignment.Center,
         ) { Text(tr("Clear"), color = Ink, fontWeight = FontWeight.Medium) }
         Box(
-            Modifier.weight(2f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(Accent).clickable(onClick = onApply),
+            Modifier.weight(2f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(Accent).clickable(role = Role.Button, onClick = onApply),
             contentAlignment = Alignment.Center,
         ) { Text(tr("Filter"), color = Color.White, fontWeight = FontWeight.SemiBold) }
     }

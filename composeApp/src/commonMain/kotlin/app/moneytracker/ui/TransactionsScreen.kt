@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,7 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -43,8 +46,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -225,24 +230,44 @@ private fun DailyList(
         }
         // The newest bank SMS payment, ready to add in one tap; stays put while scrolling back up.
         item(key = "detected") { ClassicDetectedCard() }
-        // One card per day: header and its entries.
+        // One card per day: its header, then one lazy item per entry, each drawing its slice of the card.
         list.days.forEach { (date, dayTxns) ->
-            item(key = "h$date") {
+            item(key = "h$date", contentType = "day") {
                 val dt = list.dayTotals[date]
-                Column(Modifier.padding(top = 6.dp).card(ListCardMargin).padding(bottom = 4.dp)) {
+                Box(Modifier.padding(top = 6.dp).daySlice(first = true, last = false)) {
                     DayHeader(date, dt?.income ?: 0, dt?.expense ?: 0, currency, inset = ListRowInset)
-                    dayTxns.forEach { txn ->
-                        TxnLine(
-                            txn, lookups.accountName, lookups.catById, classify(lookups.rules.row(txn)), tags = lookups.tags[txn.id].orEmpty(),
-                            hasPhoto = txn.id in lookups.photos, inset = ListRowInset, selected = txn.id in selection,
-                            onLongClick = { if (txn.id !in selection) onToggle(txn.id) },
-                        ) { if (selection.isNotEmpty()) onToggle(txn.id) else onOpen(txn.id) }
-                    }
+                }
+            }
+            itemsIndexed(dayTxns, key = { _, t -> "e${t.id}" }, contentType = { _, _ -> "entry" }) { i, txn ->
+                val last = i == dayTxns.lastIndex
+                Box(Modifier.daySlice(first = false, last = last)) {
+                    TxnLine(
+                        txn, lookups.accountName, lookups.catById, classify(lookups.rules.row(txn)), tags = lookups.tags[txn.id].orEmpty(),
+                        hasPhoto = txn.id in lookups.photos, inset = ListRowInset, selecting = selection.isNotEmpty(), selected = txn.id in selection,
+                        extraBottom = if (last) DAY_CARD_BOTTOM else 0.dp, onLongClick = { if (txn.id !in selection) onToggle(txn.id) },
+                    ) { if (selection.isNotEmpty()) onToggle(txn.id) else onOpen(txn.id) }
                 }
             }
         }
         item { Spacer(Modifier.height(96.dp)) }
     }
+}
+
+/** Space under a day card's last entry. */
+private val DAY_CARD_BOTTOM = 4.dp
+
+/**
+ * One lazy item's slice of a Daily day card (same margin and colour as [card]): the top corners on the day's header,
+ * the bottom corners on its last entry, so header and entries look like one card.
+ */
+private fun Modifier.daySlice(first: Boolean, last: Boolean): Modifier {
+    val square = CornerSize(0)
+    val shape = when {
+        first -> CardShape.copy(bottomStart = square, bottomEnd = square)
+        last -> CardShape.copy(topStart = square, topEnd = square)
+        else -> RectangleShape
+    }
+    return padding(horizontal = ListCardMargin).clip(shape).background(SurfaceColor)
 }
 
 /**

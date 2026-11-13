@@ -24,6 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,9 +64,9 @@ internal fun ActPeriodSwitch(
 private fun ArrowButton(icon: ImageVector, label: String, tile: Boolean, onClick: () -> Unit) {
     Box(
         Modifier.size(if (tile) 36.dp else 32.dp, 36.dp).clip(RoundedCornerShape(10.dp)).background(if (tile) F.page else Color.Transparent)
-            .clickable(onClickLabel = label, onClick = onClick),
+            .semantics { contentDescription = label }.clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, label, tint = F.ink, modifier = Modifier.size(20.dp)) }
+    ) { Icon(icon, null, tint = F.ink, modifier = Modifier.size(20.dp)) }
 }
 
 /** Money in · Money out · Net in a white strip. */
@@ -89,12 +92,16 @@ private fun RowScope.SummaryCell(label: String, value: String, color: Color) {
     }
 }
 
+/**
+ * A small pill: a plain button without a [role], an on/off filter with [Role.Checkbox], or one choice of several with
+ * [Role.RadioButton] inside a `selectableGroup()`.
+ */
 @Composable
-internal fun ActChip(text: String, selected: Boolean, onClick: () -> Unit) {
+internal fun ActChip(text: String, selected: Boolean, role: Role? = null, onClick: () -> Unit) {
     Box(
-        Modifier.height(34.dp).clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.card)
-            .then(if (selected) Modifier else Modifier.border(1.dp, F.border, RoundedCornerShape(999.dp)))
-            .clickable(onClick = onClick).padding(horizontal = 12.dp),
+        Modifier.height(34.dp).clip(F.pillShape).background(if (selected) F.accentTint else F.card)
+            .then(if (selected) Modifier else Modifier.border(1.dp, F.border, F.pillShape))
+            .choiceTap(selected, role, onClick).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
@@ -118,7 +125,7 @@ internal fun ActOptionGrid(options: List<ActOption>) {
 private fun RowScope.OptionTile(o: ActOption) {
     Row(
         Modifier.weight(1f).heightIn(min = 52.dp).clip(F.iconShape).border(1.dp, F.border, F.iconShape)
-            .clickable(onClick = o.onClick).padding(horizontal = 10.dp, vertical = 8.dp),
+            .clickable(role = Role.Button, onClick = o.onClick).padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (o.mark != null) Box(Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {

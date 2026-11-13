@@ -23,6 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -90,7 +95,6 @@ private fun entryTexts(txn: Txn, data: EntryLookups, showDate: Boolean, showTime
 }
 
 /** Category mark · note and details · amount. Refunds show as +amount in the income colour. */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ActEntryRow(
     txn: Txn,
@@ -101,14 +105,16 @@ internal fun ActEntryRow(
     compact: Boolean = false,
     /** Space from the card's edges to the content; the tap highlight still spans the full width. */
     inset: Dp = ENTRY_INSET,
+    /** Card space under the last row, inside its tap highlight so the highlight reaches the card's bottom edge. */
+    extraBottom: Dp = 0.dp,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val prefs = LocalListPrefs.current
     val texts = entryTexts(txn, data, showDate, prefs.showTime)
     Row(
-        Modifier.fillMaxWidth().heightIn(min = if (compact) 52.dp else 64.dp)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(horizontal = inset, vertical = 10.dp),
+        Modifier.fillMaxWidth().entryTap(selecting, selected, onLongClick, onClick).padding(bottom = extraBottom)
+            .heightIn(min = if (compact) 52.dp else 64.dp).padding(horizontal = inset, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 14.dp),
     ) {
         if (selecting) SelectBox(selected)
@@ -123,10 +129,24 @@ internal fun ActEntryRow(
     }
 }
 
+/**
+ * Tap opens (or, while [selecting], ticks) the entry; long-press selects it. While selecting, TalkBack reads the row
+ * as a checkbox that is ticked or not.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun Modifier.entryTap(selecting: Boolean, selected: Boolean, onLongClick: (() -> Unit)?, onClick: () -> Unit): Modifier =
+    if (selecting) {
+        combinedClickable(role = Role.Checkbox, onClick = onClick, onLongClick = onLongClick)
+            .semantics { toggleableState = ToggleableState(selected) }
+    } else {
+        combinedClickable(onLongClickLabel = onLongClick?.let { tr("Select") }, onClick = onClick, onLongClick = onLongClick)
+    }
+
+/** The tick box while selecting; the row itself carries the ticked state for TalkBack. */
 @Composable
 private fun SelectBox(selected: Boolean) {
     Box(
-        Modifier.size(22.dp).clip(RoundedCornerShape(7.dp)).background(if (selected) F.accent else F.card)
+        Modifier.clearAndSetSemantics {}.size(22.dp).clip(RoundedCornerShape(7.dp)).background(if (selected) F.accent else F.card)
             .border(2.dp, if (selected) F.accent else F.border, RoundedCornerShape(7.dp)),
         contentAlignment = Alignment.Center,
     ) { if (selected) Text("✓", color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }

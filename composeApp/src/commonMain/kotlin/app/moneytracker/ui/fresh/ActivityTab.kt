@@ -27,6 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -172,7 +175,7 @@ private fun ActivitySheets(model: ActivityModel, state: ActivityState, sheet: Ac
 @Composable
 internal fun HeaderButton(text: String, filled: Boolean, leading: ImageVector? = null, onClick: () -> Unit) {
     Row(
-        Modifier.height(44.dp).clip(F.iconShape).background(if (filled) F.accent else F.card).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        Modifier.height(44.dp).clip(F.iconShape).background(if (filled) F.accent else F.card).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (leading != null) Icon(leading, null, tint = if (filled) F.onAccent else F.ink, modifier = Modifier.size(18.dp))
@@ -189,9 +192,11 @@ private fun ActFilterBar(names: List<String>, onEdit: () -> Unit, onClear: () ->
     ) {
         Text(tr("Filter: {0}", names.joinToString(", ")), Modifier.weight(1f), color = F.accent, fontSize = 13.sp,
             fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Box(Modifier.size(40.dp).clip(CircleShape).clickable(onClickLabel = tr("Clear filter"), onClick = onClear), contentAlignment = Alignment.Center) {
-            Icon(Glyph.Close, tr("Clear filter"), tint = F.accent, modifier = Modifier.size(18.dp))
-        }
+        val clearLabel = tr("Clear filter")
+        Box(
+            Modifier.size(40.dp).clip(CircleShape).semantics { contentDescription = clearLabel }.clickable(role = Role.Button, onClick = onClear),
+            contentAlignment = Alignment.Center,
+        ) { Icon(Glyph.Close, null, tint = F.accent, modifier = Modifier.size(18.dp)) }
     }
 }
 

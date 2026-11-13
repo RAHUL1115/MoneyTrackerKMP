@@ -1,6 +1,5 @@
 package app.moneytracker.ui.fresh
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,13 +10,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,6 +39,9 @@ import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.rememberEntryListModel
 import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
+
+/** Space between the List view's sections and day cards. */
+private val SECTION_GAP = 12.dp
 
 /** The List view: the month's entries by day, with the month switch, quick filter, totals and repeats to come. */
 @Composable
@@ -70,49 +73,42 @@ private fun ActListContent(
     onOpen: (Txn) -> Unit,
 ) {
     val nav = LocalNavigator.current
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = F.gutter, end = F.gutter, bottom = if (selection.active) 140.dp else 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    // Sections are SECTION_GAP apart; each entry is its own item, so the gaps sit on the items, not the list.
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = F.gutter, end = F.gutter, bottom = if (selection.active) 140.dp else 24.dp)) {
         item(key = "period") {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 ActPeriodSwitch(period.period.actLongLabel(), { onStep(-1) }, { onStep(1) }, onPickMonth)
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)) {
-                    ActKind.entries.forEach { k -> ActChip(tr(k.title), k == period.kind) { onKind(k) } }
+                Row(Modifier.weight(1f).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)) {
+                    ActKind.entries.forEach { k -> ActChip(tr(k.title), k == period.kind, Role.RadioButton) { onKind(k) } }
                 }
             }
         }
-        item(key = "summary") { ListSummary(list.totals, list.carryOver) }
-        list.upcoming?.let { u -> item(key = "repeats") { UpcomingRepeatsCard(u) { nav.push(Screen.Recurring) } } }
-        if (list.visible.isEmpty()) item(key = "empty") { EmptyMonth(period.kind, period.period) }
+        item(key = "summary") { ListSummary(list.totals, list.carryOver, Modifier.padding(top = SECTION_GAP)) }
+        list.upcoming?.let { u -> item(key = "repeats") { UpcomingRepeatsCard(u, Modifier.padding(top = SECTION_GAP)) { nav.push(Screen.Recurring) } } }
+        if (list.visible.isEmpty()) item(key = "empty") { EmptyMonth(period.kind, period.period, Modifier.padding(top = SECTION_GAP)) }
         days(list, today, selection, onOpen)
     }
 }
 
+/** Each day: its label line, then a card of its entries drawn one lazy item per entry. */
 private fun LazyListScope.days(list: EntryListState, today: LocalDate, selection: ActSelection, onOpen: (Txn) -> Unit) {
     list.days.forEach { (date, dayTxns) ->
-        item(key = "d$date") {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                DayLine(date.actDayLabel(today), list.dayTotals[date])
-                Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card)) {
-                    dayTxns.forEachIndexed { i, txn ->
-                        if (i > 0) Divider(ENTRY_INSET)
-                        ActEntryRow(
-                            txn, list.lookups, selecting = selection.active, selected = txn.id in selection.ids,
-                            onLongClick = { selection.toggle(txn.id) },
-                        ) { onOpen(txn) }
-                    }
-                }
-            }
+        item(key = "d$date", contentType = "day") {
+            DayLine(date.actDayLabel(today), list.dayTotals[date], Modifier.padding(top = SECTION_GAP, bottom = 4.dp))
+        }
+        entryCardItems(dayTxns, keyPrefix = "e", inset = ENTRY_INSET) { txn ->
+            ActEntryRow(
+                txn, list.lookups, selecting = selection.active, selected = txn.id in selection.ids,
+                onLongClick = { selection.toggle(txn.id) },
+            ) { onOpen(txn) }
         }
     }
 }
 
 @Composable
-private fun ListSummary(t: Totals, carry: Long?) {
+private fun ListSummary(t: Totals, carry: Long?, modifier: Modifier) {
     val currency = LocalCurrency.current
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         ActSummary(t.income, t.expense)
         if (carry != null) Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
             Text(tr("Carried over {0}", currency.format(carry)), Modifier.weight(1f), color = F.muted, fontSize = 12.sp, style = F.money)
@@ -122,8 +118,8 @@ private fun ListSummary(t: Totals, carry: Long?) {
 }
 
 @Composable
-private fun EmptyMonth(kind: ActKind, ym: YearMonth) {
-    FCard(padding = 24.dp) {
+private fun EmptyMonth(kind: ActKind, ym: YearMonth, modifier: Modifier) {
+    FCard(modifier, padding = 24.dp) {
         Text(
             if (kind == ActKind.MOVED) tr("No transfers in {0}", tr(actMonthNames[ym.month - 1])) else tr("Nothing recorded in {0}", tr(actMonthNames[ym.month - 1])),
             Modifier.fillMaxWidth(), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
@@ -134,9 +130,9 @@ private fun EmptyMonth(kind: ActKind, ym: YearMonth) {
 
 /** A day's label with what came in and went out that day. */
 @Composable
-private fun DayLine(label: String, dt: Totals?) {
+private fun DayLine(label: String, dt: Totals?, modifier: Modifier) {
     val currency = LocalCurrency.current
-    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+    Row(modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
         Text(label, Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         if (dt != null) Text(
             listOfNotNull(
@@ -150,9 +146,9 @@ private fun DayLine(label: String, dt: Totals?) {
 
 /** "Repeat · Rent, To mom · 1 Nov · −30,000": repeating entries still to come this period (not in the totals). */
 @Composable
-private fun UpcomingRepeatsCard(u: UpcomingRepeats, onClick: () -> Unit) {
+private fun UpcomingRepeatsCard(u: UpcomingRepeats, modifier: Modifier, onClick: () -> Unit) {
     val currency = LocalCurrency.current
-    FCard(onClick = onClick) {
+    FCard(modifier, onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Mark(tr("Repeat"), 36.dp, icon = Glyph.Repeat)
             Column(Modifier.weight(1f)) {

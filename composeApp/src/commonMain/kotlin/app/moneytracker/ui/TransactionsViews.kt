@@ -19,12 +19,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,7 +41,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,16 +52,27 @@ import androidx.compose.ui.unit.sp
 import app.moneytracker.data.MonthRollup
 import app.moneytracker.data.MonthTotals
 import app.moneytracker.domain.BudgetLine
-import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.Totals
 import app.moneytracker.domain.Txn
+import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.classify
 import app.moneytracker.domain.totals
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
+
+/** The calendar's today marker: a dark slate band behind the day number, the same in light and dark themes. */
+private val TodayBadge = Color(0xFF3B3F5C)
+
+/** The spreadsheet green of the Excel export icon. */
+private val ExcelGreen = Color(0xFF1E8E3E)
+
+private val SettingButtonShape = RoundedCornerShape(4.dp)
+
+/** The Total view's outlined boxes (the figures and the Excel export). */
+private val OutlineBoxShape = RoundedCornerShape(6.dp)
 
 // ───────────────────────── Calendar
 
@@ -116,7 +129,7 @@ private fun RowScope.CalendarCell(day: LocalDate, cal: CalendarState, today: Loc
             else -> InkSoft
         }
         if (day == today) {
-            Text(label, Modifier.fillMaxWidth().background(Color(0xFF3B3F5C)).padding(horizontal = 2.dp), color = Color.White, fontSize = 12.sp)
+            Text(label, Modifier.fillMaxWidth().background(TodayBadge).padding(horizontal = 2.dp), color = Color.White, fontSize = 12.sp)
         } else Text(label, color = color, fontSize = 12.sp)
         Spacer(Modifier.weight(1f))
         if (dt != null && (dt.income != 0L || dt.expense != 0L)) CellAmounts(dt, fade = if (inRange) 1f else 0.45f)
@@ -254,7 +267,8 @@ private fun BudgetCard(ym: YearMonth, total: BudgetLine?) {
             Icon(Icons.Outlined.EditNote, null, Modifier.size(28.dp))
             Text(tr("Budget"), Modifier.padding(start = 10.dp).weight(1f), fontSize = 18.sp)
             Row(
-                Modifier.background(PageBackground, RoundedCornerShape(4.dp)).clickable { nav.push(Screen.Budget) }.padding(horizontal = 12.dp, vertical = 8.dp),
+                Modifier.background(PageBackground, SettingButtonShape).clip(SettingButtonShape).clickable(role = Role.Button) { nav.push(Screen.Budget) }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(tr("Budget Setting"), color = SubtleText)
@@ -294,7 +308,7 @@ private fun AccountsCard(range: DateRange, m: MonthTotals) {
             Text(range.dotted(), color = SubtleText)
         }
         Column(
-            Modifier.fillMaxWidth().padding(top = 16.dp).border(1.dp, DividerColor, RoundedCornerShape(6.dp)).padding(20.dp),
+            Modifier.fillMaxWidth().padding(top = 16.dp).border(1.dp, DividerColor, OutlineBoxShape).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             StatLine(tr("Compared expenses (last month)"), m.comparedToLastMonth?.let { "$it%" } ?: "–")
@@ -303,11 +317,11 @@ private fun AccountsCard(range: DateRange, m: MonthTotals) {
             StatLine(tr("Saved / invested"), currency.format(m.saved))
         }
         Row(
-            Modifier.fillMaxWidth().padding(top = 16.dp).border(1.dp, DividerColor, RoundedCornerShape(6.dp))
-                .clickable { fileTransfer.exportExcel() }.padding(14.dp),
+            Modifier.fillMaxWidth().padding(top = 16.dp).border(1.dp, DividerColor, OutlineBoxShape).clip(OutlineBoxShape)
+                .clickable(role = Role.Button) { fileTransfer.exportExcel() }.padding(14.dp),
             horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Outlined.Description, null, tint = Color(0xFF1E8E3E))
+            Icon(Icons.Outlined.Description, null, tint = ExcelGreen)
             Text(tr("Export data to Excel"), Modifier.padding(start = 8.dp))
         }
     }

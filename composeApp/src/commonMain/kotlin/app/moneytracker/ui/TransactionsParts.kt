@@ -43,6 +43,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -67,13 +72,17 @@ fun TxnLine(
     tags: List<String> = emptyList(),
     hasPhoto: Boolean = false,
     inset: Dp = 16.dp,
+    /** Entries are being selected: a tap ticks this one, and TalkBack reads the row as a checkbox. */
+    selecting: Boolean = false,
     selected: Boolean = false,
+    /** Card space under the last row, inside its tap highlight (the selected tint stays on the row itself). */
+    extraBottom: Dp = 0.dp,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().background(if (selected) AccentTint else SurfaceColor)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(horizontal = inset, vertical = 8.dp),
+        Modifier.fillMaxWidth().txnTap(selecting, selected, onLongClick, onClick).padding(bottom = extraBottom)
+            .background(if (selected) AccentTint else SurfaceColor).padding(horizontal = inset, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.width(82.dp).padding(end = 8.dp)) {
@@ -89,6 +98,15 @@ fun TxnLine(
         TxnLineAmount(txn, flow, runningBalance)
     }
 }
+
+/** Tap opens (or, while [selecting], ticks) the entry; long-press selects it. */
+private fun Modifier.txnTap(selecting: Boolean, selected: Boolean, onLongClick: (() -> Unit)?, onClick: () -> Unit): Modifier =
+    if (selecting) {
+        combinedClickable(role = Role.Checkbox, onClick = onClick, onLongClick = onLongClick)
+            .semantics { toggleableState = ToggleableState(selected) }
+    } else {
+        combinedClickable(onLongClickLabel = onLongClick?.let { tr("Select") }, onClick = onClick, onLongClick = onLongClick)
+    }
 
 private fun accountLine(txn: Txn, accountName: Map<String, String>) = when (txn.kind) {
     TxnKind.TRANSFER_OUT -> "${accountName[txn.accountId].orEmpty()} → ${accountName[txn.toAccountId].orEmpty()}"
@@ -314,10 +332,12 @@ internal fun ClassicSmartAddBar(onType: () -> Unit, onSpeak: () -> Unit) {
         Text(tr("Type or say it: “1,200 for new shoes”"), Modifier.weight(1f), color = SubtleText, fontSize = 14.sp, maxLines = 1,
             overflow = TextOverflow.Ellipsis)
         if (voice.speechAvailable) {
+            val sayLabel = tr("Say an entry")
             Box(
-                Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Accent).clickable(onClickLabel = tr("Say an entry"), onClick = onSpeak),
+                Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Accent).semantics { contentDescription = sayLabel }
+                    .clickable(role = Role.Button, onClick = onSpeak),
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Outlined.Mic, tr("Say an entry"), tint = Color.White, modifier = Modifier.size(20.dp)) }
+            ) { Icon(Icons.Outlined.Mic, null, tint = Color.White, modifier = Modifier.size(20.dp)) }
         }
     }
 }
