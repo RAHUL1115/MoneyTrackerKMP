@@ -170,7 +170,3 @@ internal fun ConfigToggle(label: String, hint: String?, checked: Boolean, onChan
     }
 }
 
-/** The same row as [SettingRow] (label and a teal value); new code calls [SettingRow] directly. */
-@Composable
-internal fun ConfigRow(label: String, value: String? = null, onClick: () -> Unit) = SettingRow(label, value, onClick)
-

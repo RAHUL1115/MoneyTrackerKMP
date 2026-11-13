@@ -34,9 +34,6 @@ import androidx.compose.ui.unit.sp
 
 // Small pieces shared by the Settings, Categories, Repeats and Backup screens of the new layout.
 
-/** A switch with its own tap. Inside a row, use [FSwitchRow] instead so the whole row is the switch. */
-@Composable
-internal fun StgSwitch(checked: Boolean, onChange: (Boolean) -> Unit) = FSwitch(checked, onChange)
 
 /** Label above a field or a group of chips inside a sheet. */
 @Composable
