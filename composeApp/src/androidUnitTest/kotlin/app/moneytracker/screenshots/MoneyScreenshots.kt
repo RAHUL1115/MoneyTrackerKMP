@@ -53,7 +53,7 @@ class NewMoneyScreenshots : MoneyScreenshotTest(newLayout = true) {
     @Test fun accountDetailMonthly() { show(Screen.AccountDetail("acc_bank")); tap("Monthly"); scrollTo("Balance"); shoot("account_detail_monthly") }
     @Test fun accountDetailCard() { show(Screen.AccountDetail("acc_card")); tap("Statement"); shoot("account_detail_card") }
     @Test fun accountEdit() { show(Screen.EditAccount("acc_card")); shoot("account_edit") }
-    @Test fun accountEditSwitches() { show(Screen.EditAccount("acc_card")); scrollTo("Bill is auto-paid"); shoot("account_edit_switches") }
+    @Test fun accountEditSwitches() { show(Screen.EditAccount("acc_card")); scrollToEnd(); shoot("account_edit_switches") }
     @Test fun manageAccounts() { show(); tap("Accounts"); tapIcon("Account groups"); shootScreen("manage_accounts") }
     @Test fun insightsBreakdown() { show(); tap("Insights"); tapContaining("Food"); scrollTo("Top entries"); shoot("insights_breakdown") }
     @Test fun insightsTopEntries() { show(); tap("Insights"); scrollTo("Fuel"); shoot("insights_top_entries") }
