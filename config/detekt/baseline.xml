@@ -39,7 +39,6 @@
     <ID>CyclomaticComplexMethod:ActivityTab.kt$@OptIn(ExperimentalFoundationApi::class) @Composable internal fun ActEntryRow( txn: Txn, data: ActEntryData, selecting: Boolean = false, selected: Boolean = false, showDate: Boolean = false, compact: Boolean = false, /** Space from the card's edges to the content; the tap highlight still spans the full width. */ inset: Dp = ENTRY_INSET, onLongClick: (() -&gt; Unit)? = null, onClick: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
-    <ID>CyclomaticComplexMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backups: Backups, navigator: Navigator, platform: Platform, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
     <ID>CyclomaticComplexMethod:BackupScreens.kt$@Composable internal fun FreshBackup()</ID>
     <ID>CyclomaticComplexMethod:BudgetScreen.kt$@Composable internal fun BudgetBody()</ID>
     <ID>CyclomaticComplexMethod:CategoriesScreens.kt$@Composable internal fun FreshCategories(kind: CategoryKind)</ID>
@@ -138,8 +137,6 @@
     <ID>LongMethod:AddScreen.kt$@Composable fun receiptCard()</ID>
     <ID>LongMethod:AddScreen.kt$@Composable fun tray(modifier: Modifier)</ID>
     <ID>LongMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
-    <ID>LongMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backups: Backups, navigator: Navigator, platform: Platform, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
-    <ID>LongMethod:App.kt$@Composable private fun Home()</ID>
     <ID>LongMethod:BackupScreens.kt$@Composable internal fun FreshBackup()</ID>
     <ID>LongMethod:BackupScreens.kt$@Composable private fun ImportPreview(parsed: TabularImport.Parsed, onCancel: () -&gt; Unit, onImport: (Set&lt;Int&gt;) -&gt; Unit)</ID>
     <ID>LongMethod:BudgetScreen.kt$@Composable internal fun BudgetBody()</ID>

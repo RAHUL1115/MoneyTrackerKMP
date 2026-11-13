@@ -51,10 +51,13 @@ import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.ColorSet
 import app.moneytracker.data.Prefs
+import app.moneytracker.data.Setting
+import app.moneytracker.data.SettingsStore
 import app.moneytracker.data.ThemeMode
 import app.moneytracker.data.TimeInput
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.CurrencyFormat
+import kotlinx.coroutines.withContext
 
 val LocalRepo = compositionLocalOf<MoneyRepository> { error("No repository") }
 val LocalCurrency = compositionLocalOf { CurrencyFormat() }
@@ -108,141 +111,199 @@ fun App(
     onDarkThemeChanged: (Boolean) -> Unit = {},
     newLayout: Boolean = false,
 ) {
-    // Style: follow the system unless Configuration pins light or dark.
-    val themeSetting by remember(repo) { repo?.setting(Prefs.THEME) ?: kotlinx.coroutines.flow.flowOf(null) }
-        .collectAsState(repo?.settingNow(Prefs.THEME))
-    val wantDark = when (themeSetting) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; else -> androidx.compose.foundation.isSystemInDarkTheme() }
-    if (darkTheme != wantDark) darkTheme = wantDark
-    val accentSetting by remember(repo) { repo?.setting(Prefs.ACCENT) ?: kotlinx.coroutines.flow.flowOf(null) }
-        .collectAsState(repo?.settingNow(Prefs.ACCENT))
-    val wantAccent = AccentChoice.entries.firstOrNull { it.name == accentSetting } ?: AccentChoice.TEAL
-    if (accentChoice != wantAccent) accentChoice = wantAccent
-    // Language: Configuration › Language, or the phone's language.
-    val languages = platform.languages
-    val languageSetting by remember(repo) { repo?.setting(Prefs.LANGUAGE) ?: kotlinx.coroutines.flow.flowOf(null) }
-        .collectAsState(repo?.settingNow(Prefs.LANGUAGE))
-    LaunchedEffect(languageSetting) {
-        val tag = languageSetting?.takeIf { it.isNotEmpty() } ?: I18n.resolve(languages.systemLanguage())
-        I18n.rtl = tag.substringBefore('-') in I18n.RTL
-        I18n.table = if (tag == "en") emptyMap() else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { languages.translations(tag) }
-    }
-    LaunchedEffect(wantDark) { onDarkThemeChanged(wantDark) }
-    androidx.compose.runtime.CompositionLocalProvider(
+    FollowAppearance(repo?.settingsStore, platform.languages, onDarkThemeChanged)
+    CompositionLocalProvider(
         androidx.compose.ui.platform.LocalLayoutDirection provides
             if (I18n.rtl) androidx.compose.ui.unit.LayoutDirection.Rtl else androidx.compose.ui.unit.LayoutDirection.Ltr,
     ) {
-    MaterialTheme(colorScheme = scheme(), typography = AppTypography) {
-        Surface(Modifier.fillMaxSize(), color = PageBackground) {
-            if (repo == null) {
-                // Database is being swapped (restore). Nothing may query it right now.
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                return@Surface
-            }
-            // Above the lock screen: open screens keep their state (and what was typed) while the app is locked.
-            val screenState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
-            val toaster = remember { app.moneytracker.ui.fresh.Toaster() }
-            val currency by repo.currency.collectAsState(CurrencyFormat())
-            val currencies by repo.currencies.collectAsState(emptyList())
-            // null until read, so neither the lock screen nor onboarding flashes up.
-            val passcode by remember(repo) { repo.setting(Prefs.PASSCODE) }.collectAsState(null as String?)
-            val onboarded by remember(repo) { repo.setting(Prefs.ONBOARDED) }.collectAsState(null as Boolean?)
-            val colorSet by remember(repo) { repo.setting(Prefs.COLOR_SET) }.collectAsState(remember(repo) { repo.settingNow(Prefs.COLOR_SET) })
-            LaunchedEffect(colorSet) { colorsSwapped = colorSet == ColorSet.SWAPPED }
-            val timeInput by remember(repo) { repo.setting(Prefs.TIME_INPUT) }.collectAsState(Prefs.TIME_INPUT.default)
-            val showDescription by remember(repo) { repo.setting(Prefs.SHOW_DESCRIPTION) }.collectAsState(false)
-            // Privacy eye: the saved choice, then every amount below is masked while it's on.
-            LaunchedEffect(repo) { Privacy.load(repo) }
-            // Exchange rates, once a day unless "Update automatically" is off. No request is made without other currencies.
-            LaunchedEffect(repo) {
-                kotlinx.coroutines.withContext(repo.io) {
-                    val due = repo.settingNow(Prefs.RATES_CHECKED) < kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - 20 * 3_600_000L
-                    if (repo.settingNow(Prefs.RATES_AUTO) && due) repo.updateRates(platform.network::httpGet)
-                }
-            }
-            val masked = Privacy.masked
-            CompositionLocalProvider(
-                LocalRepo provides repo,
-                LocalCurrency provides currency.copy(masked = masked),
-                LocalNavigator provides navigator,
-                LocalBackups provides backups,
-                LocalPlatform provides platform,
-                LocalCurrencies provides currencies.associate { it.code to it.copy(masked = masked) },
-                LocalListPrefs provides ListPrefs(showTime = timeInput == TimeInput.LIST, showDescription = showDescription),
-                app.moneytracker.ui.fresh.LocalNewLayout provides newLayout,
-                app.moneytracker.ui.fresh.LocalToaster provides toaster,
-            ) {
-                // Content stays above the gesture bar and, when typing, above the keyboard.
-                Box(Modifier.fillMaxSize().navigationBarsPadding().then(if (app.moneytracker.ui.fresh.KeyboardOverlay.active) Modifier else Modifier.imePadding())) {
-                    when {
-                        passcode == null || onboarded == null -> Unit
-                        // One lock screen for both layouts: the classic PIN pad.
-                        locked && !passcode.isNullOrBlank() -> LockScreen(passcode!!, onUnlocked)
-                        // First launch always uses the classic welcome screens; both layouts start after them.
-                        onboarded != true -> OnboardingScreen()
-                        else -> {
-                            // You're in: a passcode that appears now (turned on, or brought by a restore) asks only after the next restart or a while away.
-                            if (locked) SideEffect { onUnlocked() }
-                            var voiceSheet by remember { mutableStateOf(false) }
-                            if (voiceSheet) ListenSheet(onDismiss = { voiceSheet = false },
-                                look = if (newLayout) app.moneytracker.ui.fresh.newListenLook() else ListenLook.classic()) { g ->
-                                navigator.push(Screen.EditTxn(preset = g?.draft))
-                            }
-                            LaunchedEffect(launchAction) {
-                                val a = launchAction ?: return@LaunchedEffect
-                                navigator.clear()
-                                when (a) {
-                                    LaunchAction.ADD_EXPENSE -> navigator.push(Screen.EditTxn())
-                                    LaunchAction.ADD_INCOME -> navigator.push(Screen.EditTxn(preset = TxnDraft(DraftType.INCOME, repo.today(), "", amount = 0)))
-                                    LaunchAction.ADD_TRANSFER -> navigator.push(Screen.EditTxn(preset = TxnDraft(DraftType.TRANSFER, repo.today(), "", amount = 0)))
-                                    LaunchAction.VOICE -> voiceSheet = true
-                                    LaunchAction.INBOX -> navigator.push(Screen.Inbox)
-                                    LaunchAction.SEARCH -> navigator.push(Screen.Search)
-                                    LaunchAction.WEB_DASHBOARD -> navigator.push(Screen.WebDashboard)
-                                }
-                                onLaunchHandled()
-                            }
-                            Box(Modifier.fillMaxSize()) {
-                            navigator.Host(screenState, home = { if (newLayout) app.moneytracker.ui.fresh.FreshHome() else Home() }) { top ->
-                            val fresh = if (newLayout) app.moneytracker.ui.fresh.freshScreen(top) else null
-                            if (fresh != null) fresh() else when (top) {
-                                is Screen.EditTxn -> Unmasked { EditTxnScreen(top) }
-                                is Screen.AccountDetail -> AccountDetailScreen(top.accountId)
-                                is Screen.EditAccount -> EditAccountScreen(top.accountId)
-                                is Screen.Categories -> CategoriesScreen(top.kind)
-                                is Screen.StatsDetail -> StatsDetailScreen(top)
-                                is Screen.EditNote -> EditNoteScreen(top.noteId)
-                                Screen.AccountList -> AccountListScreen()
-                                Screen.Recurring -> RecurringScreen()
-                                Screen.Backup -> BackupScreen()
-                                Screen.Configuration -> ConfigurationScreen()
-                                Screen.Budget -> BudgetScreen()
-                                is Screen.BudgetDetail -> BudgetDetailScreen(top.periodKey)
-                                Screen.Search -> SearchScreen()
-                                Screen.Templates -> TemplatesScreen()
-                                Screen.Inbox -> InboxScreen()
-                                Screen.MessageSettings -> MessageSettingsScreen()
-                                Screen.Calculator -> CalculatorScreen()
-                                Screen.Help -> HelpScreen()
-                                Screen.About -> AboutScreen()
-                                is Screen.License -> LicenseScreen(top.id)
-                                Screen.Currencies -> CurrenciesScreen()
-                                Screen.Tags -> TagsScreen()
-                                is Screen.MoreHub -> MoreHubScreen(top.id)
-                                Screen.Security -> SecurityScreen()
-                                Screen.AccountsTrend -> AccountsTrendScreen()
-                                Screen.AccountGroups -> AccountGroupsScreen()
-                                Screen.WebDashboard -> WebDashboardScreen()
-                            }
-                            }
-                            // Both layouts: Undo after adding a detected payment, and the new layout's other toasts.
-                            app.moneytracker.ui.fresh.ToastHost(toaster, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
-                            }
-                        }
-                    }
+        MaterialTheme(colorScheme = scheme(), typography = AppTypography) {
+            Surface(Modifier.fillMaxSize(), color = PageBackground) {
+                if (repo == null) {
+                    // Database is being swapped (restore). Nothing may query it right now.
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else {
+                    val session = AppSession(navigator, locked, onUnlocked, launchAction, onLaunchHandled, newLayout)
+                    AppContent(repo, backups, platform, session)
                 }
             }
         }
     }
+}
+
+/** What the platform tells the app about this run: navigation, the lock, and a pending launch request. */
+private class AppSession(
+    val navigator: Navigator,
+    val locked: Boolean,
+    val onUnlocked: () -> Unit,
+    val launchAction: LaunchAction?,
+    val onLaunchHandled: () -> Unit,
+    val newLayout: Boolean,
+)
+
+/** Reads [setting] as Compose state, starting from its stored value (or [initial] while there is no database). */
+@Composable
+private fun <T> SettingsStore?.observe(setting: Setting<T>, initial: T): T {
+    val flow = remember(this) { this?.setting(setting) ?: kotlinx.coroutines.flow.flowOf(initial) }
+    return flow.collectAsState(remember(this) { this?.settingNow(setting) ?: initial }).value
+}
+
+/** Theme, accent colour and language follow Configuration, or the phone when nothing is pinned. */
+@Composable
+private fun FollowAppearance(settings: SettingsStore?, languages: Languages, onDarkThemeChanged: (Boolean) -> Unit) {
+    val themeSetting = settings.observe(Prefs.THEME, Prefs.THEME.default)
+    val wantDark = when (themeSetting) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        else -> androidx.compose.foundation.isSystemInDarkTheme()
+    }
+    if (darkTheme != wantDark) darkTheme = wantDark
+    val accentSetting = settings.observe(Prefs.ACCENT, Prefs.ACCENT.default)
+    val wantAccent = AccentChoice.entries.firstOrNull { it.name == accentSetting } ?: AccentChoice.TEAL
+    if (accentChoice != wantAccent) accentChoice = wantAccent
+    val languageSetting = settings.observe(Prefs.LANGUAGE, Prefs.LANGUAGE.default)
+    LaunchedEffect(languageSetting) {
+        val tag = languageSetting.takeIf { it.isNotEmpty() } ?: I18n.resolve(languages.systemLanguage())
+        I18n.rtl = tag.substringBefore('-') in I18n.RTL
+        I18n.table = if (tag == "en") emptyMap() else withContext(kotlinx.coroutines.Dispatchers.Default) { languages.translations(tag) }
+    }
+    LaunchedEffect(wantDark) { onDarkThemeChanged(wantDark) }
+}
+
+/** Exchange rates, once a day unless "Update automatically" is off. No request is made without other currencies. */
+@Composable
+private fun RefreshRatesDaily(repo: MoneyRepository, network: Network) {
+    LaunchedEffect(repo) {
+        withContext(repo.io) {
+            val settings = repo.settingsStore
+            val dayAgo = kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - 20 * 3_600_000L
+            val due = settings.settingNow(Prefs.RATES_CHECKED) < dayAgo
+            if (settings.settingNow(Prefs.RATES_AUTO) && due) repo.currencyStore.updateRates(network::httpGet)
+        }
+    }
+}
+
+@Composable
+private fun AppContent(repo: MoneyRepository, backups: Backups, platform: Platform, session: AppSession) {
+    val settings = repo.settingsStore
+    // Above the lock screen: open screens keep their state (and what was typed) while the app is locked.
+    val screenState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+    val toaster = remember { app.moneytracker.ui.fresh.Toaster() }
+    val currency by settings.currency.collectAsState(CurrencyFormat())
+    val currencies by repo.currencyStore.currencies.collectAsState(emptyList())
+    // null until read, so neither the lock screen nor onboarding flashes up.
+    val passcode by remember(repo) { settings.setting(Prefs.PASSCODE) }.collectAsState(null as String?)
+    val onboarded by remember(repo) { settings.setting(Prefs.ONBOARDED) }.collectAsState(null as Boolean?)
+    val colorSet = settings.observe(Prefs.COLOR_SET, Prefs.COLOR_SET.default)
+    LaunchedEffect(colorSet) { colorsSwapped = colorSet == ColorSet.SWAPPED }
+    val timeInput by remember(repo) { settings.setting(Prefs.TIME_INPUT) }.collectAsState(Prefs.TIME_INPUT.default)
+    val showDescription by remember(repo) { settings.setting(Prefs.SHOW_DESCRIPTION) }.collectAsState(false)
+    // Privacy eye: the saved choice, then every amount below is masked while it's on.
+    LaunchedEffect(repo) { Privacy.load(repo) }
+    RefreshRatesDaily(repo, platform.network)
+    val masked = Privacy.masked
+    CompositionLocalProvider(
+        LocalRepo provides repo,
+        LocalCurrency provides currency.copy(masked = masked),
+        LocalNavigator provides session.navigator,
+        LocalBackups provides backups,
+        LocalPlatform provides platform,
+        LocalCurrencies provides currencies.associate { it.code to it.copy(masked = masked) },
+        LocalListPrefs provides ListPrefs(showTime = timeInput == TimeInput.LIST, showDescription = showDescription),
+        app.moneytracker.ui.fresh.LocalNewLayout provides session.newLayout,
+        app.moneytracker.ui.fresh.LocalToaster provides toaster,
+    ) {
+        // Content stays above the gesture bar and, when typing, above the keyboard.
+        val keyboardPadding = if (app.moneytracker.ui.fresh.KeyboardOverlay.active) Modifier else Modifier.imePadding()
+        Box(Modifier.fillMaxSize().navigationBarsPadding().then(keyboardPadding)) {
+            val pin = passcode
+            when {
+                pin == null || onboarded == null -> Unit
+                // One lock screen for both layouts: the classic PIN pad.
+                session.locked && pin.isNotBlank() -> LockScreen(pin, session.onUnlocked)
+                // First launch always uses the classic welcome screens; both layouts start after them.
+                onboarded != true -> OnboardingScreen()
+                else -> UnlockedApp(repo.today, screenState, toaster, session)
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnlockedApp(
+    today: () -> kotlinx.datetime.LocalDate,
+    screenState: androidx.compose.runtime.saveable.SaveableStateHolder,
+    toaster: app.moneytracker.ui.fresh.Toaster,
+    session: AppSession,
+) {
+    val navigator = session.navigator
+    val newLayout = session.newLayout
+    // You're in: a passcode that appears now (turned on, or brought by a restore) asks only after the next restart or a while away.
+    if (session.locked) SideEffect { session.onUnlocked() }
+    var voiceSheet by remember { mutableStateOf(false) }
+    if (voiceSheet) {
+        val look = if (newLayout) app.moneytracker.ui.fresh.newListenLook() else ListenLook.classic()
+        ListenSheet(onDismiss = { voiceSheet = false }, look = look) { g -> navigator.push(Screen.EditTxn(preset = g?.draft)) }
+    }
+    LaunchedEffect(session.launchAction) {
+        val action = session.launchAction ?: return@LaunchedEffect
+        openLaunchAction(action, navigator, today, openVoice = { voiceSheet = true })
+        session.onLaunchHandled()
+    }
+    Box(Modifier.fillMaxSize()) {
+        navigator.Host(screenState, home = { if (newLayout) app.moneytracker.ui.fresh.FreshHome() else Home() }) { top ->
+            val fresh = if (newLayout) app.moneytracker.ui.fresh.freshScreen(top) else null
+            if (fresh != null) fresh() else ClassicScreen(top)
+        }
+        // Both layouts: Undo after adding a detected payment, and the new layout's other toasts.
+        app.moneytracker.ui.fresh.ToastHost(toaster, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
+    }
+}
+
+/** Opens what a shortcut, widget or notification asked for, on top of a fresh back stack. */
+private fun openLaunchAction(action: LaunchAction, navigator: Navigator, today: () -> kotlinx.datetime.LocalDate, openVoice: () -> Unit) {
+    navigator.clear()
+    when (action) {
+        LaunchAction.ADD_EXPENSE -> navigator.push(Screen.EditTxn())
+        LaunchAction.ADD_INCOME -> navigator.push(Screen.EditTxn(preset = TxnDraft(DraftType.INCOME, today(), "", amount = 0)))
+        LaunchAction.ADD_TRANSFER -> navigator.push(Screen.EditTxn(preset = TxnDraft(DraftType.TRANSFER, today(), "", amount = 0)))
+        LaunchAction.VOICE -> openVoice()
+        LaunchAction.INBOX -> navigator.push(Screen.Inbox)
+        LaunchAction.SEARCH -> navigator.push(Screen.Search)
+        LaunchAction.WEB_DASHBOARD -> navigator.push(Screen.WebDashboard)
+    }
+}
+
+/** The classic layout's screens; the new layout routes its own through `freshScreen`. */
+@Composable
+private fun ClassicScreen(top: Screen) {
+    when (top) {
+        is Screen.EditTxn -> Unmasked { EditTxnScreen(top) }
+        is Screen.AccountDetail -> AccountDetailScreen(top.accountId)
+        is Screen.EditAccount -> EditAccountScreen(top.accountId)
+        is Screen.Categories -> CategoriesScreen(top.kind)
+        is Screen.StatsDetail -> StatsDetailScreen(top)
+        is Screen.EditNote -> EditNoteScreen(top.noteId)
+        Screen.AccountList -> AccountListScreen()
+        Screen.Recurring -> RecurringScreen()
+        Screen.Backup -> BackupScreen()
+        Screen.Configuration -> ConfigurationScreen()
+        Screen.Budget -> BudgetScreen()
+        is Screen.BudgetDetail -> BudgetDetailScreen(top.periodKey)
+        Screen.Search -> SearchScreen()
+        Screen.Templates -> TemplatesScreen()
+        Screen.Inbox -> InboxScreen()
+        Screen.MessageSettings -> MessageSettingsScreen()
+        Screen.Calculator -> CalculatorScreen()
+        Screen.Help -> HelpScreen()
+        Screen.About -> AboutScreen()
+        is Screen.License -> LicenseScreen(top.id)
+        Screen.Currencies -> CurrenciesScreen()
+        Screen.Tags -> TagsScreen()
+        is Screen.MoreHub -> MoreHubScreen(top.id)
+        Screen.Security -> SecurityScreen()
+        Screen.AccountsTrend -> AccountsTrendScreen()
+        Screen.AccountGroups -> AccountGroupsScreen()
+        Screen.WebDashboard -> WebDashboardScreen()
     }
 }
 
@@ -260,33 +321,34 @@ private fun Home() {
         }
         HorizontalDivider(color = DividerColor)
         Row(Modifier.fillMaxWidth().background(SurfaceColor).height(64.dp)) {
-            Tab.entries.forEach { t ->
-                val selected = t == tab
-                val color = if (selected) Accent else SubtleText
-                Column(
-                    Modifier.weight(1f).fillMaxSize().clickable { tab = t }.padding(top = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    // Selected tab: filled icon on a soft accent pill.
-                    Box(
-                        Modifier.size(width = 56.dp, height = 30.dp)
-                            .background(if (selected) AccentTint else Color.Transparent, RoundedCornerShape(50)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            when (t) {
-                                Tab.TRANS -> if (selected) Icons.AutoMirrored.Filled.MenuBook else Icons.AutoMirrored.Outlined.MenuBook
-                                Tab.STATS -> if (selected) Icons.Filled.BarChart else Icons.Outlined.BarChart
-                                Tab.ACCOUNTS -> if (selected) Icons.Filled.AccountBalanceWallet else Icons.Outlined.AccountBalanceWallet
-                                Tab.MORE -> Icons.Outlined.MoreHoriz
-                            },
-                            contentDescription = tr(t.title), tint = color, modifier = Modifier.size(22.dp),
-                        )
-                    }
-                    Text(tr(t.title), Modifier.padding(top = 3.dp), color = if (selected) Ink else SubtleText, fontSize = 11.sp,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
-                }
-            }
+            Tab.entries.forEach { t -> TabButton(t, selected = t == tab, onClick = { tab = t }) }
         }
     }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.TabButton(t: Tab, selected: Boolean, onClick: () -> Unit) {
+    val color = if (selected) Accent else SubtleText
+    Column(
+        Modifier.weight(1f).fillMaxSize().clickable(onClick = onClick).padding(top = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Selected tab: filled icon on a soft accent pill.
+        Box(
+            Modifier.size(width = 56.dp, height = 30.dp)
+                .background(if (selected) AccentTint else Color.Transparent, RoundedCornerShape(50)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(tabIcon(t, selected), contentDescription = tr(t.title), tint = color, modifier = Modifier.size(22.dp))
+        }
+        Text(tr(t.title), Modifier.padding(top = 3.dp), color = if (selected) Ink else SubtleText, fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
+    }
+}
+
+private fun tabIcon(t: Tab, selected: Boolean) = when (t) {
+    Tab.TRANS -> if (selected) Icons.AutoMirrored.Filled.MenuBook else Icons.AutoMirrored.Outlined.MenuBook
+    Tab.STATS -> if (selected) Icons.Filled.BarChart else Icons.Outlined.BarChart
+    Tab.ACCOUNTS -> if (selected) Icons.Filled.AccountBalanceWallet else Icons.Outlined.AccountBalanceWallet
+    Tab.MORE -> Icons.Outlined.MoreHoriz
 }
