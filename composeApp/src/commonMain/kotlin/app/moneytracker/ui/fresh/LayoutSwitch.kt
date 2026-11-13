@@ -5,15 +5,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.font.FontWeight
-import app.moneytracker.data.Prefs
 import app.moneytracker.ui.Accent
 import app.moneytracker.ui.LocalPlatform
-import app.moneytracker.ui.LocalRepo
+import app.moneytracker.ui.rememberSettingsModel
 import app.moneytracker.ui.tr
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** True when this run of the app shows the new layout. Fixed until the next restart. */
 val LocalNewLayout = compositionLocalOf { false }
@@ -24,9 +20,8 @@ val LocalNewLayout = compositionLocalOf { false }
  */
 @Composable
 fun LayoutSwitchDialog(toNew: Boolean, onDismiss: () -> Unit) {
-    val repo = LocalRepo.current
+    val model = rememberSettingsModel()
     val appInfo = LocalPlatform.current.appInfo
-    val scope = rememberCoroutineScope()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (toNew) tr("Switch to the new layout?") else tr("Switch to the classic layout?")) },
@@ -36,12 +31,7 @@ fun LayoutSwitchDialog(toNew: Boolean, onDismiss: () -> Unit) {
             )
         },
         confirmButton = {
-            TextButton(onClick = {
-                scope.launch {
-                    withContext(repo.io) { repo.putSetting(Prefs.UI_LAYOUT, if (toNew) app.moneytracker.data.UiLayout.NEW else app.moneytracker.data.UiLayout.CLASSIC) }
-                    appInfo.restartApp()
-                }
-            }) { Text(tr("Restart now"), color = Accent, fontWeight = FontWeight.Medium) }
+            TextButton(onClick = { model.switchLayout(toNew, appInfo::restartApp) }) { Text(tr("Restart now"), color = Accent, fontWeight = FontWeight.Medium) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Not now")) } },
     )

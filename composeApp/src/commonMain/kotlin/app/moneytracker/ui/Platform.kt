@@ -1,7 +1,7 @@
 package app.moneytracker.ui
 
 import app.moneytracker.data.Prefs
-import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.SettingsStore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
@@ -16,14 +16,14 @@ fun isPortablePinHash(stored: String?) = stored?.startsWith(PORTABLE_PIN_PREFIX)
  * Checks [pin] at the lock screen. The passcode from before a restore is accepted too, so a backup whose passcode
  * can't be checked on this phone never locks you out; whichever matches becomes the passcode, in the portable form.
  */
-fun PinSecurity.unlock(pin: String, stored: String, repo: MoneyRepository): Boolean {
-    val previous = repo.settingNow(Prefs.PASSCODE_PREVIOUS)
+fun PinSecurity.unlock(pin: String, stored: String, settings: SettingsStore): Boolean {
+    val previous = settings.settingNow(Prefs.PASSCODE_PREVIOUS)
     when {
-        checkPin(pin, stored) -> if (!isPortablePinHash(stored)) repo.putSetting(Prefs.PASSCODE, hashPin(pin))
-        previous.isNotBlank() && checkPin(pin, previous) -> repo.putSetting(Prefs.PASSCODE, hashPin(pin))
+        checkPin(pin, stored) -> if (!isPortablePinHash(stored)) settings.putSetting(Prefs.PASSCODE, hashPin(pin))
+        previous.isNotBlank() && checkPin(pin, previous) -> settings.putSetting(Prefs.PASSCODE, hashPin(pin))
         else -> return false.also { app.moneytracker.Log.i("Lock") { "wrong passcode" } }
     }
-    if (previous.isNotEmpty()) repo.putSetting(Prefs.PASSCODE_PREVIOUS, "")
+    if (previous.isNotEmpty()) settings.putSetting(Prefs.PASSCODE_PREVIOUS, "")
     app.moneytracker.Log.i("Lock") { "unlocked with passcode" }
     return true
 }

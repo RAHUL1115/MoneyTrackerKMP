@@ -1,7 +1,6 @@
 package app.moneytracker.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,16 +14,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,16 +35,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.Prefs
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 private const val PIN_LENGTH = 4
 
@@ -94,147 +87,105 @@ private fun PinPad(title: String, subtitle: String?, error: String?, onComplete:
 fun LockScreen(hash: String, onUnlocked: () -> Unit) {
     val repo = LocalRepo.current
     val pinSecurity = LocalPlatform.current.pinSecurity
+    val model = remember(repo, pinSecurity) { LockModel(pinSecurity, repo.settingsStore) }
     val biometricOn by rememberSetting(Prefs.BIOMETRIC)
     val status by pinSecurity.biometricStatus.collectAsState()
     val canUseBiometric = biometricOn && status == BiometricStatus.AVAILABLE
-    var error by remember { mutableStateOf<String?>(null) }
-    var attempts by remember { mutableStateOf(0) }
-    fun promptBiometric() = pinSecurity.authenticate(tr("Unlock MoneyTracker"), onUnlocked) { msg -> error = msg }
+    val error by model.error.collectAsState()
+    fun promptBiometric() = pinSecurity.authenticate(tr("Unlock MoneyTracker"), onUnlocked, model::showError)
     // Offer the biometric prompt straight away; the PIN pad stays underneath as the fallback.
     LaunchedEffect(canUseBiometric) { if (canUseBiometric) promptBiometric() }
     PinPad(tr("Enter passcode"), if (canUseBiometric) tr("or use your fingerprint / face") else null, error, onComplete = { pin ->
-        if (pinSecurity.unlock(pin, hash, repo)) { onUnlocked(); true }
-        else { attempts++; error = tr("Wrong passcode ({0})", attempts); false }
+        model.unlock(pin, hash).also { if (it) onUnlocked() }
     }) {
         if (canUseBiometric) {
-            IconButton(onClick = { error = null; promptBiometric() }, modifier = Modifier.padding(bottom = 12.dp).size(56.dp)) {
+            IconButton(onClick = { model.showError(null); promptBiometric() }, modifier = Modifier.padding(bottom = 12.dp).size(56.dp)) {
                 Icon(Icons.Outlined.Fingerprint, tr("Unlock with biometrics"), Modifier.size(40.dp), tint = Accent)
             }
         }
     }
 }
 
-/** What the passcode screen is currently asking for. */
-private enum class PinStep { NONE, VERIFY_FOR_CHANGE, VERIFY_FOR_OFF, NEW, CONFIRM }
-
+/** Passcode settings: wiring for [SecurityContent], or the PIN pad while a PIN is being asked for. */
 @Composable
 fun SecurityScreen() {
     val repo = LocalRepo.current
-    val nav = LocalNavigator.current
     val pinSecurity = LocalPlatform.current.pinSecurity
     val scope = rememberCoroutineScope()
-    val passcode by rememberSetting(Prefs.PASSCODE)
-    val biometricOn by rememberSetting(Prefs.BIOMETRIC)
+    val model = remember(repo, pinSecurity) { PasscodeModel(repo.settingsStore, pinSecurity, repo.io, scope) }
     val status by pinSecurity.biometricStatus.collectAsState()
-    val hasPasscode = passcode.isNotBlank()
-    var step by remember { mutableStateOf(PinStep.NONE) }
-    var first by remember { mutableStateOf<String?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var message by remember { mutableStateOf<String?>(null) }
-    var offerBiometric by remember { mutableStateOf(false) }
+    val setup = LockSetup(rememberSetting(Prefs.PASSCODE).value, rememberSetting(Prefs.BIOMETRIC).value, status)
+    val state by model.state.collectAsState()
 
-    fun <T> put(s: app.moneytracker.data.Setting<T>, value: T) = scope.saveSetting(repo, s, value)
-    fun turnOff() { put(Prefs.PASSCODE, ""); put(Prefs.BIOMETRIC, false); message = tr("Passcode turned off") }
-    /** Turning biometrics on requires one successful scan, so we know the sensor works for this user. */
-    fun enableBiometric() = pinSecurity.authenticate(tr("Confirm it's you"), onSuccess = {
-        put(Prefs.BIOMETRIC, true); message = tr("Biometric unlock is on")
-    }) { msg -> message = msg }
-
-    when (step) {
+    when (state.step) {
         PinStep.VERIFY_FOR_CHANGE, PinStep.VERIFY_FOR_OFF -> {
-            val forOff = step == PinStep.VERIFY_FOR_OFF
-            // Changing or removing the lock needs the current PIN (or a biometric scan) — the phone may be in someone else's hands.
-            LaunchedEffect(Unit) {
-                if (biometricOn && status == BiometricStatus.AVAILABLE) {
-                    pinSecurity.authenticate(tr("Confirm it's you"), onSuccess = {
-                        if (forOff) { turnOff(); step = PinStep.NONE } else { first = null; error = null; step = PinStep.NEW }
-                    })
-                }
-            }
-            PinPad(tr("Enter current passcode"), null, error, onComplete = { pin ->
-                if (!pinSecurity.checkPin(pin, passcode.orEmpty())) { error = tr("Wrong passcode"); false }
-                else {
-                    error = null
-                    if (forOff) { turnOff(); step = PinStep.NONE } else { first = null; step = PinStep.NEW }
-                    true
-                }
-            })
-            return
+            LaunchedEffect(Unit) { model.verifyWithBiometric(setup) }
+            PinPad(tr("Enter current passcode"), null, state.error, onComplete = { model.verify(it, setup) })
         }
-        PinStep.NEW, PinStep.CONFIRM -> {
-            PinPad(if (step == PinStep.NEW) tr("New passcode") else tr("Confirm passcode"), tr("4 digits"), error, onComplete = { pin ->
-                val f = first
-                if (step == PinStep.NEW) { first = pin; error = null; step = PinStep.CONFIRM; false }
-                else if (f == pin) {
-                    val wasNew = !hasPasscode
-                    put(Prefs.PASSCODE, pinSecurity.hashPin(pin))
-                    step = PinStep.NONE; first = null
-                    message = tr("Passcode saved")
-                    if (wasNew && status == BiometricStatus.AVAILABLE && !biometricOn) offerBiometric = true
-                    true
-                } else { first = null; error = tr("Didn't match, try again"); step = PinStep.NEW; false }
-            })
-            return
-        }
-        PinStep.NONE -> Unit
+        PinStep.NEW, PinStep.CONFIRM ->
+            PinPad(if (state.step == PinStep.NEW) tr("New passcode") else tr("Confirm passcode"), tr("4 digits"), state.error,
+                onComplete = { model.enterNew(it, setup) })
+        PinStep.NONE -> SecurityContent(state, setup, model, onOpenEnrollment = pinSecurity::openBiometricEnrollment)
     }
+}
 
+@Composable
+private fun SecurityContent(state: PasscodeState, setup: LockSetup, model: PasscodeModel, onOpenEnrollment: () -> Unit) {
+    val nav = LocalNavigator.current
     Column(Modifier.fillMaxSize()) {
         BackTopBar(tr("Passcode"), nav::pop)
         HorizontalDivider(color = DividerColor)
         Column(Modifier.fillMaxWidth().background(SurfaceColor)) {
-            if (!hasPasscode) {
-                SettingRow(tr("Set passcode")) { first = null; error = null; message = null; step = PinStep.NEW }
+            if (!setup.hasPasscode) {
+                SettingRow(tr("Set passcode"), onClick = model::startSet)
             } else {
-                SettingRow(tr("Change passcode")) { error = null; message = null; step = PinStep.VERIFY_FOR_CHANGE }
-                SettingRow(tr("Turn off passcode")) { error = null; message = null; step = PinStep.VERIFY_FOR_OFF }
+                SettingRow(tr("Change passcode"), onClick = model::startChange)
+                SettingRow(tr("Turn off passcode"), onClick = model::startTurnOff)
             }
             HorizontalDivider(color = DividerColor)
             Box(Modifier.padding(horizontal = 28.dp, vertical = 12.dp)) {
-                when (status) {
-                    BiometricStatus.AVAILABLE -> Column {
-                        SwitchRow(tr("Unlock with fingerprint / face"), biometricOn && hasPasscode) { on ->
-                            message = null
-                            when {
-                                !hasPasscode -> message = tr("Set a passcode first; it's the fallback if biometrics fail.")
-                                on -> enableBiometric()
-                                else -> { put(Prefs.BIOMETRIC, false); message = tr("Biometric unlock is off") }
-                            }
-                        }
-                        Text(tr("Uses whatever your phone has set up — fingerprint, face or iris."), fontSize = 12.sp, color = SubtleText)
-                    }
-                    BiometricStatus.NOT_ENROLLED -> Column {
-                        Text(tr("Unlock with fingerprint / face"))
-                        Text(tr("No fingerprint or face is set up on this phone yet."), fontSize = 13.sp, color = SubtleText)
-                        Text(
-                            tr("Set up in phone settings"), Modifier.padding(top = 8.dp).clickable { pinSecurity.openBiometricEnrollment() },
-                            color = Accent, fontWeight = FontWeight.Medium,
-                        )
-                    }
-                    BiometricStatus.UNSUPPORTED -> Column {
-                        Text(tr("Unlock with fingerprint / face"), color = SubtleText)
-                        Text(tr("This phone has no biometric sensor that apps can use. The passcode still protects the app."), fontSize = 13.sp, color = SubtleText)
-                    }
-                }
+                BiometricSetting(setup, onSwitch = { model.setBiometric(it, setup) }, onOpenEnrollment)
             }
         }
-        message?.let { Text(it, Modifier.padding(horizontal = 24.dp, vertical = 12.dp), color = IncomeColor, fontSize = 14.sp) }
+        state.message?.let { Text(it, Modifier.padding(horizontal = 24.dp, vertical = 12.dp), color = IncomeColor, fontSize = 14.sp) }
         Text(
             tr("The app locks when opened and after a minute in the background. Biometric unlock always falls back to your passcode. " +
                 "If you forget the passcode, clear the app's data (restoring an exported backup brings your records back)."),
             Modifier.padding(24.dp), color = SubtleText, fontSize = 13.sp,
         )
     }
-
-    if (offerBiometric) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { offerBiometric = false },
+    if (state.offerBiometric) {
+        AlertDialog(
+            onDismissRequest = model::dismissBiometricOffer,
             icon = { Icon(Icons.Outlined.Fingerprint, null, tint = Accent) },
             title = { Text(tr("Use fingerprint or face too?")) },
             text = { Text(tr("Unlock with your phone's biometrics. Your passcode still works as a backup.")) },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { offerBiometric = false; enableBiometric() }) { Text(tr("Turn on"), color = Accent) } },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { offerBiometric = false }) { Text(tr("Not now")) } },
+            confirmButton = { TextButton(onClick = { model.dismissBiometricOffer(); model.enableBiometric() }) { Text(tr("Turn on"), color = Accent) } },
+            dismissButton = { TextButton(onClick = model::dismissBiometricOffer) { Text(tr("Not now")) } },
         )
+    }
+}
+
+/** The biometric switch, or why it isn't there. */
+@Composable
+private fun BiometricSetting(setup: LockSetup, onSwitch: (Boolean) -> Unit, onOpenEnrollment: () -> Unit) {
+    when (setup.biometric) {
+        BiometricStatus.AVAILABLE -> Column {
+            SwitchRow(tr("Unlock with fingerprint / face"), setup.biometricOn && setup.hasPasscode, onSwitch)
+            Text(tr("Uses whatever your phone has set up — fingerprint, face or iris."), fontSize = 12.sp, color = SubtleText)
+        }
+        BiometricStatus.NOT_ENROLLED -> Column {
+            Text(tr("Unlock with fingerprint / face"))
+            Text(tr("No fingerprint or face is set up on this phone yet."), fontSize = 13.sp, color = SubtleText)
+            Text(
+                tr("Set up in phone settings"), Modifier.padding(top = 8.dp).clickable(onClick = onOpenEnrollment),
+                color = Accent, fontWeight = FontWeight.Medium,
+            )
+        }
+        BiometricStatus.UNSUPPORTED -> Column {
+            Text(tr("Unlock with fingerprint / face"), color = SubtleText)
+            Text(tr("This phone has no biometric sensor that apps can use. The passcode still protects the app."), fontSize = 13.sp, color = SubtleText)
+        }
     }
 }
 
@@ -249,97 +200,3 @@ fun SettingRow(label: String, value: String? = null, onClick: () -> Unit) {
     }
 }
 
-// ───────────────────────── onboarding
-
-@Composable
-fun OnboardingScreen() {
-    val repo = LocalRepo.current
-    val scope = rememberCoroutineScope()
-    var page by remember { mutableStateOf(0) }
-    var symbol by remember { mutableStateOf("₹") }
-    var decimals by remember { mutableStateOf(2) }
-    var newLayout by remember { mutableStateOf(true) }
-    val appInfo = LocalPlatform.current.appInfo
-    val pages = listOf(
-        tr("Track every rupee") to tr("Add income, expenses and transfers in a few taps with the built-in keypad."),
-        tr("See where it goes") to tr("Daily, calendar and monthly views, stats by category, budgets and card statements."),
-        tr("Yours, offline") to tr("Everything stays on this phone. Daily backups, export to CSV or Excel, no ads."),
-    )
-    Column(Modifier.fillMaxSize().background(SurfaceColor).statusBarsPadding().padding(28.dp)) {
-        Spacer(Modifier.height(48.dp))
-        if (page < pages.size) {
-            val (title, body) = pages[page]
-            Text(title, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text(body, Modifier.padding(top = 16.dp), fontSize = 17.sp, color = InkSoft)
-        } else if (page == pages.size + 1) {
-            Text(tr("Choose your layout"), fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text(tr("You can switch any time in Settings › Look › Layout."), Modifier.padding(top = 12.dp), color = SubtleText)
-            Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                LayoutChoice(tr("New (recommended)"), tr("Home with today's spending and Smart add, then Activity, Insights and Accounts. Clean, simple screens."), newLayout) { newLayout = true }
-                LayoutChoice(tr("Classic"), tr("The familiar tabs: Trans., Stats, Accounts and More, with daily, calendar and monthly views."), !newLayout) { newLayout = false }
-            }
-        } else {
-            Text(tr("Your currency"), fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text(tr("You can add more currencies later in Configuration."), Modifier.padding(top = 12.dp), color = SubtleText)
-            Row(Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf("₹" to 2, "$" to 2, "€" to 2, "£" to 2, "¥" to 0).forEach { (s, d) ->
-                    Box(
-                        Modifier.size(52.dp).border(1.5.dp, if (symbol == s) Accent else BorderColor, RoundedCornerShape(8.dp))
-                            .clickable { symbol = s; decimals = d },
-                        contentAlignment = Alignment.Center,
-                    ) { Text(s, fontSize = 22.sp, color = if (symbol == s) Accent else InkSoft) }
-                }
-            }
-            OutlinedTextField(symbol, { symbol = it.take(4) }, Modifier.padding(top = 20.dp), label = { Text(tr("Symbol")) }, singleLine = true)
-            Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Decimal places"), Modifier.weight(1f))
-                (0..3).forEach { d ->
-                    Text(
-                        d.toString(),
-                        Modifier.padding(start = 8.dp).border(1.dp, if (decimals == d) Accent else BorderColor, RoundedCornerShape(6.dp))
-                            .clickable { decimals = d }.padding(horizontal = 14.dp, vertical = 8.dp),
-                        color = if (decimals == d) Accent else InkSoft,
-                    )
-                }
-            }
-        }
-        Spacer(Modifier.weight(1f))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            repeat(pages.size + 2) { i -> Box(Modifier.padding(4.dp).size(8.dp).background(if (i == page) Accent else DividerColor, CircleShape)) }
-        }
-        Box(
-            Modifier.fillMaxWidth().padding(top = 20.dp).height(52.dp).background(Accent, RoundedCornerShape(6.dp)).clickable {
-                if (page <= pages.size) page++
-                else scope.launch {
-                    withContext(repo.io) {
-                        repo.putSetting(Prefs.CURRENCY_SYMBOL, symbol.ifBlank { "₹" })
-                        repo.putSetting(Prefs.CURRENCY_DECIMALS, decimals)
-                        repo.putSetting(Prefs.UI_LAYOUT, if (newLayout) app.moneytracker.data.UiLayout.NEW else app.moneytracker.data.UiLayout.CLASSIC)
-                        repo.putSetting(Prefs.ONBOARDED, true)
-                    }
-                    // The layout is chosen when the app starts, so the new one needs a quick restart.
-                    if (newLayout) appInfo.restartApp()
-                }
-            },
-            contentAlignment = Alignment.Center,
-        ) { Text(if (page <= pages.size) tr("Next") else tr("Start"), color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center) }
-        if (page < pages.size) {
-            Text(tr("Skip"), Modifier.fillMaxWidth().clickable { page = pages.size }.padding(14.dp), textAlign = TextAlign.Center, color = SubtleText)
-        }
-    }
-}
-
-/** One layout to pick on the last welcome page. */
-@Composable
-private fun LayoutChoice(title: String, body: String, selected: Boolean, onClick: () -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().border(if (selected) 2.dp else 1.dp, if (selected) Accent else BorderColor, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(title, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (selected) Accent else Ink)
-            if (selected) Text("✓", color = Accent, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        }
-        Text(body, Modifier.padding(top = 6.dp), fontSize = 14.sp, color = InkSoft)
-    }
-}
