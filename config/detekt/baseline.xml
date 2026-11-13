@@ -16,7 +16,6 @@
     <ID>ComplexCondition:SmsParser.kt$SmsParser$cleaned.length &lt; 2 || cleaned.all { it.isDigit() || it == 'x' || it == 'X' || it == '*' }</ID>
     <ID>ComplexCondition:TabularImport.kt$TabularImport$v.any { it == ',' || it == '"' || it == '\n' || it == '\r' }</ID>
     <ID>CyclomaticComplexMethod:AccountPredictor.kt$AccountPredictor$fun rank(history: List&lt;Past&gt;, ask: Ask, allowed: Set&lt;String&gt;? = null): List&lt;Pair&lt;String, Double&gt;&gt;</ID>
-    <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
     <ID>CyclomaticComplexMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:FreshApp.kt$fun freshScreen(screen: Screen): (@Composable () -&gt; Unit)?</ID>
     <ID>CyclomaticComplexMethod:I18n.kt$I18n$fun resolve(tag: String): String</ID>
@@ -65,9 +64,6 @@
     <ID>MatchingDeclarationName:MessageScreens.kt$SmsHealth</ID>
     <ID>MemberNameEqualsClassName:Glyphs.kt$Glyph$private fun glyph(name: String, vararg paths: String, width: Float = 1.8f): ImageVector</ID>
     <ID>MemberNameEqualsClassName:Log.kt$Log$fun log(level: Level, tag: String, error: Throwable?, message: () -&gt; String)</ID>
-    <ID>NestedBlockDepth:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
-    <ID>NestedBlockDepth:AndroidBackupController.kt$AndroidBackupController$private fun exportPhotosTo(uri: Uri): String</ID>
-    <ID>NestedBlockDepth:AndroidBackupController.kt$AndroidBackupController$private fun importPhotosFrom(uri: Uri): String</ID>
     <ID>NestedBlockDepth:SmartModels.kt$PieceSplitter$fun split(text: String): IntArray</ID>
     <ID>NestedBlockDepth:SmartText.kt$SmartText$fun translit(word: String): String</ID>
     <ID>NestedBlockDepth:Xlsx.kt$Xlsx$private fun readSheet(bytes: ByteArray, shared: List&lt;String&gt;): List&lt;List&lt;String&gt;&gt;</ID>
@@ -77,7 +73,6 @@
     <ID>ReturnCount:SmsParser.kt$SmsParser$fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed?</ID>
     <ID>ReturnCount:TxnFilter.kt$TxnFilter$fun matches(t: Txn, catById: Map&lt;String, Category&gt;, tagged: Set&lt;String&gt; = emptySet()): Boolean</ID>
     <ID>SpreadOperator:DataChanges.kt$(*others, listener = listener)</ID>
-    <ID>TooGenericExceptionCaught:AndroidBackupController.kt$AndroidBackupController$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Background.kt$MoneyWidget$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Background.kt$ReminderReceiver$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Background.kt$SmsReceiver$e: Exception</ID>
