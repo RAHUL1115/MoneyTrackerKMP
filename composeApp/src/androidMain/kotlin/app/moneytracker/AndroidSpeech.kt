@@ -57,8 +57,20 @@ internal class AndroidSpeech(private val ctx: Context) {
         override fun stop() { if (!done) { stopping = true; recognizerCall("stop") { recognizer.stopListening() } } }
         override fun cancel() { done = true; recognizerCall("cancel") { recognizer.cancel(); recognizer.destroy() } }
 
-        private fun finish(text: String) { if (done) return; done = true; recognizerCall("destroy") { recognizer.destroy() }; l.onFinal(text) }
-        private fun finishWithError(e: SpeechError) { if (done) return; done = true; Log.w("Speech") { "listening ended: $e" }; recognizerCall("destroy") { recognizer.destroy() }; l.onError(e) }
+        private fun finish(text: String) {
+            if (done) return
+            done = true
+            recognizerCall("destroy") { recognizer.destroy() }
+            l.onFinal(text)
+        }
+
+        private fun finishWithError(e: SpeechError) {
+            if (done) return
+            done = true
+            Log.w("Speech") { "listening ended: $e" }
+            recognizerCall("destroy") { recognizer.destroy() }
+            l.onError(e)
+        }
 
         /**
          * Runs a call into the phone's speech service, which belongs to the phone maker and can throw any runtime
@@ -73,13 +85,15 @@ internal class AndroidSpeech(private val ctx: Context) {
             false
         }
 
-        override fun onReadyForSpeech(params: Bundle?) {}
-        override fun onBeginningOfSpeech() {}
+        // The sheet shows only levels, partial words and the result, so these callbacks have nothing to do.
+        override fun onReadyForSpeech(params: Bundle?) = Unit
+        override fun onBeginningOfSpeech() = Unit
+        override fun onBufferReceived(buffer: ByteArray?) = Unit
+        override fun onEndOfSpeech() = Unit
+        override fun onEvent(eventType: Int, params: Bundle?) = Unit
+
         // rms is roughly -2..10 dB.
         override fun onRmsChanged(rmsdB: Float) { if (!done) l.onLevel(((rmsdB + 2f) / 12f).coerceIn(0f, 1f)) }
-        override fun onBufferReceived(buffer: ByteArray?) {}
-        override fun onEndOfSpeech() {}
-        override fun onEvent(eventType: Int, params: Bundle?) {}
 
         override fun onPartialResults(partialResults: Bundle?) {
             val t = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim().orEmpty()
@@ -93,8 +107,10 @@ internal class AndroidSpeech(private val ctx: Context) {
 
         override fun onError(error: Int) {
             // Stopping early or a pause with words already heard still counts as an answer.
-            if (lastPartial.isNotEmpty() && (stopping || error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)) {
-                finish(lastPartial); return
+            val endedByPause = error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+            if (lastPartial.isNotEmpty() && (stopping || endedByPause)) {
+                finish(lastPartial)
+                return
             }
             finishWithError(when (error) {
                 SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> SpeechError.NO_PERMISSION
@@ -129,7 +145,11 @@ internal class AndroidSpeech(private val ctx: Context) {
             done = true
             try { ctx.unregisterReceiver(receiver) } catch (e: IllegalArgumentException) { Log.d("Speech") { "fake receiver already gone: ${e::class.simpleName}" } }
         }
-        override fun stop() { if (done) return; close(); if (text.isBlank()) l.onError(SpeechError.NO_MATCH) else l.onFinal(text) }
+        override fun stop() {
+            if (done) return
+            close()
+            if (text.isBlank()) l.onError(SpeechError.NO_MATCH) else l.onFinal(text)
+        }
         override fun cancel() { if (!done) close() }
     }
 }

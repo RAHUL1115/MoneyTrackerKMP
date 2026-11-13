@@ -81,34 +81,56 @@ object Xlsx {
 
     private fun readSheet(bytes: ByteArray, shared: List<String>): List<List<String>> {
         val p = parser(bytes)
-        val rows = mutableListOf<List<String>>()
-        var row: MutableMap<Int, String>? = null
-        var col = 0
-        var type: String? = null
-        var value = StringBuilder()
-        var capture = false
+        val sheet = SheetReader(shared)
         while (p.next() != XmlPullParser.END_DOCUMENT) {
             when (p.eventType) {
-                XmlPullParser.START_TAG -> when (p.name) {
-                    "row" -> row = mutableMapOf()
-                    "c" -> {
-                        col = p.getAttributeValue(null, "r")?.let { colIndex(it) } ?: (row?.keys?.maxOrNull()?.plus(1) ?: 0)
-                        type = p.getAttributeValue(null, "t"); value = StringBuilder()
-                    }
-                    "v", "t" -> capture = true
-                }
-                XmlPullParser.TEXT -> if (capture) value.append(p.text)
-                XmlPullParser.END_TAG -> when (p.name) {
-                    "v", "t" -> capture = false
-                    "c" -> {
-                        val raw = value.toString()
-                        row?.put(col, if (type == "s") shared.getOrElse(raw.toIntOrNull() ?: -1) { "" } else if (type == "b") (if (raw == "1") "TRUE" else "FALSE") else raw)
-                    }
-                    "row" -> row?.let { r -> rows += List((r.keys.maxOrNull() ?: -1) + 1) { r[it].orEmpty() } }
-                }
+                XmlPullParser.START_TAG -> sheet.start(p.name, ref = p.getAttributeValue(null, "r"), cellType = p.getAttributeValue(null, "t"))
+                XmlPullParser.TEXT -> sheet.text(p.text)
+                XmlPullParser.END_TAG -> sheet.end(p.name)
             }
         }
-        return rows
+        return sheet.rows
+    }
+
+    /** Collects a worksheet's rows from its XML events: cells land at their column, gaps stay empty. */
+    private class SheetReader(private val shared: List<String>) {
+        val rows = mutableListOf<List<String>>()
+        private var row: MutableMap<Int, String>? = null
+        private var col = 0
+        private var type: String? = null
+        private var value = StringBuilder()
+        private var capture = false
+
+        fun start(tag: String, ref: String?, cellType: String?) {
+            when (tag) {
+                "row" -> row = mutableMapOf()
+                "c" -> {
+                    col = ref?.let { colIndex(it) } ?: (row?.keys?.maxOrNull()?.plus(1) ?: 0)
+                    type = cellType
+                    value = StringBuilder()
+                }
+                "v", "t" -> capture = true
+            }
+        }
+
+        fun text(text: String) {
+            if (capture) value.append(text)
+        }
+
+        fun end(tag: String) {
+            when (tag) {
+                "v", "t" -> capture = false
+                "c" -> row?.put(col, cellText(value.toString()))
+                "row" -> row?.let { r -> rows += List((r.keys.maxOrNull() ?: -1) + 1) { r[it].orEmpty() } }
+            }
+        }
+
+        /** Shared-string cells hold an index, boolean cells 0 or 1; everything else is the text itself. */
+        private fun cellText(raw: String): String = when (type) {
+            "s" -> shared.getOrElse(raw.toIntOrNull() ?: -1) { "" }
+            "b" -> if (raw == "1") "TRUE" else "FALSE"
+            else -> raw
+        }
     }
 
     private fun parser(bytes: ByteArray): XmlPullParser = Xml.newPullParser().apply {
@@ -125,7 +147,7 @@ object Xlsx {
 
     fun colIndex(ref: String): Int {
         var n = 0
-        for (ch in ref) { if (!ch.isLetter()) break; n = n * 26 + (ch.uppercaseChar() - 'A' + 1) }
+        for (ch in ref.takeWhile { it.isLetter() }) n = n * 26 + (ch.uppercaseChar() - 'A' + 1)
         return n - 1
     }
 

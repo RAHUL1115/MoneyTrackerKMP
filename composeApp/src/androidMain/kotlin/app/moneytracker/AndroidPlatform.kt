@@ -110,15 +110,20 @@ class AndroidPlatform(private val activity: FragmentActivity) :
         return PORTABLE_PIN_PREFIX + b64(salt) + ":" + b64(derivePin(pin, salt))
     }
 
-    override fun checkPin(pin: String, stored: String): Boolean {
-        if (isPortablePinHash(stored)) {
-            val parts = stored.removePrefix(PORTABLE_PIN_PREFIX).split(':')
-            if (parts.size != 2) return false
-            val salt = runCatching { Base64.decode(parts[0], Base64.NO_WRAP) }.getOrNull() ?: return false
-            val key = runCatching { Base64.decode(parts[1], Base64.NO_WRAP) }.getOrNull() ?: return false
-            return MessageDigest.isEqual(derivePin(pin, salt), key)
-        }
-        // Older hashes used a salt kept only on this install, so they check out here and nowhere else.
+    override fun checkPin(pin: String, stored: String): Boolean =
+        if (isPortablePinHash(stored)) checkPortablePin(pin, stored) else checkInstallPin(pin, stored)
+
+    /** A hash that carries its own salt ("s2:salt:key"), so it checks out on any phone. */
+    private fun checkPortablePin(pin: String, stored: String): Boolean {
+        val parts = stored.removePrefix(PORTABLE_PIN_PREFIX).split(':')
+        if (parts.size != 2) return false
+        val salt = runCatching { Base64.decode(parts[0], Base64.NO_WRAP) }.getOrNull() ?: return false
+        val key = runCatching { Base64.decode(parts[1], Base64.NO_WRAP) }.getOrNull() ?: return false
+        return MessageDigest.isEqual(derivePin(pin, salt), key)
+    }
+
+    /** Older hashes used a salt kept only on this install, so they check out here and nowhere else. */
+    private fun checkInstallPin(pin: String, stored: String): Boolean {
         val prefs = ctx.getSharedPreferences("security", Context.MODE_PRIVATE)
         val salt = prefs.getString("salt", null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: return false
         return MessageDigest.isEqual(b64(derivePin(pin, salt)).toByteArray(), stored.toByteArray())
@@ -312,12 +317,18 @@ class AndroidPlatform(private val activity: FragmentActivity) :
 
     override fun setReminder(enabled: Boolean, hour: Int, minute: Int, onResult: (Boolean) -> Unit) {
         if (!enabled) { Reminders.cancel(ctx); return onResult(false) }
-        notificationPermission { ok -> if (ok) Reminders.schedule(ctx, hour, minute); onResult(ok) }
+        notificationPermission { ok ->
+            if (ok) Reminders.schedule(ctx, hour, minute)
+            onResult(ok)
+        }
     }
 
     override fun setQuickAddNotification(enabled: Boolean, onResult: (Boolean) -> Unit) {
         if (!enabled) { Notifications.cancelQuickAdd(ctx); return onResult(false) }
-        notificationPermission { ok -> if (ok) Notifications.showQuickAdd(ctx); onResult(ok) }
+        notificationPermission { ok ->
+            if (ok) Notifications.showQuickAdd(ctx)
+            onResult(ok)
+        }
     }
 
     override fun setMessageCapture(enabled: Boolean, onResult: (Boolean) -> Unit) {
@@ -330,7 +341,12 @@ class AndroidPlatform(private val activity: FragmentActivity) :
         // READ_SMS lets the app catch up on messages that arrived while it couldn't run (same permission group, no extra prompt).
         val perms = listOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS) + if (Build.VERSION.SDK_INT >= 33) listOf(Manifest.permission.POST_NOTIFICATIONS) else emptyList()
         // Only the SMS permissions decide: refusing notifications must not leave detection off.
-        withPermissions(perms) { _ -> val ok = Detected.hasPermissions(ctx); toggle(ok); if (ok) SmsCatchUp.schedule(ctx); onResult(ok) }
+        withPermissions(perms) { _ ->
+            val ok = Detected.hasPermissions(ctx)
+            toggle(ok)
+            if (ok) SmsCatchUp.schedule(ctx)
+            onResult(ok)
+        }
     }
 
     override fun messagePermissionGranted(): Boolean = Detected.hasPermissions(ctx)
