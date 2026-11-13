@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,22 +60,24 @@ val LocalToaster = compositionLocalOf { Toaster() }
 fun ToastHost(toaster: Toaster, modifier: Modifier = Modifier) {
     val t = toaster.current ?: return
     LaunchedEffect(t.id) { delay(if (t.undo != null) 5000 else 2500); if (toaster.current?.id == t.id) toaster.dismiss() }
-    val shape = RoundedCornerShape(14.dp)
+    val shape = F.optionShape
     Row(
         modifier.padding(horizontal = F.gutter, vertical = 12.dp).fillMaxWidth().shadow(10.dp, shape)
             .clip(shape).background(F.ink).heightIn(min = 50.dp).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(t.message, Modifier.weight(1f), color = F.page, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        // Undo is a small chip; × closes the toast early.
+        // Undo is a small chip; × closes the toast early. Each is read once: its text or its label, then "button".
+        val closeLabel = tr("Close")
         if (t.undo != null) Box(
-            Modifier.height(32.dp).clip(RoundedCornerShape(8.dp)).background(F.page.copy(alpha = 0.14f))
-                .clickable(onClickLabel = tr("Undo")) { t.undo.invoke(); toaster.dismiss() }.padding(horizontal = 10.dp),
+            Modifier.height(32.dp).clip(F.tagShape).background(F.page.copy(alpha = 0.14f))
+                .clickable(role = Role.Button) { t.undo.invoke(); toaster.dismiss() }.padding(horizontal = 10.dp),
             contentAlignment = Alignment.Center,
-        ) { Text(tr("Undo"), color = pick(0xFF8FE0C4, 0xFF0F5E4E), fontWeight = FontWeight.SemiBold, fontSize = 13.sp) }
+        ) { Text(tr("Undo"), color = F.toastAction, fontWeight = FontWeight.SemiBold, fontSize = 13.sp) }
         Box(
-            Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).clickable(onClickLabel = tr("Close")) { toaster.dismiss() },
+            Modifier.size(32.dp).clip(F.tagShape).semantics { contentDescription = closeLabel }
+                .clickable(role = Role.Button) { toaster.dismiss() },
             contentAlignment = Alignment.Center,
-        ) { Icon(Glyph.Close, tr("Close"), tint = F.page.copy(alpha = 0.8f), modifier = Modifier.size(16.dp)) }
+        ) { Icon(Glyph.Close, null, tint = F.page.copy(alpha = 0.8f), modifier = Modifier.size(16.dp)) }
     }
 }

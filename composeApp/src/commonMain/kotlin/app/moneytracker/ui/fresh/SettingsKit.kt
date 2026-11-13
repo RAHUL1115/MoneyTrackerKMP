@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalTextStyle
@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.sp
 
 // Small pieces shared by the Settings, Categories, Repeats and Backup screens of the new layout.
 
+/** A switch with its own tap. Inside a row, use [FSwitchRow] instead so the whole row is the switch. */
 @Composable
 internal fun StgSwitch(checked: Boolean, onChange: (Boolean) -> Unit) = FSwitch(checked, onChange)
 
@@ -41,12 +43,12 @@ internal fun StgSwitch(checked: Boolean, onChange: (Boolean) -> Unit) = FSwitch(
 internal fun StgLabel(text: String) =
     Text(text.uppercase(), Modifier.padding(top = 10.dp, bottom = 6.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
 
-/** Wrapping chips, one selected. */
+/** Wrapping chips, one selected; TalkBack reads them as one group of radio buttons. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun <T> StgChips(options: List<T>, selected: T?, label: (T) -> String, onPick: (T) -> Unit) {
-    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        options.forEach { o -> Pill(label(o), o == selected, { onPick(o) }) }
+    FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        options.forEach { o -> Pill(label(o), o == selected, { onPick(o) }, role = Role.RadioButton) }
     }
 }
 
@@ -59,7 +61,7 @@ internal fun StgField(
     // White field with a hairline, like the entry editor's; the hairline turns accent while typing and red on a mistake.
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
-    val shape = RoundedCornerShape(12.dp)
+    val shape = F.controlShape
     val textStyle = LocalTextStyle.current.copy(color = F.ink)
     BasicTextField(
         value, onChange, Modifier.fillMaxWidth(), singleLine = singleLine, minLines = if (singleLine) 1 else 2,
@@ -81,8 +83,8 @@ internal fun StgField(
 
 /** Small filled text button inside a row ("Restore", "Turn on"): 32 tall, radius 10, on the page grey. */
 @Composable
-internal fun StgTextButton(text: String, onClick: () -> Unit, color: Color = F.accent) =
+internal fun StgTextButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color = F.accent) =
     Box(
-        Modifier.heightIn(min = 32.dp).clip(RoundedCornerShape(10.dp)).background(F.page).clickable(onClick = onClick).padding(horizontal = 12.dp),
+        modifier.heightIn(min = 32.dp).clip(F.innerShape).background(F.page).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
