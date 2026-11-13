@@ -94,11 +94,11 @@ private fun OrderedAccountRow(a: Account, canMoveUp: Boolean, canMoveDown: Boole
     ) {
         Text(a.name, Modifier.weight(1f).padding(vertical = 14.dp), color = if (a.hidden) SubtleText else Ink)
         IconButton(onClick = onToggleHidden) {
-            Icon(if (a.hidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, if (a.hidden) tr("Show") else tr("Hide"),
+            Icon(if (a.hidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, if (a.hidden) tr("Show {0}", a.name) else tr("Hide {0}", a.name),
                 tint = if (a.hidden) SubtleText else Accent)
         }
-        IconButton(onClick = { onMove(-1) }, enabled = canMoveUp) { Icon(Icons.Outlined.KeyboardArrowUp, tr("Move up")) }
-        IconButton(onClick = { onMove(1) }, enabled = canMoveDown) { Icon(Icons.Outlined.KeyboardArrowDown, tr("Move down")) }
+        IconButton(onClick = { onMove(-1) }, enabled = canMoveUp) { Icon(Icons.Outlined.KeyboardArrowUp, tr("Move {0} up", a.name)) }
+        IconButton(onClick = { onMove(1) }, enabled = canMoveDown) { Icon(Icons.Outlined.KeyboardArrowDown, tr("Move {0} down", a.name)) }
     }
     HorizontalDivider(color = DividerColor)
 }
@@ -163,8 +163,8 @@ private fun GroupRow(g: AccountGroup, accountCount: Int, canMoveUp: Boolean, can
             Text(g.name, color = Ink)
             Text(tr("{0} · {1} accounts", g.type.displayName, accountCount), fontSize = 12.sp, color = SubtleText)
         }
-        IconButton(onClick = { onMove(-1) }, enabled = canMoveUp) { Icon(Icons.Outlined.KeyboardArrowUp, tr("Move up")) }
-        IconButton(onClick = { onMove(1) }, enabled = canMoveDown) { Icon(Icons.Outlined.KeyboardArrowDown, tr("Move down")) }
+        IconButton(onClick = { onMove(-1) }, enabled = canMoveUp) { Icon(Icons.Outlined.KeyboardArrowUp, tr("Move {0} up", g.name)) }
+        IconButton(onClick = { onMove(1) }, enabled = canMoveDown) { Icon(Icons.Outlined.KeyboardArrowDown, tr("Move {0} down", g.name)) }
     }
     HorizontalDivider(color = DividerColor)
 }

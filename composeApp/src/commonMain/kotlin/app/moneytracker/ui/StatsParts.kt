@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.moneytracker.domain.CurrencyFormat
 import kotlin.math.roundToInt
@@ -87,15 +88,16 @@ internal fun MiniStat(label: String, value: String, color: Color, modifier: Modi
 @Composable
 internal fun SliceRow(
     slice: BreakdownPart, name: String, color: Color, total: Long, income: Boolean, currency: CurrencyFormat,
-    highlighted: Boolean, dimmed: Boolean, open: (() -> Unit)?,
+    highlighted: Boolean, dimmed: Boolean, open: (() -> Unit)?, extraBottom: Dp = 0.dp,
 ) {
     val share = if (total > 0) slice.amount.coerceAtLeast(0).toFloat() / total else 0f
     val pct = (share * 100).roundToInt()
     // The bar slides to its new width when the period or grouping changes.
     val shownShare by animateFloatAsState(share.coerceIn(0f, 1f), tween(700), label = "share")
     Row(
-        Modifier.fillMaxWidth().background(if (highlighted) color.copy(alpha = 0.08f) else Color.Transparent)
-            .clickable(enabled = open != null) { open?.invoke() }.padding(horizontal = 16.dp, vertical = 11.dp)
+        // [extraBottom] (the card's spacing under its last row) is inside the tap area but outside the picked tint.
+        Modifier.fillMaxWidth().clickable(enabled = open != null) { open?.invoke() }.padding(bottom = extraBottom)
+            .background(if (highlighted) color.copy(alpha = 0.08f) else Color.Transparent).padding(horizontal = 16.dp, vertical = 11.dp)
             .then(if (dimmed) Modifier.alpha(0.45f) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
     ) {

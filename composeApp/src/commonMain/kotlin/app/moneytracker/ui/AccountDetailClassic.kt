@@ -38,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -137,7 +138,7 @@ private fun DetailTopBar(title: String, ym: YearMonth, showChart: Boolean, onTog
             Icon(Icons.Outlined.BarChart, tr("Charts"), tint = if (showChart) Accent else LocalContentColor.current)
         }
         IconButton(onClick = { onPeriod(ym.plus(-1)) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, tr("Previous")) }
-        Text(ym.label(), Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onMonthPicker).padding(horizontal = 4.dp, vertical = 6.dp))
+        Text(ym.label(), Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onMonthPicker).padding(horizontal = 4.dp, vertical = 6.dp))
         IconButton(onClick = { onPeriod(ym.plus(1)) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, tr("Next")) }
     }
 }

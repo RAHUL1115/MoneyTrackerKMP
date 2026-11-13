@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -17,10 +18,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.domain.TxnKind
@@ -34,6 +39,9 @@ private fun InsightsGroup.label() = when (this) {
     InsightsGroup.TAG -> "Tag"
 }
 
+/** Space above the first and below the last line of a classic stats card. */
+private val CARD_SPACING = 4.dp
+
 internal fun statsFlowLabel(state: InsightsState) = if (state.choice.side == InsightsSide.INCOME) tr("Income") else tr("Expenses")
 
 @Composable
@@ -41,14 +49,16 @@ internal fun StatsTopEntries(state: InsightsState) {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val flowColor = if (state.choice.side == InsightsSide.INCOME) IncomeColor else ExpenseColor
-    Column(Modifier.padding(top = 10.dp).card().fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(tr("Top entries"), Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp), color = Ink, fontWeight = FontWeight.Medium)
-        state.top.forEach { r ->
+    // The card's 4dp top and bottom spacing sit in the title and in the last row's highlight.
+    Column(Modifier.padding(top = 10.dp).card().fillMaxWidth()) {
+        Text(tr("Top entries"), Modifier.padding(start = 16.dp, top = CARD_SPACING + 10.dp, bottom = 4.dp), color = Ink, fontWeight = FontWeight.Medium)
+        state.top.forEachIndexed { i, r ->
             val title = r.note.ifBlank {
                 if (r.kind == TxnKind.TRANSFER_OUT) statsKeyName(TRANSFERS_KEY, state.catById) else r.categoryId?.let { state.catById[it]?.name } ?: tr("Uncategorized")
             }
             Row(
-                Modifier.fillMaxWidth().clickable { nav.push(Screen.EditTxn(txnId = r.txnId)) }.padding(horizontal = 16.dp, vertical = 10.dp),
+                Modifier.fillMaxWidth().clickable { nav.push(Screen.EditTxn(txnId = r.txnId)) }
+                    .padding(bottom = if (i == state.top.lastIndex) CARD_SPACING else 0.dp).padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
@@ -65,30 +75,36 @@ internal fun StatsTopEntries(state: InsightsState) {
 @Composable
 internal fun StatsBreakdownCard(state: InsightsState, actions: InsightsActions) {
     val groupBy = state.choice.groupBy
-    Column(Modifier.padding(top = 10.dp).card().fillMaxWidth().padding(vertical = 4.dp)) {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    val footnote = state.parts.isNotEmpty() && groupBy == InsightsGroup.TAG
+    // The card's 4dp top and bottom spacing sit in the title row and, when it ends the card, in the last part's highlight.
+    Column(Modifier.padding(top = 10.dp).card().fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = CARD_SPACING + 10.dp, bottom = 4.dp).selectableGroup(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(tr("Breakdown"), Modifier.weight(1f), color = Ink, fontWeight = FontWeight.Medium)
             InsightsGroup.entries.forEach { g ->
                 val sel = g == groupBy
                 Text(tr(g.label()),
                     Modifier.padding(start = 6.dp).clip(RoundedCornerShape(50)).background(if (sel) AccentTint else FillColor)
-                        .clickable { actions.pickGroup(g) }.padding(horizontal = 12.dp, vertical = 6.dp),
+                        .selectable(sel, role = Role.RadioButton) { actions.pickGroup(g) }.padding(horizontal = 12.dp, vertical = 6.dp),
                     color = if (sel) Accent else InkSoft, fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
         }
         if (state.parts.isEmpty()) {
             Text(tr("No data available."), Modifier.fillMaxWidth().padding(vertical = 32.dp), color = SubtleText, textAlign = TextAlign.Center)
         } else {
-            StatsSlices(state)
-            if (groupBy == InsightsGroup.TAG) Text(tr("An entry with several tags counts once for each tag."),
+            StatsSlices(state, lastRowBottom = if (footnote) 0.dp else CARD_SPACING)
+            if (footnote) Text(tr("An entry with several tags counts once for each tag."),
                 Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = SubtleText, fontSize = 11.sp)
         }
+        if (state.parts.isEmpty() || footnote) Spacer(Modifier.height(CARD_SPACING))
     }
 }
 
 /** Tapping a slice (or its row) shows that part in the middle; the selection clears when the data changes. */
 @Composable
-private fun StatsSlices(state: InsightsState) {
+private fun StatsSlices(state: InsightsState, lastRowBottom: Dp) {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val slices = state.parts
@@ -108,7 +124,7 @@ private fun StatsSlices(state: InsightsState) {
             null -> null
         }
         SliceRow(sl, names[i], ChartColors[i % ChartColors.size], state.total, income, currency, highlighted = picked == i,
-            dimmed = picked != null && picked != i, open = open)
+            dimmed = picked != null && picked != i, open = open, extraBottom = if (i == slices.lastIndex) lastRowBottom else 0.dp)
     }
 }
 

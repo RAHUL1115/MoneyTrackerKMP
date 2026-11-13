@@ -33,6 +33,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -100,11 +102,13 @@ private fun AccountFormFields(
         BankMessageFields(form, onChange)
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Box(
-            Modifier.fillMaxWidth().height(52.dp).background(Accent, RoundedCornerShape(6.dp)).clickable(onClick = onSave),
+            Modifier.fillMaxWidth().height(52.dp).background(Accent, SaveShape).clip(SaveShape).clickable(role = Role.Button, onClick = onSave),
             contentAlignment = Alignment.Center,
         ) { Text(tr("Save"), color = Color.White, fontSize = 17.sp) }
     }
 }
+
+private val SaveShape = RoundedCornerShape(6.dp)
 
 /** Cards: the billing day (credit cards) and the account that pays the bill or that the debit card draws on. */
 @Composable
