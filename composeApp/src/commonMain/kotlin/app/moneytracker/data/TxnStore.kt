@@ -121,7 +121,9 @@ class TxnStore(
             val feeRow = group.firstOrNull { it.kind == TxnKind.EXPENSE }
             DraftShape(DraftType.TRANSFER, out.accountId, out.toAccountId, feeRow?.enteredAmount ?: 0L, feeRow?.categoryId)
         } else {
-            DraftShape(t.kind.toDraftType(t.amount), t.accountId, null, 0L, t.categoryId)
+            // A transfer leg that lost its group can't reopen as a transfer, so it opens as a plain expense.
+            val type = if (t.kind.isTransfer) DraftType.EXPENSE else t.kind.toDraftType(t.amount)
+            DraftShape(type, t.accountId, null, 0L, t.categoryId)
         }
         val signed = if (t.installmentGroupId != null) installmentGroup(t.installmentGroupId).sumOf { it.enteredAmount } else t.enteredAmount
         val amount = signed * shape.type.sign
