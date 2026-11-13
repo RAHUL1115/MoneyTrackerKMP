@@ -11,12 +11,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +35,7 @@ import app.moneytracker.ui.tr
 @Composable
 internal fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trend: NetWorthTrend) {
     val currency = LocalCurrency.current
-    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).clickable(onClick = Privacy.tap(trend.onToggle)).padding(20.dp)) {
+    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).expandState(trend.open).clickable(onClick = Privacy.tap(trend.onToggle)).padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(tr("Net worth · in totals"), Modifier.weight(1f), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             Icon(if (trend.open) Glyph.ChevronUp else Glyph.ChevronDown, tr("Net worth trend"), tint = F.muted, modifier = Modifier.size(18.dp))
@@ -44,7 +44,7 @@ internal fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trend: Net
         Gap(12.dp)
         val share = if (assets + liabilities > 0) assets.toFloat() / (assets + liabilities) else 1f
         // Assets in the accent, liabilities in a quiet grey, a small gap between them.
-        Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(999.dp)), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        Row(Modifier.fillMaxWidth().height(8.dp).clip(F.pillShape), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             if (share > 0f) Box(Modifier.weight(share).height(8.dp).background(F.accent))
             if (share < 1f) Box(Modifier.weight(1f - share).height(8.dp).background(liabilityTone))
         }
@@ -69,7 +69,7 @@ private fun TrendPreview(points: List<NetWorthPoint>) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(tr("Last 6 months · {0} {1} since {2}", if (change >= 0) "▲" else "▼", currency.format(kotlin.math.abs(change)), monthShort(points.first().month.month)),
             Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-        Text(tr("Full trend ›"), Modifier.clip(RoundedCornerShape(8.dp)).clickable { nav.push(Screen.AccountsTrend) }.padding(4.dp),
+        Text(tr("Full trend ›"), Modifier.clip(F.tagShape).clickable(role = Role.Button) { nav.push(Screen.AccountsTrend) }.padding(4.dp),
             color = F.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
     Gap(8.dp)

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -72,9 +74,12 @@ private fun ManageSheetContent(
         }
         Gap(8.dp)
         Divider()
-        FRow(tr("Accounts"), tr("Order, hide or edit each account"), onClick = { onDismiss(); nav.push(Screen.AccountList) })
-        FRow(tr("Account groups"), tr("Rename, change type, add or delete groups"), onClick = { onDismiss(); nav.push(Screen.AccountGroups) })
-        FRow(tr("Net worth trend"), tr("Assets and liabilities over the last 12 months"), onClick = { onDismiss(); nav.push(Screen.AccountsTrend) })
+        // Rounded highlights, like the sheet's other options.
+        FRow(tr("Accounts"), tr("Order, hide or edit each account"), onClick = { onDismiss(); nav.push(Screen.AccountList) }, modifier = Modifier.clip(F.optionShape))
+        FRow(tr("Account groups"), tr("Rename, change type, add or delete groups"), onClick = { onDismiss(); nav.push(Screen.AccountGroups) },
+            modifier = Modifier.clip(F.optionShape))
+        FRow(tr("Net worth trend"), tr("Assets and liabilities over the last 12 months"), onClick = { onDismiss(); nav.push(Screen.AccountsTrend) },
+            modifier = Modifier.clip(F.optionShape))
         if (state.deletedAccounts.isNotEmpty()) DeletedAccounts(state.deletedAccounts, onRestore)
         if (noAccounts) Text(tr("No accounts yet."), color = F.muted, fontSize = 13.sp)
     }
@@ -102,11 +107,11 @@ private fun DeletedAccounts(deleted: List<Account>, onRestore: (Account) -> Unit
     Divider()
     FRow(tr("Deleted accounts ({0})", deleted.size), null, chevron = false, onClick = { showDeleted = !showDeleted }, trailing = {
         Icon(if (showDeleted) Glyph.ChevronUp else Glyph.ChevronDown, null, tint = F.muted)
-    })
+    }, modifier = Modifier.clip(F.optionShape).expandState(showDeleted))
     if (showDeleted) deleted.forEach { a ->
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(a.name, Modifier.weight(1f), color = F.muted, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(tr("Restore"), Modifier.clip(RoundedCornerShape(10.dp)).clickable { onRestore(a) }.padding(horizontal = 10.dp, vertical = 8.dp),
+            Text(tr("Restore"), Modifier.clip(F.innerShape).clickable(role = Role.Button) { onRestore(a) }.padding(horizontal = 10.dp, vertical = 8.dp),
                 color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
     }
@@ -115,7 +120,8 @@ private fun DeletedAccounts(deleted: List<Account>, onRestore: (Account) -> Unit
 @Composable
 private fun SmallTile(icon: ImageVector, label: String, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
-        Modifier.padding(start = 4.dp).size(36.dp).clip(RoundedCornerShape(10.dp)).background(F.fill).clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+        Modifier.padding(start = 4.dp).size(36.dp).clip(F.innerShape).background(F.fill)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, label, tint = if (enabled) F.ink else F.border, modifier = Modifier.size(18.dp)) }
+    ) { Icon(icon, null, tint = if (enabled) F.ink else F.border, modifier = Modifier.size(18.dp)) }
 }

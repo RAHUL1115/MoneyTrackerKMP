@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -30,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.AccountSummary
@@ -134,7 +135,7 @@ private fun BillCard(l: AccountLine, today: LocalDate) {
             Text(fmt.format(l.billDue), color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
             if (l.account.cardAutoPay) Text(tr("Auto-pay is on"), color = F.muted, fontSize = 12.sp)
         }
-        Box(Modifier.height(40.dp).clip(RoundedCornerShape(12.dp)).background(F.accentTint).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.height(40.dp).clip(F.controlShape).background(F.accentTint).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
             Text(tr("Pay bill"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
     }
@@ -155,14 +156,14 @@ private fun groupTotals(group: AccountGroup, groupLines: List<AccountLine>, curr
 private fun GroupCard(group: AccountGroup, groupLines: List<AccountLine>, showHidden: Boolean, open: Boolean, today: LocalDate, onToggle: () -> Unit) {
     val visible = groupLines.filter { showHidden || !it.account.hidden }
     if (visible.isEmpty()) return
-    FCard(padding = 0.dp) {
+    FListCard {
         GroupHeader(group, groupLines, visible.size, open, onToggle)
         AnimatedVisibility(open, enter = expandVertically(tween(200)), exit = shrinkVertically(tween(200))) {
-            // No side padding here: each row pads itself so its tap highlight spans the card.
-            Column(Modifier.padding(bottom = 6.dp)) {
+            // Each row pads itself, the last one with the card's bottom spacing too, so its tap highlight spans the card.
+            Column {
                 visible.forEachIndexed { i, l ->
                     if (i > 0) Divider(ACCOUNT_INSET)
-                    AccountRow(l, today)
+                    AccountRow(l, today, extraBottom = if (i == visible.lastIndex) 6.dp else 0.dp)
                 }
             }
         }
@@ -175,7 +176,7 @@ private fun GroupHeader(group: AccountGroup, groupLines: List<AccountLine>, visi
     val totals = groupTotals(group, groupLines, LocalCurrencies.current, currency.decimals)
     val allHidden = groupLines.all { it.account.hidden }
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(horizontal = 16.dp, vertical = 8.dp)
+        Modifier.fillMaxWidth().expandState(open).clickable(onClick = onToggle).padding(horizontal = 16.dp, vertical = 8.dp)
             .heightIn(min = 40.dp),                 // room for the card group's two amounts; every group header matches
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -209,7 +210,7 @@ private fun HiddenAccountsButton(lines: List<AccountLine>, showHidden: Boolean, 
                 drawRoundRect(dash, topLeft = Offset(w / 2, w / 2), size = Size(size.width - w, size.height - w), cornerRadius = CornerRadius(14.dp.toPx()),
                     style = Stroke(w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))))
             }
-            .clickable(onClick = onToggle).padding(vertical = 10.dp, horizontal = 12.dp),
+            .clickable(role = Role.Button, onClick = onToggle).padding(vertical = 10.dp, horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -241,7 +242,7 @@ private fun rowMeta(l: AccountLine, fmt: CurrencyFormat, today: LocalDate): List
 }
 
 @Composable
-private fun AccountRow(l: AccountLine, today: LocalDate) {
+private fun AccountRow(l: AccountLine, today: LocalDate, extraBottom: Dp) {
     val nav = LocalNavigator.current
     val a = l.account
     val fmt = a.currency?.let { LocalCurrencies.current[it]?.format } ?: LocalCurrency.current
@@ -251,7 +252,7 @@ private fun AccountRow(l: AccountLine, today: LocalDate) {
     val amount = if (card != null) card.statementDue + card.overdue else l.shownBalance
     val dim = a.hidden
     val overdue = card != null && card.overdue > 0
-    Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.AccountDetail(a.id)) }.padding(horizontal = ACCOUNT_INSET, vertical = 12.dp)) {
+    Column(Modifier.fillMaxWidth().clickable { nav.push(Screen.AccountDetail(a.id)) }.padding(bottom = extraBottom).padding(horizontal = ACCOUNT_INSET, vertical = 12.dp)) {
         // Every row is as tall as a two-line card row, so the list keeps one rhythm.
         Row(Modifier.heightIn(min = 38.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
