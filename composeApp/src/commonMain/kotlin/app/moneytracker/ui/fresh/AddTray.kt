@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -75,7 +75,7 @@ internal fun Tray(c: AddContext, modifier: Modifier) {
 private fun RowScope.AccountTabs(accounts: AccountTray, onPick: (String) -> Unit) {
     val tabScroll = rememberScrollState()
     Row(
-        Modifier.weight(1f).fadeEnd(tabScroll.canScrollForward).horizontalScroll(tabScroll).padding(end = 12.dp),
+        Modifier.weight(1f).fadeEnd(tabScroll.canScrollForward).horizontalScroll(tabScroll).padding(end = 12.dp).selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         accounts.tabs.forEach { (id, label) -> TrayTab(label, id == accounts.tab) { onPick(id) } }
@@ -96,7 +96,7 @@ private fun RowScope.TrayTitle(c: AddContext) {
         Step.NOTE -> tr("Note")
         Step.CLOSED -> ""
     }
-    if (sub != null) Icon(Glyph.Back, tr("All categories"), tint = F.muted, modifier = Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).clickable { c.ui.subOf = null }.padding(7.dp))
+    if (sub != null) Icon(Glyph.Back, tr("All categories"), tint = F.muted, modifier = Modifier.size(32.dp).clip(F.innerShape).clickable { c.ui.subOf = null }.padding(7.dp))
     Text(title, Modifier.weight(1f).padding(start = 4.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
@@ -105,7 +105,7 @@ private fun NextButton(c: AddContext) {
     val focus = LocalFocusManager.current
     val onNote = c.ui.step == Step.NOTE
     Box(
-        Modifier.height(32.dp).clip(RoundedCornerShape(10.dp)).background(F.accentTint)
+        Modifier.height(32.dp).clip(F.innerShape).background(F.accentTint)
             .clickable { if (onNote) c.ui.closeTray(focus) else c.advance(focus) }.padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) { Text(if (onNote) tr("Done") else tr("Next ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
@@ -157,7 +157,8 @@ private fun AccountChoices(c: AddContext, tray: AccountTray) {
     val nav = LocalNavigator.current
     val accounts = c.choices.accounts
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 8.dp).selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         tray.shown.forEach { a ->
             val (bal, balColor) = balanceOf(a, c.tray.lines)
@@ -177,7 +178,8 @@ private fun AccountChoices(c: AddContext, tray: AccountTray) {
 private fun rememberAccountTray(c: AddContext): AccountTray? {
     val step = c.ui.step
     val f = c.model.form
-    val usual = remember(step, f.categoryId) { if (step == Step.ACCOUNT) c.model.usualAccount() else null }
+    // Keyed on everything the guess reads, so a changed note or amount guesses again.
+    val usual = remember(step, f.txnKind, f.categoryId, f.note, f.amountText) { if (step == Step.ACCOUNT) c.model.usualAccount() else null }
     if (step != Step.ACCOUNT && step != Step.FROM && step != Step.TO) return null
     return accountTray(f, step == Step.TO, usual, c.choices, c.tray.recentTxns, c.ui.acctTab)
 }

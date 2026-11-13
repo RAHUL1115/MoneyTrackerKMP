@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -34,6 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -67,16 +71,19 @@ internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String
                 row.forEach { k ->
                     val op = k in Calc.OPS
                     Box(
-                        Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(18.dp))
+                        Modifier.weight(1f).fillMaxHeight().clip(F.fabShape)
                             .combinedClickable(
-                                onClickLabel = aria[k] ?: k,
+                                role = Role.Button,
+                                onLongClickLabel = if (k == "⌫") tr("Clear") else null,
                                 onLongClick = if (k == "⌫") ({ onChange("") }) else null,
                                 onClick = { onChange(pressKey(text, k, currency)) },
-                            ),
+                            )
+                            // The key's name is said once, by the key; the glyph drawn on it stays silent.
+                            .semantics { contentDescription = aria[k] ?: k },
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (k == "⌫") Icon(Glyph.Backspace, aria[k], tint = F.ink, modifier = Modifier.size(24.dp))
-                        else Text(k, color = if (op) F.accent else F.ink, fontSize = if (op) 21.sp else 22.sp, fontWeight = FontWeight.Medium)
+                        if (k == "⌫") Icon(Glyph.Backspace, null, tint = F.ink, modifier = Modifier.size(24.dp))
+                        else Text(k, Modifier.clearAndSetSemantics {}, color = if (op) F.accent else F.ink, fontSize = if (op) 21.sp else 22.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -88,13 +95,13 @@ internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String
 @Composable
 internal fun PickRow(label: String, selected: Boolean, modifier: Modifier = Modifier, icon: ImageVector? = null, onClick: () -> Unit) {
     Row(
-        modifier.height(50.dp).clip(RoundedCornerShape(14.dp)).background(if (selected) F.accentTint else F.page)
-            .clickable(onClickLabel = label, onClick = onClick).padding(horizontal = 10.dp),
+        modifier.height(50.dp).clip(F.optionShape).background(if (selected) F.accentTint else F.page)
+            .choiceTap(selected, Role.RadioButton, onClick).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(F.card), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(32.dp).clip(F.innerShape).background(F.card), contentAlignment = Alignment.Center) {
             if (icon != null) Icon(icon, null, tint = if (selected) F.accent else F.muted, modifier = Modifier.size(18.dp))
-            else Text(markText(label), color = if (selected) F.accent else F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            else Text(markText(label), Modifier.clearAndSetSemantics {}, color = if (selected) F.accent else F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
         Text(label, Modifier.weight(1f), color = if (selected) F.accent else F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -106,14 +113,14 @@ internal fun PickRow(label: String, selected: Boolean, modifier: Modifier = Modi
 @Composable
 internal fun AccountPickRow(name: String, selected: Boolean, usual: Boolean, balance: String, balanceColor: Color, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) F.accentTint else F.page)
-            .clickable(onClickLabel = name, onClick = onClick).padding(start = 12.dp, end = 10.dp),
+        Modifier.fillMaxWidth().height(48.dp).clip(F.controlShape).background(if (selected) F.accentTint else F.page)
+            .choiceTap(selected, Role.RadioButton, onClick).padding(start = 12.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(name, Modifier.weight(1f, fill = false), color = if (selected) F.accent else F.ink, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (usual) Box(Modifier.height(20.dp).clip(RoundedCornerShape(999.dp)).background(F.card).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+            if (usual) Box(Modifier.height(20.dp).clip(F.pillShape).background(F.card).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
                 Text(tr("Usual"), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
         }
@@ -125,7 +132,7 @@ internal fun AccountPickRow(name: String, selected: Boolean, usual: Boolean, bal
 /** Two equal columns of [PickRow]s. */
 @Composable
 internal fun <T> PickGrid(items: List<T>, cell: @Composable (T, Modifier) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         items.chunked(2).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 row.forEach { cell(it, Modifier.weight(1f)) }
@@ -135,12 +142,12 @@ internal fun <T> PickGrid(items: List<T>, cell: @Composable (T, Modifier) -> Uni
     }
 }
 
-/** A tab in the tray's header (Recent and the account groups). */
+/** A tab in the tray's header (Recent and the account groups); its parent is a selectable group. */
 @Composable
 internal fun TrayTab(text: String, selected: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.height(32.dp).clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.card)
-            .clickable(onClick = onClick).padding(horizontal = 12.dp),
+        Modifier.height(32.dp).clip(F.pillShape).background(if (selected) F.accentTint else F.card)
+            .choiceTap(selected, Role.Tab, onClick).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
 }
@@ -149,8 +156,8 @@ internal fun TrayTab(text: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 internal fun AddChip(text: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier.height(40.dp).clip(RoundedCornerShape(12.dp)).background(if (selected) F.accentTint else F.card)
-            .border(1.dp, if (selected) F.accentTint else F.border, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp),
+        modifier.height(40.dp).clip(F.controlShape).background(if (selected) F.accentTint else F.card)
+            .border(1.dp, if (selected) F.accentTint else F.border, F.controlShape).clickable(onClick = onClick).padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = if (selected) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
@@ -169,7 +176,7 @@ internal fun AddInput(
     background: Color = F.page,
 ) {
     Row(
-        modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(background)
+        modifier.heightIn(min = 48.dp).clip(F.optionShape).background(background)
             // Without a fill (inside a receipt row) the text lines up with the rows' values.
             .padding(start = if (background == Color.Transparent) 0.dp else 12.dp, end = if (trailing != null) 8.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -190,7 +197,7 @@ internal fun AddInput(
 /** Accent text link ("Edit categories ›"). */
 @Composable
 internal fun AddLink(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) =
-    Text(text, modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(vertical = 6.dp, horizontal = 2.dp),
+    Text(text, modifier.clip(F.tagShape).clickable(onClick = onClick).padding(vertical = 6.dp, horizontal = 2.dp),
         color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
 
 @Composable
@@ -221,8 +228,12 @@ internal fun AddPhotoViewer(files: List<String>, start: Int, onRemove: (Int) -> 
                 photos.PhotoFull(files[page], Modifier.fillMaxSize())
             }
             Row(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(44.dp).clip(F.iconShape).clickable(onClickLabel = tr("Close photo"), onClick = onDismiss), contentAlignment = Alignment.Center) {
-                    Icon(Glyph.Close, tr("Close photo"), tint = Color.White)
+                Box(
+                    Modifier.size(44.dp).clip(F.iconShape).clickable(role = Role.Button, onClick = onDismiss)
+                        .semantics { contentDescription = tr("Close photo") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Glyph.Close, null, tint = Color.White)
                 }
                 Text(tr("Receipt {0} of {1}", pager.currentPage + 1, files.size), Modifier.weight(1f).padding(start = 8.dp),
                     color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)

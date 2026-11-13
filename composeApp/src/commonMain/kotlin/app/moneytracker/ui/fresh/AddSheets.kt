@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -102,7 +102,7 @@ private fun PhotoSheet(c: AddContext, close: () -> Unit) {
     Sheet(tr("Receipt photos"), close) {
         if (allPhotos.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             allPhotos.forEachIndexed { i, file ->
-                Box(Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)).background(F.fill).clickable(onClickLabel = tr("View receipt photo {0}", i + 1)) { c.ui.viewer = i }) {
+                Box(Modifier.size(72.dp).clip(F.controlShape).background(F.fill).clickable(onClickLabel = tr("View receipt photo {0}", i + 1)) { c.ui.viewer = i }) {
                     photos.PhotoImage(file, Modifier.fillMaxSize())
                 }
             }
@@ -144,7 +144,7 @@ private fun TagSheet(c: AddContext, close: () -> Unit) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             tags.forEach { t ->
                 val on = t.id in tagIds
-                Pill("#" + t.name, on, { c.model.edit { it.copy(tagIds = if (on) it.tagIds - t.id else it.tagIds + t.id) } })
+                Pill("#" + t.name, on, { c.model.edit { it.copy(tagIds = if (on) it.tagIds - t.id else it.tagIds + t.id) } }, role = Role.Checkbox)
             }
         }
         AddLink(tr("Manage tags ›")) { close(); nav.push(Screen.Tags) }
@@ -158,9 +158,11 @@ private fun CurrencySheet(c: AddContext, close: () -> Unit) {
     val code = c.model.form.currencyCode
     fun pick(new: String?) { c.model.edit { it.copy(currencyCode = new) }; close() }
     Sheet(tr("Currency"), close) {
-        SheetOption("${currency.symbol}  ${tr("Main currency")}", code == null) { pick(null) }
-        LocalCurrencies.current.values.sortedBy { it.sortOrder }.forEach { cur ->
-            SheetOption("${cur.symbol}  ${cur.code}", code == cur.code) { pick(cur.code) }
+        SheetOptionGroup {
+            SheetOption("${currency.symbol}  ${tr("Main currency")}", code == null) { pick(null) }
+            LocalCurrencies.current.values.sortedBy { it.sortOrder }.forEach { cur ->
+                SheetOption("${cur.symbol}  ${cur.code}", code == cur.code) { pick(cur.code) }
+            }
         }
         AddLink(tr("Manage currencies ›")) { close(); nav.push(Screen.Currencies) }
     }

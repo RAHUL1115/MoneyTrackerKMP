@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,12 +69,15 @@ private fun FeeAndRefundChips(c: AddContext) {
     val focus = LocalFocusManager.current
     val toaster = LocalToaster.current
     // A transfer's fee is a chip that points the keypad at it.
-    if (f.isTransfer) ExtraChip(if (f.feeText.isEmpty()) tr("Fee") else tr("Fee {0}", shown(c.model.fmt, addExprShown(f.feeText))), ui.feeTarget || f.feeText.isNotEmpty()) {
+    if (f.isTransfer) ExtraChip(
+        if (f.feeText.isEmpty()) tr("Fee") else tr("Fee {0}", shown(c.model.fmt, addExprShown(f.feeText))), ui.feeTarget || f.feeText.isNotEmpty(),
+        toggledOn = ui.feeTarget,
+    ) {
         ui.feeTarget = !ui.feeTarget; ui.goTo(Step.AMOUNT, focus)
     }
     // Like the classic layout, a refund is money coming in, so it sits on the Income tab (with expense categories).
     val refundable = !f.isAdjustment && (f.type == DraftType.INCOME || f.type == DraftType.REFUND) && f.existing?.transferGroupId == null
-    if (refundable) ExtraChip(if (f.type == DraftType.REFUND) tr("Refund ✓") else tr("Refund"), f.type == DraftType.REFUND) {
+    if (refundable) ExtraChip(if (f.type == DraftType.REFUND) tr("Refund ✓") else tr("Refund"), f.type == DraftType.REFUND, toggledOn = f.type == DraftType.REFUND) {
         val on = c.model.toggleRefund()
         toaster.show(if (on) tr("Refund: pick the expense category it lowers") else tr("Back to income"))
     }
@@ -102,13 +108,18 @@ private fun PhotoChip(c: AddContext) {
     }
 }
 
-/** One "more about this entry" chip: soft pill, tinted once it holds a value. */
+/**
+ * One "more about this entry" chip: soft pill, tinted once it holds a value. A chip that switches something on and
+ * off passes [toggledOn]: TalkBack then reads it as a checkbox, and its tick is only for the eye.
+ */
 @Composable
-private fun ExtraChip(text: String, set: Boolean, onClick: () -> Unit) {
+private fun ExtraChip(text: String, set: Boolean, toggledOn: Boolean? = null, onClick: () -> Unit) {
+    val tap = if (toggledOn == null) Modifier.clickable(onClick = onClick) else Modifier.choiceTap(toggledOn, Role.Checkbox, onClick)
+    val spoken = if (toggledOn == null) Modifier else Modifier.clearAndSetSemantics { contentDescription = text.removeSuffix(" ✓") }
     Box(
-        Modifier.height(36.dp).clip(RoundedCornerShape(999.dp)).background(if (set) F.accentTint else LocalChipRest.current ?: F.page).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        Modifier.height(36.dp).clip(F.pillShape).background(if (set) F.accentTint else LocalChipRest.current ?: F.page).then(tap).padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(text, color = if (set) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
+    ) { Text(text, spoken, color = if (set) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
 
 /** Past notes matching what is typed, and the learned category, as chips over the keyboard. */
@@ -137,8 +148,8 @@ internal fun NoteSuggestions(c: AddContext, noteMatches: List<NoteSuggestion>, s
 @Composable
 private fun SuggestChip(text: String, accent: Boolean = false, onClick: () -> Unit) {
     Box(
-        Modifier.height(30.dp).clip(RoundedCornerShape(999.dp)).background(if (accent) F.accentTint else F.fill)
-            .border(1.dp, if (accent) F.accentTint else F.border, RoundedCornerShape(999.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp),
+        Modifier.height(30.dp).clip(F.pillShape).background(if (accent) F.accentTint else F.fill)
+            .border(1.dp, if (accent) F.accentTint else F.border, F.pillShape).clickable(onClick = onClick).padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = if (accent) F.accent else F.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
@@ -151,20 +162,20 @@ internal fun SaveRow(c: AddContext) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         if (f.existing != null) {
             Box(
-                Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).background(F.dangerTint)
-                    .clickable(onClickLabel = tr("Delete entry")) { c.ui.confirmDelete = true },
+                Modifier.size(54.dp).clip(F.fabShape).background(F.dangerTint)
+                    .clickable(role = Role.Button) { c.ui.confirmDelete = true }.semantics { contentDescription = tr("Delete entry") },
                 contentAlignment = Alignment.Center,
-            ) { Icon(Glyph.Delete, tr("Delete entry"), tint = F.danger) }
+            ) { Icon(Glyph.Delete, null, tint = F.danger) }
             if (!f.isAdjustment) Box(
-                Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).border(1.dp, F.border, RoundedCornerShape(18.dp))
-                    .clickable(onClickLabel = tr("Copy entry")) { c.ui.sheet = AddSheet.COPY },
+                Modifier.size(54.dp).clip(F.fabShape).border(1.dp, F.border, F.fabShape)
+                    .clickable(role = Role.Button) { c.ui.sheet = AddSheet.COPY }.semantics { contentDescription = tr("Copy entry") },
                 contentAlignment = Alignment.Center,
-            ) { Icon(Glyph.Copy, tr("Copy entry"), tint = F.ink, modifier = Modifier.size(20.dp)) }
+            ) { Icon(Glyph.Copy, null, tint = F.ink, modifier = Modifier.size(20.dp)) }
             PrimaryButton(tr("Save changes"), { save(false) }, Modifier.weight(1f).height(54.dp))
         } else {
             Box(
-                Modifier.height(54.dp).clip(RoundedCornerShape(18.dp)).background(F.card).border(1.dp, F.border, RoundedCornerShape(18.dp))
-                    .clickable { save(true) }.padding(horizontal = 16.dp),
+                Modifier.height(54.dp).clip(F.fabShape).background(F.card).border(1.dp, F.border, F.fabShape)
+                    .clickable(role = Role.Button) { save(true) }.padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center,
             ) { Text(tr("Save & new"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
             PrimaryButton(saveLabel(c), { save(false) }, Modifier.weight(1f).height(54.dp), enabled = c.isReady())
