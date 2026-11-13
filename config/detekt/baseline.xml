@@ -39,7 +39,6 @@
     <ID>CyclomaticComplexMethod:ActivityTab.kt$@OptIn(ExperimentalFoundationApi::class) @Composable internal fun ActEntryRow( txn: Txn, data: ActEntryData, selecting: Boolean = false, selected: Boolean = false, showDate: Boolean = false, compact: Boolean = false, /** Space from the card's edges to the content; the tap highlight still spans the full width. */ inset: Dp = ENTRY_INSET, onLongClick: (() -&gt; Unit)? = null, onClick: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
-    <ID>CyclomaticComplexMethod:BudgetScreen.kt$@Composable internal fun BudgetBody()</ID>
     <ID>CyclomaticComplexMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:EditTxnScreen.kt$@Composable fun EditTxnScreen(screen: Screen.EditTxn)</ID>
     <ID>CyclomaticComplexMethod:EditTxnScreen.kt$@Composable private fun AmountKeypad( title: String, currency: CurrencyFormat, text: String, onChange: (String) -&gt; Unit, onClose: () -&gt; Unit, onDone: () -&gt; Unit, )</ID>
@@ -49,8 +48,6 @@
     <ID>CyclomaticComplexMethod:FeatureScreens.kt$@Composable fun StatsDetailScreen(s: Screen.StatsDetail)</ID>
     <ID>CyclomaticComplexMethod:FreshApp.kt$fun freshScreen(screen: Screen): (@Composable () -&gt; Unit)?</ID>
     <ID>CyclomaticComplexMethod:I18n.kt$I18n$fun resolve(tag: String): String</ID>
-    <ID>CyclomaticComplexMethod:InsightsTab.kt$@Composable internal fun InsightsTab()</ID>
-    <ID>CyclomaticComplexMethod:InsightsTab.kt$@Composable private fun PartRow( part: Part, total: Long, top: Long, groupBy: GroupBy, income: Boolean, open: Boolean, accountName: Map&lt;String, String&gt;, catById: Map&lt;String, Category&gt;, onTap: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:IosMoneyManagerSource.kt$IosMoneyManagerSource$private fun txns()</ID>
     <ID>CyclomaticComplexMethod:ListenSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun ListenSheetBody(onDismiss: () -&gt; Unit, startTyping: Boolean, onDone: (SmartGuess?) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:MessageScreens.kt$@Composable fun MessageSettingsScreen()</ID>
@@ -78,8 +75,6 @@
     <ID>CyclomaticComplexMethod:SmartText.kt$SmartText$fun translit(word: String): String</ID>
     <ID>CyclomaticComplexMethod:SmsParser.kt$SmsParser$fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed?</ID>
     <ID>CyclomaticComplexMethod:SmsParser.kt$SmsParser$fun vendorOf(text: String): String?</ID>
-    <ID>CyclomaticComplexMethod:StatsScreen.kt$@Composable fun BudgetScreen()</ID>
-    <ID>CyclomaticComplexMethod:StatsScreen.kt$@Composable fun StatsTab()</ID>
     <ID>CyclomaticComplexMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
     <ID>CyclomaticComplexMethod:ToolsScreens.kt$@Composable fun CalculatorScreen()</ID>
     <ID>CyclomaticComplexMethod:TransactionsScreen.kt$@Composable fun TransactionsTab()</ID>
@@ -129,7 +124,6 @@
     <ID>LongMethod:AddScreen.kt$@Composable fun receiptCard()</ID>
     <ID>LongMethod:AddScreen.kt$@Composable fun tray(modifier: Modifier)</ID>
     <ID>LongMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
-    <ID>LongMethod:BudgetScreen.kt$@Composable internal fun BudgetBody()</ID>
     <ID>LongMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:Common.kt$@Composable fun MonthPickerDialog(selected: YearMonth, current: YearMonth, onDismiss: () -&gt; Unit, onPick: (YearMonth) -&gt; Unit)</ID>
     <ID>LongMethod:EditTxnScreen.kt$@Composable fun EditTxnScreen(screen: Screen.EditTxn)</ID>
@@ -143,8 +137,6 @@
     <ID>LongMethod:FeatureScreens.kt$@Composable fun StatsDetailScreen(s: Screen.StatsDetail)</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun TagsScreen()</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun TemplatesScreen()</ID>
-    <ID>LongMethod:HomeTab.kt$@Composable private fun SpendingHero(onOpenTab: (FreshTab) -&gt; Unit)</ID>
-    <ID>LongMethod:InsightsTab.kt$@Composable internal fun InsightsTab()</ID>
     <ID>LongMethod:ListenSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun ListenSheetBody(onDismiss: () -&gt; Unit, startTyping: Boolean, onDone: (SmartGuess?) -&gt; Unit)</ID>
     <ID>LongMethod:MessageScreens.kt$@Composable fun MessageSettingsScreen()</ID>
     <ID>LongMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
@@ -168,9 +160,6 @@
     <ID>LongMethod:SmartEntry.kt$SmartEntry$suspend fun guess( parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */ learned: (suspend (List&lt;String&gt;) -&gt; MoneyRepository.Suggestion?)? = null, /** The account usually used for (kind, category id, note, amount); null to skip. */ usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -&gt; String?)? = null, ): SmartGuess</ID>
     <ID>LongMethod:SmartParser.kt$SmartParser$fun parse(text: String, expenseCategories: List&lt;String&gt;, incomeCategories: List&lt;String&gt;, accounts: List&lt;String&gt;): Result</ID>
     <ID>LongMethod:SmartText.kt$SmartText$fun translit(word: String): String</ID>
-    <ID>LongMethod:StatsScreen.kt$@Composable fun BudgetDetailScreen(initialKey: Int)</ID>
-    <ID>LongMethod:StatsScreen.kt$@Composable fun BudgetScreen()</ID>
-    <ID>LongMethod:StatsScreen.kt$@Composable fun StatsTab()</ID>
     <ID>LongMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
     <ID>LongMethod:ToolsScreens.kt$@Composable fun CalculatorScreen()</ID>
     <ID>LongMethod:TransactionsScreen.kt$@Composable fun TransactionsTab()</ID>
@@ -183,7 +172,6 @@
     <ID>LongMethod:TxnFilter.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun FilterSheet(range: DateRange, initial: TxnFilter, onDismiss: () -&gt; Unit, onApply: (TxnFilter) -&gt; Unit)</ID>
     <ID>LongMethod:WebDashboardFresh.kt$@Composable internal fun FreshWebDashboard()</ID>
     <ID>LongMethod:WebDashboardScreens.kt$@Composable fun WebDashboardScreen()</ID>
-    <ID>LongParameterList:InsightsTab.kt$( groupBy: GroupBy, rows: List&lt;ReportRow&gt;, previousRows: List&lt;ReportRow&gt;, flow: Flow, catById: Map&lt;String, Category&gt;, accountName: Map&lt;String, String&gt;, tagNames: Map&lt;String, List&lt;String&gt;&gt;, range: DateRange, income: Boolean, nav: app.moneytracker.ui.Navigator, )</ID>
     <ID>LongParameterList:WebDashboardScreens.kt$WebDashboardUi$( val state: WebDashboardState, val passwordSet: Boolean, val autoStop: Int, val now: Long, val start: () -&gt; Unit, val stop: () -&gt; Unit, val copy: () -&gt; Unit, val disconnect: (String) -&gt; Unit, val setPassword: (String?) -&gt; Unit, val setAutoStop: (Int) -&gt; Unit, val openWifi: () -&gt; Unit, /** Set briefly after Copy. */ val copied: Boolean, )</ID>
     <ID>LoopWithTooManyJumpStatements:HttpServer.kt$HttpServer$while</ID>
     <ID>LoopWithTooManyJumpStatements:SmartParser.kt$SmartParser$for</ID>
@@ -221,8 +209,6 @@
     <ID>UnusedParameter:TransactionsScreen.kt$ps: PeriodSettings</ID>
     <ID>UnusedParameter:WebApi.kt$WebApi$r: MoneyRepository</ID>
     <ID>UnusedParameter:WebApi.kt$WebApi$s: Session</ID>
-    <ID>UnusedPrivateMember:HomeTab.kt$private fun entriesText(n: Int)</ID>
-    <ID>UnusedPrivateProperty:HomeTab.kt$val daysGone = (range.start.daysUntil(today) + 1).coerceAtLeast(1)</ID>
     <ID>UnusedPrivateProperty:SettingsScreens.kt$val backup = LocalBackup.current</ID>
     <ID>UnusedPrivateProperty:SettingsScreens.kt$val currency = LocalCurrency.current</ID>
     <ID>UseRequire:Json.kt$Json.Parser$throw IllegalArgumentException("Unexpected '$c'")</ID>
