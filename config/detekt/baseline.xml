@@ -61,11 +61,8 @@
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$private fun etcRows(s: Map&lt;String, String&gt;): List&lt;Triple&lt;Int, String, String&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
-    <ID>CyclomaticComplexMethod:MoneyRepository.kt$MoneyRepository$fun draftFromCapture(c: Capture): TxnDraft</ID>
     <ID>CyclomaticComplexMethod:MoneyRepository.kt$MoneyRepository$fun importParsed(parsed: TabularImport.Parsed): ImportResult</ID>
-    <ID>CyclomaticComplexMethod:MoneyRepository.kt$MoneyRepository$fun ingestMessage(source: String, sender: String, text: String, receivedAt: Long): Capture?</ID>
     <ID>CyclomaticComplexMethod:MoneyRepository.kt$MoneyRepository$fun replaceWithMoneyManager(d: MoneyManagerBackup.Data): LegacyResult</ID>
-    <ID>CyclomaticComplexMethod:MoneyRepository.kt$MoneyRepository$private fun writeDraft(d: TxnDraft, recurringRuleId: String?, fixedId: String?): String</ID>
     <ID>CyclomaticComplexMethod:MoneyTab.kt$@Composable internal fun MoneyTab()</ID>
     <ID>CyclomaticComplexMethod:MoneyTab.kt$@Composable private fun AccountRow(l: AccountLine, today: LocalDate)</ID>
     <ID>CyclomaticComplexMethod:MoneyTab.kt$@Composable private fun ManageSheet(lines: List&lt;AccountLine&gt;, onDismiss: () -&gt; Unit)</ID>
@@ -101,7 +98,6 @@
     <ID>CyclomaticComplexMethod:WebApi.kt$WebApi$private fun draft(r: MoneyRepository, b: Map&lt;*, *&gt;, existing: Txn?): TxnDraft</ID>
     <ID>CyclomaticComplexMethod:Xlsx.kt$Xlsx$private fun readSheet(bytes: ByteArray, shared: List&lt;String&gt;): List&lt;List&lt;String&gt;&gt;</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:BackupScreens.kt$val (_, y, mo, d, h, mi) = m.destructured</ID>
-    <ID>DestructuringDeclarationWithTooManyEntries:MoneyRepository.kt$MoneyRepository$val (type, from, to, fee, cat) = when { t.transferGroupId != null -&gt; { val group = transferGroup(t.transferGroupId) val out = group.firstOrNull { it.kind == TxnKind.TRANSFER_OUT } ?: t val feeRow = group.firstOrNull { it.kind == TxnKind.EXPENSE } Quint(DraftType.TRANSFER, out.accountId, out.toAccountId, feeRow?.enteredAmount ?: 0L, feeRow?.categoryId) } t.kind == TxnKind.INCOME -&gt; Quint(DraftType.INCOME, t.accountId, null, 0L, t.categoryId) t.isRefund -&gt; Quint(DraftType.REFUND, t.accountId, null, 0L, t.categoryId) else -&gt; Quint(DraftType.EXPENSE, t.accountId, null, 0L, t.categoryId) }</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:MoreScreen.kt$val (kind, y, mo, d, h, mi) = m.destructured</ID>
     <ID>EmptyElseBlock:AndroidPlatform.kt$AndroidPlatform$if (ok) Notifications.showQuickAdd(ctx)</ID>
     <ID>EmptyElseBlock:AndroidPlatform.kt$AndroidPlatform$if (ok) Reminders.schedule(ctx, hour, minute)</ID>
@@ -172,7 +168,6 @@
     <ID>LongMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>LongMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
     <ID>LongMethod:MoneyRepository.kt$MoneyRepository$fun replaceWithMoneyManager(d: MoneyManagerBackup.Data): LegacyResult</ID>
-    <ID>LongMethod:MoneyRepository.kt$MoneyRepository$private fun writeDraft(d: TxnDraft, recurringRuleId: String?, fixedId: String?): String</ID>
     <ID>LongMethod:MoneyTab.kt$@Composable /** Tapping the card opens or closes the last six months of net worth. */ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Boolean, onToggle: () -&gt; Unit)</ID>
     <ID>LongMethod:MoneyTab.kt$@Composable internal fun MoneyTab()</ID>
     <ID>LongMethod:MoneyTab.kt$@Composable private fun AccountRow(l: AccountLine, today: LocalDate)</ID>
@@ -232,7 +227,6 @@
     <ID>ReturnCount:AndroidPlatform.kt$AndroidPlatform$override fun checkPin(pin: String, stored: String): Boolean</ID>
     <ID>ReturnCount:Calc.kt$Calc$fun evaluate(text: String, decimals: Int): String?</ID>
     <ID>ReturnCount:MessageRules.kt$MessageRules$fun suggestAccount( accounts: List&lt;Account&gt;, groups: List&lt;AccountGroup&gt;, sender: String, text: String, parsed: SmsParser.Parsed, learnedAccountId: String?, ): String?</ID>
-    <ID>ReturnCount:MoneyRepository.kt$MoneyRepository$fun ingestMessage(source: String, sender: String, text: String, receivedAt: Long): Capture?</ID>
     <ID>ReturnCount:SmsParser.kt$SmsParser$fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed?</ID>
     <ID>ReturnCount:TxnFilter.kt$TxnFilter$fun matches(t: Txn, catById: Map&lt;String, Category&gt;, tagged: Set&lt;String&gt; = emptySet()): Boolean</ID>
     <ID>ReturnCount:WebApi.kt$WebApi$fun handle(req: HttpRequest): HttpResponse</ID>
