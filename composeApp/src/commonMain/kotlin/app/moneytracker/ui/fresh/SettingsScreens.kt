@@ -5,31 +5,30 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,87 +37,83 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Label
-import androidx.compose.material.icons.outlined.Computer
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.ClockTime
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.Setting
-import app.moneytracker.ui.rememberSetting
-import app.moneytracker.ui.saveSetting
-import app.moneytracker.domain.CategoryKind
 import app.moneytracker.ui.AccentChoice
+import app.moneytracker.ui.BackClosesGroup
+import app.moneytracker.ui.ChoiceHost
+import app.moneytracker.ui.ChoiceSpec
 import app.moneytracker.ui.DisclosureDialog
 import app.moneytracker.ui.I18n
-import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalPlatform
-import app.moneytracker.ui.LocalRepo
+import app.moneytracker.ui.MorePlace
 import app.moneytracker.ui.Screen
+import app.moneytracker.ui.SettingDialog
+import app.moneytracker.ui.SettingGroup
+import app.moneytracker.ui.SettingsModel
 import app.moneytracker.ui.accentChoice
 import app.moneytracker.ui.darkTheme
+import app.moneytracker.ui.rememberMorePlaces
+import app.moneytracker.ui.rememberSetting
+import app.moneytracker.ui.rememberSettingGroups
+import app.moneytracker.ui.rememberSettingHubs
+import app.moneytracker.ui.rememberSettingsModel
+import app.moneytracker.ui.rememberSettingsOverview
+import app.moneytracker.ui.rememberTextEdit
+import app.moneytracker.ui.searchRows
+import app.moneytracker.ui.searchSettings
+import app.moneytracker.ui.settingActions
 import app.moneytracker.ui.systemAccent
 import app.moneytracker.ui.tones
 import app.moneytracker.ui.tr
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 private typealias SRow = app.moneytracker.ui.SettingRow
 
+/** New-layout Settings: the places as tiles, then the six preference groups, all searchable. */
 @Composable
 internal fun FreshSettings() {
-    val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val currency = LocalCurrency.current
-    val toaster = LocalToaster.current
-    val scope = rememberCoroutineScope()
-
-
+    val model = rememberSettingsModel()
+    val overview by rememberSettingsOverview()
     var query by rememberSaveable { mutableStateOf("") }
-    var choice by remember { mutableStateOf<app.moneytracker.ui.ChoiceSpec<*>?>(null) }
-    var editing by remember { mutableStateOf<Setting<*>?>(null) }
-    var accentSheet by remember { mutableStateOf(false) }
-    var languageSheet by remember { mutableStateOf(false) }
-    var locationDisclosure by remember { mutableStateOf(false) }
-    var confirmReset by remember { mutableStateOf(false) }
-    var layoutSwitch by remember { mutableStateOf(false) }
-    var layoutSheet by remember { mutableStateOf(false) }
-
-    fun link(title: String, value: String? = null, words: String = "", subtitle: String? = null, onClick: () -> Unit) =
-        SRow(title, value, subtitle, words, onClick = onClick)
-    val capture by rememberSetting(Prefs.CAPTURE_ENABLED)
-
-    val actions = app.moneytracker.ui.SettingActions(
-        choice = { choice = it },
-        edit = { editing = it },
-        accent = { accentSheet = true },
-        language = { languageSheet = true },
-        switchLayout = { layoutSheet = true },
-        locationOn = { locationDisclosure = true },
-        resetSuggestions = { confirmReset = true },
-    )
-    val groups = app.moneytracker.ui.rememberSettingGroups(newLayout = true, a = actions)
-    val hubs = app.moneytracker.ui.rememberSettingHubs()
-    val places = app.moneytracker.ui.rememberMorePlaces(newLayout = true)
+    var dialog by remember { mutableStateOf<SettingDialog?>(null) }
     var groupId by rememberSaveable { mutableStateOf<String?>(null) }
+    val groups = rememberSettingGroups(newLayout = true, settingActions { dialog = it }, model, overview)
+    val hubs = rememberSettingHubs(model, overview)
+    val places = rememberMorePlaces(newLayout = true, overview)
+    val elsewhere = rememberElsewhereRows()
     val group = groups.firstOrNull { it.id == groupId }
-    // Back closes an open group first.
-    androidx.compose.runtime.DisposableEffect(group != null) {
-        val remove = if (group != null) nav.interceptBack { groupId = null; true } else ({})
-        onDispose { remove() }
+    BackClosesGroup(group != null) { groupId = null }
+
+    SubScreen(group?.title ?: tr("Settings"), { if (group != null) groupId = null else nav.pop() }) {
+        if (group != null) {
+            RowsCard(group.rows.map { null to it })
+            Text(tr("Changes save right away."), Modifier.fillMaxWidth(), color = F.muted, fontSize = 12.sp, textAlign = TextAlign.Center)
+            return@SubScreen
+        }
+        SearchBox(query) { query = it }
+        val q = query.trim()
+        if (q.isNotEmpty()) SearchResults(searchSettings(groups, hubs, q) + searchRows(elsewhere, q), q)
+        else SettingsHome(places, groups) { groupId = it }
     }
-    // Options that live on other screens: found by search, they open that screen.
+    dialog?.let { d -> FreshSettingDialog(d, model, open = { dialog = it }, close = { dialog = null }) }
+}
+
+/** Options that live on other screens: found by search, they open that screen. */
+@Composable
+private fun rememberElsewhereRows(): List<Pair<String, SRow>> {
+    val nav = LocalNavigator.current
+    val capture by rememberSetting(Prefs.CAPTURE_ENABLED)
+    fun link(title: String, value: String? = null, words: String = "", onClick: () -> Unit) = SRow(title, value, null, words, onClick = onClick)
     val toBackup = { nav.push(Screen.Backup) }
     val toSms = { nav.push(Screen.MessageSettings) }
-    val elsewhere = listOf(
+    return listOf(
         tr("Backup & data") to link(tr("Back up now"), null, "save snapshot", onClick = toBackup),
         tr("Backup & data") to link(tr("Restore from a file"), null, "import recover mmbak", onClick = toBackup),
         tr("Backup & data") to link(tr("Export CSV or Excel"), null, "spreadsheet xlsx download share", onClick = toBackup),
@@ -129,151 +124,144 @@ internal fun FreshSettings() {
         tr("Bank SMS") to link(tr("Detect bank SMS"), if (capture) tr("On") else tr("Off"), "message text auto", onClick = toSms),
         tr("Bank SMS") to link(tr("Blocked senders and words"), null, "filter block spam message", onClick = toSms),
         tr("Bank SMS") to link(tr("Import SMS from the inbox"), null, "message read past", onClick = toSms),
-    )
+    ).map { (where, r) -> "$where ›" to r }
+}
 
-    SubScreen(group?.title ?: tr("Settings"), { if (group != null) groupId = null else nav.pop() }) {
-        if (group != null) {
-            FCard(padding = 0.dp) {
-                Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-                    group.rows.forEachIndexed { i, r -> if (i > 0) Divider(); SettingRowView(r, null) }
-                }
+/** Setting rows in one card; a row's hint is where it lives when that is given. */
+@Composable
+private fun RowsCard(rows: List<Pair<String?, SRow>>) {
+    FCard(padding = 0.dp) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
+            rows.forEachIndexed { i, (where, r) ->
+                if (i > 0) Divider()
+                SettingRowView(r, where)
             }
-            Text(tr("Changes save right away."), Modifier.fillMaxWidth(), color = F.muted, fontSize = 12.sp, textAlign = TextAlign.Center)
-            return@SubScreen
-        }
-        SearchBox(query) { query = it }
-        val q = query.trim()
-        if (q.isNotEmpty()) {
-            val terms = q.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
-            val found = app.moneytracker.ui.searchSettings(groups, hubs, q) + elsewhere.map { (where, r) -> "$where ›" to r }.filter { (where, r) ->
-                val text = listOfNotNull(r.title, r.value, r.subtitle, where, r.words).joinToString(" ").lowercase()
-                terms.all { it in text }
-            }
-            Text(if (found.size == 1) tr("1 setting found") else tr("{0} settings found", found.size),
-                Modifier.padding(start = 4.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            if (found.isEmpty()) FCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(tr("No settings match “{0}”", q), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
-                    Text(tr("Try a simpler word, like theme, currency, backup or SMS."), Modifier.padding(top = 4.dp), color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
-                }
-            } else FCard(padding = 0.dp) {
-                Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-                    found.forEachIndexed { i, (where, r) ->
-                        if (i > 0) Divider()
-                        SettingRowView(r, where)
-                    }
-                }
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                places.chunked(2).forEach { pair ->
-                    // Tiles in a row share the taller one's height, so their edges line up.
-                    Row(Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        pair.forEach { p -> QuickTile(placeGlyph(p.id), p.title, p.status, Modifier.weight(1f).fillMaxHeight(), p.open) }
-                        if (pair.size == 1) Box(Modifier.weight(1f))
-                    }
-                }
-            }
-            // The label sits right on top of its card, lined up with the rows inside it.
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(tr("Preferences").uppercase(), Modifier.padding(start = 14.dp), color = F.muted, fontSize = 12.sp,
-                fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
-            FCard(padding = 0.dp) {
-                Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-                    groups.forEachIndexed { i, g ->
-                        if (i > 0) Divider()
-                        FRow(g.title, subtitle = g.summary, onClick = { groupId = g.id }, leading = {
-                            Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(F.page), contentAlignment = Alignment.Center) {
-                                Icon(groupGlyph(g.id), null, tint = F.accent, modifier = Modifier.size(18.dp))
-                            }
-                        })
-                    }
-                }
-            }
-            }
-            Text(tr("Each line shows what is set now. Changes save right away."), Modifier.fillMaxWidth().padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp,
-                textAlign = TextAlign.Center)
         }
     }
+}
 
-    if (layoutSheet) Sheet(tr("Layout"), { layoutSheet = false }) {
-        SheetOption(tr("Classic"), selected = false, subtitle = tr("The familiar tabs: Trans., Stats, Accounts, More")) { layoutSheet = false; layoutSwitch = true }
-        SheetOption(tr("New"), selected = true, subtitle = tr("Home with today's spending and Smart add, then Activity, Insights and Accounts")) { layoutSheet = false }
-        Text(tr("MoneyTracker restarts to switch. Your entries, accounts and settings stay the same."), Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            color = F.muted, fontSize = 12.sp)
+@Composable
+private fun SearchResults(found: List<Pair<String, SRow>>, q: String) {
+    Text(if (found.size == 1) tr("1 setting found") else tr("{0} settings found", found.size),
+        Modifier.padding(start = 4.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+    if (found.isEmpty()) FCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(tr("No settings match “{0}”", q), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
+            Text(tr("Try a simpler word, like theme, currency, backup or SMS."), Modifier.padding(top = 4.dp), color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
+        }
+    } else RowsCard(found)
+}
+
+@Composable
+private fun SettingsHome(places: List<MorePlace>, groups: List<SettingGroup>, onOpenGroup: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        places.chunked(2).forEach { pair ->
+            // Tiles in a row share the taller one's height, so their edges line up.
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                pair.forEach { p -> QuickTile(placeGlyph(p.id), p.title, p.status, Modifier.weight(1f).fillMaxHeight(), p.open) }
+                if (pair.size == 1) Box(Modifier.weight(1f))
+            }
+        }
     }
-    if (layoutSwitch) LayoutSwitchDialog(toNew = false) { layoutSwitch = false }
-    if (locationDisclosure) {
-        DisclosureDialog(tr("Save location"),
+    // The label sits right on top of its card, lined up with the rows inside it.
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(tr("Preferences").uppercase(), Modifier.padding(start = 14.dp), color = F.muted, fontSize = 12.sp,
+            fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
+        FCard(padding = 0.dp) {
+            Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
+                groups.forEachIndexed { i, g ->
+                    if (i > 0) Divider()
+                    FRow(g.title, subtitle = g.summary, onClick = { onOpenGroup(g.id) }, leading = {
+                        Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(F.page), contentAlignment = Alignment.Center) {
+                            Icon(groupGlyph(g.id), null, tint = F.accent, modifier = Modifier.size(18.dp))
+                        }
+                    })
+                }
+            }
+        }
+    }
+    Text(tr("Each line shows what is set now. Changes save right away."), Modifier.fillMaxWidth().padding(horizontal = 4.dp), color = F.muted, fontSize = 12.sp,
+        textAlign = TextAlign.Center)
+}
+
+@Composable
+private fun FreshSettingDialog(d: SettingDialog, model: SettingsModel, open: (SettingDialog) -> Unit, close: () -> Unit) {
+    val toaster = LocalToaster.current
+    when (d) {
+        SettingDialog.LayoutChoice -> Sheet(tr("Layout"), close) {
+            SheetOption(tr("Classic"), selected = false, subtitle = tr("The familiar tabs: Trans., Stats, Accounts, More")) { open(SettingDialog.LayoutSwitch) }
+            SheetOption(tr("New"), selected = true, subtitle = tr("Home with today's spending and Smart add, then Activity, Insights and Accounts"), onClick = close)
+            Text(tr("MoneyTracker restarts to switch. Your entries, accounts and settings stay the same."), Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                color = F.muted, fontSize = 12.sp)
+        }
+        SettingDialog.LayoutSwitch -> LayoutSwitchDialog(toNew = false, onDismiss = close)
+        SettingDialog.Location -> DisclosureDialog(tr("Save location"),
             tr("When you add a new entry, MoneyTracker saves where you are (latitude and longitude) with it. " +
                 "Location is read only while you add an entry, never in the background, and stays on your phone."),
-            { locationDisclosure = false }) { locationDisclosure = false; scope.saveSetting(repo, Prefs.LOCATION, true) }
-    }
-    if (confirmReset) {
-        Confirm(tr("Reset note suggestions?"),
+            close) { close(); model.save(Prefs.LOCATION, true) }
+        SettingDialog.ResetSuggestions -> Confirm(tr("Reset note suggestions?"),
             tr("MoneyTracker forgets the notes, categories and accounts it learned from past entries. Your entries stay as they are."),
-            tr("Reset"), { confirmReset = false }) {
-            scope.launch { withContext(repo.io) { repo.resetAutocomplete() }; toaster.show(tr("Note suggestions reset")) }
+            tr("Reset"), close) {
+            model.resetSuggestions { toaster.show(tr("Note suggestions reset")) }
+        }
+        SettingDialog.Language -> LanguageSheet(model, close)
+        SettingDialog.Accent -> AccentSheet(model, close)
+        is SettingDialog.Choice -> ChoiceSheet(d.spec, model, close)
+        is SettingDialog.Edit -> EditValueSheet(d.setting, model, close)
+    }
+}
+
+@Composable
+private fun LanguageSheet(model: SettingsModel, onClose: () -> Unit) {
+    val currentTag by rememberSetting(Prefs.LANGUAGE)
+    Sheet(tr("Language"), onClose) {
+        I18n.LANGUAGES.forEach { (tag, name) ->
+            SheetOption(if (tag.isEmpty()) tr(name) else name, selected = tag == currentTag) {
+                onClose(); model.save(Prefs.LANGUAGE, tag)
+            }
         }
     }
-    choice?.let { spec -> ChoiceSheet(spec, scope) { choice = null } }
-    if (languageSheet) {
-        val currentTag by rememberSetting(Prefs.LANGUAGE)
-        Sheet(tr("Language"), { languageSheet = false }) {
-            I18n.LANGUAGES.forEach { (tag, name) ->
-                SheetOption(if (tag.isEmpty()) tr(name) else name, selected = tag == currentTag) {
-                    languageSheet = false; scope.saveSetting(repo, Prefs.LANGUAGE, tag)
+}
+
+/** Accent colours; a change can be undone from its toast. */
+@Composable
+private fun AccentSheet(model: SettingsModel, onClose: () -> Unit) {
+    val toaster = LocalToaster.current
+    Sheet(tr("Accent colour"), onClose) {
+        // "Follow system" only where the OS provides wallpaper colours (Android 12+).
+        AccentChoice.entries.filter { it != AccentChoice.SYSTEM || systemAccent != null }.forEach { a ->
+            val c = a.tones().let { Color(if (darkTheme) it.dark else it.light) }
+            SheetOption(tr(a.label), selected = a == accentChoice, leading = { Box(Modifier.size(24.dp).clip(CircleShape).background(c)) }) {
+                onClose()
+                val before = accentChoice
+                if (a != before) {
+                    model.save(Prefs.ACCENT, a.name)
+                    toaster.show(tr("{0}: {1}", tr("Accent colour"), tr(a.label))) { model.save(Prefs.ACCENT, before.name) }
                 }
             }
         }
     }
-    if (accentSheet) {
-        Sheet(tr("Accent colour"), { accentSheet = false }) {
-            // "Follow system" only where the OS provides wallpaper colours (Android 12+).
-            AccentChoice.entries.filter { it != AccentChoice.SYSTEM || systemAccent != null }.forEach { a ->
-                val c = a.tones().let { Color(if (darkTheme) it.dark else it.light) }
-                SheetOption(tr(a.label), selected = a == accentChoice, leading = { Box(Modifier.size(24.dp).clip(CircleShape).background(c)) }) {
-                    accentSheet = false
-                    val before = accentChoice
-                    if (a != before) {
-                        scope.saveSetting(repo, Prefs.ACCENT, a.name)
-                        toaster.show(tr("{0}: {1}", tr("Accent colour"), tr(a.label))) { scope.saveSetting(repo, Prefs.ACCENT, before.name) }
-                    }
-                }
-            }
-        }
-    }
-    editing?.let { key -> EditValueSheet(key, scope, { editing = null }) { editing = null } }
 }
 
 /** A sheet or toast-backed choice for one multiple-choice setting; Undo puts the old value back. */
 @Composable
-private fun <T> ChoiceSheet(spec: app.moneytracker.ui.ChoiceSpec<T>, scope: kotlinx.coroutines.CoroutineScope, onClose: () -> Unit) {
-    val repo = LocalRepo.current
+private fun <T> ChoiceSheet(spec: ChoiceSpec<T>, model: SettingsModel, onClose: () -> Unit) {
     val toaster = LocalToaster.current
-    app.moneytracker.ui.ChoiceHost(spec, scope, content = { current, options, pick ->
+    ChoiceHost(spec, model, content = { current, options, pick ->
         Sheet(spec.title, onClose) {
             options.forEach { (value, text) -> SheetOption(text, selected = value == current) { onClose(); pick(value, text) } }
         }
-    }) { _, text, before -> toaster.show(tr("{0}: {1}", spec.title, text)) { scope.saveSetting(repo, spec.setting, before) } }
+    }) { _, text, before -> toaster.show(tr("{0}: {1}", spec.title, text)) { model.save(spec.setting, before) } }
 }
 
 /** Text settings: currency symbol, decimals, month start day, reminder time. */
 @Composable
-private fun EditValueSheet(key: Setting<*>, scope: kotlinx.coroutines.CoroutineScope, onDismiss: () -> Unit, onSaved: () -> Unit) {
-    val repo = LocalRepo.current
-    val backgroundJobs = LocalPlatform.current.backgroundJobs
-    val edit = app.moneytracker.ui.rememberTextEdit(key)
+private fun EditValueSheet(key: Setting<*>, model: SettingsModel, onClose: () -> Unit) {
+    val edit = rememberTextEdit(model, key)
     var text by remember(key) { mutableStateOf(edit.initial) }
     val valid = edit.valid(text)
-    Sheet(edit.title, onDismiss, bottom = {
-        PrimaryButton(tr("Save"), enabled = valid, onClick = {
-            onSaved()
-            scope.launch {
-                withContext(repo.io) { edit.save(repo, text) }
-                if (key == Prefs.REMINDER_TIME) ClockTime.parse(text)?.let { backgroundJobs.setReminder(true, it.hour, it.minute) {} }
-            }
-        })
+    Sheet(edit.title, onClose, bottom = {
+        PrimaryButton(tr("Save"), enabled = valid, onClick = { onClose(); model.saveText(key, edit, text) })
     }) {
         StgField(text, { text = if (key == Prefs.REMINDER_TIME) it.take(5) else it }, number = edit.number, error = !valid)
         if (key == Prefs.CURRENCY_DECIMALS) Text(tr("Set decimal places before entering data; existing amounts are not converted."),
@@ -340,14 +328,11 @@ private fun groupGlyph(id: String): ImageVector = when (id) {
 @Composable
 internal fun FreshHub(id: String) {
     val nav = LocalNavigator.current
-    val hub = app.moneytracker.ui.rememberSettingHubs().firstOrNull { it.id == id } ?: return
+    val overview by rememberSettingsOverview()
+    val hub = rememberSettingHubs(rememberSettingsModel(), overview).firstOrNull { it.id == id } ?: return
     SubScreen(hub.title, nav::pop) {
         Text(hub.intro, Modifier.padding(horizontal = 14.dp), color = F.muted, fontSize = 13.sp)
-        FCard(padding = 0.dp) {
-            Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-                hub.rows.forEachIndexed { i, r -> if (i > 0) Divider(); SettingRowView(r, null) }
-            }
-        }
+        RowsCard(hub.rows.map { null to it })
     }
 }
 

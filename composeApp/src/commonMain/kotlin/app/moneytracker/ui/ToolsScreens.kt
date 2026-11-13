@@ -2,7 +2,6 @@ package app.moneytracker.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,29 +36,31 @@ import app.moneytracker.data.DraftType
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Calc
 
+/** The calculator's expression after pressing key [k]: digits append, operators replace a trailing one, = evaluates. */
+internal fun pressCalcKey(expr: String, k: String, decimals: Int): String = when (k) {
+    "C" -> ""
+    "⌫" -> expr.dropLast(1)
+    "=" -> Calc.evaluate(expr, decimals) ?: expr
+    "+", "−", "×", "÷" -> when {
+        expr.isEmpty() -> if (k == "−") k else expr
+        expr.last() in Calc.OPS -> expr.dropLast(1) + k
+        else -> expr + k
+    }
+    "." -> if (expr.takeLastWhile { it !in Calc.OPS }.contains('.')) expr else expr + k
+    else -> expr + k
+}
+
 /** Built-in calculator with a tape, and a shortcut to record the result as an expense. */
 @Composable
 fun CalculatorScreen() {
-    val repo = LocalRepo.current
+    val today = LocalRepo.current.today
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     var expr by rememberSaveable { mutableStateOf("") }
     val tape = remember { mutableStateListOf<String>() }
-    val preview = if (Calc.hasOperator(expr)) Calc.evaluate(expr, currency.decimals) else null
-
     fun press(k: String) {
-        expr = when (k) {
-            "C" -> ""
-            "⌫" -> expr.dropLast(1)
-            "=" -> Calc.evaluate(expr, currency.decimals)?.also { tape.add(0, "$expr = $it") } ?: expr
-            "+", "−", "×", "÷" -> when {
-                expr.isEmpty() -> if (k == "−") k else expr
-                expr.last() in Calc.OPS -> expr.dropLast(1) + k
-                else -> expr + k
-            }
-            "." -> if (expr.takeLastWhile { it !in Calc.OPS }.contains('.')) expr else expr + k
-            else -> expr + k
-        }
+        if (k == "=") Calc.evaluate(expr, currency.decimals)?.let { tape.add(0, "$expr = $it") }
+        expr = pressCalcKey(expr, k, currency.decimals)
     }
 
     Column(Modifier.fillMaxSize().background(PageBackground)) {
@@ -68,34 +69,46 @@ fun CalculatorScreen() {
         LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp), reverseLayout = true) {
             items(tape) { Text(it, Modifier.fillMaxWidth().padding(vertical = 4.dp), color = SubtleText, textAlign = TextAlign.End) }
         }
-        Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 20.dp, vertical = 12.dp), horizontalAlignment = Alignment.End) {
-            Text(expr.ifEmpty { "0" }, fontSize = 34.sp, fontWeight = FontWeight.Light, color = Ink, maxLines = 2, textAlign = TextAlign.End)
-            Text(preview?.let { "= $it" } ?: " ", color = SubtleText, fontSize = 16.sp)
-            val value = Calc.evaluate(expr, currency.decimals)
-            TextButton(enabled = value != null && (currency.parse(value) ?: 0) > 0, onClick = {
-                val amount = value?.let { currency.parse(it) } ?: return@TextButton
-                nav.push(Screen.EditTxn(preset = TxnDraft(DraftType.EXPENSE, repo.today(), "", amount = amount)))
-            }) { Text(tr("Record as expense"), color = Accent) }
-        }
-        val rows = listOf(listOf("C", "÷", "×", "⌫"), listOf("7", "8", "9", "−"), listOf("4", "5", "6", "+"), listOf("1", "2", "3", "="), listOf("00", "0", ".", ""))
-        Column(Modifier.fillMaxWidth().background(PageBackground).padding(6.dp)) {
-            rows.forEach { row ->
-                Row(Modifier.fillMaxWidth().height(64.dp)) {
-                    row.forEach { k ->
-                        val digit = k.firstOrNull()?.isDigit() == true || k == "."
-                        Box(
-                            Modifier.weight(1f).padding(3.dp).fillMaxSize()
-                                .background(if (k.isEmpty()) PageBackground else if (digit) SurfaceColor else AccentTint, RoundedCornerShape(12.dp))
-                                .let { if (k.isEmpty()) it else it.clickable { press(k) } },
-                            contentAlignment = Alignment.Center,
-                        ) { Text(k, fontSize = 22.sp, color = if (digit) Ink else Accent) }
-                    }
+        CalcDisplay(expr) { amount -> nav.push(Screen.EditTxn(preset = TxnDraft(DraftType.EXPENSE, today(), "", amount = amount))) }
+        CalcKeypad(::press)
+    }
+}
+
+/** The expression, its running result, and Record as expense once the result is above zero. */
+@Composable
+private fun CalcDisplay(expr: String, onRecord: (amount: Long) -> Unit) {
+    val currency = LocalCurrency.current
+    val preview = if (Calc.hasOperator(expr)) Calc.evaluate(expr, currency.decimals) else null
+    Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 20.dp, vertical = 12.dp), horizontalAlignment = Alignment.End) {
+        Text(expr.ifEmpty { "0" }, fontSize = 34.sp, fontWeight = FontWeight.Light, color = Ink, maxLines = 2, textAlign = TextAlign.End)
+        Text(preview?.let { "= $it" } ?: " ", color = SubtleText, fontSize = 16.sp)
+        val value = Calc.evaluate(expr, currency.decimals)
+        TextButton(enabled = value != null && (currency.parse(value) ?: 0) > 0, onClick = {
+            val amount = value?.let { currency.parse(it) } ?: return@TextButton
+            onRecord(amount)
+        }) { Text(tr("Record as expense"), color = Accent) }
+    }
+}
+
+@Composable
+private fun CalcKeypad(press: (String) -> Unit) {
+    val rows = listOf(listOf("C", "÷", "×", "⌫"), listOf("7", "8", "9", "−"), listOf("4", "5", "6", "+"), listOf("1", "2", "3", "="), listOf("00", "0", ".", ""))
+    Column(Modifier.fillMaxWidth().background(PageBackground).padding(6.dp)) {
+        rows.forEach { row ->
+            Row(Modifier.fillMaxWidth().height(64.dp)) {
+                row.forEach { k ->
+                    val digit = k.firstOrNull()?.isDigit() == true || k == "."
+                    Box(
+                        Modifier.weight(1f).padding(3.dp).fillMaxSize()
+                            .background(if (k.isEmpty()) PageBackground else if (digit) SurfaceColor else AccentTint, RoundedCornerShape(12.dp))
+                            .let { if (k.isEmpty()) it else it.clickable { press(k) } },
+                        contentAlignment = Alignment.Center,
+                    ) { Text(k, fontSize = 22.sp, color = if (digit) Ink else Accent) }
                 }
             }
         }
     }
 }
-
 
 /** Offline help: one expandable topic per feature. */
 @Composable

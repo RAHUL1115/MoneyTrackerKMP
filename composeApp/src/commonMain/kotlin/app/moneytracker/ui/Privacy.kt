@@ -30,13 +30,13 @@ object Privacy {
     private var peekJob: Job? = null
 
     /** Reads the saved choice (call once the database is open). */
-    fun load(repo: MoneyRepository) { hidden = repo.settingNow(Prefs.HIDE_AMOUNTS) }
+    fun load(repo: MoneyRepository) { hidden = repo.settingsStore.settingNow(Prefs.HIDE_AMOUNTS) }
 
     /** The eye: hide or show amounts, and remember it. */
     fun toggle(repo: MoneyRepository) {
         hidden = !hidden
         peekJob?.cancel(); peeking = false
-        MainScope().launch(repo.io) { repo.putSetting(Prefs.HIDE_AMOUNTS, hidden) }
+        MainScope().launch(repo.io) { repo.settingsStore.putSetting(Prefs.HIDE_AMOUNTS, hidden) }
     }
 
     /** Shows the amounts for a few seconds without turning privacy off. */

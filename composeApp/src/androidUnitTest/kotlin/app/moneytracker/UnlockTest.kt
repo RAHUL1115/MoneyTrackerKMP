@@ -38,20 +38,20 @@ class UnlockTest {
 
     @Test fun rightPasscodeUnlocksAndKeepsAPortableHash() {
         repo.settingsStore.putSetting(Prefs.PASSCODE, "s2:1234")
-        assertTrue(pins.unlock("1234", "s2:1234", repo))
+        assertTrue(pins.unlock("1234", "s2:1234", repo.settingsStore))
         assertEquals("s2:1234", repo.settingsStore.settingNow(Prefs.PASSCODE))
     }
 
     @Test fun olderHashIsRewrittenInThePortableForm() {
         repo.settingsStore.putSetting(Prefs.PASSCODE, "old:1234")
-        assertTrue(pins.unlock("1234", "old:1234", repo))
+        assertTrue(pins.unlock("1234", "old:1234", repo.settingsStore))
         assertEquals("s2:1234", repo.settingsStore.settingNow(Prefs.PASSCODE))
     }
 
     @Test fun passcodeFromBeforeARestoreStillUnlocksAndBecomesThePasscode() {
         repo.settingsStore.putSetting(Prefs.PASSCODE, "s2:9999")
         repo.settingsStore.putSetting(Prefs.PASSCODE_PREVIOUS, "old:1234")
-        assertTrue(pins.unlock("1234", "s2:9999", repo))
+        assertTrue(pins.unlock("1234", "s2:9999", repo.settingsStore))
         assertEquals("s2:1234", repo.settingsStore.settingNow(Prefs.PASSCODE))
         assertEquals("", repo.settingsStore.settingNow(Prefs.PASSCODE_PREVIOUS))
     }
@@ -59,7 +59,7 @@ class UnlockTest {
     @Test fun wrongPasscodeStaysLocked() {
         repo.settingsStore.putSetting(Prefs.PASSCODE, "s2:1234")
         repo.settingsStore.putSetting(Prefs.PASSCODE_PREVIOUS, "old:5555")
-        assertFalse(pins.unlock("0000", "s2:1234", repo))
+        assertFalse(pins.unlock("0000", "s2:1234", repo.settingsStore))
         assertEquals("s2:1234", repo.settingsStore.settingNow(Prefs.PASSCODE))
         assertEquals("old:5555", repo.settingsStore.settingNow(Prefs.PASSCODE_PREVIOUS))
     }
