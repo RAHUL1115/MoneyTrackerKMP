@@ -8,31 +8,27 @@ internal object SmartText {
     /** Lower-case, drop emoji/symbols (Devanagari vowel signs kept), "1,250" → "1250", lone dots/commas → spaces. */
     fun norm(input: String): String {
         val lowered = input.lowercase().replace("₹", " rs ").replace('।', ' ').replace('॥', ' ')
-        val kept = StringBuilder(lowered.length)
-        for (ch in lowered) {
-            val keep = ch.isLetterOrDigit() || ch == '_' || ch.isWhitespace() || ch in "&'.," || ch in 'ऀ'..'ॿ'
-            kept.append(if (keep) ch else ' ')
-        }
-        val s = kept.toString()
-        // Commas between digits disappear; any other '.' or ',' not touching a digit on the right side becomes a space.
-        val noThousands = StringBuilder(s.length)
-        for (i in s.indices) {
-            val ch = s[i]
-            if (ch == ',' && i > 0 && i + 1 < s.length && s[i - 1].isDigit() && s[i + 1].isDigit()) continue
-            noThousands.append(ch)
-        }
-        val t = noThousands.toString()
-        val out = StringBuilder(t.length)
+        val kept = buildString { for (ch in lowered) append(if (isWordChar(ch) || ch in "&'.," || isDevanagari(ch)) ch else ' ') }
+        return spaceLoneSeparators(dropThousandsCommas(kept)).trim().split(WS).filter { it.isNotEmpty() }.joinToString(" ")
+    }
+
+    /** Commas between digits disappear: "1,250" → "1250". */
+    private fun dropThousandsCommas(s: String) = buildString {
+        for (i in s.indices) if (!(s[i] == ',' && digitAt(s, i - 1) && digitAt(s, i + 1))) append(s[i])
+    }
+
+    /** Any '.' or ',' without a digit on both sides becomes a space. */
+    private fun spaceLoneSeparators(t: String) = buildString {
         for (i in t.indices) {
             val ch = t[i]
-            if (ch == '.' || ch == ',') {
-                val prevDigit = i > 0 && t[i - 1].isDigit()
-                val nextDigit = i + 1 < t.length && t[i + 1].isDigit()
-                out.append(if (!prevDigit || !nextDigit) ' ' else ch)
-            } else out.append(ch)
+            val separator = ch == '.' || ch == ','
+            append(if (separator && !(digitAt(t, i - 1) && digitAt(t, i + 1))) ' ' else ch)
         }
-        return out.toString().trim().split(WS).filter { it.isNotEmpty() }.joinToString(" ")
     }
+
+    private fun digitAt(s: String, i: Int) = s.getOrNull(i)?.isDigit() == true
+    private fun isWordChar(ch: Char) = ch.isLetterOrDigit() || ch == '_' || ch.isWhitespace()
+    private fun isDevanagari(ch: Char) = ch in 'ऀ'..'ॿ'
 
     private val WS = Regex("\\s+")
 
@@ -48,50 +44,65 @@ internal object SmartText {
     private const val VIRAMA = '्'
     private const val NUK = '़'
 
-    private class Unit(val c: String, var v: String, val explicit: Boolean)
+    /** One written sound: a consonant (or a standalone vowel, nasal or other mark) and the vowel after it. */
+    private class Syllable(val consonant: String, var vowel: String, val explicit: Boolean)
 
     /** Devanagari word → Hinglish spelling ("पेट्रोल" → "petrol"); anything else is returned unchanged. */
     fun translit(word: String): String {
-        if (word.none { it in 'ऀ'..'ॿ' }) return word
+        if (word.none(::isDevanagari)) return word
         val w = buildString { for (ch in word) append(if (ch in '०'..'९') ('0' + (ch - '०')) else ch) }
-        val units = ArrayList<Unit>()
+        val syllables = syllablesOf(w)
+        // Schwa deletion: drop the final inherent 'a', and a medial one between a vowel and a consonant+vowel.
+        for (k in syllables.indices) if (dropsSchwa(syllables, k)) syllables[k].vowel = ""
+        return syllables.joinToString("") { it.consonant + it.vowel }
+    }
+
+    private fun syllablesOf(w: String): List<Syllable> {
+        val out = ArrayList<Syllable>()
         var i = 0
         while (i < w.length) {
-            val ch = w[i]
-            val cons = CONS[ch]
-            when {
-                cons != null -> {
-                    var r = cons
-                    if (i + 1 < w.length && w[i + 1] == NUK) { r = NUKTA[ch] ?: r; i++ }
-                    var v = "a"; var explicit = false
-                    if (i + 1 < w.length && MATRA.containsKey(w[i + 1])) { v = MATRA.getValue(w[i + 1]); explicit = true; i++ }
-                    else if (i + 1 < w.length && w[i + 1] == VIRAMA) { v = ""; explicit = true; i++ }
-                    units.add(Unit(r, v, explicit))
-                }
-                VOW.containsKey(ch) -> units.add(Unit("", VOW.getValue(ch), true))
-                ch == 'ं' || ch == 'ँ' -> units.add(Unit("n", "", true))
-                ch == 'ः' -> units.add(Unit("h", "", true))
-                ch == NUK -> {}
-                else -> units.add(Unit(ch.toString(), "", true))
-            }
+            if (w[i] in CONS) i = readConsonant(w, i, out) else otherSyllable(w[i])?.let(out::add)
             i++
         }
-        // Schwa deletion: drop the final inherent 'a', and a medial one between a vowel and a consonant+vowel.
-        val n = units.size
-        for (k in 0 until n) {
-            val u = units[k]
-            if (u.v == "a" && !u.explicit && u.c.isNotEmpty()) {
-                if (k == n - 1 && n > 1) u.v = ""
-                else if (k in 1 until n - 1) {
-                    val prevV = units[k - 1].v != ""
-                    val nxt = units[k + 1]
-                    val a = prevV && nxt.c.isNotEmpty() && nxt.c != "n" && nxt.v != "" && k + 1 != n - 1
-                    val b = prevV && nxt.c.isNotEmpty() && nxt.explicit && nxt.v != ""
-                    if (a || b) u.v = ""
-                }
-            }
+        return out
+    }
+
+    /** Reads the consonant at [at] with its nukta and vowel sign into [out]; returns the index of the last character used. */
+    private fun readConsonant(w: String, at: Int, out: MutableList<Syllable>): Int {
+        var i = at
+        var sound = CONS.getValue(w[at])
+        if (w.getOrNull(i + 1) == NUK) { sound = NUKTA[w[at]] ?: sound; i++ }
+        val next = w.getOrNull(i + 1)
+        val matra = next?.let { MATRA[it] }
+        when {
+            matra != null -> { out.add(Syllable(sound, matra, explicit = true)); i++ }
+            next == VIRAMA -> { out.add(Syllable(sound, "", explicit = true)); i++ }
+            else -> out.add(Syllable(sound, "a", explicit = false))
         }
-        return units.joinToString("") { it.c + it.v }
+        return i
+    }
+
+    /** A standalone vowel, a nasal or visarga mark, or any other character as itself; null for a stray nukta. */
+    private fun otherSyllable(ch: Char): Syllable? {
+        val vowel = VOW[ch]
+        return when {
+            vowel != null -> Syllable("", vowel, true)
+            ch == 'ं' || ch == 'ँ' -> Syllable("n", "", true)
+            ch == 'ः' -> Syllable("h", "", true)
+            ch == NUK -> null
+            else -> Syllable(ch.toString(), "", true)
+        }
+    }
+
+    private fun dropsSchwa(s: List<Syllable>, k: Int): Boolean {
+        val u = s[k]
+        val n = s.size
+        if (u.vowel != "a" || u.explicit || u.consonant.isEmpty()) return false
+        if (k == n - 1) return n > 1
+        if (k == 0) return false
+        val next = s[k + 1]
+        val betweenVowels = s[k - 1].vowel != "" && next.consonant.isNotEmpty() && next.vowel != ""
+        return betweenVowels && ((next.consonant != "n" && k + 1 != n - 1) || next.explicit)
     }
 
     private val DOUBLE = Regex("([a-z])\\1+")
@@ -109,7 +120,7 @@ internal object SmartText {
 
     /** Category names: symbols and emoji removed ("🍔 Food" → "food"). */
     fun cleanCategory(name: String): String {
-        val s = buildString { for (ch in name) append(if (ch.isLetterOrDigit() || ch == '_' || ch.isWhitespace() || ch == '&') ch else ' ') }.trim().lowercase()
+        val s = buildString { for (ch in name) append(if (isWordChar(ch) || ch == '&') ch else ' ') }.trim().lowercase()
         return s.ifEmpty { name.lowercase() }
     }
 
