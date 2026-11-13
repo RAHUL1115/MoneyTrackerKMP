@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -470,11 +469,6 @@ fun mainCategoryName(id: String?, byId: Map<String, Category>): String {
 fun subCategoryName(id: String?, byId: Map<String, Category>): String? {
     val c = id?.let { byId[it] } ?: return null
     return if (c.parentId != null) c.name else null
-}
-
-@Composable
-fun FullScreen(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().background(PageBackground)) { content() }
 }
 
 /**

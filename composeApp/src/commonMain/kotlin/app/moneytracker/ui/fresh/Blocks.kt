@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -98,11 +97,6 @@ fun Pill(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifie
         Text(text, color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
-
-/** Horizontally scrolling row of pills. */
-@Composable
-fun PillRow(content: @Composable RowScope.() -> Unit) =
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), content = content)
 
 /** Segmented switch (Week / Month / Year, Expense / Income / Transfer). */
 @Composable
