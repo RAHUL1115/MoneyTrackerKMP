@@ -59,11 +59,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -80,13 +76,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.ai.SmartParser
 import app.moneytracker.data.DraftType
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
-private enum class ListenState { LISTENING, DONE, ERROR }
+import app.moneytracker.domain.CurrencyFormat
 
 /**
  * MoneyTracker's own listening sheet (canvas C7.1 classic, 7.1 new layout). Words appear as they're heard and the fields
@@ -99,188 +90,196 @@ fun ListenSheet(onDismiss: () -> Unit, look: ListenLook = ListenLook.classic(), 
     CompositionLocalProvider(LocalListenLook provides look) { ListenSheetBody(onDismiss, startTyping, onDone) }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Wiring: the speech session and the text box stay here; [ListenModel] turns their words into a guess. */
 @Composable
 private fun ListenSheetBody(onDismiss: () -> Unit, startTyping: Boolean, onDone: (SmartGuess?) -> Unit) {
-    val voice = LocalPlatform.current.voice
-    val smartModels = LocalPlatform.current.smartModels
     val repo = LocalRepo.current
+    val smartModels = LocalPlatform.current.smartModels
     val currency = LocalCurrency.current
-    val categories by repo.categories.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
     val scope = rememberCoroutineScope()
-    val learned: suspend (List<String>) -> app.moneytracker.data.MoneyRepository.Suggestion? = { words -> withContext(repo.io) { repo.suggest(words) } }
-    val usual: suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -> String? =
-        { kind, category, note, amount -> withContext(repo.io) { repo.habitAccount(kind, category, note = note, amount = amount.takeIf { it > 0 }) } }
-
-    var heard by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf(ListenState.LISTENING) }
-    var error by remember { mutableStateOf<SpeechError?>(null) }
-    var level by remember { mutableFloatStateOf(0f) }
-    fun setLevel(v: Float) { if (state == ListenState.LISTENING) level = v }
-    fun fail(e: SpeechError) { state = ListenState.ERROR; error = e }
-    var guess by remember { mutableStateOf<SmartGuess?>(null) }
-    var parser by remember { mutableStateOf<SmartParser?>(null) }
+    val model = remember(repo) {
+        ListenModel(repo.learningStore, repo.accountStore, repo.categoryStore, currency, smartModels, repo.today, repo.io, scope, startTyping)
+    }
+    val p = model.progress
     var session by remember { mutableStateOf<SpeechSession?>(null) }
-    var attempt by remember { mutableIntStateOf(0) }
-    var parseJob by remember { mutableStateOf<Job?>(null) }
-    // Type mode: the same sheet with a text box; write it the way you'd say it and the fields fill in as you type.
-    var typing by remember { mutableStateOf(startTyping) }
     var typed by remember { mutableStateOf(TextFieldValue("")) }
     val typeFocus = remember { FocusRequester() }
 
-    fun reparse(text: String, then: (SmartGuess?) -> Unit = {}) {
-        val p = parser
-        parseJob?.cancel()
-        if (p == null || text.isBlank()) { then(guess); return }
-        parseJob = scope.launch {
-            val g = SmartEntry.guess(p, text, repo.today(), currency, categories, accounts, learned, usual)
-            guess = g; then(g)
-        }
-    }
-
     fun openEditor(text: String) {
         session?.cancel()
-        scope.launch {
-            val p = parser ?: SmartEntry.parser(smartModels)
-            val g = if (p != null && text.isNotBlank()) SmartEntry.guess(p, text, repo.today(), currency, categories, accounts, learned, usual) else null
-            onDismiss()
-            onDone(g)
-        }
+        model.finish(text) { g -> onDismiss(); onDone(g) }
     }
 
-    LaunchedEffect(Unit) { parser = SmartEntry.parser(smartModels); reparse(heard) }
+    LaunchedEffect(Unit) { model.loadParser() }
+    ListenEffect(model, onSession = { session = it }, onHeard = ::openEditor)
+    LaunchedEffect(p.typing) { if (p.typing) runCatching { typeFocus.requestFocus() } }
 
-    DisposableEffect(attempt, typing) {
-        state = ListenState.LISTENING; error = null; level = 0f
-        if (typing) return@DisposableEffect onDispose {}
+    ListenSheetContent(
+        p, typed, typeFocus, currency,
+        ListenActions(
+            onCancel = { session?.cancel(); onDismiss() },
+            onType = {
+                session?.cancel()
+                val heard = model.progress.heard
+                typed = TextFieldValue(heard, TextRange(heard.length))
+                model.startTyping()
+            },
+            onSpeak = { model.startSpeaking(typed.text) },
+            onTyped = { v -> typed = v; model.onTyped(v.text) },
+            onTypedDone = { if (typed.text.isNotBlank()) openEditor(typed.text) },
+            onMain = {
+                when (model.progress.state) {
+                    ListenState.LISTENING -> session?.stop()
+                    ListenState.ERROR -> model.retry()
+                    ListenState.DONE -> {}
+                }
+            },
+        ),
+    )
+}
+
+/** Listens for each attempt (not while typing), feeding the words to [model]; [onHeard] gets the final words. */
+@Composable
+private fun ListenEffect(model: ListenModel, onSession: (SpeechSession?) -> Unit, onHeard: (String) -> Unit) {
+    val voice = LocalPlatform.current.voice
+    val p = model.progress
+    DisposableEffect(p.attempt, p.typing) {
+        model.listening()
+        if (p.typing) return@DisposableEffect onDispose {}
         val s = voice.startSpeech(object : SpeechListener {
-            override fun onLevel(level: Float) { setLevel(level) }
-            override fun onPartial(text: String) { if (!typing) { heard = text; reparse(text) } }
-            override fun onFinal(text: String) {
-                if (typing) return
-                heard = text.ifBlank { heard }
-                if (heard.isBlank()) { fail(SpeechError.NO_MATCH); return }
-                state = ListenState.DONE
-                openEditor(heard)
-            }
-            override fun onError(error: SpeechError) = fail(error)
+            override fun onLevel(level: Float) = model.onLevel(level)
+            override fun onPartial(text: String) = model.onPartial(text)
+            override fun onFinal(text: String) { if (model.onFinal(text)) onHeard(model.progress.heard) }
+            override fun onError(error: SpeechError) = model.fail(error)
         })
-        if (s == null) { state = ListenState.ERROR; error = SpeechError.OTHER }
-        session = s
+        if (s == null) model.fail(SpeechError.OTHER)
+        onSession(s)
         onDispose { s?.cancel() }
     }
+}
 
-    fun startTyping() {
-        session?.cancel()
-        typed = TextFieldValue(heard, TextRange(heard.length))
-        typing = true
-    }
-    fun startSpeaking() { typing = false; heard = typed.text; attempt++ }
-    LaunchedEffect(typing) { if (typing) runCatching { typeFocus.requestFocus() } }
+/** What the sheet's buttons and text box do. */
+private class ListenActions(
+    val onCancel: () -> Unit,
+    val onType: () -> Unit,
+    val onSpeak: () -> Unit,
+    val onTyped: (TextFieldValue) -> Unit,
+    val onTypedDone: () -> Unit,
+    val onMain: () -> Unit,
+)
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ListenSheetContent(p: ListenProgress, typed: TextFieldValue, typeFocus: FocusRequester, currency: CurrencyFormat, a: ListenActions) {
     ModalBottomSheet(
-        onDismissRequest = { session?.cancel(); onDismiss() },
+        onDismissRequest = a.onCancel,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = L.sheet,
         shape = RoundedCornerShape(topStart = L.radius, topEnd = L.radius),
     ) {
         Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 14.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
-            // Status line
-            Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (typing) {
-                    Icon(Icons.Outlined.Keyboard, null, Modifier.size(20.dp), tint = L.accent)
-                    Spacer(Modifier.width(10.dp))
-                    Text(tr("Type it like you’d say it"), color = L.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                } else when (state) {
-                    ListenState.ERROR -> Text(errorTitle(error), color = L.danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    else -> {
-                        SoundBars(if (state == ListenState.LISTENING) level else 0f)
-                        Spacer(Modifier.width(10.dp))
-                        Text(tr(if (state == ListenState.DONE) "Got it" else "Listening…"), color = L.accent, fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-
+            StatusLine(p)
             // What was heard, or the text box in type mode
-            if (typing) {
-                Box(
-                    Modifier.fillMaxWidth().padding(top = 4.dp).heightIn(min = 62.dp).border(2.dp, L.accent, L.button)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                ) {
-                    if (typed.text.isEmpty()) Text(tr("e.g. 1,200 for new shoes on my credit card"), color = L.muted, fontSize = 18.sp, lineHeight = 24.sp)
-                    BasicTextField(
-                        typed, { v -> typed = v; heard = v.text; reparse(v.text) },
-                        Modifier.fillMaxWidth().focusRequester(typeFocus),
-                        textStyle = TextStyle(color = L.ink, fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Medium),
-                        cursorBrush = SolidColor(L.accent),
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { if (typed.text.isNotBlank()) openEditor(typed.text) }),
-                    )
-                }
-            } else Box(
-                // Tap the words (or the hint) to type or fix them yourself; no need for the Type button.
-                Modifier.fillMaxWidth().heightIn(min = 62.dp).padding(top = 4.dp).clip(L.button)
-                    .clickable(onClickLabel = tr("Type instead")) { startTyping() }
-                    .semantics { liveRegion = LiveRegionMode.Polite },
-            ) {
-                if (heard.isBlank()) {
-                    Text(
-                        if (state == ListenState.ERROR) errorHint(error) else tr("Just say it, e.g. “1,200 for new shoes on my credit card”. Or tap here to type."),
-                        color = L.muted, fontSize = 16.sp, lineHeight = 22.sp,
-                    )
-                } else Text(heard, color = L.ink, fontSize = 22.sp, lineHeight = 30.sp, fontWeight = FontWeight.Medium)
-            }
-
-            // Understood so far
-            Text(tr("Understood so far"), Modifier.padding(top = 10.dp), color = L.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            val g = guess.takeIf { heard.isNotBlank() }
-            val d = g?.draft
-            UnderstoodRow(tr("Amount"), d?.amount?.takeIf { it > 0 }?.let { currency.format(it) }, d?.type?.let { typeColor(it) })
-            UnderstoodRow(tr("Category"), g?.categoryName?.let { if (g.categoryLearned) it + " · " + tr("from your entries") else it })
-            UnderstoodRow(tr("Note"), d?.note?.takeIf { it.isNotBlank() })
-            UnderstoodRow(tr("Account"), g?.accountName)
-            UnderstoodRow(tr("Date"), g?.let { dayLabel(it.daysAgo) })
-
-            // Actions
-            Row(Modifier.fillMaxWidth().padding(top = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(
-                    onClick = { session?.cancel(); onDismiss() }, modifier = Modifier.weight(1f).height(50.dp),
-                    shape = L.button, color = L.fill,
-                ) { Box(contentAlignment = Alignment.Center) { Text(tr("Cancel"), color = L.inkSoft, fontSize = 16.sp) } }
-
-                if (typing) {
-                    // Back to speaking.
-                    Surface(onClick = { startSpeaking() }, modifier = Modifier.size(56.dp), shape = CircleShape, color = L.fill) {
-                        Box(contentAlignment = Alignment.Center) { Icon(Icons.Filled.Mic, tr("Speak instead"), Modifier.size(24.dp), tint = L.accent) }
-                    }
-                    val ready = typed.text.isNotBlank()
-                    Surface(
-                        onClick = { if (ready) openEditor(typed.text) }, enabled = ready, modifier = Modifier.weight(1f).height(50.dp),
-                        shape = L.button, color = if (ready) L.accent else L.fill,
-                    ) { Box(contentAlignment = Alignment.Center) { Text(tr("Done"), color = if (ready) L.onAccent else L.muted, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) } }
-                } else {
-                    MainButton(state) {
-                        when (state) {
-                            ListenState.LISTENING -> session?.stop()
-                            ListenState.ERROR -> { heard = ""; guess = null; attempt++ }
-                            ListenState.DONE -> {}
-                        }
-                    }
-
-                    Surface(
-                        onClick = { startTyping() }, modifier = Modifier.weight(1f).height(50.dp),
-                        shape = L.button, color = L.sheet, border = BorderStroke(1.dp, L.border),
-                    ) { Box(contentAlignment = Alignment.Center) { Text(L.typeLabel, color = L.accent, fontSize = 16.sp) } }
-                }
-            }
-
+            if (p.typing) TypeBox(typed, typeFocus, a) else HeardBox(p, a.onType)
+            Understood(p, currency)
+            ListenButtons(p, typed, a)
             Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Lock, null, Modifier.size(14.dp), tint = L.muted)
                 Spacer(Modifier.width(6.dp))
                 Text(tr("Understood on this phone. Nothing leaves it."), color = L.muted, fontSize = 12.sp)
             }
+        }
+    }
+}
+
+@Composable
+private fun StatusLine(p: ListenProgress) {
+    Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (p.typing) {
+            Icon(Icons.Outlined.Keyboard, null, Modifier.size(20.dp), tint = L.accent)
+            Spacer(Modifier.width(10.dp))
+            Text(tr("Type it like you’d say it"), color = L.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        } else when (p.state) {
+            ListenState.ERROR -> Text(errorTitle(p.error), color = L.danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            ListenState.LISTENING, ListenState.DONE -> {
+                SoundBars(if (p.state == ListenState.LISTENING) p.level else 0f)
+                Spacer(Modifier.width(10.dp))
+                Text(tr(if (p.state == ListenState.DONE) "Got it" else "Listening…"), color = L.accent, fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TypeBox(typed: TextFieldValue, typeFocus: FocusRequester, a: ListenActions) {
+    Box(
+        Modifier.fillMaxWidth().padding(top = 4.dp).heightIn(min = 62.dp).border(2.dp, L.accent, L.button)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        if (typed.text.isEmpty()) Text(tr("e.g. 1,200 for new shoes on my credit card"), color = L.muted, fontSize = 18.sp, lineHeight = 24.sp)
+        BasicTextField(
+            typed, a.onTyped,
+            Modifier.fillMaxWidth().focusRequester(typeFocus),
+            textStyle = TextStyle(color = L.ink, fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Medium),
+            cursorBrush = SolidColor(L.accent),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { a.onTypedDone() }),
+        )
+    }
+}
+
+/** Tap the words (or the hint) to type or fix them yourself; no need for the Type button. */
+@Composable
+private fun HeardBox(p: ListenProgress, onType: () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().heightIn(min = 62.dp).padding(top = 4.dp).clip(L.button)
+            .clickable(onClickLabel = tr("Type instead"), onClick = onType)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    ) {
+        if (p.heard.isBlank()) {
+            Text(
+                if (p.state == ListenState.ERROR) errorHint(p.error) else tr("Just say it, e.g. “1,200 for new shoes on my credit card”. Or tap here to type."),
+                color = L.muted, fontSize = 16.sp, lineHeight = 22.sp,
+            )
+        } else Text(p.heard, color = L.ink, fontSize = 22.sp, lineHeight = 30.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun Understood(p: ListenProgress, currency: CurrencyFormat) {
+    Text(tr("Understood so far"), Modifier.padding(top = 10.dp), color = L.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    val g = p.guess.takeIf { p.heard.isNotBlank() }
+    val d = g?.draft
+    UnderstoodRow(tr("Amount"), d?.amount?.takeIf { it > 0 }?.let { currency.format(it) }, d?.type?.let { typeColor(it) })
+    UnderstoodRow(tr("Category"), g?.categoryName?.let { if (g.categoryLearned) it + " · " + tr("from your entries") else it })
+    UnderstoodRow(tr("Note"), d?.note?.takeIf { it.isNotBlank() })
+    UnderstoodRow(tr("Account"), g?.accountName)
+    UnderstoodRow(tr("Date"), g?.let { dayLabel(it.daysAgo) })
+}
+
+@Composable
+private fun ListenButtons(p: ListenProgress, typed: TextFieldValue, a: ListenActions) {
+    Row(Modifier.fillMaxWidth().padding(top = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Surface(onClick = a.onCancel, modifier = Modifier.weight(1f).height(50.dp), shape = L.button, color = L.fill) {
+            Box(contentAlignment = Alignment.Center) { Text(tr("Cancel"), color = L.inkSoft, fontSize = 16.sp) }
+        }
+        if (p.typing) {
+            // Back to speaking.
+            Surface(onClick = a.onSpeak, modifier = Modifier.size(56.dp), shape = CircleShape, color = L.fill) {
+                Box(contentAlignment = Alignment.Center) { Icon(Icons.Filled.Mic, tr("Speak instead"), Modifier.size(24.dp), tint = L.accent) }
+            }
+            val ready = typed.text.isNotBlank()
+            Surface(
+                onClick = a.onTypedDone, enabled = ready, modifier = Modifier.weight(1f).height(50.dp),
+                shape = L.button, color = if (ready) L.accent else L.fill,
+            ) { Box(contentAlignment = Alignment.Center) { Text(tr("Done"), color = if (ready) L.onAccent else L.muted, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) } }
+        } else {
+            MainButton(p.state, a.onMain)
+            Surface(
+                onClick = a.onType, modifier = Modifier.weight(1f).height(50.dp),
+                shape = L.button, color = L.sheet, border = BorderStroke(1.dp, L.border),
+            ) { Box(contentAlignment = Alignment.Center) { Text(L.typeLabel, color = L.accent, fontSize = 16.sp) } }
         }
     }
 }

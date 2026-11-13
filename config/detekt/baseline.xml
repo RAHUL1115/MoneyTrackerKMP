@@ -47,7 +47,6 @@
     <ID>CyclomaticComplexMethod:InsightsTab.kt$@Composable internal fun InsightsTab()</ID>
     <ID>CyclomaticComplexMethod:InsightsTab.kt$@Composable private fun PartRow( part: Part, total: Long, top: Long, groupBy: GroupBy, income: Boolean, open: Boolean, accountName: Map&lt;String, String&gt;, catById: Map&lt;String, Category&gt;, onTap: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:IosMoneyManagerSource.kt$IosMoneyManagerSource$private fun txns()</ID>
-    <ID>CyclomaticComplexMethod:ListenSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun ListenSheetBody(onDismiss: () -&gt; Unit, startTyping: Boolean, onDone: (SmartGuess?) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:MessageScreens.kt$@Composable fun MessageSettingsScreen()</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$private fun etcRows(s: Map&lt;String, String&gt;): List&lt;Triple&lt;Int, String, String&gt;&gt;</ID>
@@ -142,7 +141,6 @@
     <ID>LongMethod:FeatureScreens.kt$@Composable fun TemplatesScreen()</ID>
     <ID>LongMethod:HomeTab.kt$@Composable private fun SpendingHero(onOpenTab: (FreshTab) -&gt; Unit)</ID>
     <ID>LongMethod:InsightsTab.kt$@Composable internal fun InsightsTab()</ID>
-    <ID>LongMethod:ListenSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun ListenSheetBody(onDismiss: () -&gt; Unit, startTyping: Boolean, onDone: (SmartGuess?) -&gt; Unit)</ID>
     <ID>LongMethod:MessageScreens.kt$@Composable fun MessageSettingsScreen()</ID>
     <ID>LongMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>LongMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
