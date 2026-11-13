@@ -77,8 +77,8 @@ private class Cycle(val range: DateRange, val charged: Long, val unpaid: Long)
 private fun cycles(history: List<Txn>, settlementDay: Int, today: LocalDate, count: Int): List<Cycle> {
     val ranges = generateSequence(Periods.cardCycle(today, settlementDay)) { Periods.cardCycle(it.start.minus(DatePeriod(days = 1)), settlementDay) }
         .take(count).toList().reversed()
-    var payments = history.filter { it.kind.sign > 0 }.sumOf { it.accountValue }
-    val charges = history.filter { it.kind.sign < 0 }
+    var payments = history.filter { it.kind.raisesBalance }.sumOf { it.accountValue }
+    val charges = history.filter { it.kind.lowersBalance }
     payments -= minOf(payments, charges.filter { it.date < ranges.first().start }.sumOf { it.accountValue })
     return ranges.map { r ->
         val charged = charges.filter { it.date in r }.sumOf { it.accountValue }
@@ -201,8 +201,8 @@ internal fun AccountDetailBody(accountId: String) {
             DetailTab.ENTRIES -> {
                 PeriodStepper(ym.label(), { periodKey = ym.plus(-1).key }, { periodKey = ym.plus(1).key }, onLabel = { monthPicker = true },
                     sub = if (startDay != 1) range.label() else null)
-                val deposit = txns.filter { it.kind.sign > 0 }.sumOf { it.accountValue }
-                val withdrawal = txns.filter { it.kind.sign < 0 }.sumOf { it.accountValue }
+                val deposit = txns.filter { it.kind.raisesBalance }.sumOf { it.accountValue }
+                val withdrawal = txns.filter { it.kind.lowersBalance }.sumOf { it.accountValue }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MiniTotal(tr("In"), fmt.format(deposit), F.income, Modifier.weight(1f))
                     MiniTotal(tr("Out"), fmt.format(withdrawal), F.expense, Modifier.weight(1f))
@@ -236,7 +236,7 @@ internal fun AccountDetailBody(accountId: String) {
                 } else (1..12).map { m -> monthShort(m) to Periods.month(YearMonth(ym.year, m), startDay) }
                 val sums = periods.mapIndexed { i, (label, r) ->
                     val inRange = history.filter { it.date in r }
-                    PeriodSum(label, r, inRange.filter { it.kind.sign > 0 }.sumOf { it.accountValue }, inRange.filter { it.kind.sign < 0 }.sumOf { it.accountValue },
+                    PeriodSum(label, r, inRange.filter { it.kind.raisesBalance }.sumOf { it.accountValue }, inRange.filter { it.kind.lowersBalance }.sumOf { it.accountValue },
                         history.filter { it.date <= r.endInclusive }.sumOf { it.signedAccountValue }, if (yearly) null else YearMonth(ym.year, i + 1))
                 }
                 FCard(padding = 0.dp) {

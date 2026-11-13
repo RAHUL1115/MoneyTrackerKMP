@@ -346,7 +346,7 @@ private fun ActList(
     val today = repo.today()
     val t = totals(rows)
     // TRANSFER_IN rows mirror TRANSFER_OUT; show each transfer once.
-    val visible = txns.filter { it.kind != TxnKind.TRANSFER_IN }.filter {
+    val visible = txns.filter { it.kind.isListed }.filter {
         when (kind) {
             ActKind.ALL -> true
             ActKind.OUT -> it.kind == TxnKind.EXPENSE
@@ -498,8 +498,8 @@ internal fun ActEntryRow(
     val currency = LocalCurrency.current
     val currencies = LocalCurrencies.current
     val prefs = LocalListPrefs.current
-    val transfer = txn.kind == TxnKind.TRANSFER_OUT || txn.kind == TxnKind.TRANSFER_IN
-    val adjust = txn.kind == TxnKind.ADJUST_UP || txn.kind == TxnKind.ADJUST_DOWN
+    val transfer = txn.kind.isTransfer
+    val adjust = txn.kind.isAdjustment
     val catName = when {
         transfer -> tr("Transfer")
         adjust -> tr(MODIFIED_BALANCE_NAME)
@@ -585,7 +585,7 @@ private fun SelectionPanel(selected: List<Txn>, onDone: () -> Unit, modifier: Mo
     var pickDate by remember { mutableStateOf(false) }
     val ids = selected.map { it.id }
     val n = ids.size
-    val net = selected.filter { it.kind != TxnKind.TRANSFER_IN }.sumOf { it.signedAmount }
+    val net = selected.filter { it.kind.isListed }.sumOf { it.signedAmount }
 
     fun entries(count: Int) = if (count == 1) tr("1 entry") else tr("{0} entries", count)
     /** Runs [change], then offers Undo that runs [undo]. A count below [n] means some entries could not take the change. */

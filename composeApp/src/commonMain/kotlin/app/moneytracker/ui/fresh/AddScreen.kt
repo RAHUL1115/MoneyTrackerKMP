@@ -166,9 +166,9 @@ private class AddForm(val repo: MoneyRepository, s: Screen.EditTxn, val main: Cu
     var timeOfDay by mutableStateOf(s.preset?.timeOfDay ?: if (s.txnId == null && timeOn) nowMinutes() else null)
     var error by mutableStateOf<String?>(null)
 
-    val isAdjustment get() = (existing?.kind == TxnKind.ADJUST_UP || existing?.kind == TxnKind.ADJUST_DOWN) && !converted
+    val isAdjustment get() = existing?.kind?.isAdjustment == true && !converted
     val catKind get() = if (type == DraftType.INCOME) CategoryKind.INCOME else CategoryKind.EXPENSE
-    val txnKind get() = when (type) { DraftType.INCOME -> TxnKind.INCOME; DraftType.TRANSFER -> TxnKind.TRANSFER_OUT; else -> TxnKind.EXPENSE }
+    val txnKind get() = when (type) { DraftType.INCOME -> TxnKind.INCOME; DraftType.TRANSFER -> TxnKind.TRANSFER_OUT; DraftType.EXPENSE, DraftType.REFUND -> TxnKind.EXPENSE }
     val isCreditCard: Boolean get() {
         val a = accountId?.let { id -> repo.accounts.current.firstOrNull { it.id == id } } ?: return false
         return repo.groups.current.firstOrNull { it.id == a.groupId }?.type?.isCreditCard == true

@@ -248,7 +248,7 @@ private fun DailyView(range: DateRange, onType: () -> Unit, onSpeak: () -> Unit)
     val pending = rules.flatMap { r -> app.moneytracker.domain.Recurrence.upcoming(r, range).map { r to it } }
     if (pending.isNotEmpty()) UpcomingRepeatsRow(pending, catById, currency) { nav.push(Screen.Recurring) }
     // TRANSFER_IN rows mirror TRANSFER_OUT; show each transfer once.
-    val visible = txns.filter { it.kind != TxnKind.TRANSFER_IN }
+    val visible = txns.filter { it.kind.isListed }
     if (visible.isEmpty()) { ClassicSmartAddBar(onType, onSpeak); ClassicDetectedCard(); EmptyState(icon = Icons.Outlined.Inbox); return }
     val dayTotals = rows.groupBy { it.date }.mapValues { totals(it.value) }
     // Smart add latches: shown when the list opens, gone once it scrolls out of view (coming back to the top doesn't
@@ -463,7 +463,7 @@ private fun DayDialog(day: LocalDate, onDismiss: () -> Unit) {
     val accountName by repo.accountNames.collectAsState(emptyMap())
     val catById by repo.categoryById.collectAsState(emptyMap())
     val rules by repo.reportRules.collectAsState(ReportRules.Empty)
-    val visible = txns.filter { it.kind != TxnKind.TRANSFER_IN }
+    val visible = txns.filter { it.kind.isListed }
     val tt = totals(visible.map { rules.row(it) })
     // A bottom sheet keeps rows full width (a dialog squeezed account names to "Ban…").
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = SurfaceColor) {
@@ -656,7 +656,7 @@ private fun SelectionBar(selected: List<Txn>, onClear: () -> Unit) {
         if (changed != null && changed < ids.size) message = tr("{0} of {1} entries changed (transfers keep their accounts and have no category).", changed, ids.size)
         onClear()
     }
-    val net = selected.filter { it.kind != TxnKind.TRANSFER_IN }.sumOf { it.signedAmount }
+    val net = selected.filter { it.kind.isListed }.sumOf { it.signedAmount }
     Row(Modifier.fillMaxWidth().background(Accent).padding(start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onClear) { Icon(Icons.Filled.Close, tr("Cancel selection"), tint = Color.White) }
         Column(Modifier.weight(1f)) {

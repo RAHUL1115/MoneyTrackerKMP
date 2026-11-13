@@ -177,7 +177,7 @@ object MoneyManagerBackup {
                 // "-4" is Money Manager's built-in "Modified Bal." (balance changes, with or without income/expense).
                 categoryId = when {
                     t.s("ctgUid")?.trim() == "-4" && !k.isTransfer -> app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
-                    k == TxnKind.INCOME || k == TxnKind.EXPENSE -> idOrNull(t.s("ctgUid"))?.takeIf { it in categoryIds }
+                    k.isIncomeOrExpense -> idOrNull(t.s("ctgUid"))?.takeIf { it in categoryIds }
                     else -> null
                 },
                 amountMain = amountMain,

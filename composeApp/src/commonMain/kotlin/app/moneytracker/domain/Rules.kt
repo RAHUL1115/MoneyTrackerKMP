@@ -278,8 +278,8 @@ data class CardStatus(
 fun cardStatus(txns: List<Txn>, settlementDay: Int, today: LocalDate, prepaid: Set<String> = emptySet()): CardStatus {
     val current = Periods.cardCycle(today, settlementDay)
     val previous = Periods.cardCycle(current.start.minus(DatePeriod(days = 1)), settlementDay)
-    var payments = txns.filter { it.kind.sign > 0 }.sumOf { it.accountValue }
-    val charges = txns.filter { it.kind.sign < 0 }
+    var payments = txns.filter { it.kind.raisesBalance }.sumOf { it.accountValue }
+    val charges = txns.filter { it.kind.lowersBalance }
 
     fun take(amount: Long): Long {          // returns the unpaid part
         val paid = minOf(amount, payments)

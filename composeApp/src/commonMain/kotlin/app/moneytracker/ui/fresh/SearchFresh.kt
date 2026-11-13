@@ -109,7 +109,7 @@ internal fun FreshSearch() {
         value = if (!active) emptyList() else withContext(repo.io) { repo.search(text, range, min, max, tagIds.toSet()) }
     }
     // Each transfer once (its outgoing side), then the type and account chips.
-    val results = found.sortedBy { if (it.kind == TxnKind.TRANSFER_IN) 1 else 0 }.distinctBy { it.transferGroupId ?: it.id }
+    val results = found.sortedBy { if (it.kind.isListed) 0 else 1 }.distinctBy { it.transferGroupId ?: it.id }
         .filter { t ->
             val type = when (t.kind) {
                 TxnKind.INCOME -> SearchType.INCOME.name
