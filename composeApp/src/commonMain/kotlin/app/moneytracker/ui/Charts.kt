@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -153,41 +154,48 @@ fun DonutChart(
     val focus by androidx.compose.animation.core.animateFloatAsState(if (selected != null) 1f else 0f, tween(250), label = "focus")
     val tap = if (onSelect == null || total <= 0f) Modifier else Modifier.pointerInput(values, selected) {
         detectTapGestures { o ->
-            val cx = size.width / 2f; val cy = size.height / 2f
-            val dx = o.x - cx; val dy = o.y - cy
-            val dist = kotlin.math.sqrt(dx * dx + dy * dy)
-            val outer = minOf(size.width, size.height) / 2f
-            // The ring, with some slack so a finger doesn't have to be exact; the hole clears the selection.
-            if (dist < outer * 0.55f || dist > outer * 1.1f) { onSelect(null); return@detectTapGestures }
-            val angle = ((kotlin.math.atan2(dy, dx) * 180.0 / kotlin.math.PI + 90.0 + 360.0) % 360.0).toFloat()
-            var start = 0f
-            val hit = values.indices.firstOrNull { i -> val sweep = values[i] / total * 360f; (angle >= start && angle < start + sweep).also { start += sweep } }
+            val hit = donutSliceAt(o.x - size.width / 2f, o.y - size.height / 2f, minOf(size.width, size.height) / 2f, values)
             onSelect(if (hit == selected) null else hit)
         }
     }
     Box(modifier, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize().then(tap)) {
-            val stroke = size.minDimension * 0.15f
-            val d = size.minDimension - stroke * 1.4f
-            val topLeft = Offset((size.width - d) / 2, (size.height - d) / 2)
-            drawArc(FillColor, 0f, 360f, false, topLeft, Size(d, d), style = Stroke(stroke))
-            if (total <= 0f) return@Canvas
-            val gap = if (values.count { it > 0 } > 1) 1.5f else 0f
-            val shown = 360f * sweepIn
-            var start = 0f
-            values.forEachIndexed { i, v ->
-                val sweep = v / total * 360f
-                val visible = minOf(sweep, shown - start)
-                if (visible > gap) {
-                    val isSel = i == selected
-                    val color = ChartColors[i % ChartColors.size].let { if (selected != null && !isSel) it.copy(alpha = 1f - 0.65f * focus) else it }
-                    drawArc(color, start - 90f + gap / 2, visible - gap, false, topLeft, Size(d, d),
-                        style = Stroke(if (isSel) stroke * (1f + 0.4f * focus) else stroke))
-                }
-                start += sweep
-            }
-        }
+        Canvas(Modifier.fillMaxSize().then(tap)) { drawDonut(values, total, 360f * sweepIn, selected, focus) }
         center()
+    }
+}
+
+/**
+ * The slice a tap hits, from its offset ([dx], [dy]) to the centre of a ring of radius [outer]; null for the hole or
+ * outside the ring. The ring gets some slack so a finger doesn't have to be exact.
+ */
+internal fun donutSliceAt(dx: Float, dy: Float, outer: Float, values: List<Long>): Int? {
+    val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+    if (dist < outer * 0.55f || dist > outer * 1.1f) return null
+    val total = values.sum().toFloat()
+    val angle = ((kotlin.math.atan2(dy, dx) * 180.0 / kotlin.math.PI + 90.0 + 360.0) % 360.0).toFloat()
+    var start = 0f
+    return values.indices.firstOrNull { i -> val sweep = values[i] / total * 360f; (angle >= start && angle < start + sweep).also { start += sweep } }
+}
+
+/** The grey track, then each slice up to [shown] degrees; a selected slice thickens as [focus] goes to 1 and the others fade. */
+private fun DrawScope.drawDonut(values: List<Long>, total: Float, shown: Float, selected: Int?, focus: Float) {
+    val stroke = size.minDimension * 0.15f
+    val d = size.minDimension - stroke * 1.4f
+    val topLeft = Offset((size.width - d) / 2, (size.height - d) / 2)
+    drawArc(FillColor, 0f, 360f, false, topLeft, Size(d, d), style = Stroke(stroke))
+    if (total <= 0f) return
+    val gap = if (values.count { it > 0 } > 1) 1.5f else 0f
+    var start = 0f
+    values.forEachIndexed { i, v ->
+        val sweep = v / total * 360f
+        val visible = minOf(sweep, shown - start)
+        if (visible > gap) {
+            val isSel = i == selected
+            val color = ChartColors[i % ChartColors.size].let { if (selected != null && !isSel) it.copy(alpha = 1f - 0.65f * focus) else it }
+            drawArc(color, start - 90f + gap / 2, visible - gap, false, topLeft, Size(d, d),
+                style = Stroke(if (isSel) stroke * (1f + 0.4f * focus) else stroke))
+        }
+        start += sweep
     }
 }
 

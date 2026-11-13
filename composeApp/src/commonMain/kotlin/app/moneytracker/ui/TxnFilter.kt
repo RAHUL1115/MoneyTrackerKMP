@@ -57,15 +57,18 @@ data class TxnFilter(
     val isActive get() = categoryIds.isNotEmpty() || accountIds.isNotEmpty() || tagIds.isNotEmpty()
 
     /** [tagged]: ids of entries carrying any of [tagIds] (looked up by the caller). */
-    fun matches(t: Txn, catById: Map<String, Category>, tagged: Set<String> = emptySet()): Boolean {
-        if (tagIds.isNotEmpty() && t.id !in tagged) return false
-        if (categoryIds.isNotEmpty()) {
-            val c = t.categoryId?.let { catById[it] } ?: return false
-            if (c.id !in categoryIds && c.parentId !in categoryIds) return false
-        }
-        if (accountIds.isNotEmpty() && t.accountId !in accountIds && t.toAccountId !in accountIds) return false
-        return true
+    fun matches(t: Txn, catById: Map<String, Category>, tagged: Set<String> = emptySet()): Boolean =
+        (tagIds.isEmpty() || t.id in tagged) && matchesCategory(t, catById) && matchesAccount(t)
+
+    /** A checked category matches its sub-categories too. */
+    private fun matchesCategory(t: Txn, catById: Map<String, Category>): Boolean {
+        if (categoryIds.isEmpty()) return true
+        val c = t.categoryId?.let { catById[it] } ?: return false
+        return c.id in categoryIds || c.parentId in categoryIds
     }
+
+    /** A transfer matches from either side. */
+    private fun matchesAccount(t: Txn) = accountIds.isEmpty() || t.accountId in accountIds || t.toAccountId in accountIds
 }
 
 /** Name lookups for [TxnFilter.names]; [liveCategoryIds] are the categories not deleted. */

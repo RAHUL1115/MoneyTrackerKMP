@@ -40,13 +40,25 @@ object I18n {
         val lang = when (parts[0]) { "in" -> "id"; "iw" -> "he"; "nn", "no" -> "nb"; else -> parts[0] }
         val region = parts.drop(1).firstOrNull { it.length == 2 && it.all(Char::isUpperCase) }
         val script = parts.drop(1).firstOrNull { it.length == 4 }
-        return listOfNotNull(
-            if (lang == "zh") when { region == "TW" -> "zh-TW"; region == "HK" || region == "MO" -> "zh-HK"; script == "Hant" -> "zh-TW"; else -> "zh-CN" } else null,
-            if (lang == "pt") if (region == "PT") "pt-PT" else "pt-BR" else null,
-            if (lang == "sr" && script == "Latn") "sr-Latn" else null,
-            region?.let { "$lang-$it" }, if (lang == "es" && region != null && region != "ES") "es-419" else null, lang,
-        ).firstOrNull { it in shipped } ?: "en"
+        return listOfNotNull(scriptOrCountryTable(lang, region, script), region?.let { "$lang-$it" }, latinAmericanSpanish(lang, region), lang)
+            .firstOrNull { it in shipped } ?: "en"
     }
+
+    /** Languages shipped per script or country rather than plain language: Chinese, Portuguese, Serbian in Latin letters. */
+    private fun scriptOrCountryTable(lang: String, region: String?, script: String?): String? = when (lang) {
+        "zh" -> when {
+            region == "TW" -> "zh-TW"
+            region == "HK" || region == "MO" -> "zh-HK"
+            script == "Hant" -> "zh-TW"
+            else -> "zh-CN"
+        }
+        "pt" -> if (region == "PT") "pt-PT" else "pt-BR"
+        "sr" -> if (script == "Latn") "sr-Latn" else null
+        else -> null
+    }
+
+    /** Spanish outside Spain gets the Latin American table. */
+    private fun latinAmericanSpanish(lang: String, region: String?) = if (lang == "es" && region != null && region != "ES") "es-419" else null
 }
 
 /** Translated text; {0}, {1}… are replaced by [args]. */

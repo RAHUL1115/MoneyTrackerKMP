@@ -69,41 +69,62 @@ object SmartEntry {
         val r = app.moneytracker.Log.timed("Smart", "parse of ${text.length} chars") {
             parser.parse(text, expense.map { it.name }.distinct(), income.map { it.name }.distinct(), visible.map { it.name })
         }
-        val type = when (r.type) {
-            "income" -> DraftType.INCOME
-            "transfer" -> DraftType.TRANSFER
-            "refund" -> DraftType.REFUND
-            else -> DraftType.EXPENSE
-        }
-        val pool = if (type == DraftType.INCOME) income else expense
-        val ranked = if (type == DraftType.TRANSFER) emptyList() else r.categories.map { it.name }
+        val type = draftTypeOf(r.type)
         val note = r.itemsHeard.joinToString(", ").replaceFirstChar { it.uppercase() }
         // Personal history first: once someone has saved "samosa" under their own category, that beats the model's guess.
         val mine = if (type == DraftType.TRANSFER || learned == null) null
             else SmsParser.words(note).takeIf { it.isNotEmpty() }?.let { learned(it) }
-        val learnedCategory = mine?.takeIf { it.categoryConfidence >= LEARNED_CATEGORY }?.categoryId?.let { id -> pool.firstOrNull { it.id == id } }
-        val modelCategory = ranked.firstOrNull()?.let { n -> pool.firstOrNull { it.name == n } }
-        val category = learnedCategory ?: modelCategory
+        val pick = pickCategory(type, r, if (type == DraftType.INCOME) income else expense, mine)
+        val category = pick.chosen
         val spoken = r.account.takeIf { it.isNotEmpty() }?.let { n -> visible.firstOrNull { it.name == n } }
         val amount = r.amount?.let { currency.parse(plain(it, currency.decimals)) } ?: 0L
-        // An account said out loud always wins; then the category's own default account; then the one usually used
-        // with this category, note and amount ("500 for burger" → wherever food usually goes).
         val kind = if (type == DraftType.INCOME) app.moneytracker.domain.TxnKind.INCOME else app.moneytracker.domain.TxnKind.EXPENSE
-        val guessed = if (spoken != null || type == DraftType.TRANSFER) null else
-            app.moneytracker.domain.defaultAccountFor(category?.id, categories.associateBy { it.id })?.let { id -> visible.firstOrNull { it.id == id } }
-                ?: usualAccount?.invoke(kind, category?.id, note, amount)?.let { id -> visible.firstOrNull { it.id == id } }
-                ?: mine?.takeIf { it.accountConfidence >= LEARNED_ACCOUNT }?.accountId?.let { id -> visible.firstOrNull { it.id == id } }
+        val guessed = if (spoken != null || type == DraftType.TRANSFER) null else unsaidAccount(
+            visible,
+            defaultId = app.moneytracker.domain.defaultAccountFor(category?.id, categories.associateBy { it.id }),
+            usualId = { usualAccount?.invoke(kind, category?.id, note, amount) },
+            learnedId = mine?.takeIf { it.accountConfidence >= LEARNED_ACCOUNT }?.accountId,
+        )
         val account = spoken ?: guessed
         val days = r.daysAgo.coerceIn(0, 31)
         SmartGuess(
             draft = TxnDraft(type, today.minus(DatePeriod(days = days)), account?.id.orEmpty(), categoryId = category?.id, amount = amount, note = note),
             categoryName = category?.name,
-            otherCategories = (listOfNotNull(modelCategory?.name) + ranked).distinct().filter { it != category?.name }.take(2),
+            otherCategories = pick.others(),
             accountName = account?.name,
             daysAgo = days,
-            categoryLearned = learnedCategory != null,
+            categoryLearned = pick.learned,
             accountGuessed = spoken == null && account != null,
         )
+    }
+
+    private fun draftTypeOf(parsedType: String) = when (parsedType) {
+        "income" -> DraftType.INCOME
+        "transfer" -> DraftType.TRANSFER
+        "refund" -> DraftType.REFUND
+        else -> DraftType.EXPENSE
+    }
+
+    /** The category picked from [pool], the model's own first choice, and the model's ranking of names (empty for transfers). */
+    private class CategoryPick(val chosen: Category?, val fromModel: Category?, val learned: Boolean, val ranked: List<String>) {
+        /** The next two names to offer besides the chosen one. */
+        fun others() = (listOfNotNull(fromModel?.name) + ranked).distinct().filter { it != chosen?.name }.take(2)
+    }
+
+    private fun pickCategory(type: DraftType, r: SmartParser.Result, pool: List<Category>, mine: Suggestion?): CategoryPick {
+        val ranked = if (type == DraftType.TRANSFER) emptyList() else r.categories.map { it.name }
+        val learnedCategory = mine?.takeIf { it.categoryConfidence >= LEARNED_CATEGORY }?.categoryId?.let { id -> pool.firstOrNull { it.id == id } }
+        val modelCategory = ranked.firstOrNull()?.let { n -> pool.firstOrNull { it.name == n } }
+        return CategoryPick(learnedCategory ?: modelCategory, modelCategory, learnedCategory != null, ranked)
+    }
+
+    /**
+     * An account that wasn't said out loud: the category's own default account, then the one usually used with this
+     * category, note and amount ("500 for burger" → wherever food usually goes), then the learned one. Only [visible] ones count.
+     */
+    private suspend fun unsaidAccount(visible: List<Account>, defaultId: String?, usualId: suspend () -> String?, learnedId: String?): Account? {
+        fun shown(id: String?) = id?.let { i -> visible.firstOrNull { it.id == i } }
+        return shown(defaultId) ?: shown(usualId()) ?: shown(learnedId)
     }
 
     private const val LEARNED_CATEGORY = 0.5
