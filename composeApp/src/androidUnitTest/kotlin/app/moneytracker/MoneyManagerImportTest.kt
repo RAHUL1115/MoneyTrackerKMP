@@ -37,7 +37,7 @@ class MoneyManagerImportTest {
     private fun repo(): MoneyRepository {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
-        return MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { LocalDate.parse("2026-10-13") }).also { it.seedIfEmpty() }
+        return MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { LocalDate.parse("2026-10-13") }).also { it.freshStart.seedIfEmpty() }
     }
 
     /** A tiny Money Manager v19 database with the cases that matter. */
@@ -86,17 +86,17 @@ class MoneyManagerImportTest {
     @Test fun convertsMoneyManagerBackup() = runTest {
         val data = MoneyManagerBackup.read(JdbcRowSource(fixture()), TimeZone.UTC)
         val repo = repo()
-        val r = repo.replaceWithMoneyManager(data)
+        val r = repo.moneyManagerBridge.replaceWithMoneyManager(data)
 
         assertEquals(8, r.transactions)                      // 9 rows, the deleted one skipped
         assertEquals(4, r.accounts); assertEquals(1, r.deletedAccounts)
         assertEquals(2, r.recurring)                          // unknown repeat type 99 is skipped
         assertTrue(r.skipped.any { "recurring r3" in it })
-        val rules = repo.rules.first().associateBy { it.id }
+        val rules = repo.repeatStore.rules.first().associateBy { it.id }
         assertEquals(app.moneytracker.domain.RepeatType.FOUR_MONTHLY, rules.getValue("r2").repeat)
         assertEquals("Every4m", rules.getValue("r2").note); assertEquals("Quarterly-ish", rules.getValue("r2").memo)
 
-        val all = repo.allTxns().associateBy { it.id }
+        val all = repo.txnStore.allTxns().associateBy { it.id }
         assertEquals(25_050L, all.getValue("t1").amount)
         assertEquals("extra", all.getValue("t1").memo)
         assertEquals(9 * 60 + 30, all.getValue("t1").timeOfDay)          // from ZDATE (09:30 UTC)
@@ -108,38 +108,38 @@ class MoneyManagerImportTest {
         assertEquals(10_000L, all.getValue("t7").accountAmount); assertEquals(800_000L, all.getValue("t7").amount)
         assertEquals(app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY, all.getValue("t8").categoryId)   // "-4" = Modified Bal.
         assertEquals("c3", all.getValue("t6").categoryId)               // deleted category kept for its name...
-        assertTrue(repo.categories.first().none { it.id == "c3" })      // ...but not offered in pickers
-        assertEquals("Old stuff", repo.categoryById.first()["c3"]?.name)
+        assertTrue(repo.categoryStore.categories.first().none { it.id == "c3" })      // ...but not offered in pickers
+        assertEquals("Old stuff", repo.categoryStore.categoryById.first()["c3"]?.name)
 
         // Balances in each account's own currency: wallet 1000 - 250.50 - 49.50; bank 50000 - 1000 - 5.
-        val bal = repo.balances.first()
+        val bal = repo.accountStore.balances.first()
         assertEquals(70_000L, bal["a1"]); assertEquals(4_899_500L, bal["a5"]); assertEquals(10_000L, bal["a4"])
         // Reports: income 50000 (adjustments and transfers excluded), expense 250.50 + 5.
-        val t = totals(repo.reportRows(DateRange(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-31"))).first())
+        val t = totals(repo.reportStore.reportRows(DateRange(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-31"))).first())
         assertEquals(5_000_000L, t.income); assertEquals(25_550L, t.expense)
 
-        val accounts = repo.accounts.first().associateBy { it.id }
+        val accounts = repo.accountStore.accounts.first().associateBy { it.id }
         assertEquals(20, accounts.getValue("a2").cardSettlementDay); assertEquals("a5", accounts.getValue("a2").cardPaymentAccountId)
         assertEquals("USD", accounts.getValue("a4").currency)
         assertEquals("pocket money", accounts.getValue("a1").memo)
         accounts.getValue("a2").let { assertEquals(5, it.cardPaymentDay); assertTrue(it.cardAutoPay); assertEquals(1_500_000L, it.usageTarget); assertEquals(2, it.usageTargetType) }
         assertEquals(null, accounts.getValue("a5").cardPaymentDay)        // not a credit card
         assertTrue(accounts.getValue("a4").hidden); assertTrue(accounts.values.filter { it.id != "a4" }.none { it.hidden })   // ZDATA '3' = hidden, not deleted
-        assertEquals(listOf("a3"), repo.deletedAccounts.first().map { it.id })
-        assertEquals("Closed bank", repo.accountNames.first()["a3"])     // history still shows its name
+        assertEquals(listOf("a3"), repo.accountStore.deletedAccounts.first().map { it.id })
+        assertEquals("Closed bank", repo.accountStore.accountNames.first()["a3"])     // history still shows its name
 
-        assertEquals("25", repo.settingNow(Prefs.MONTH_START_DAY.key))
-        assertEquals("MONDAY", repo.settingNow(Prefs.WEEK_START.key))
-        assertEquals("INPUT", repo.settingNow(Prefs.TIME_INPUT.key)); assertEquals("DESC", repo.settingNow(Prefs.TIME_SORT.key))
-        assertEquals("0", repo.settingNow(Prefs.AUTOCOMPLETE.key)); assertEquals("ACCOUNT", repo.settingNow(Prefs.INPUT_ORDER.key))
-        assertEquals("1", repo.settingNow(Prefs.SHOW_DESCRIPTION.key))
+        assertEquals("25", repo.settingsStore.settingNow(Prefs.MONTH_START_DAY.key))
+        assertEquals("MONDAY", repo.settingsStore.settingNow(Prefs.WEEK_START.key))
+        assertEquals("INPUT", repo.settingsStore.settingNow(Prefs.TIME_INPUT.key)); assertEquals("DESC", repo.settingsStore.settingNow(Prefs.TIME_SORT.key))
+        assertEquals("0", repo.settingsStore.settingNow(Prefs.AUTOCOMPLETE.key)); assertEquals("ACCOUNT", repo.settingsStore.settingNow(Prefs.INPUT_ORDER.key))
+        assertEquals("1", repo.settingsStore.settingNow(Prefs.SHOW_DESCRIPTION.key))
         assertEquals("1530", data.passcodePin)
-        assertEquals("1", repo.settingNow(Prefs.CARRY_OVER.key))
-        assertEquals(listOf("Trip"), repo.txnTagNames.first()["t1"])
-        assertEquals(listOf(30_000_00L), repo.budgetEntries(app.moneytracker.domain.YearMonth(2026, 10)).first().map { it.amount })
+        assertEquals("1", repo.settingsStore.settingNow(Prefs.CARRY_OVER.key))
+        assertEquals(listOf("Trip"), repo.tagStore.txnTagNames.first()["t1"])
+        assertEquals(listOf(30_000_00L), repo.reportStore.budgetEntries(app.moneytracker.domain.YearMonth(2026, 10)).first().map { it.amount })
         // Money Manager had sub-categories off, so suggestions use the main category.
-        assertEquals("0", repo.settingNow(Prefs.USE_SUBCATEGORIES.key))
-        assertEquals("c1", repo.suggest(listOf("pizza")).categoryId)       // learned "Lunch", suggested as "Food"
+        assertEquals("0", repo.settingsStore.settingNow(Prefs.USE_SUBCATEGORIES.key))
+        assertEquals("c1", repo.learningStore.suggest(listOf("pizza")).categoryId)       // learned "Lunch", suggested as "Food"
     }
 
     /**
@@ -151,7 +151,7 @@ class MoneyManagerImportTest {
         val conn = DriverManager.getConnection("jdbc:sqlite:" + File(path).absolutePath)
         val data = MoneyManagerBackup.read(JdbcRowSource(conn))
         val repo = repo()
-        val r = repo.replaceWithMoneyManager(data)
+        val r = repo.moneyManagerBridge.replaceWithMoneyManager(data)
         println("REAL BACKUP: $r")
         val expected = conn.createStatement().executeQuery("""
             SELECT I.assetUid,
@@ -160,7 +160,7 @@ class MoneyManagerImportTest {
             FROM INOUTCOME I JOIN ASSETS A ON A.uid = I.assetUid, CURRENCY C
             WHERE (I.IS_DEL IS NULL OR I.IS_DEL != 1) AND C.IS_MAIN_CURRENCY = 1 AND I.WDATE <= '2026-10-13'
             GROUP BY I.assetUid""").use { rs -> buildMap { while (rs.next()) put(rs.getString(1), Math.round(rs.getDouble(2) * 100)) } }
-        val ours = repo.balances.first()
+        val ours = repo.accountStore.balances.first()
         val mismatches = expected.filter { (id, v) -> (ours[id] ?: 0L) != v }
         println("ACCOUNTS COMPARED: ${expected.size}, MISMATCHES: ${mismatches.size}")
         mismatches.keys.take(5).forEach { println("  mismatch account $it: expected ${expected[it]} got ${ours[it]}") }

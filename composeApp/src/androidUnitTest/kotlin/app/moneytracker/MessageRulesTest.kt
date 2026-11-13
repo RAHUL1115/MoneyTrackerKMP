@@ -23,27 +23,27 @@ class MessageRulesTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
     }
 
     @Test fun blockedSendersAndWordsAreIgnored() {
-        repo.putSetting(Prefs.SMS_BLOCKED_SENDERS.key, "VM-PROMO")
-        repo.putSetting(Prefs.SMS_BLOCKED_PHRASES.key, "OTP")
-        assertEquals(null, repo.ingestMessage("SMS", "VM-PROMO", sms, 1))
-        assertEquals(null, repo.ingestMessage("SMS", "AD-HDFCBK", "$sms OTP 1234", 2))
-        assertTrue(repo.ingestMessage("SMS", "AD-HDFCBK", sms, 3) != null)
+        repo.settingsStore.putSetting(Prefs.SMS_BLOCKED_SENDERS.key, "VM-PROMO")
+        repo.settingsStore.putSetting(Prefs.SMS_BLOCKED_PHRASES.key, "OTP")
+        assertEquals(null, repo.messageIntake.ingestMessage("SMS", "VM-PROMO", sms, 1))
+        assertEquals(null, repo.messageIntake.ingestMessage("SMS", "AD-HDFCBK", "$sms OTP 1234", 2))
+        assertTrue(repo.messageIntake.ingestMessage("SMS", "AD-HDFCBK", sms, 3) != null)
     }
 
     @Test fun accountRuleFilesTheMessageAndAutoSaveKeepsTheOriginal() = runTest {
-        val card = repo.accounts.first().first { it.id == "acc_card" }
-        repo.saveAccount(card.copy(smsMatch = "x1234"))
-        repo.putSetting(Prefs.SMS_AUTO_SAVE.key, "1")
+        val card = repo.accountStore.accounts.first().first { it.id == "acc_card" }
+        repo.accountStore.saveAccount(card.copy(smsMatch = "x1234"))
+        repo.settingsStore.putSetting(Prefs.SMS_AUTO_SAVE.key, "1")
         // Auto-save needs a category too; this shop was filed under one before.
-        val food = repo.categoriesNow().first { it.kind == app.moneytracker.domain.CategoryKind.EXPENSE && it.parentId == null }
-        repo.learn(app.moneytracker.domain.SmsParser.tokens(app.moneytracker.domain.SmsParser.parse("AD-HDFCBK", sms)!!), food.id, null)
-        val c = repo.ingestMessage("SMS", "AD-HDFCBK", sms, 1_776_600_000_000)!!
+        val food = repo.categoryStore.categoriesNow().first { it.kind == app.moneytracker.domain.CategoryKind.EXPENSE && it.parentId == null }
+        repo.learningStore.learn(app.moneytracker.domain.SmsParser.tokens(app.moneytracker.domain.SmsParser.parse("AD-HDFCBK", sms)!!), food.id, null)
+        val c = repo.messageIntake.ingestMessage("SMS", "AD-HDFCBK", sms, 1_776_600_000_000)!!
         assertEquals("acc_card", c.accountId)
-        val saved = repo.accountTxns("acc_card").single()
+        val saved = repo.txnStore.accountTxns("acc_card").single()
         assertEquals(food.id, saved.categoryId)
         assertEquals(25_000L, saved.amount); assertEquals(sms, saved.origin)
     }

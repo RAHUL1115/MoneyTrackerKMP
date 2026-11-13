@@ -83,8 +83,8 @@ enum class ColorSet(val code: String) { NORMAL("A"), SWAPPED("B") }
 enum class SmsOriginal(val code: String) { KEEP("1"), OFF("0"), WHILE_EDITING("2") }
 
 /**
- * Every setting the app stores, each with its default written once. Read with `repo.setting(Prefs.X)` (live) or
- * `repo.settingNow(Prefs.X)`, write with `repo.putSetting(Prefs.X, value)`.
+ * Every setting the app stores, each with its default written once. Read with `settingsStore.setting(Prefs.X)` (live) or
+ * `settingsStore.settingNow(Prefs.X)`, write with `settingsStore.putSetting(Prefs.X, value)`.
  */
 object Prefs {
     // Money

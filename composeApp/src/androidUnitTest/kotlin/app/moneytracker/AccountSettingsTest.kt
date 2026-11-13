@@ -21,32 +21,32 @@ class AccountSettingsTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
     }
 
     @Test fun categoryDefaultAccountPersistsAndSubcategoriesInherit() = runTest {
-        val food = repo.categories.first().first { it.id == "cat_ex_0" }
-        repo.saveCategory(food.copy(defaultAccountId = "acc_card"))
-        val cats = repo.categories.first().associateBy { it.id }
+        val food = repo.categoryStore.categories.first().first { it.id == "cat_ex_0" }
+        repo.categoryStore.saveCategory(food.copy(defaultAccountId = "acc_card"))
+        val cats = repo.categoryStore.categories.first().associateBy { it.id }
         assertEquals("acc_card", cats.getValue("cat_ex_0").defaultAccountId)
         assertEquals("acc_card", app.moneytracker.domain.defaultAccountFor("cat_ex_0_1", cats))   // "Eating out" inherits
-        repo.saveCategory(cats.getValue("cat_ex_0_1").copy(defaultAccountId = "acc_cash"))
-        val cats2 = repo.categories.first().associateBy { it.id }
+        repo.categoryStore.saveCategory(cats.getValue("cat_ex_0_1").copy(defaultAccountId = "acc_cash"))
+        val cats2 = repo.categoryStore.categories.first().associateBy { it.id }
         assertEquals("acc_cash", app.moneytracker.domain.defaultAccountFor("cat_ex_0_1", cats2))  // own default wins
         assertEquals(null, app.moneytracker.domain.defaultAccountFor("cat_ex_1", cats2))          // none set
     }
 
     @Test fun hiddenAccountsAndOrdering() = runTest {
-        repo.setAccountHidden("acc_cash", true)
-        assertTrue(repo.accounts.first().first { it.id == "acc_cash" }.hidden)
-        repo.reorderAccounts(listOf("acc_savings", "acc_card", "acc_bank", "acc_cash"))
-        assertEquals("acc_savings", repo.accounts.first().first().id)
+        repo.accountStore.setAccountHidden("acc_cash", true)
+        assertTrue(repo.accountStore.accounts.first().first { it.id == "acc_cash" }.hidden)
+        repo.accountStore.reorderAccounts(listOf("acc_savings", "acc_card", "acc_bank", "acc_cash"))
+        assertEquals("acc_savings", repo.accountStore.accounts.first().first().id)
     }
 
     @Test fun accountKeepsMemoAndCardDetails() = runTest {
-        val card = repo.accounts.first().first { it.id == "acc_card" }
-        repo.saveAccount(card.copy(memo = "PIN hint", cardPaymentDay = 5, cardAutoPay = true, usageTarget = 1_000, usageTargetType = 2, hidden = true))
-        val saved = repo.accounts.first().first { it.id == "acc_card" }
+        val card = repo.accountStore.accounts.first().first { it.id == "acc_card" }
+        repo.accountStore.saveAccount(card.copy(memo = "PIN hint", cardPaymentDay = 5, cardAutoPay = true, usageTarget = 1_000, usageTargetType = 2, hidden = true))
+        val saved = repo.accountStore.accounts.first().first { it.id == "acc_card" }
         assertEquals("PIN hint", saved.memo); assertEquals(5, saved.cardPaymentDay); assertTrue(saved.cardAutoPay)
         assertEquals(1_000L, saved.usageTarget); assertEquals(2, saved.usageTargetType); assertTrue(saved.hidden)
     }

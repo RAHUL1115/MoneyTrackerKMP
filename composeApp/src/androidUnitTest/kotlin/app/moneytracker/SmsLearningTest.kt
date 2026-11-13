@@ -15,21 +15,21 @@ class SmsLearningTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         val repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { LocalDate.parse("2026-10-13") })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
         val sms = "Rs.250.00 spent on HDFC Bank Card x1234 at SWIGGY on 2026-10-12."
-        val first = repo.ingestMessage("SMS", "VM-HDFCBK", sms, 1_000_000)!!
-        val d1 = repo.draftFromCapture(first)
+        val first = repo.messageIntake.ingestMessage("SMS", "VM-HDFCBK", sms, 1_000_000)!!
+        val d1 = repo.messageIntake.draftFromCapture(first)
         assertEquals(25_000, d1.amount); assertEquals("Swiggy", d1.note); assertEquals(null, d1.categoryId)
         // User files it under Food › Eating out on the credit card.
-        repo.completeCapture(first, d1.copy(categoryId = "cat_ex_0_1", accountId = "acc_card"), "t1")
+        repo.messageIntake.completeCapture(first, d1.copy(categoryId = "cat_ex_0_1", accountId = "acc_card"), "t1")
         // Same text within 2 minutes is a duplicate; a later one is new.
-        assertEquals(null, repo.ingestMessage("SMS", "VM-HDFCBK", sms, 1_060_000))
-        val second = repo.ingestMessage("SMS", "VM-HDFCBK", sms.replace("250.00", "410.00"), 9_000_000)!!
-        val d2 = repo.draftFromCapture(second)
+        assertEquals(null, repo.messageIntake.ingestMessage("SMS", "VM-HDFCBK", sms, 1_060_000))
+        val second = repo.messageIntake.ingestMessage("SMS", "VM-HDFCBK", sms.replace("250.00", "410.00"), 9_000_000)!!
+        val d2 = repo.messageIntake.draftFromCapture(second)
         // Sub-categories are off by default, so the learned "Eating out" is suggested as its main category.
         assertEquals("cat_ex_0", d2.categoryId)
         assertEquals("acc_card", d2.accountId)
-        repo.putSetting(Prefs.USE_SUBCATEGORIES.key, "1")
-        assertEquals("cat_ex_0_1", repo.draftFromCapture(second).categoryId)
+        repo.settingsStore.putSetting(Prefs.USE_SUBCATEGORIES.key, "1")
+        assertEquals("cat_ex_0_1", repo.messageIntake.draftFromCapture(second).categoryId)
     }
 }

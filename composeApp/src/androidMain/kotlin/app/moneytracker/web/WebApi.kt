@@ -149,7 +149,7 @@ class WebApi(
 
     // ───────────────────────── sign-in
 
-    private fun passwordSet(r: MoneyRepository) = !r.settingNow(Prefs.WEB_PASSWORD).isNullOrEmpty()
+    private fun passwordSet(r: MoneyRepository) = !r.settingsStore.settingNow(Prefs.WEB_PASSWORD).isNullOrEmpty()
 
     private fun cookieToken(req: HttpRequest): String? = req.header("cookie")?.split(';')
         ?.map { it.trim() }?.firstOrNull { it.startsWith("$COOKIE=") }?.substringAfter('=')
@@ -199,7 +199,7 @@ class WebApi(
         if (wait > 0) return HttpResponse.json(mapOf("error" to "Too many tries. Wait a minute, then try again.", "wait" to wait), 429)
         val body = jsonObject(req)
         val password = body?.get("password") as? String ?: return HttpResponse.error(400, "Enter the password")
-        val stored = r.settingNow(Prefs.WEB_PASSWORD)
+        val stored = r.settingsStore.settingNow(Prefs.WEB_PASSWORD)
         if (stored.isNullOrEmpty() || WebPassword.check(password, stored)) {
             synchronized(lockouts) { lockouts.remove(req.remote) }
             val (_, cookie) = newSession(req)
@@ -268,31 +268,31 @@ class WebApi(
         try { Json.parse(req.bodyText) as? Map<*, *> } catch (_: IllegalArgumentException) { null }
 
     private fun meta(r: MoneyRepository): Map<String, Any?> {
-        val fmt = r.currencyFormatNow()
-        val ps = r.periodSettingsNow()
-        val groups = r.groupsNow()
+        val fmt = r.settingsStore.currencyFormatNow()
+        val ps = r.settingsStore.periodSettingsNow()
+        val groups = r.accountStore.groupsNow()
         val groupType = groups.associate { it.id to it.type }
         return mapOf(
             "currency" to mapOf("symbol" to fmt.symbol, "decimals" to fmt.decimals, "after" to fmt.symbolAfter,
-                "code" to (r.settingNow(Prefs.CURRENCY_CODE) ?: "INR")),
-            "currencies" to r.currenciesNow().map { mapOf("code" to it.code, "symbol" to it.symbol, "decimals" to it.decimals) },
+                "code" to (r.settingsStore.settingNow(Prefs.CURRENCY_CODE) ?: "INR")),
+            "currencies" to r.currencyStore.currenciesNow().map { mapOf("code" to it.code, "symbol" to it.symbol, "decimals" to it.decimals) },
             "today" to r.today().toString(),
             "month" to ps.labelFor(r.today()).key,
             "groups" to groups.map { mapOf("id" to it.id, "name" to it.name, "type" to it.type.name) },
-            "accounts" to r.accountsNow().map {
+            "accounts" to r.accountStore.accountsNow().map {
                 mapOf("id" to it.id, "name" to it.name, "groupId" to it.groupId, "hidden" to it.hidden, "currency" to it.currency,
                     "card" to (groupType[it.groupId]?.isCreditCard == true))
             },
-            "categories" to r.categoriesNow().map { mapOf("id" to it.id, "name" to it.name, "kind" to it.kind.name, "parentId" to it.parentId) } +
+            "categories" to r.categoryStore.categoriesNow().map { mapOf("id" to it.id, "name" to it.name, "kind" to it.kind.name, "parentId" to it.parentId) } +
                 mapOf("id" to MODIFIED_BALANCE_CATEGORY, "name" to MODIFIED_BALANCE_NAME, "kind" to "SYSTEM", "parentId" to null),
-            "tags" to r.tagsNow().map { mapOf("id" to it.id, "name" to it.name) },
-            "subcategories" to r.settingNow(Prefs.USE_SUBCATEGORIES),
+            "tags" to r.tagStore.tagsNow().map { mapOf("id" to it.id, "name" to it.name) },
+            "subcategories" to r.settingsStore.settingNow(Prefs.USE_SUBCATEGORIES),
         )
     }
 
     /** ?period=month|3m|year&ym=202611, or ?from=2026-11-01&to=2026-11-30. */
     private fun range(req: HttpRequest, r: MoneyRepository): Pair<DateRange, String> {
-        val ps = r.periodSettingsNow()
+        val ps = r.settingsStore.periodSettingsNow()
         val ym = req.query["ym"]?.toIntOrNull()?.takeIf { it % 100 in 1..12 }?.let(YearMonth::fromKey) ?: ps.labelFor(r.today())
         return when (req.query["period"]) {
             "3m" -> DateRange(ps.month(ym.plus(-2)).start, ps.month(ym).endInclusive) to "3m"
@@ -310,11 +310,11 @@ class WebApi(
 
     private fun txns(r: MoneyRepository, rp: Pair<DateRange, String>): Map<String, Any?> {
         val (range, period) = rp
-        val flows = r.reportRowsNow(range).associate { it.txnId to classify(it) }
+        val flows = r.reportStore.reportRowsNow(range).associate { it.txnId to classify(it) }
         val tagIds = HashMap<String, List<String>>()
-        val tagByName = r.tagsNow().associate { it.name to it.id }
-        r.txnTagNamesNow().forEach { (id, names) -> tagIds[id] = names.mapNotNull { tagByName[it] } }
-        val rows = r.txnsNow(range).filter { it.kind.isListed }.map { t -> row(t, flows[t.id], tagIds[t.id].orEmpty()) }
+        val tagByName = r.tagStore.tagsNow().associate { it.name to it.id }
+        r.tagStore.txnTagNamesNow().forEach { (id, names) -> tagIds[id] = names.mapNotNull { tagByName[it] } }
+        val rows = r.txnStore.txnsNow(range).filter { it.kind.isListed }.map { t -> row(t, flows[t.id], tagIds[t.id].orEmpty()) }
         return mapOf("from" to range.start.toString(), "to" to range.endInclusive.toString(), "period" to period, "rows" to rows)
     }
 
@@ -343,11 +343,11 @@ class WebApi(
     private fun draft(r: MoneyRepository, b: Map<*, *>, existing: Txn?): TxnDraft {
         val type = DraftType.entries.firstOrNull { it.name == str(b, "type") } ?: throw ApiError(400, "Pick income, expense or transfer")
         val date = LocalDate.Formats.ISO.parseOrNull(str(b, "date")) ?: throw ApiError(400, "Pick a date")
-        val accounts = r.accountsNow().associateBy { it.id }
+        val accounts = r.accountStore.accountsNow().associateBy { it.id }
         val account = accounts[str(b, "account")] ?: throw ApiError(400, if (type == DraftType.TRANSFER) "Pick the account to move from" else "Pick an account")
-        val base = existing?.let { EntryEditor(r).open(it.id)?.draft }
+        val base = existing?.let { editor(r).open(it.id)?.draft }
         val currency = if (base != null && base.currency != null) base.currency else account.currency
-        val decimals = currency?.let { c -> r.currenciesNow().firstOrNull { it.code == c }?.decimals } ?: r.currencyFormatNow().decimals
+        val decimals = currency?.let { c -> r.currencyStore.currenciesNow().firstOrNull { it.code == c }?.decimals } ?: r.settingsStore.currencyFormatNow().decimals
         val amount = CurrencyFormat(decimals = decimals).parse(str(b, "amount"))?.takeIf { it > 0 } ?: throw ApiError(400, "Enter an amount above zero")
         var to: Account? = null
         var category: String? = null
@@ -359,7 +359,7 @@ class WebApi(
             // Listed only to name past corrections; it isn't a category an entry can pick.
             if (category == MODIFIED_BALANCE_CATEGORY) throw ApiError(400, "Balance corrections are made on the phone. Pick a category")
             if (category != null) {
-                val c = r.categoriesNow().firstOrNull { it.id == category } ?: throw ApiError(400, "That category was deleted on the phone")
+                val c = r.categoryStore.categoriesNow().firstOrNull { it.id == category } ?: throw ApiError(400, "That category was deleted on the phone")
                 val wanted = if (type == DraftType.INCOME) CategoryKind.INCOME else CategoryKind.EXPENSE
                 if (c.kind != wanted) throw ApiError(400, "Pick a category for this type")
             }
@@ -369,7 +369,7 @@ class WebApi(
         val note = str(b, "note").take(500)
         val memo = str(b, "memo").take(2000)
         val tagIds = ((b["tags"] as? List<*>) ?: emptyList<Any?>()).mapNotNull { (it as? String)?.trim()?.removePrefix("#")?.trim()?.takeIf { n -> n.isNotEmpty() }?.take(60) }
-            .distinctBy { it.lowercase() }.take(20).map { r.tagNamed(it) }
+            .distinctBy { it.lowercase() }.take(20).map { r.tagStore.tagNamed(it) }
         val fee = if (type == DraftType.TRANSFER && base?.type == DraftType.TRANSFER) base.fee else 0L
         return (base ?: TxnDraft(type, date, account.id, amount = amount)).copy(
             type = type, date = date, accountId = account.id, toAccountId = to?.id, categoryId = category,
@@ -383,10 +383,11 @@ class WebApi(
         return mapOf("id" to id)
     }
 
-    private fun editor(r: MoneyRepository) = EntryEditor(r)
+    private fun editor(r: MoneyRepository) =
+        EntryEditor(r.txnStore, r.photoStore, r.accountStore, r.learningStore, r.messageIntake, r.entryWriter)
 
     private fun editable(r: MoneyRepository, id: String): Txn {
-        val t = r.liveTxn(id) ?: throw ApiError(404, "This entry was deleted on the phone. Reload to see the latest.")
+        val t = r.txnStore.liveTxn(id) ?: throw ApiError(404, "This entry was deleted on the phone. Reload to see the latest.")
         row(t, null, emptyList())["lock"]?.let { throw ApiError(409, it.toString()) }
         return t
     }
@@ -417,15 +418,15 @@ class WebApi(
     // ───────────────────────── analytics and accounts
 
     private fun summary(r: MoneyRepository, req: HttpRequest): Map<String, Any?> {
-        val ps = r.periodSettingsNow()
+        val ps = r.settingsStore.periodSettingsNow()
         val ym = req.query["ym"]?.toIntOrNull()?.takeIf { it % 100 in 1..12 }?.let(YearMonth::fromKey) ?: ps.labelFor(r.today())
         val trend = (5 downTo 0).map { back ->
             val m = ym.plus(-back)
-            val t = r.totalsNow(ps.month(m))
+            val t = r.reportStore.totalsNow(ps.month(m))
             mapOf("ym" to m.key, "income" to t.income, "expense" to t.expense)
         }
         val range = ps.month(ym)
-        val catById = r.categoryByIdNow()
+        val catById = r.categoryStore.categoryByIdNow()
         val lines = r.views.budgetNow(ym).lines   // same budget numbers as the phone
         val today = r.today()
         val daysSoFar = when {
@@ -446,9 +447,9 @@ class WebApi(
     private fun DateRange.days() = endInclusive.toEpochDays() - start.toEpochDays() + 1
 
     private fun accounts(r: MoneyRepository): Map<String, Any?> {
-        val groups = r.groupsNow()
-        val currencies = r.currenciesNow()
-        val mainDecimals = r.currencyFormatNow().decimals
+        val groups = r.accountStore.groupsNow()
+        val currencies = r.currencyStore.currenciesNow()
+        val mainDecimals = r.settingsStore.currencyFormatNow().decimals
         val today = r.today()
         val (lines, worth) = r.views.accountsNow()   // same account summary as the phone
         val byGroup = lines.filter { !it.account.hidden }.groupBy { it.group.id }
@@ -477,8 +478,8 @@ class WebApi(
     private fun export(r: MoneyRepository, req: HttpRequest): HttpResponse {
         val (range, _) = range(req, r)
         val account = req.query["account"]?.takeIf { it.isNotEmpty() }
-        val txns = r.txnsNow(range).filter { account == null || it.accountId == account || it.toAccountId == account }
-        val rows = TabularImport.exportRows(txns, r.accountsNow(), r.categoriesNow(), r.currencyFormatNow(), r.currenciesNow(), r.txnTagNamesNow())
+        val txns = r.txnStore.txnsNow(range).filter { account == null || it.accountId == account || it.toAccountId == account }
+        val rows = TabularImport.exportRows(txns, r.accountStore.accountsNow(), r.categoryStore.categoriesNow(), r.settingsStore.currencyFormatNow(), r.currencyStore.currenciesNow(), r.tagStore.txnTagNamesNow())
         val name = "MoneyTracker-${range.start}-to-${range.endInclusive}.csv"
         return HttpResponse.text(200, "﻿" + TabularImport.toCsv(rows), "text/csv; charset=utf-8",
             listOf("Content-Disposition" to "attachment; filename=\"$name\""))

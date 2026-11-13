@@ -10,15 +10,25 @@ enum class EntryProblem { NO_AMOUNT, BAD_FEE, NO_ACCOUNT, NO_CATEGORY, NO_DESTIN
 /**
  * The one save path for entries typed by the person: both phone layouts and the web dashboard.
  *
- * It owns what every editor used to repeat by hand: [MoneyRepository.update] rewrites an entry under a new id, so
+ * It owns what every editor used to repeat by hand: [TxnStore.update] rewrites an entry under a new id, so
  * photos are moved over and location is kept; repeat rules get no photos; instalments only on card expenses;
  * learning from the note; and marking a detected SMS as saved.
  *
  * Blocking database calls: run off the main thread. Form state stays in each screen; only the rules live here.
  */
-class EntryEditor(private val repo: MoneyRepository) {
+class EntryEditor(
+    private val txns: TxnStore,
+    private val photoStore: PhotoStore,
+    private val accounts: AccountStore,
+    private val learning: LearningStore,
+    private val intake: MessageIntake,
+    private val writer: EntryWriter,
+) {
+    /** Temporary: keeps `EntryEditor(repo)` compiling until every caller passes the stores itself. */
+    constructor(repo: MoneyRepository) :
+        this(repo.txnStore, repo.photoStore, repo.accountStore, repo.learningStore, repo.messageIntake, repo.entryWriter)
 
-    /** An entry opened for editing, with what [MoneyRepository.draftFrom] leaves out (location, photos). */
+    /** An entry opened for editing, with what [TxnStore.draftFrom] leaves out (location, photos). */
     class Opened(val txn: Txn, val draft: TxnDraft, val photos: List<Photo>) {
         val isAdjustment get() = txn.kind.isAdjustment
     }
@@ -27,8 +37,8 @@ class EntryEditor(private val repo: MoneyRepository) {
     class Deleted internal constructor(internal val draft: TxnDraft, internal val photos: List<String>)
 
     fun open(id: String): Opened? {
-        val t = repo.txn(id) ?: return null
-        return Opened(t, repo.draftFrom(t).copy(lat = t.lat, lng = t.lng), repo.photosNow(t.id))
+        val t = txns.txn(id) ?: return null
+        return Opened(t, txns.draftFrom(t).copy(lat = t.lat, lng = t.lng), photoStore.photosNow(t.id))
     }
 
     /**
@@ -45,12 +55,12 @@ class EntryEditor(private val repo: MoneyRepository) {
             installments = if (draft.type == DraftType.EXPENSE && isCard(draft.accountId)) draft.installments else 1,
             repeat = if (existing == null) draft.repeat else null,
         )
-        val id = repo.inTransaction {
-            val files = photos ?: existing?.let { e -> repo.photosNow(e.id).map { it.fileName } }.orEmpty()
-            val id = if (existing == null) repo.create(d) else repo.update(existing, d)
-            if (d.repeat == null) files.forEach { repo.addPhoto(id, it) }
-            repo.learnFromDraft(d)
-            capture?.let { repo.completeCapture(it, d, id) }
+        val id = txns.inTransaction {
+            val files = photos ?: existing?.let { e -> photoStore.photosNow(e.id).map { it.fileName } }.orEmpty()
+            val id = if (existing == null) txns.create(d) else txns.update(existing, d)
+            if (d.repeat == null) files.forEach { photoStore.addPhoto(id, it) }
+            learning.learnFromDraft(d)
+            capture?.let { intake.completeCapture(it, d, id) }
             id
         }
         return id
@@ -58,7 +68,7 @@ class EntryEditor(private val repo: MoneyRepository) {
 
     /** Edits a balance correction in place. [amount] is in the account's currency; [up] = the balance went up. */
     fun saveAdjustment(t: Txn, date: kotlinx.datetime.LocalDate, amount: Long, accountId: String, up: Boolean, note: String, memo: String, timeOfDay: Int? = t.timeOfDay) {
-        repo.updateAdjustment(t, date, amount, accountId, up, note, memo, timeOfDay)
+        txns.updateAdjustment(t, date, amount, accountId, up, note, memo, timeOfDay)
     }
 
     /**
@@ -68,26 +78,26 @@ class EntryEditor(private val repo: MoneyRepository) {
     fun delete(t: Txn): Deleted? {
         val adjustment = t.kind.isAdjustment
         val gone = if (adjustment) null else
-            Deleted(repo.draftFrom(t).copy(lat = t.lat, lng = t.lng, rate = repo.rateOf(t)), repo.photosNow(t.id).map { it.fileName })
-        repo.delete(t, wholeInstallmentPlan = true)
+            Deleted(txns.draftFrom(t).copy(lat = t.lat, lng = t.lng, rate = writer.rateOf(t)), photoStore.photosNow(t.id).map { it.fileName })
+        txns.delete(t, wholeInstallmentPlan = true)
         return gone
     }
 
-    fun delete(id: String): Deleted? = repo.txn(id)?.let { delete(it) }
+    fun delete(id: String): Deleted? = txns.txn(id)?.let { delete(it) }
 
     /** Puts a deleted entry back (under a new id). */
     fun restore(d: Deleted): String {
-        val id = repo.inTransaction {
-            val id = repo.create(d.draft)
-            d.photos.forEach { repo.addPhoto(id, it) }
+        val id = txns.inTransaction {
+            val id = txns.create(d.draft)
+            d.photos.forEach { photoStore.addPhoto(id, it) }
             id
         }
         return id
     }
 
     private fun isCard(accountId: String): Boolean {
-        val a = repo.accountNow(accountId) ?: return false
-        return repo.groupsNow().firstOrNull { it.id == a.groupId }?.type?.isCreditCard == true
+        val a = accounts.accountNow(accountId) ?: return false
+        return accounts.groupsNow().firstOrNull { it.id == a.groupId }?.type?.isCreditCard == true
     }
 
     companion object {

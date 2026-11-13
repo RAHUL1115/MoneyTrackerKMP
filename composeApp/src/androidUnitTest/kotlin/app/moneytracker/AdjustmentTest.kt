@@ -22,28 +22,28 @@ class AdjustmentTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
     }
 
     @Test fun adjustmentIsNeutralByDefaultAndEditable() = runTest {
-        repo.adjustBalance("acc_cash", 5_000)
-        val adj = repo.allTxns().single()
+        repo.txnStore.adjustBalance("acc_cash", 5_000)
+        val adj = repo.txnStore.allTxns().single()
         assertEquals(app.moneytracker.domain.TxnKind.ADJUST_UP, adj.kind)
         assertEquals(app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY, adj.categoryId)
         // Neutral: no income or expense in reports.
-        assertEquals(0L, app.moneytracker.domain.totals(repo.reportRows(DateRange(today, today)).first()).income)
-        assertEquals(5_000L, repo.balances.first()["acc_cash"])
+        assertEquals(0L, app.moneytracker.domain.totals(repo.reportStore.reportRows(DateRange(today, today)).first()).income)
+        assertEquals(5_000L, repo.accountStore.balances.first()["acc_cash"])
         // Edit: smaller, decrease, other account.
-        repo.updateAdjustment(adj, today, 1_200, "acc_bank", up = false, note = "fix")
-        val edited = repo.allTxns().single()
+        repo.txnStore.updateAdjustment(adj, today, 1_200, "acc_bank", up = false, note = "fix")
+        val edited = repo.txnStore.allTxns().single()
         assertEquals(app.moneytracker.domain.TxnKind.ADJUST_DOWN, edited.kind)
-        assertEquals(-1_200L, repo.balances.first()["acc_bank"])
-        assertEquals(null, repo.balances.first()["acc_cash"])
+        assertEquals(-1_200L, repo.accountStore.balances.first()["acc_bank"])
+        assertEquals(null, repo.accountStore.balances.first()["acc_cash"])
     }
 
     @Test fun adjustmentCanBeIncomeOrExpense() = runTest {
-        repo.adjustBalance("acc_cash", -300, asIncomeExpense = true)
-        val t = repo.allTxns().single()
+        repo.txnStore.adjustBalance("acc_cash", -300, asIncomeExpense = true)
+        val t = repo.txnStore.allTxns().single()
         assertEquals(app.moneytracker.domain.TxnKind.EXPENSE, t.kind)
         assertEquals("Difference", t.note)
         assertEquals(app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY, t.categoryId)

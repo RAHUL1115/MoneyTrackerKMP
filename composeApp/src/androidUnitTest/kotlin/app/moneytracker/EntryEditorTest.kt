@@ -31,8 +31,8 @@ class EntryEditorTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
-        editor = EntryEditor(repo)
+        repo.freshStart.seedIfEmpty()
+        editor = EntryEditor(repo.txnStore, repo.photoStore, repo.accountStore, repo.learningStore, repo.messageIntake, repo.entryWriter)
     }
 
     private fun expense(amount: Long = 25_000, account: String = "acc_cash", note: String = "Lunch") =
@@ -61,28 +61,28 @@ class EntryEditorTest {
 
     @Test fun newEntryKeepsPhotosLearnsAndRefreshes() {
         val id = editor.save(expense(note = "Pizza at Dominos"), photos = listOf("a.jpg", "b.jpg"))
-        assertEquals(listOf("a.jpg", "b.jpg"), repo.photosNow(id).map { it.fileName }.sorted())
-        assertEquals("cat_ex_0", repo.suggest(app.moneytracker.domain.SmsParser.words("Pizza"))?.categoryId)
+        assertEquals(listOf("a.jpg", "b.jpg"), repo.photoStore.photosNow(id).map { it.fileName }.sorted())
+        assertEquals("cat_ex_0", repo.learningStore.suggest(app.moneytracker.domain.SmsParser.words("Pizza"))?.categoryId)
     }
 
     @Test fun repeatRulesGetNoPhotos() = runTest {
         val ruleId = editor.save(expense().copy(repeat = RepeatType.MONTHLY), photos = listOf("a.jpg"))
-        assertTrue(repo.rules.first().any { it.id == ruleId })
-        assertTrue(repo.allTxns().none { repo.photosNow(it.id).isNotEmpty() })
+        assertTrue(repo.repeatStore.rules.first().any { it.id == ruleId })
+        assertTrue(repo.txnStore.allTxns().none { repo.photoStore.photosNow(it.id).isNotEmpty() })
     }
 
     @Test fun instalmentsOnlyOnCardExpenses() {
         val card = editor.save(expense(30_000, "acc_card").copy(installments = 3))
-        assertEquals(3, repo.installmentGroup(repo.txn(card)!!.installmentGroupId!!).size)
+        assertEquals(3, repo.txnStore.installmentGroup(repo.txnStore.txn(card)!!.installmentGroupId!!).size)
         val cash = editor.save(expense(30_000, "acc_cash").copy(installments = 3))
-        assertNull(repo.txn(cash)!!.installmentGroupId)
+        assertNull(repo.txnStore.txn(cash)!!.installmentGroupId)
     }
 
     @Test fun savingADetectedSmsMarksItSaved() = runTest {
-        val c = repo.ingestMessage("SMS", "AD-HDFCBK", "Rs.250.00 debited from a/c XX1234 at SWIGGY on 10-03-26", 1_773_000_000_000)!!
-        val id = editor.save(repo.draftFromCapture(c).copy(categoryId = "cat_ex_0", accountId = "acc_bank"), capture = c)
-        assertTrue(repo.pendingCaptures.first().none { it.id == c.id })
-        assertNotNull(repo.liveTxn(id))
+        val c = repo.messageIntake.ingestMessage("SMS", "AD-HDFCBK", "Rs.250.00 debited from a/c XX1234 at SWIGGY on 10-03-26", 1_773_000_000_000)!!
+        val id = editor.save(repo.messageIntake.draftFromCapture(c).copy(categoryId = "cat_ex_0", accountId = "acc_bank"), capture = c)
+        assertTrue(repo.captureStore.pendingCaptures.first().none { it.id == c.id })
+        assertNotNull(repo.txnStore.liveTxn(id))
     }
 
     // ───────────── edit
@@ -100,31 +100,31 @@ class EntryEditorTest {
         val opened = editor.open(id)!!
         val newId = editor.save(opened.draft.copy(amount = 30_000, note = "Lunch x2"), existing = opened.txn, photos = opened.photos.map { it.fileName } + "b.jpg")
         assertNotEquals(id, newId)                                    // update() rewrites the rows
-        val t = repo.txn(newId)!!
+        val t = repo.txnStore.txn(newId)!!
         assertEquals(30_000, t.amount); assertEquals(12.9, t.lat)
-        assertEquals(listOf("a.jpg", "b.jpg"), repo.photosNow(newId).map { it.fileName }.sorted())
-        assertNull(repo.liveTxn(id))
+        assertEquals(listOf("a.jpg", "b.jpg"), repo.photoStore.photosNow(newId).map { it.fileName }.sorted())
+        assertNull(repo.txnStore.liveTxn(id))
     }
 
     @Test fun photoRemovedInTheFormIsGoneAfterSave() {
         val id = editor.save(expense(), photos = listOf("a.jpg", "b.jpg"))
         val opened = editor.open(id)!!
         val newId = editor.save(opened.draft, existing = opened.txn, photos = listOf("b.jpg"))
-        assertEquals(listOf("b.jpg"), repo.photosNow(newId).map { it.fileName })
+        assertEquals(listOf("b.jpg"), repo.photoStore.photosNow(newId).map { it.fileName })
     }
 
     @Test fun withoutAPhotoListAnEditKeepsThePhotos() {
         val id = editor.save(expense(), photos = listOf("a.jpg"))
         val opened = editor.open(id)!!
         val newId = editor.save(opened.draft.copy(note = "Web edit"), existing = opened.txn)
-        assertEquals(listOf("a.jpg"), repo.photosNow(newId).map { it.fileName })
+        assertEquals(listOf("a.jpg"), repo.photoStore.photosNow(newId).map { it.fileName })
     }
 
     @Test fun editingNeverTurnsAnEntryIntoARepeat() = runTest {
         val id = editor.save(expense())
         val opened = editor.open(id)!!
         editor.save(opened.draft.copy(repeat = RepeatType.MONTHLY), existing = opened.txn)
-        assertTrue(repo.rules.first().isEmpty())
+        assertTrue(repo.repeatStore.rules.first().isEmpty())
     }
 
     @Test fun editingATransferKeepsItsFee() {
@@ -132,18 +132,18 @@ class EntryEditorTest {
         val opened = editor.open(id)!!
         assertEquals(50, opened.draft.fee)
         val newId = editor.save(opened.draft.copy(amount = 6_000), existing = opened.txn)
-        val group = repo.transferGroup(repo.txn(newId)!!.transferGroupId!!)
+        val group = repo.txnStore.transferGroup(repo.txnStore.txn(newId)!!.transferGroupId!!)
         assertEquals(50L, group.first { it.kind == TxnKind.EXPENSE }.amount)
         assertEquals(6_000L, group.first { it.kind == TxnKind.TRANSFER_OUT }.amount)
     }
 
     @Test fun balanceCorrectionsAreEditedInPlace() {
-        repo.adjustBalance("acc_cash", 10_000)
-        val adj = repo.allTxns().single { it.kind == TxnKind.ADJUST_UP }
+        repo.txnStore.adjustBalance("acc_cash", 10_000)
+        val adj = repo.txnStore.allTxns().single { it.kind == TxnKind.ADJUST_UP }
         val opened = editor.open(adj.id)!!
         assertTrue(opened.isAdjustment)
         editor.saveAdjustment(opened.txn, today, 4_000, "acc_cash", up = false, note = "Fixed", memo = "")
-        val t = repo.txn(adj.id)!!
+        val t = repo.txnStore.txn(adj.id)!!
         assertEquals(TxnKind.ADJUST_DOWN, t.kind); assertEquals("Fixed", t.note)
     }
 
@@ -151,26 +151,26 @@ class EntryEditorTest {
 
     @Test fun deleteAndRestoreKeepPhotosLocationAndRate() {
         val id = editor.save(expense().copy(lat = 1.0, lng = 2.0), photos = listOf("a.jpg"))
-        val gone = editor.delete(repo.txn(id)!!)
+        val gone = editor.delete(repo.txnStore.txn(id)!!)
         assertNotNull(gone)
-        assertNull(repo.liveTxn(id))
+        assertNull(repo.txnStore.liveTxn(id))
         val back = editor.restore(gone)
-        val t = repo.txn(back)!!
+        val t = repo.txnStore.txn(back)!!
         assertEquals(25_000, t.amount); assertEquals(1.0, t.lat)
-        assertEquals(listOf("a.jpg"), repo.photosNow(back).map { it.fileName })
+        assertEquals(listOf("a.jpg"), repo.photoStore.photosNow(back).map { it.fileName })
     }
 
     @Test fun deletingAPlanEntryDeletesTheWholePlan() {
         val id = editor.save(expense(30_000, "acc_card").copy(installments = 3))
-        val group = repo.txn(id)!!.installmentGroupId!!
-        editor.delete(repo.installmentGroup(group).last())
-        assertTrue(repo.installmentGroup(group).none { repo.liveTxn(it.id) != null })
+        val group = repo.txnStore.txn(id)!!.installmentGroupId!!
+        editor.delete(repo.txnStore.installmentGroup(group).last())
+        assertTrue(repo.txnStore.installmentGroup(group).none { repo.txnStore.liveTxn(it.id) != null })
     }
 
     @Test fun balanceCorrectionsCannotBeRestoredAsEntries() {
-        repo.adjustBalance("acc_cash", 10_000)
-        val adj = repo.allTxns().single { it.kind == TxnKind.ADJUST_UP }
+        repo.txnStore.adjustBalance("acc_cash", 10_000)
+        val adj = repo.txnStore.allTxns().single { it.kind == TxnKind.ADJUST_UP }
         assertNull(editor.delete(adj))
-        assertNull(repo.liveTxn(adj.id))
+        assertNull(repo.txnStore.liveTxn(adj.id))
     }
 }

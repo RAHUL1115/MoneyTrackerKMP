@@ -26,7 +26,7 @@ class IosMoneyManagerImportTest {
     private fun repo(): MoneyRepository {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
-        return MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { LocalDate.parse("2026-10-13") }).also { it.seedIfEmpty() }
+        return MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { LocalDate.parse("2026-10-13") }).also { it.freshStart.seedIfEmpty() }
     }
 
     private fun db(vararg sql: String): Connection {
@@ -85,14 +85,14 @@ class IosMoneyManagerImportTest {
         assertTrue(MoneyManagerBackup.isMoneyManager(src.tables()))
         val data = MoneyManagerBackup.read(src, TimeZone.UTC)
         val repo = repo()
-        val r = repo.replaceWithMoneyManager(data)
+        val r = repo.moneyManagerBridge.replaceWithMoneyManager(data)
 
         assertEquals(6, r.transactions)                      // deleted entry and old repeat template dropped
         assertEquals(4, r.accounts); assertEquals(1, r.deletedAccounts)
         assertEquals(1, r.recurring)                         // repeat type 0 is not a rule
         assertEquals("INR", data.mainCode); assertEquals(listOf("USD"), data.currencies.map { it.code })
 
-        val all = repo.allTxns().associateBy { it.id }
+        val all = repo.txnStore.allTxns().associateBy { it.id }
         all.getValue("t1").let {
             assertEquals(LocalDate.parse("2026-10-01"), it.date); assertEquals(9 * 60 + 30, it.timeOfDay)
             assertEquals(25_050L, it.amount); assertEquals("c2", it.categoryId); assertEquals("Pizza", it.note); assertEquals("extra", it.memo)
@@ -108,7 +108,7 @@ class IosMoneyManagerImportTest {
         assertEquals(3_000L, all.getValue("t8").amount)       // ZAMOUNT 0 in main currency → ZAMOUNTSUB
         assertNull(all["t6"]); assertNull(all["t7"])
 
-        val accounts = repo.accounts.first().associateBy { it.id }
+        val accounts = repo.accountStore.accounts.first().associateBy { it.id }
         assertEquals("pocket money", accounts.getValue("a1").memo)
         accounts.getValue("a2").let {
             assertEquals(20, it.cardSettlementDay); assertEquals(5, it.cardPaymentDay); assertTrue(it.cardAutoPay)
@@ -116,22 +116,22 @@ class IosMoneyManagerImportTest {
         }
         assertTrue(accounts.getValue("a4").hidden); assertEquals("USD", accounts.getValue("a4").currency)
         assertFalse(accounts.getValue("a5").includeInTotals); assertTrue(accounts.getValue("a5").transferAsExpense)
-        assertEquals(listOf("a3"), repo.deletedAccounts.first().map { it.id })
+        assertEquals(listOf("a3"), repo.accountStore.deletedAccounts.first().map { it.id })
 
-        val cats = repo.categories.first().associateBy { it.id }
+        val cats = repo.categoryStore.categories.first().associateBy { it.id }
         assertEquals("c1", cats.getValue("c2").parentId); assertNull(cats.getValue("c1").parentId)
-        assertTrue("c3" !in cats); assertEquals("Old stuff", repo.categoryById.first()["c3"]?.name)
+        assertTrue("c3" !in cats); assertEquals("Old stuff", repo.categoryStore.categoryById.first()["c3"]?.name)
 
-        val rule = repo.rules.first().single()
+        val rule = repo.repeatStore.rules.first().single()
         assertEquals(RepeatType.MONTHLY, rule.repeat); assertEquals(LocalDate.parse("2026-10-26"), rule.nextDate)
         assertEquals(120_000L, rule.amount); assertEquals("Netflix", rule.note); assertEquals("subs", rule.memo); assertEquals("c1", rule.categoryId)
 
-        assertEquals(listOf(30_000_00L), repo.budgetEntries(YearMonth(2026, 10)).first().map { it.amount })
-        assertEquals(listOf("Trip"), repo.txnTagNames.first()["t1"])
-        assertEquals("25", repo.settingNow(Prefs.MONTH_START_DAY.key))
-        assertEquals("MONDAY", repo.settingNow(Prefs.WEEK_START.key))
-        assertEquals("1", repo.settingNow(Prefs.USE_SUBCATEGORIES.key))
-        assertEquals("A", repo.settingNow(Prefs.COLOR_SET.key))   // default colours written when missing
+        assertEquals(listOf(30_000_00L), repo.reportStore.budgetEntries(YearMonth(2026, 10)).first().map { it.amount })
+        assertEquals(listOf("Trip"), repo.tagStore.txnTagNames.first()["t1"])
+        assertEquals("25", repo.settingsStore.settingNow(Prefs.MONTH_START_DAY.key))
+        assertEquals("MONDAY", repo.settingsStore.settingNow(Prefs.WEEK_START.key))
+        assertEquals("1", repo.settingsStore.settingNow(Prefs.USE_SUBCATEGORIES.key))
+        assertEquals("A", repo.settingsStore.settingNow(Prefs.COLOR_SET.key))   // default colours written when missing
         assertEquals("1530", data.passcodePin)
     }
 
@@ -161,17 +161,17 @@ class IosMoneyManagerImportTest {
         assertEquals(2191, src.version)
         val data = MoneyManagerBackup.read(src, TimeZone.UTC)
         val repo = repo()
-        val r = repo.replaceWithMoneyManager(data)
+        val r = repo.moneyManagerBridge.replaceWithMoneyManager(data)
         assertEquals(3, r.transactions); assertEquals(2, r.accounts); assertEquals(1, r.recurring)
 
-        val accounts = repo.accounts.first().associateBy { it.id }
+        val accounts = repo.accountStore.accounts.first().associateBy { it.id }
         assertEquals("11", accounts.getValue("1").groupId); assertEquals("note", accounts.getValue("1").memo)
-        val all = repo.allTxns().associateBy { it.id }
+        val all = repo.txnStore.allTxns().associateBy { it.id }
         assertEquals("10_11", all.getValue("10").transferGroupId); assertEquals("10_11", all.getValue("11").transferGroupId)
         assertEquals("1", all.getValue("10").toAccountId); assertEquals(TxnKind.TRANSFER_IN, all.getValue("11").kind)
         all.getValue("12").let { assertEquals("2", it.categoryId); assertEquals("USD", it.currency); assertEquals(1_000L, it.originalAmount); assertEquals(80_000L, it.amount) }
-        assertEquals("1", repo.categories.first().single { it.id == "2" }.parentId)
-        val rule = repo.rules.first().single()
+        assertEquals("1", repo.categoryStore.categories.first().single { it.id == "2" }.parentId)
+        val rule = repo.repeatStore.rules.first().single()
         assertEquals(RepeatType.WEEKLY, rule.repeat); assertEquals(LocalDate.parse("2026-10-26"), rule.nextDate); assertEquals("1", rule.accountId)
     }
 }

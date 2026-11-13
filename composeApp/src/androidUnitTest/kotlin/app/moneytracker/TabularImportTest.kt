@@ -29,19 +29,19 @@ class TabularImportTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
     }
 
     @Test fun importOwnExportRoundTrips() = runTest {
-        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 12_345, note = "Lunch, with \"team\""))
-        repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_savings", amount = 50_000))
-        val rows = TabularImport.exportRows(repo.allTxns(), repo.accounts.first(), repo.categories.first(), CurrencyFormat(), emptyList(), emptyMap())
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 12_345, note = "Lunch, with \"team\""))
+        repo.txnStore.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_savings", amount = 50_000))
+        val rows = TabularImport.exportRows(repo.txnStore.allTxns(), repo.accountStore.accounts.first(), repo.categoryStore.categories.first(), CurrencyFormat(), emptyList(), emptyMap())
         val csv = TabularImport.toCsv(rows)
-        val result = repo.importRows(TabularImport.parseCsv(csv))
+        val result = repo.sheetImport.importRows(TabularImport.parseCsv(csv))
         assertEquals(2, result.imported)
         assertEquals(0, result.createdAccounts)
         assertEquals(0, result.createdCategories)
-        val lunches = repo.allTxns().filter { it.note == "Lunch, with \"team\"" }
+        val lunches = repo.txnStore.allTxns().filter { it.note == "Lunch, with \"team\"" }
         assertEquals(2, lunches.size)
         assertTrue(lunches.all { it.amount == 12_345L && it.categoryId == "cat_ex_0_1" })
     }
@@ -53,9 +53,9 @@ class TabularImportTest {
             listOf("2026-03-14", "Wallet", "Gifts", "100", "From aunt"),
             listOf("bad date", "Wallet", "", "1", ""),
         )
-        val r = repo.importRows(rows)
+        val r = repo.sheetImport.importRows(rows)
         assertEquals(2, r.imported); assertEquals(1, r.skipped); assertEquals(1, r.createdAccounts)
-        val t = totals(repo.reportRows(march).first())
+        val t = totals(repo.reportStore.reportRows(march).first())
         assertEquals(4_550, t.expense); assertEquals(10_000, t.income)
     }
 }
