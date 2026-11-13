@@ -61,8 +61,6 @@
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$private fun etcRows(s: Map&lt;String, String&gt;): List&lt;Triple&lt;Int, String, String&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
-    <ID>CyclomaticComplexMethod:MoneyRepository.kt$MoneyRepository$fun importParsed(parsed: TabularImport.Parsed): ImportResult</ID>
-    <ID>CyclomaticComplexMethod:MoneyRepository.kt$MoneyRepository$fun replaceWithMoneyManager(d: MoneyManagerBackup.Data): LegacyResult</ID>
     <ID>CyclomaticComplexMethod:MoneyTab.kt$@Composable internal fun MoneyTab()</ID>
     <ID>CyclomaticComplexMethod:MoneyTab.kt$@Composable private fun AccountRow(l: AccountLine, today: LocalDate)</ID>
     <ID>CyclomaticComplexMethod:MoneyTab.kt$@Composable private fun ManageSheet(lines: List&lt;AccountLine&gt;, onDismiss: () -&gt; Unit)</ID>
@@ -120,7 +118,6 @@
     <ID>ForEachOnRange:SecurityScreens.kt$0..3</ID>
     <ID>ForEachOnRange:TransactionsScreen.kt$(0 until 7).map { DayOfWeek.entries[(weekStart.ordinal + it) % 7] }</ID>
     <ID>InstanceOfCheckForException:Log.kt$Log$t is kotlinx.coroutines.CancellationException</ID>
-    <ID>LargeClass:MoneyRepository.kt$MoneyRepository</ID>
     <ID>LongMethod:AboutScreen.kt$@Composable fun AboutScreen()</ID>
     <ID>LongMethod:AccountDetailScreen.kt$@Composable private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List&lt;Txn&gt;, today: LocalDate)</ID>
     <ID>LongMethod:AccountDetailScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable internal fun AccountDetailBody(accountId: String)</ID>
@@ -167,7 +164,6 @@
     <ID>LongMethod:MessageScreens.kt$@Composable fun MessageSettingsScreen()</ID>
     <ID>LongMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>LongMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
-    <ID>LongMethod:MoneyRepository.kt$MoneyRepository$fun replaceWithMoneyManager(d: MoneyManagerBackup.Data): LegacyResult</ID>
     <ID>LongMethod:MoneyTab.kt$@Composable /** Tapping the card opens or closes the last six months of net worth. */ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Boolean, onToggle: () -&gt; Unit)</ID>
     <ID>LongMethod:MoneyTab.kt$@Composable internal fun MoneyTab()</ID>
     <ID>LongMethod:MoneyTab.kt$@Composable private fun AccountRow(l: AccountLine, today: LocalDate)</ID>

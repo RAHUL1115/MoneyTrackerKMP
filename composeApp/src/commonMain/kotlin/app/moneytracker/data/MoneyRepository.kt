@@ -20,13 +20,6 @@ import app.moneytracker.domain.Totals
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
-import app.moneytracker.domain.AccountType
-import app.moneytracker.domain.CategoryKind
-import app.moneytracker.domain.SmsParser
-import app.moneytracker.db.Account as AccountRow
-import app.moneytracker.db.AccountGroup as GroupRow
-import app.moneytracker.db.Category as CategoryRow
-import app.moneytracker.db.Note as NoteRow
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Clock
@@ -45,8 +38,6 @@ class MoneyRepository(
     val today: () -> LocalDate = { Clock.System.todayIn(TimeZone.currentSystemDefault()) },
 ) {
     private val db = Db(database, io, now, today)
-    private val q get() = db.q
-    private fun now() = db.now()
 
     val settingsStore = SettingsStore(db)
     val currencyStore = CurrencyStore(db, settingsStore)
@@ -63,6 +54,9 @@ class MoneyRepository(
     val txnStore = TxnStore(db, settingsStore, currencyStore, accountStore, tagStore, entryWriter, repeatStore)
     val reportStore = ReportStore(db, settingsStore, accountStore)
     val messageIntake = MessageIntake(db, settingsStore, currencyStore, accountStore, categoryStore, learningStore, captureStore, txnStore)
+    val sheetImport = SheetImport(db, settingsStore, categoryStore, tagStore, entryWriter)
+    val moneyManagerBridge = MoneyManagerBridge(db, settingsStore, currencyStore, tagStore, learningStore, repeatStore, entryWriter, txnStore)
+    val freshStart = FreshStart(db, settingsStore, tagStore)
 
     /** Finished views (accounts, budgets, month totals) for screens, the web dashboard and widgets. */
     val views: ReadModels by lazy { ReadModels(this) }
@@ -213,202 +207,12 @@ class MoneyRepository(
     fun deleteRule(id: String) = repeatStore.deleteRule(id)
     fun generateRecurring(): Int = repeatStore.generateRecurring()
 
-    // ───────────────────────── not split yet: import, export, reset
-
-    // ───────────────────────── reset
-
-    /**
-     * [everything] = back to a fresh install (accounts, categories, settings except passcode/security);
-     * otherwise only entries and what hangs off them (budgets, repeats, bookmarks, photos, detected SMS) go.
-     */
-    fun reset(everything: Boolean) = db.transaction {
-        listOf(q::wipeTxn, q::wipeTxnTags, q::wipeBudget, q::wipeRules, q::wipePhotos, q::wipeTemplates).forEach { it() }
-        q.wipeCaptures()
-        if (everything) {
-            listOf(q::wipeAccount, q::wipeAccountGroup, q::wipeCategory, q::wipeTags, q::wipeCurrencies, q::wipeLearning, q::wipeLearnLabels)
-                .forEach { it() }
-            putSetting(Prefs.SEEDED, false)
-            seedIfEmpty()
-        }
-    }
-
-    // ───────────────────────── import (CSV / Excel rows)
-
-    data class ImportResult(val imported: Int, val skipped: Int, val createdAccounts: Int, val createdCategories: Int, val errors: List<String>)
-
-    /**
-     * Imports tabular rows (first row = header). Columns are matched by header name, so both our own
-     * export and simple spreadsheets work: Date, Type (Income/Expense/Transfer…), Account, To account,
-     * Category, Subcategory, Amount, Note, Description/Memo, Currency, Tags. Missing accounts and
-     * categories are created. Everything runs in one transaction.
-     */
-    fun importRows(rows: List<List<String>>): ImportResult = importParsed(parseRows(rows))
-
-    /** First step of an import: read the sheet without saving anything (for the preview). */
-    fun parseRows(rows: List<List<String>>): TabularImport.Parsed =
-        TabularImport.parse(rows, mainDecimals(), q.allCurrencies().executeAsList().map { it.toDomain() })
-
-    /** Second step: saves the rows the user kept. */
-    fun importParsed(parsed: TabularImport.Parsed): ImportResult = db.transactionWithResult {
-        val accountsByName = q.allAccounts().executeAsList().associateBy { it.name.lowercase() }.toMutableMap()
-        val cats = q.allCategories().executeAsList().map { it.toDomain() }.toMutableList()
-        var newAccounts = 0
-        var newCats = 0
-        fun accountId(name: String): String {
-            accountsByName[name.lowercase()]?.let { return it.id }
-            val id = newId()
-            val row = AccountRow(id, "grp_other", name, 1, 0, null, null, accountsByName.size.toLong() + 100, 0, now(), null, null, 0, "", null, 0, null, 1, "", "")
-            q.upsertAccount(row); accountsByName[name.lowercase()] = row; newAccounts++
-            return id
-        }
-        fun categoryId(kind: CategoryKind, main: String, sub: String): String? {
-            if (main.isBlank()) return null
-            val m = cats.firstOrNull { it.kind == kind && it.parentId == null && it.name.equals(main, true) }
-                ?: Category(newId(), main, kind, null, cats.size).also { saveCategory(it); cats += it; newCats++ }
-            if (sub.isBlank()) return m.id
-            val s = cats.firstOrNull { it.parentId == m.id && it.name.equals(sub, true) }
-                ?: Category(newId(), sub, kind, m.id, cats.size).also { saveCategory(it); cats += it; newCats++ }
-            return s.id
-        }
-        var imported = 0
-        for (r in parsed.rows) {
-            val kind = if (r.type == DraftType.INCOME) CategoryKind.INCOME else CategoryKind.EXPENSE
-            val draft = TxnDraft(
-                r.type, r.date, accountId(r.account),
-                r.toAccount?.let { accountId(it) },
-                if (r.type == DraftType.TRANSFER) null else categoryId(kind, r.category, r.subcategory),
-                r.amount, note = r.note, memo = r.memo, currency = r.currency,
-                tagIds = r.tags.map { tagNamed(it) },
-            )
-            entryWriter.writeDraft(draft, recurringRuleId = null, fixedId = null)
-            imported++
-        }
-        ImportResult(imported, parsed.errors.size, newAccounts, newCats, parsed.errors.take(20))
-    }
-
-    // ───────────────────────── restore from Money Manager (.mmbak)
-
-    data class LegacyResult(
-        val transactions: Int, val accounts: Int, val deletedAccounts: Int, val categories: Int,
-        val recurring: Int, val budgets: Int, val skipped: List<String>,
-    )
-
-    /**
-     * Replaces everything with the contents of a Money Manager backup, in one database transaction
-     * (any failure leaves current data untouched). Settings like passcode are kept.
-     */
-    /** Everything a Money Manager backup can hold, in the importer's shape, for [MoneyManagerExport]. Deleted accounts and categories are kept so old entries keep their names. */
-    fun moneyManagerData(): MoneyManagerBackup.Data {
-        val keys = Prefs.carriedByMoneyManager.map { it.key }
-        val mainCode = settingNow(Prefs.CURRENCY_CODE)
-        return MoneyManagerBackup.Data(
-            mainCode = mainCode, mainSymbol = settingNow(Prefs.CURRENCY_SYMBOL), mainDecimals = mainDecimals(),
-            currencies = q.allCurrencies().executeAsList().filter { it.code != mainCode }
-                .map { MoneyManagerBackup.Currency(it.code, it.symbol, it.decimals.toInt(), it.rate) },
-            groups = q.everyGroup().executeAsList().map { MoneyManagerBackup.Group(it.id, it.name, AccountType.valueOf(it.type), it.sortOrder.toInt(), it.deleted != 0L) },
-            accounts = q.everyAccount().executeAsList().map { a ->
-                MoneyManagerBackup.Account(a.id, a.groupId, a.name, a.includeInTotals != 0L, a.transferAsExpense != 0L, a.cardSettlementDay?.toInt(),
-                    a.cardPaymentAccountId, a.sortOrder.toInt(), a.currency, a.deleted != 0L, a.hidden != 0L, a.memo, a.cardPaymentDay?.toInt(),
-                    a.cardAutoPay != 0L, a.usageTarget, a.usageTargetType.toInt(), a.smsSender, a.smsMatch)
-            },
-            categories = q.everyCategory().executeAsList().map {
-                MoneyManagerBackup.Category(it.id, it.name, it.kind == CategoryKind.INCOME.name, it.parentId, it.sortOrder.toInt(), it.deleted != 0L)
-            },
-            txns = allTxns().let { all ->
-                val activeRules = q.activeRules().executeAsList().map { it.id }.toSet()
-                all.map { t ->
-                    MoneyManagerBackup.Txn(t.id, t.kind, t.date, t.createdAt, t.accountId, t.toAccountId, t.categoryId, t.amount, t.currency,
-                        t.originalAmount, t.accountAmount, t.note, t.memo, t.transferGroupId, t.installmentGroupId, t.installmentLabel, t.lat, t.lng,
-                        t.timeOfDay, t.origin, recurringRuleId = t.recurringRuleId?.takeIf { it in activeRules })
-                }
-            },
-            rules = q.activeRules().executeAsList().map { it.toDomain() }.map { r ->
-                MoneyManagerBackup.Rule(r.id, r.kind, r.accountId, r.toAccountId, r.categoryId, r.amount, r.note, r.repeat, r.nextDate, r.endDate, r.currency, r.memo)
-            },
-            budgets = q.allBudgetAmounts().executeAsList().map { MoneyManagerBackup.Budget(it.categoryId, it.period.toInt(), it.amount) },
-            tags = q.allTags().executeAsList().map { MoneyManagerBackup.Tag(it.id, it.name, it.sortOrder.toInt()) },
-            txnTags = q.allTxnTagIds().executeAsList().map { it.txnId to it.tagId },
-            memos = q.allNotes().executeAsList().map { MoneyManagerBackup.Memo(it.id, it.title, it.content, it.pinned != 0L, it.createdAt) },
-            settings = keys.mapNotNull { k -> settingNow(k)?.let { k to it } }.toMap(),
-            skipped = emptyList(),
-        )
-    }
-
-    fun replaceWithMoneyManager(d: MoneyManagerBackup.Data): LegacyResult = db.transactionWithResult {
-        listOf(q::wipeTxn, q::wipeAccount, q::wipeAccountGroup, q::wipeCategory, q::wipeBudget, q::wipeRules, q::wipeTags,
-            q::wipeTxnTags, q::wipeCurrencies, q::wipeNotes, q::wipePhotos, q::wipeTemplates, q::wipeLearning, q::wipeLearnLabels, q::wipeCaptures)
-            .forEach { it() }
-        val ts = now()
-        putSetting(Prefs.CURRENCY_SYMBOL, d.mainSymbol)
-        putSetting(Prefs.CURRENCY_DECIMALS, d.mainDecimals)
-        putSetting(Prefs.CURRENCY_CODE, d.mainCode)
-        d.settings.forEach { (k, v) -> putSetting(k, v) }
-        d.currencies.forEachIndexed { i, c -> saveCurrency(Currency(c.code, c.symbol, c.decimals, c.rate, i)) }
-        d.groups.forEach { g -> q.upsertGroupRaw(g.id, g.name, g.type.name, g.sortOrder.toLong(), g.deleted.toLong(), ts) }
-        d.accounts.forEach { a ->
-            q.upsertAccountRaw(a.id, a.groupId, a.name, a.includeInTotals.toLong(), a.transferAsExpense.toLong(), a.cardSettlementDay?.toLong(),
-                a.cardPaymentAccountId, a.sortOrder.toLong(), a.deleted.toLong(), ts, a.currency, null, a.hidden.toLong(),
-                a.memo, a.cardPaymentDay?.toLong(), a.cardAutoPay.toLong(), a.usageTarget, a.usageTargetType.toLong(), a.smsSender, a.smsMatch)
-        }
-        d.categories.forEach { c ->
-            q.upsertCategoryRaw(c.id, c.name, (if (c.income) CategoryKind.INCOME else CategoryKind.EXPENSE).name, c.parentId,
-                c.sortOrder.toLong(), c.deleted.toLong(), ts)
-        }
-        d.txns.forEach { t ->
-            entryWriter.insert(Txn(t.id, t.kind, t.date, t.createdAt, t.accountId, t.toAccountId, t.categoryId, t.amountMain, t.note, t.memo,
-                t.transferGroupId, t.installmentGroupId, t.installmentLabel, t.recurringRuleId, t.currency, t.originalAmount, t.accountAmount, t.lat, t.lng,
-                t.timeOfDay, t.origin))
-        }
-        d.rules.forEach { r ->
-            saveRule(RecurringRule(r.id, r.kind, r.accountId, r.toAccountId, r.categoryId, r.amount, r.note, r.repeat, r.nextDate, r.nextDate, r.endDate, r.currency, r.memo))
-        }
-        d.budgets.forEach { b -> q.upsertBudgetAmount(app.moneytracker.db.BudgetAmount(b.categoryId, b.period.toLong(), b.amount, ts)) }
-        d.tags.forEach { saveTag(Tag(it.id, it.name, it.sortOrder)) }
-        ensureSystemTags()
-        d.txnTags.forEach { (txn, tag) -> q.addTxnTag(txn, tag) }
-        d.memos.forEach { m -> q.upsertNote(NoteRow(m.id, m.title, m.content, 0, m.pinned.toLong(), m.time, ts, 0)) }
-        // Teach the suggestion model from history: note words → category & account.
-        d.txns.filter { (it.kind == TxnKind.INCOME || it.kind == TxnKind.EXPENSE) && it.note.isNotBlank() }
-            .forEach { learn(SmsParser.words(it.note), it.categoryId, it.accountId) }
-        LegacyResult(
-            d.txns.size, d.accounts.count { !it.deleted }, d.accounts.count { it.deleted }, d.categories.count { !it.deleted },
-            d.rules.size, d.budgets.size, d.skipped,
-        )
-    }
-
-
-    // ───────────────────────── first-run seed
-
-    fun seedIfEmpty() = db.transaction {
-        ensureSystemTags()
-        if (settingNow(Prefs.SEEDED)) return@transaction
-        val ts = now()
-        val groups = listOf(
-            "Cash" to AccountType.CASH, "Bank Accounts" to AccountType.BANK, "Credit Cards" to AccountType.CREDIT_CARD,
-            "Debit Cards" to AccountType.DEBIT_CARD, "Savings" to AccountType.SAVINGS, "Investments" to AccountType.INVESTMENT,
-            "Loans" to AccountType.LOAN, "Others" to AccountType.OTHER,
-        ).mapIndexed { i, (name, type) -> GroupRow("grp_${type.name.lowercase()}", name, type.name, i.toLong(), 0, ts) }
-        groups.forEach(q::upsertGroup)
-        q.upsertAccount(AccountRow("acc_cash", "grp_cash", "Cash", 1, 0, null, null, 0, 0, ts, null, null, 0, "", null, 0, null, 1, "", ""))
-        q.upsertAccount(AccountRow("acc_bank", "grp_bank", "Bank Account", 1, 0, null, null, 1, 0, ts, null, null, 0, "", null, 0, null, 1, "", ""))
-        q.upsertAccount(AccountRow("acc_card", "grp_credit_card", "Credit Card", 1, 0, 1, "acc_bank", 2, 0, ts, null, null, 0, "", null, 0, null, 1, "", ""))
-        q.upsertAccount(AccountRow("acc_savings", "grp_savings", "Savings", 1, 1, null, null, 3, 0, ts, null, null, 0, "", null, 0, null, 1, "", ""))
-
-        val income = listOf("💼 Salary", "🏆 Bonus", "🤲 Allowance", "🏦 Interest", "Other")
-        val expense = linkedMapOf(
-            "🍔 Food" to listOf("Groceries", "Eating out", "Coffee"),
-            "🚌 Transport" to listOf("Fuel", "Public transport", "Taxi"),
-            "🏠 Housing" to listOf("Rent", "Utilities", "Maintenance"),
-            "🛍️ Shopping" to listOf("Clothing", "Electronics"),
-            "💊 Health" to listOf("Medicine", "Doctor"),
-            "🎬 Entertainment" to emptyList(), "📚 Education" to emptyList(), "🎁 Gifts" to emptyList(), "Other" to emptyList(),
-        )
-        income.forEachIndexed { i, n -> q.upsertCategory(CategoryRow("cat_in_$i", n, CategoryKind.INCOME.name, null, i.toLong(), 0, ts, null)) }
-        expense.entries.forEachIndexed { i, (main, subs) ->
-            val id = "cat_ex_$i"
-            q.upsertCategory(CategoryRow(id, main, CategoryKind.EXPENSE.name, null, i.toLong(), 0, ts, null))
-            subs.forEachIndexed { j, s -> q.upsertCategory(CategoryRow("${id}_$j", s, CategoryKind.EXPENSE.name, id, j.toLong(), 0, ts, null)) }
-        }
-        putSetting(Prefs.SEEDED, true)
-    }
+    // import, export, reset
+    fun importRows(rows: List<List<String>>): ImportResult = sheetImport.importRows(rows)
+    fun parseRows(rows: List<List<String>>): TabularImport.Parsed = sheetImport.parseRows(rows)
+    fun importParsed(parsed: TabularImport.Parsed): ImportResult = sheetImport.importParsed(parsed)
+    fun moneyManagerData(): MoneyManagerBackup.Data = moneyManagerBridge.moneyManagerData()
+    fun replaceWithMoneyManager(d: MoneyManagerBackup.Data): LegacyResult = moneyManagerBridge.replaceWithMoneyManager(d)
+    fun reset(everything: Boolean) = freshStart.reset(everything)
+    fun seedIfEmpty() = freshStart.seedIfEmpty()
 }
