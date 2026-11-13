@@ -2,7 +2,6 @@ package app.moneytracker.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,7 +33,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import app.moneytracker.domain.Tag
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.classify
+import app.moneytracker.ui.fresh.choiceTap
 
 /**
  * Tags to offer under a search box: the selected ones first, then the rest. While the text starts with #,
@@ -108,8 +111,8 @@ private fun SearchFormCard(q: SearchQuery, allTags: List<Tag>, actions: SearchFo
                 BasicTextField(q.text, actions.setText, singleLine = true, textStyle = TextStyle(fontSize = 15.sp), cursorBrush = SolidColor(Accent), modifier = Modifier.fillMaxWidth())
             }
         }
-        Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            classicDates.forEach { (d, label) -> Chip(tr(label), d == q.dates) { actions.setDates(d) } }
+        Row(Modifier.padding(top = 10.dp).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            classicDates.forEach { (d, label) -> Chip(tr(label), d == q.dates, Role.RadioButton) { actions.setDates(d) } }
         }
         val tagChoices = searchTagChoices(allTags, q.tagIds, q.text)
         if (tagChoices.isNotEmpty()) {
@@ -153,13 +156,16 @@ private fun SearchResults(state: SearchState, onOpen: (Txn) -> Unit) {
     }
 }
 
+private val ChipShape = RoundedCornerShape(16.dp)
+
+/** An on/off filter chip by default; pass [Role.RadioButton] for one choice of several inside a `selectableGroup()`. */
 @Composable
-fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+fun Chip(label: String, selected: Boolean, role: Role = Role.Checkbox, onClick: () -> Unit) {
     Text(
         label,
-        Modifier.minimumInteractiveComponentSize().border(1.dp, if (selected) Accent else BorderColor, RoundedCornerShape(16.dp))
-            .background(if (selected) AccentTint else SurfaceColor, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 6.dp),
+        Modifier.minimumInteractiveComponentSize().border(1.dp, if (selected) Accent else BorderColor, ChipShape)
+            .background(if (selected) AccentTint else SurfaceColor, ChipShape)
+            .clip(ChipShape).choiceTap(selected, role, onClick).padding(horizontal = 12.dp, vertical = 6.dp),
         color = if (selected) Accent else InkSoft, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
     )
 }
