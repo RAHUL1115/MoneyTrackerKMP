@@ -74,9 +74,26 @@ private fun Txn.searchType(): SearchType? = when (kind) {
     TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> null
 }
 
-/** Narrows what the database found: each transfer once (its outgoing side), the type and account chips, newest first. */
-fun searchResults(found: List<Txn>, q: SearchQuery): List<Txn> =
-    found.sortedBy { if (it.kind.isListed) 0 else 1 }.distinctBy { it.transferGroupId ?: it.id }
+/** Where the two layouts' searches differ. The defaults are the new layout's; classic keeps its own older behaviour. */
+data class SearchRules(
+    /** Show each transfer as one row. Off, a transfer's fee is listed beside it, as classic always has. */
+    val oneRowPerTransfer: Boolean = true,
+    /** A date range alone starts a search. Off, as in classic, nothing is listed until text, an amount or a tag is given. */
+    val datesAloneSearch: Boolean = true,
+) {
+    companion object {
+        /** The classic search screen's rules. */
+        val Classic = SearchRules(oneRowPerTransfer = false, datesAloneSearch = false)
+    }
+}
+
+/**
+ * Narrows what the database found: each transfer once (its outgoing side) unless [oneRowPerTransfer] is off, the type
+ * and account chips, newest first.
+ */
+fun searchResults(found: List<Txn>, q: SearchQuery, oneRowPerTransfer: Boolean = true): List<Txn> =
+    found.sortedBy { if (it.kind.isListed) 0 else 1 }
+        .let { all -> if (oneRowPerTransfer) all.distinctBy { it.transferGroupId ?: it.id } else all }
         .filter { t ->
             (q.types.isEmpty() || t.searchType() in q.types) &&
                 (q.accountIds.isEmpty() || t.accountId in q.accountIds || t.toAccountId in q.accountIds)
@@ -129,6 +146,7 @@ class SearchModel(
     private val io: CoroutineDispatcher,
     scope: CoroutineScope,
     initial: SearchQuery = SearchQuery(),
+    private val rules: SearchRules = SearchRules(),
 ) {
     var query by mutableStateOf(initial)
         private set
@@ -148,10 +166,10 @@ class SearchModel(
         val min = i.currency.parse(q.minText)
         val max = i.currency.parse(q.maxText)
         val active = q.text.isNotBlank() || min != null || max != null || q.types.isNotEmpty() || q.accountIds.isNotEmpty() ||
-            q.tagIds.isNotEmpty() || q.dates != SearchDates.ALL
+            q.tagIds.isNotEmpty() || (rules.datesAloneSearch && q.dates != SearchDates.ALL)
         val found = if (!active) emptyList() else withContext(io) { txns.search(q.text, range, min, max, q.tagIds.toSet()) }
         val offered = i.accounts.filter { !it.hidden || it.id in q.accountIds }
-        return SearchState(range, active, searchResults(found, q), offered, i.tags, i.ps, today(), feed.lookupsNow())
+        return SearchState(range, active, searchResults(found, q, rules.oneRowPerTransfer), offered, i.tags, i.ps, today(), feed.lookupsNow())
     }
 
     private fun emptyState(ps: PeriodSettings, accounts: List<Account>, tags: List<Tag>) = SearchState(
