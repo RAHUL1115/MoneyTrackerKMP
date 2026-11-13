@@ -64,164 +64,122 @@ import app.moneytracker.db.Tag as TagRow
 import app.moneytracker.db.Template as TemplateRow
 import app.moneytracker.db.Txn as TxnRow
 
-/** Input from the transaction editor. [amount] and [fee] are minor units of [currency] (null = main). */
-data class TxnDraft(
-    val type: DraftType,
-    val date: LocalDate,
-    val accountId: String,
-    val toAccountId: String? = null,
-    val categoryId: String? = null,
-    val amount: Long,
-    val fee: Long = 0,
-    val note: String = "",
-    val memo: String = "",
-    val installments: Int = 1,
-    val repeat: RepeatType? = null,
-    val repeatEnd: LocalDate? = null,
-    val currency: String? = null,
-    val tagIds: List<String> = emptyList(),
-    val lat: Double? = null,
-    val lng: Double? = null,
-    val timeOfDay: Int? = null,
-    val origin: String = "",
-    /** Exchange rate to use for [currency]; null = today's. Set when editing so an entry keeps the rate it was made with. */
-    val rate: Double? = null,
-)
-
-/** [REFUND] is money back into an expense category; it is saved as an expense with a negative amount. */
-enum class DraftType { INCOME, EXPENSE, TRANSFER, REFUND }
-
-/** A saved one-tap entry ("bookmark"). [amount] 0 = ask every time. */
-data class Template(
-    val id: String,
-    val name: String,
-    val type: DraftType,
-    val accountId: String?,
-    val toAccountId: String?,
-    val categoryId: String?,
-    val amount: Long,
-    val note: String = "",
-    val memo: String = "",
-    val sortOrder: Int = 0,
-)
-
-/** Month boundaries and week layout, all user settings. */
-data class PeriodSettings(
-    val startDay: Int = 1,
-    val shift: Periods.WeekendShift = Periods.WeekendShift.NONE,
-    val weekStart: DayOfWeek = DayOfWeek.SUNDAY,
-) {
-    fun month(label: YearMonth) = Periods.month(label, startDay, shift)
-    fun labelFor(date: LocalDate) = Periods.labelFor(date, startDay, shift)
-    fun year(year: Int) = DateRange(month(YearMonth(year, 1)).start, month(YearMonth(year, 12)).endInclusive)
-}
 
 class MoneyRepository(
-    private val db: MoneyDatabase,
+    database: MoneyDatabase,
     val io: CoroutineDispatcher,
-    private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     val today: () -> LocalDate = { Clock.System.todayIn(TimeZone.currentSystemDefault()) },
 ) {
-    private val q get() = db.moneyQueries
+    private val db = Db(database, io, now, today)
+    private val q get() = db.q
+    private fun now() = db.now()
+    private fun <R : Any, T> cached(query: () -> app.cash.sqldelight.Query<R>, map: (List<R>) -> T): CachedFlow<T> = db.cached(query, map)
+    private val rangeCache get() = db.rangeCache
 
-    /** A live list query that also remembers its latest result (see [CachedFlow]). */
-    private fun <R : Any, T> cached(query: () -> app.cash.sqldelight.Query<R>, map: (List<R>) -> T): CachedFlow<T> =
-        CachedFlow(query().asFlow().mapToList(io).map { map(it) }) { map(query().executeAsList()) }
-
-    /** The most recently viewed periods' rows (months, years, custom ranges), so switching back to one is instant. */
-    private val rangeCache = FlowCache(max = 24)
+    val settingsStore = SettingsStore(db)
+    val currencyStore = CurrencyStore(db, settingsStore)
+    val accountStore = AccountStore(db)
+    val categoryStore = CategoryStore(db)
+    val tagStore = TagStore(db)
+    val photoStore = PhotoStore(db)
+    val noteStore = NoteStore(db)
+    val bookmarkStore = BookmarkStore(db)
+    val captureStore = CaptureStore(db)
 
     /** Finished views (accounts, budgets, month totals) for screens, the web dashboard and widgets. */
     val views: ReadModels by lazy { ReadModels(this) }
 
-    // ───────────────────────── settings
+    // ───────────────────────── forwarding
+    // Temporary: one-line forwards to the stores so existing callers keep compiling. Callers will move to the
+    // stores directly, after which these go.
 
-    /** Raw stored text by key, for backups and file formats that carry settings as they are. Screens use [Prefs]. */
-    fun settingNow(key: String): String? = q.getSetting(key).executeAsOneOrNull()
-    fun putSetting(key: String, value: String) = q.putSetting(key, value)
+    // settings
+    fun settingNow(key: String): String? = settingsStore.settingNow(key)
+    fun putSetting(key: String, value: String) = settingsStore.putSetting(key, value)
+    fun <T> setting(s: Setting<T>): Flow<T> = settingsStore.setting(s)
+    fun <T> settingNow(s: Setting<T>): T = settingsStore.settingNow(s)
+    fun <T> putSetting(s: Setting<T>, value: T) = settingsStore.putSetting(s, value)
+    fun dropRetiredSettings() = settingsStore.dropRetiredSettings()
+    val monthStartDay: Flow<Int> get() = settingsStore.monthStartDay
+    val useSubcategories: Flow<Boolean> get() = settingsStore.useSubcategories
+    val periodSettings: CachedFlow<PeriodSettings> get() = settingsStore.periodSettings
+    fun periodSettingsNow() = settingsStore.periodSettingsNow()
+    val currency: CachedFlow<CurrencyFormat> get() = settingsStore.currency
+    fun currencyFormatNow() = settingsStore.currencyFormatNow()
+    fun mainDecimals() = settingsStore.mainDecimals()
 
-    /** A setting, live: emits when its value changes. */
-    fun <T> setting(s: Setting<T>): Flow<T> = q.getSetting(s.key).asFlow().mapToOneOrNull(io).map(s::read).distinctUntilChanged()
-    fun <T> settingNow(s: Setting<T>): T = s.read(settingNow(s.key))
-    fun <T> putSetting(s: Setting<T>, value: T) = putSetting(s.key, s.write(value))
+    // currencies
+    val currencies: CachedFlow<List<Currency>> get() = currencyStore.currencies
+    fun currenciesNow(): List<Currency> = currencyStore.currenciesNow()
+    private fun currencyNow(code: String?): Currency? = currencyStore.currencyNow(code)
+    fun saveCurrency(c: Currency) = currencyStore.saveCurrency(c)
+    fun deleteCurrency(code: String) = currencyStore.deleteCurrency(code)
+    suspend fun updateRates(get: suspend (String) -> String?): RatesUpdate = currencyStore.updateRates(get)
 
-    /** Removes stored settings no feature reads any more ([Prefs.retired]). */
-    fun dropRetiredSettings() = q.deleteSettings(Prefs.retired)
+    // accounts and groups
+    val groups: CachedFlow<List<AccountGroup>> get() = accountStore.groups
+    val deletedGroups: Flow<List<AccountGroup>> get() = accountStore.deletedGroups
+    fun restoreGroup(id: String) = accountStore.restoreGroup(id)
+    val accounts: CachedFlow<List<Account>> get() = accountStore.accounts
+    val deletedAccounts: Flow<List<Account>> get() = accountStore.deletedAccounts
+    fun accountNow(id: String?): Account? = accountStore.accountNow(id)
+    fun accountsNow(): List<Account> = accountStore.accountsNow()
+    fun groupsNow(): List<AccountGroup> = accountStore.groupsNow()
+    val accountNames: CachedFlow<Map<String, String>> get() = accountStore.accountNames
+    val balances: CachedFlow<Map<String, Long>> get() = accountStore.balances
+    fun balancesNow(): Map<String, Long> = accountStore.balancesNow()
+    fun saveAccount(a: Account) = accountStore.saveAccount(a)
+    fun deleteAccount(id: String) = accountStore.deleteAccount(id)
+    fun restoreAccount(id: String) = accountStore.restoreAccount(id)
+    fun reorderAccounts(idsInOrder: List<String>) = accountStore.reorderAccounts(idsInOrder)
+    fun reorderGroups(idsInOrder: List<String>) = accountStore.reorderGroups(idsInOrder)
+    fun setAccountHidden(id: String, hidden: Boolean) = accountStore.setAccountHidden(id, hidden)
+    fun saveGroup(g: AccountGroup) = accountStore.saveGroup(g)
+    fun deleteGroup(id: String): Boolean = accountStore.deleteGroup(id)
 
-    val monthStartDay: Flow<Int> = setting(Prefs.MONTH_START_DAY)
+    // categories
+    val categories: CachedFlow<List<Category>> get() = categoryStore.categories
+    val categoryById: CachedFlow<Map<String, Category>> get() = categoryStore.categoryById
+    fun categoriesNow(): List<Category> = categoryStore.categoriesNow()
+    fun categoryByIdNow(): Map<String, Category> = categoryStore.categoryByIdNow()
+    fun saveCategory(c: Category) = categoryStore.saveCategory(c)
+    fun deleteCategory(id: String) = categoryStore.deleteCategory(id)
+    fun reorderCategories(idsInOrder: List<String>) = categoryStore.reorderCategories(idsInOrder)
 
-    /** Sub-categories are optional and off unless the user turns them on. */
-    val useSubcategories: Flow<Boolean> = setting(Prefs.USE_SUBCATEGORIES)
+    // tags
+    val tags: CachedFlow<List<Tag>> get() = tagStore.tags
+    val txnTagNames: CachedFlow<Map<String, List<String>>> get() = tagStore.txnTagNames
+    fun tagsNow(): List<Tag> = tagStore.tagsNow()
+    fun txnTagNamesNow(): Map<String, List<String>> = tagStore.txnTagNamesNow()
+    fun saveTag(t: Tag) = tagStore.saveTag(t)
+    fun txnIdsWithTag(tagId: String): Set<String> = tagStore.txnIdsWithTag(tagId)
+    fun ensureSystemTags() = tagStore.ensureSystemTags()
+    fun deleteTag(id: String) = tagStore.deleteTag(id)
+    fun tagsOf(txnId: String): List<String> = tagStore.tagsOf(txnId)
+    fun setTags(txnId: String, tagIds: List<String>) = tagStore.setTags(txnId, tagIds)
+    fun tagNamed(name: String): String = tagStore.tagNamed(name)
 
-    val periodSettings: CachedFlow<PeriodSettings> = CachedFlow(combine(
-        setting(Prefs.MONTH_START_DAY), setting(Prefs.WEEKEND_SHIFT), setting(Prefs.WEEK_START), ::PeriodSettings,
-    )) { periodSettingsNow() }
+    // photos, notes, bookmarks
+    fun photos(txnId: String): Flow<List<Photo>> = photoStore.photos(txnId)
+    fun photosNow(txnId: String): List<Photo> = photoStore.photosNow(txnId)
+    val txnIdsWithPhotos: CachedFlow<Set<String>> get() = photoStore.txnIdsWithPhotos
+    fun addPhoto(txnId: String, fileName: String) = photoStore.addPhoto(txnId, fileName)
+    fun deletePhoto(id: String) = photoStore.deletePhoto(id)
+    val notes: CachedFlow<List<Note>> get() = noteStore.notes
+    fun saveNote(n: Note) = noteStore.saveNote(n)
+    fun deleteNote(id: String) = noteStore.deleteNote(id)
+    val templates: CachedFlow<List<Template>> get() = bookmarkStore.templates
+    fun saveTemplate(t: Template) = bookmarkStore.saveTemplate(t)
+    fun deleteTemplate(id: String) = bookmarkStore.deleteTemplate(id)
 
-    fun periodSettingsNow() = PeriodSettings(settingNow(Prefs.MONTH_START_DAY), settingNow(Prefs.WEEKEND_SHIFT), settingNow(Prefs.WEEK_START))
+    // detected payments
+    val pendingCaptures: CachedFlow<List<Capture>> get() = captureStore.pendingCaptures
+    fun addCapture(c: Capture): Boolean = captureStore.addCapture(c)
+    fun setCaptureStatus(id: String, status: CaptureStatus, txnId: String? = null) = captureStore.setCaptureStatus(id, status, txnId)
 
-    val currency: CachedFlow<CurrencyFormat> = CachedFlow(
-        combine(setting(Prefs.CURRENCY_SYMBOL), setting(Prefs.CURRENCY_DECIMALS), setting(Prefs.SYMBOL_AFTER), ::CurrencyFormat),
-    ) { currencyFormatNow() }
-    fun currencyFormatNow() = CurrencyFormat(settingNow(Prefs.CURRENCY_SYMBOL), settingNow(Prefs.CURRENCY_DECIMALS), settingNow(Prefs.SYMBOL_AFTER))
-    fun mainDecimals() = settingNow(Prefs.CURRENCY_DECIMALS)
-
-    // ───────────────────────── currencies
-
-    val currencies: CachedFlow<List<Currency>> = cached({ q.allCurrencies() }) { rows -> rows.map { it.toDomain() } }
-    private fun currencyNow(code: String?): Currency? = code?.let { c -> q.allCurrencies().executeAsList().firstOrNull { it.code == c }?.toDomain() }
-
-    fun saveCurrency(c: Currency) = q.upsertCurrency(CurrencyRow(c.code.uppercase(), c.symbol, c.decimals.toLong(), c.rate, c.sortOrder.toLong(), 0, now()))
-    fun deleteCurrency(code: String) = q.softDeleteCurrency(now(), code)
-
-    /**
-     * Fetches today's rates for every other currency through [get] (URL → reply, null on failure) and saves them.
-     * Entries already saved keep the rate they were entered with.
-     */
-    suspend fun updateRates(get: suspend (String) -> String?): RatesUpdate {
-        val main = settingNow(Prefs.CURRENCY_CODE).uppercase()
-        val others = q.allCurrencies().executeAsList().map { it.toDomain() }.filter { it.code.uppercase() != main }
-        if (others.isEmpty()) return RatesUpdate.NothingToUpdate.also { Log.d("Rates") { "no other currencies; nothing to fetch" } }
-        val quote = runCatching { get(ExchangeRates.url(main, others.map { it.code }))?.let(ExchangeRates::parse) }
-            .onFailure { Log.w("Rates", it) { "fetch failed" } }.getOrNull()
-            ?: return RatesUpdate.Failed.also { Log.w("Rates") { "no usable reply for $main → ${others.joinToString(",") { it.code }}" } }
-        val updated = others.filter { it.code.uppercase() in quote.perMain }
-        db.transaction {
-            updated.forEach { c -> saveCurrency(c.copy(rate = ExchangeRates.mainPerUnit(quote.perMain.getValue(c.code.uppercase())))) }
-            putSetting(Prefs.RATES_DATE, quote.date)
-            putSetting(Prefs.RATES_CHECKED, now())
-        }
-        Log.i("Rates") { "rates of ${quote.date}: updated ${updated.size}/${others.size}" }
-        return RatesUpdate.Done(quote.date, updated.map { it.code }, (others - updated.toSet()).map { it.code })
-    }
-
-    // ───────────────────────── accounts
-
-    val groups: CachedFlow<List<AccountGroup>> = cached({ q.allGroups() }) { rows -> rows.map { it.toDomain() } }
-    val deletedGroups: Flow<List<AccountGroup>> = q.deletedGroups().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
-    fun restoreGroup(id: String) = q.restoreGroup(now(), id)
-    val accounts: CachedFlow<List<Account>> = cached({ q.allAccounts() }) { rows -> rows.map { it.toDomain() } }
-    val deletedAccounts: Flow<List<Account>> = q.deletedAccounts().asFlow().mapToList(io).map { rows -> rows.map { it.toDomain() } }
-    fun accountNow(id: String?): Account? = id?.let { a -> q.allAccounts().executeAsList().firstOrNull { it.id == a }?.toDomain() }
-
-    /**
-     * Own-row balance per account as of today, in each account's currency. Future-dated rows
-     * (upcoming installments, post-dated entries) are excluded. Debit-card folding happens in domain.summarize.
-     */
-    val balances: CachedFlow<Map<String, Long>> get() = today().toEpochDays().toLong().let { day -> rangeCache.get("balances:$day") { balancesOn(day) } }
-    private fun balancesOn(day: Long) = cached({ q.balances(day) }) { rows -> rows.associate { it.accountId to it.balance.toLong() } }
-
-    fun saveAccount(a: Account) = q.upsertAccount(
-        AccountRow(a.id, a.groupId, a.name, a.includeInTotals.toLong(), a.transferAsExpense.toLong(),
-            a.cardSettlementDay?.toLong(), a.cardPaymentAccountId, a.sortOrder.toLong(), 0, now(), a.currency, a.cardLimit, a.hidden.toLong(),
-            a.memo, a.cardPaymentDay?.toLong(), a.cardAutoPay.toLong(), a.usageTarget, a.usageTargetType.toLong(), a.smsSender, a.smsMatch)
-    )
-
-    fun deleteAccount(id: String) = q.softDeleteAccount(now(), id)
-    fun restoreAccount(id: String) = q.restoreAccount(now(), id)
 
     fun accountTxns(accountId: String): List<Txn> = q.txnsForAccount(accountId).executeAsList().map { it.toDomain() }
-    fun accountsNow(): List<Account> = accounts.now()
-    fun groupsNow(): List<AccountGroup> = groups.now()
 
     fun accountTxnsFlow(accountId: String, range: DateRange): Flow<List<Txn>> =
         q.txnsForAccountBetween(accountId, range.start.toEpochDays().toLong(), range.endInclusive.toEpochDays().toLong())
@@ -259,17 +217,6 @@ class MoneyRepository(
         ))
     }
 
-    // ───────────────────────── categories
-
-    val categories: CachedFlow<List<Category>> = cached({ q.allCategories() }) { rows -> rows.map { it.toDomain() } }
-    /** Every category by id, deleted ones too: for showing the names of past entries (pickers use [categories]). */
-    val categoryById: CachedFlow<Map<String, Category>> = cached({ q.categoriesWithDeleted() }) { rows -> rows.associate { it.id to it.toDomain() } }
-
-    fun saveCategory(c: Category) =
-        q.upsertCategory(CategoryRow(c.id, c.name, c.kind.name, c.parentId, c.sortOrder.toLong(), 0, now(), c.defaultAccountId))
-
-    fun deleteCategory(id: String) = q.softDeleteCategory(now(), id, id)
-
     // ───────────────────────── transactions
 
     fun txnsBetween(range: DateRange): CachedFlow<List<Txn>> = rangeCache.get("txns:$range") { txnsIn(range) }
@@ -282,16 +229,9 @@ class MoneyRepository(
 
     // ───────────────────────── synchronous reads for background threads (web dashboard, widgets)
     // Each is the matching flow's own mapping read once ([CachedFlow.now]); none touches the per-range cache.
-
     fun txnsNow(range: DateRange): List<Txn> = txnsIn(range).now()
     fun reportRowsNow(range: DateRange): List<ReportRow> = reportRowsIn(range).now()
-    fun balancesNow(): Map<String, Long> = balancesOn(today().toEpochDays().toLong()).now()
     fun budgetEntriesNow(upTo: YearMonth): List<BudgetEntry> = budgetEntriesUpTo(upTo).now()
-    fun categoriesNow(): List<Category> = categories.now()
-    fun categoryByIdNow(): Map<String, Category> = categoryById.now()
-    fun tagsNow(): List<Tag> = tags.now()
-    fun txnTagNamesNow(): Map<String, List<String>> = txnTagNames.now()
-    fun currenciesNow(): List<Currency> = currencies.now()
 
     /** Newest day first; within a day by recorded time (entries without one by entry order), newest first unless [ascending]. */
     fun sortWithinDays(txns: List<Txn>, ascending: Boolean = false): List<Txn> {
@@ -332,20 +272,6 @@ class MoneyRepository(
     }
 
     fun resetAutocomplete() = putSetting(Prefs.AUTOCOMPLETE_SINCE, now())
-
-    // ───────────────────────── ordering / visibility
-
-    fun reorderAccounts(idsInOrder: List<String>) = db.transaction { idsInOrder.forEachIndexed { i, id -> q.setAccountOrder(i.toLong(), now(), id) } }
-    fun reorderCategories(idsInOrder: List<String>) = db.transaction { idsInOrder.forEachIndexed { i, id -> q.setCategoryOrder(i.toLong(), now(), id) } }
-    fun reorderGroups(idsInOrder: List<String>) = db.transaction { idsInOrder.forEachIndexed { i, id -> q.setGroupOrder(i.toLong(), now(), id) } }
-    fun setAccountHidden(id: String, hidden: Boolean) = q.setAccountHidden(hidden.toLong(), now(), id)
-
-    fun saveGroup(g: AccountGroup) = q.upsertGroup(GroupRow(g.id, g.name.trim(), g.type.name, g.sortOrder.toLong(), 0, now()))
-    /** Only empty groups can go; returns false when accounts still use it. */
-    fun deleteGroup(id: String): Boolean = db.transactionWithResult {
-        if (q.allAccounts().executeAsList().any { it.groupId == id }) return@transactionWithResult false
-        q.softDeleteGroup(now(), id); true
-    }
 
     // ───────────────────────── bulk edits (multi-select)
 
@@ -574,86 +500,6 @@ class MoneyRepository(
     }
 
     private data class Quint(val a: DraftType, val b: String, val c: String?, val d: Long, val e: String?)
-
-    // ───────────────────────── tags
-
-    val tags: CachedFlow<List<Tag>> = cached({ q.allTags() }) { rows -> rows.map { Tag(it.id, it.name, it.sortOrder.toInt()) } }
-    /** txnId → tag names, for list rendering. */
-    val txnTagNames: CachedFlow<Map<String, List<String>>> = cached({ q.allTxnTags() }) { rows ->
-        rows.groupBy({ it.txnId }, { it.name })
-    }
-
-    fun saveTag(t: Tag) = q.upsertTag(TagRow(t.id, t.name.trim(), t.sortOrder.toLong(), 0, now()))
-    fun txnIdsWithTag(tagId: String): Set<String> = q.txnIdsWithTag(tagId).executeAsList().toSet()
-
-    /** The two card tags; created once, renaming is allowed. Tags still carrying an old default name get the new one. */
-    fun ensureSystemTags() {
-        fun ensure(id: String, name: String, oldName: String, order: Long) {
-            val row = q.tagById(id).executeAsOneOrNull()
-            if (row == null || row.name == oldName) q.upsertTag(TagRow(id, name, row?.sortOrder ?: order, row?.deleted ?: 0, now()))
-        }
-        ensure(TAG_PREPAYMENT, "Due now", "Prepayment", -2)
-        ensure(TAG_USAGE_EXCEPTION, "Excluded from target", "Exception", -1)
-    }
-    fun deleteTag(id: String) = q.softDeleteTag(now(), id)
-    fun tagsOf(txnId: String): List<String> = q.tagIdsForTxn(txnId).executeAsList()
-    fun setTags(txnId: String, tagIds: List<String>) = db.transaction {
-        q.clearTxnTags(txnId)
-        tagIds.forEach { q.addTxnTag(txnId, it) }
-    }
-
-    /** Finds or creates a tag by name (case-insensitive). */
-    fun tagNamed(name: String): String {
-        val existing = q.allTags().executeAsList().firstOrNull { it.name.equals(name.trim(), ignoreCase = true) }
-        if (existing != null) return existing.id
-        val id = newId()
-        saveTag(Tag(id, name, q.allTags().executeAsList().size))
-        return id
-    }
-
-    // ───────────────────────── photos
-
-    fun photos(txnId: String): Flow<List<Photo>> = q.photosForTxn(txnId).asFlow().mapToList(io).map { rows ->
-        rows.map { Photo(it.id, it.txnId, it.fileName, it.createdAt) }
-    }
-    /** Synchronous: the edit screen fills its form from this before the first frame. */
-    fun photosNow(txnId: String): List<Photo> = q.photosForTxn(txnId).executeAsList().map { Photo(it.id, it.txnId, it.fileName, it.createdAt) }
-    val txnIdsWithPhotos: CachedFlow<Set<String>> = cached({ q.txnIdsWithPhotos() }) { it.toSet() }
-    fun addPhoto(txnId: String, fileName: String) = q.insertPhoto(PhotoRow(newId(), txnId, fileName, now(), 0))
-    fun deletePhoto(id: String) = q.softDeletePhoto(id)
-
-    // ───────────────────────── notes
-
-    val notes: CachedFlow<List<Note>> = cached({ q.allNotes() }) { rows ->
-        rows.map { Note(it.id, it.title, it.content, it.color.toInt(), it.pinned != 0L, it.createdAt, it.updatedAt) }
-    }
-    fun saveNote(n: Note) = q.upsertNote(NoteRow(n.id, n.title, n.content, n.color.toLong(), n.pinned.toLong(), n.createdAt, now(), 0))
-    fun deleteNote(id: String) = q.softDeleteNote(now(), id)
-
-    // ───────────────────────── templates
-
-    val templates: CachedFlow<List<Template>> = cached({ q.allTemplates() }) { rows ->
-        rows.map { Template(it.id, it.name, DraftType.valueOf(it.type), it.accountId, it.toAccountId, it.categoryId, it.amount, it.note, it.memo, it.sortOrder.toInt()) }
-    }
-    fun saveTemplate(t: Template) = q.upsertTemplate(TemplateRow(t.id, t.name, t.type.name, t.accountId, t.toAccountId, t.categoryId,
-        t.amount, t.note, t.memo, t.sortOrder.toLong(), 0, now()))
-    fun deleteTemplate(id: String) = q.softDeleteTemplate(now(), id)
-
-    // ───────────────────────── captured SMS
-
-    val pendingCaptures: CachedFlow<List<Capture>> = cached({ q.pendingCaptures() }) { rows -> rows.map { it.toDomain() } }
-
-    /** Stores a parsed message unless the same text from the same sender arrived in the last 2 minutes. */
-    fun addCapture(c: Capture): Boolean = db.transactionWithResult {
-        if (q.captureBySenderAndText(c.sender, c.text, c.receivedAt - 120_000).executeAsOneOrNull() != null) return@transactionWithResult false
-        q.insertCapture(CaptureRow(c.id, c.receivedAt, c.source, c.sender, c.text, c.amount, c.kind?.name, c.merchant,
-            c.accountId, c.status.name, c.txnId))
-        true
-    }
-    fun setCaptureStatus(id: String, status: CaptureStatus, txnId: String? = null) {
-        Log.d("Sms") { "capture $id → $status" }
-        q.setCaptureStatus(status.name, txnId, id)
-    }
 
     // ───────────────────────── learning (tiny Naive Bayes) and message inbox
 
@@ -986,8 +832,6 @@ class MoneyRepository(
         )
     }
 
-    /** Names of every account, including deleted ones, so old transactions keep showing where they happened. */
-    val accountNames: CachedFlow<Map<String, String>> = cached({ q.allAccountNames() }) { rows -> rows.associate { it.id to it.name } }
 
     // ───────────────────────── first-run seed
 
@@ -1024,29 +868,3 @@ class MoneyRepository(
         putSetting(Prefs.SEEDED, true)
     }
 }
-
-private fun DraftType.primaryKind() = when (this) {
-    DraftType.INCOME -> TxnKind.INCOME
-    DraftType.EXPENSE, DraftType.REFUND -> TxnKind.EXPENSE
-    DraftType.TRANSFER -> TxnKind.TRANSFER_OUT
-}
-
-/** Stored amounts are negative for refunds; the editor always works with positive amounts. */
-val DraftType.sign: Int get() = if (this == DraftType.REFUND) -1 else 1
-
-private fun Boolean.toLong() = if (this) 1L else 0L
-
-private fun GroupRow.toDomain() = AccountGroup(id, name, AccountType.valueOf(type), sortOrder.toInt())
-private fun AccountRow.toDomain() = Account(id, groupId, name, includeInTotals != 0L, transferAsExpense != 0L,
-    cardSettlementDay?.toInt(), cardPaymentAccountId, sortOrder.toInt(), currency, cardLimit, hidden != 0L,
-    memo, cardPaymentDay?.toInt(), cardAutoPay != 0L, usageTarget, usageTargetType.toInt(), smsSender, smsMatch)
-private fun CategoryRow.toDomain() = Category(id, name, CategoryKind.valueOf(kind), parentId, sortOrder.toInt(), defaultAccountId)
-private fun TxnRow.toDomain() = Txn(id, TxnKind.valueOf(kind), LocalDate.fromEpochDays(date.toInt()), createdAt, accountId,
-    toAccountId, categoryId, amount, note, memo, transferGroupId, installmentGroupId, installmentLabel, recurringRuleId,
-    currency, originalAmount, accountAmount, lat, lng, timeOfDay?.toInt(), origin, rate)
-private fun RuleRow.toDomain() = RecurringRule(id, TxnKind.valueOf(kind), accountId, toAccountId, categoryId, amount, note,
-    RepeatType.valueOf(repeat), LocalDate.fromEpochDays(startDate.toInt()), LocalDate.fromEpochDays(nextDate.toInt()),
-    endDate?.let { LocalDate.fromEpochDays(it.toInt()) }, currency, memo)
-private fun CurrencyRow.toDomain() = Currency(code, symbol, decimals.toInt(), rate, sortOrder.toInt())
-private fun CaptureRow.toDomain() = Capture(id, receivedAt, source, sender, text, amount, kind?.let { TxnKind.valueOf(it) }, merchant,
-    accountId, CaptureStatus.valueOf(status), txnId)
