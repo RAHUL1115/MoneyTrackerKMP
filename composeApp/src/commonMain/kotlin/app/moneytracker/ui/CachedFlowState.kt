@@ -5,10 +5,8 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState as composeCollectAsState
 import androidx.compose.runtime.remember
 import app.moneytracker.data.CachedFlow
-import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Setting
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import app.moneytracker.data.SettingsStore
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -28,10 +26,5 @@ fun <T> CachedFlow<T>.collectAsState(): State<T> {
 
 /** A stored setting as Compose state, starting from [initial] (its default unless said otherwise). */
 @Composable
-fun <T> rememberSetting(s: Setting<T>, initial: T = s.default): State<T> {
-    val repo = LocalRepo.current
-    return remember(repo, s) { repo.settingsStore.setting(s) }.composeCollectAsState(initial)
-}
-
-/** Saves a setting off the main thread. */
-fun <T> CoroutineScope.saveSetting(repo: MoneyRepository, s: Setting<T>, value: T) = launch(repo.io) { repo.settingsStore.putSetting(s, value) }
+fun <T> rememberSetting(s: Setting<T>, initial: T = s.default, settings: SettingsStore = LocalRepo.current.settingsStore): State<T> =
+    remember(settings, s) { settings.setting(s) }.composeCollectAsState(initial)
