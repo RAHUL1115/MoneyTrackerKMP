@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -32,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -86,8 +86,8 @@ private fun NoWifiCard(openWifi: () -> Unit) {
             Text(tr("Connect to Wi-Fi to use the web dashboard"), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
             Text(tr("The computer and this phone need to be on the same Wi-Fi network. Mobile data doesn't work for this."),
                 color = F.muted, fontSize = 13.sp, lineHeight = 19.sp, textAlign = TextAlign.Center)
-            Text(tr("Open Wi-Fi settings"), Modifier.padding(top = 6.dp).clip(RoundedCornerShape(14.dp)).background(F.accentTint)
-                .clickable(onClick = openWifi).padding(horizontal = 18.dp, vertical = 12.dp), color = F.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(tr("Open Wi-Fi settings"), Modifier.padding(top = 6.dp).clip(F.iconShape).background(F.accentTint)
+                .clickable(role = Role.Button, onClick = openWifi).padding(horizontal = 18.dp, vertical = 12.dp), color = F.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -96,7 +96,7 @@ private fun NoWifiCard(openWifi: () -> Unit) {
 private fun StartCard(s: WebDashboardState, start: () -> Unit) {
     FCard(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(44.dp).clip(F.iconShape).background(F.accentTint), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Computer, null, tint = F.accent, modifier = Modifier.size(22.dp))
             }
             Text(tr("Use MoneyTracker from a computer"), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
@@ -119,14 +119,14 @@ private fun AddressCard(ui: WebDashboardUi) {
                 Text(tr("On · Wi-Fi"), color = F.accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
             Text(tr("On the computer, type this in the browser"), color = F.muted, fontSize = 13.sp)
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(F.page).padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            Row(Modifier.fillMaxWidth().clip(F.iconShape).background(F.page).padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Text(ui.state.address.orEmpty(), Modifier.weight(1f), color = F.ink, fontFamily = FontFamily.Monospace, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-                Text(if (ui.copied) tr("Copied") else tr("Copy"), Modifier.clip(RoundedCornerShape(12.dp)).background(F.accentTint).clickable(onClick = ui.actions.copy)
+                Text(if (ui.copied) tr("Copied") else tr("Copy"), Modifier.clip(F.controlShape).background(F.accentTint).clickable(role = Role.Button, onClick = ui.actions.copy)
                     .padding(horizontal = 14.dp, vertical = 10.dp), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
             Text(tr("Keeps running when you leave the app, with a notification, until you stop it."), color = F.muted, fontSize = 12.sp, lineHeight = 17.sp)
-            Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(14.dp)).background(F.page).clickable(onClick = ui.actions.stop),
+            Box(Modifier.fillMaxWidth().height(46.dp).clip(F.iconShape).background(F.page).clickable(role = Role.Button, onClick = ui.actions.stop),
                 contentAlignment = Alignment.Center) { Text(tr("Stop"), color = F.danger, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
         }
     }
@@ -134,40 +134,41 @@ private fun AddressCard(ui: WebDashboardUi) {
 
 @Composable
 private fun ComputersCard(computers: List<WebVisitor>, now: Long, disconnect: (String) -> Unit) {
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 18.dp)) {
-            if (computers.isEmpty()) Text(tr("None yet. Open the address on a computer."), Modifier.padding(vertical = 18.dp), color = F.muted, fontSize = 13.sp)
-            computers.forEachIndexed { i, c ->
-                if (i > 0) Divider()
-                Row(Modifier.fillMaxWidth().heightIn(min = 62.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(F.page), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.Computer, null, tint = F.accent, modifier = Modifier.size(18.dp))
-                    }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(c.name, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Text(activeLabel(c.lastSeen, now), color = F.muted, fontSize = 12.sp)
-                    }
-                    Text(tr("Disconnect"), Modifier.clip(RoundedCornerShape(10.dp)).clickable { disconnect(c.id) }.padding(horizontal = 10.dp, vertical = 8.dp),
-                        color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    FListCard {
+        if (computers.isEmpty()) Text(tr("None yet. Open the address on a computer."), Modifier.padding(horizontal = ROW_INSET, vertical = 18.dp),
+            color = F.muted, fontSize = 13.sp)
+        computers.forEachIndexed { i, c ->
+            if (i > 0) Divider(inset = ROW_INSET)
+            Row(Modifier.fillMaxWidth().heightIn(min = 62.dp).padding(horizontal = ROW_INSET), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.size(36.dp).clip(F.controlShape).background(F.page), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Outlined.Computer, null, tint = F.accent, modifier = Modifier.size(18.dp))
                 }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(c.name, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(activeLabel(c.lastSeen, now), color = F.muted, fontSize = 12.sp)
+                }
+                Text(tr("Disconnect"), Modifier.clip(F.innerShape).clickable(role = Role.Button) { disconnect(c.id) }.padding(horizontal = 10.dp, vertical = 8.dp),
+                    color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
 }
 
+/** This screen's rows start 18dp in from their card's edge. */
+private val ROW_INSET = 18.dp
+
 /** The password row and the auto-stop choice. */
 @Composable
 private fun OptionsCard(ui: WebDashboardUi, onPassword: () -> Unit) {
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 18.dp)) {
-            FRow(tr("Password"), tr("Asked once per visit on the computer"), value = if (ui.passwordSet) tr("On") else tr("Off"), valueColor = F.accent,
-                onClick = onPassword)
-            Divider()
-            Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(tr("Stop automatically"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Text(tr("When no computer has visited for a while"), color = F.muted, fontSize = 12.sp)
-                Segmented(WEB_AUTO_STOPS.map { autoStopLabel(it, short = true) }, WEB_AUTO_STOPS.indexOf(ui.autoStop), { ui.actions.setAutoStop(WEB_AUTO_STOPS[it]) })
-            }
+    FListCard {
+        FRow(tr("Password"), tr("Asked once per visit on the computer"), value = if (ui.passwordSet) tr("On") else tr("Off"), valueColor = F.accent,
+            onClick = onPassword, inset = ROW_INSET)
+        Divider(inset = ROW_INSET)
+        Column(Modifier.fillMaxWidth().padding(horizontal = ROW_INSET, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(tr("Stop automatically"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(tr("When no computer has visited for a while"), color = F.muted, fontSize = 12.sp)
+            Segmented(WEB_AUTO_STOPS.map { autoStopLabel(it, short = true) }, WEB_AUTO_STOPS.indexOf(ui.autoStop), { ui.actions.setAutoStop(WEB_AUTO_STOPS[it]) })
         }
     }
 }
@@ -189,7 +190,7 @@ private fun PasswordSheet(passwordSet: Boolean, setPassword: (String?) -> Unit, 
         Text(tr("The computer asks for it before showing anything. It's separate from your app passcode."), color = F.muted, fontSize = 13.sp, lineHeight = 19.sp)
         BasicTextField(
             text, { text = it.take(64) },
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, F.border, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 14.dp),
+            Modifier.fillMaxWidth().clip(F.controlShape).border(1.dp, F.border, F.controlShape).padding(horizontal = 12.dp, vertical = 14.dp),
             singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = PasswordVisualTransformation(),
             textStyle = TextStyle(color = F.ink, fontSize = 16.sp), cursorBrush = SolidColor(F.accent),

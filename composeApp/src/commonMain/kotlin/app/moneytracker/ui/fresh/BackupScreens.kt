@@ -3,6 +3,7 @@ package app.moneytracker.ui.fresh
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -31,6 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +50,7 @@ import app.moneytracker.ui.LocalBackups
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalRepo
+import app.moneytracker.ui.RowCheckbox
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.short
 import app.moneytracker.ui.tr
@@ -141,19 +145,22 @@ private fun BackupStatusCard(backups: Backups, latest: LocalBackup?, today: Loca
 private fun BackupFolderCard(folder: BackupFolder) {
     val path by folder.backupFolder.collectAsState()
     val problem by folder.backupFolderProblem.collectAsState()
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-            val shown = path
-            FRow(
-                tr("Backup folder"),
-                when {
-                    shown == null -> tr("Not set. Choose one, e.g. Documents/MoneyTracker or a Drive folder")
-                    problem -> tr("Can't reach {0}. Choose again", shown)
-                    else -> tr("Daily and manual backups are also saved to {0}", shown)
-                },
-                onClick = folder::pickBackupFolder,
-            )
-            if (shown != null) { Divider(); FRow(tr("Stop saving to this folder"), tr("Files already there are kept"), onClick = folder::clearBackupFolder) }
+    FListCard {
+        val shown = path
+        FRow(
+            tr("Backup folder"),
+            when {
+                shown == null -> tr("Not set. Choose one, e.g. Documents/MoneyTracker or a Drive folder")
+                problem -> tr("Can't reach {0}. Choose again", shown)
+                else -> tr("Daily and manual backups are also saved to {0}", shown)
+            },
+            onClick = folder::pickBackupFolder,
+            inset = ROW_INSET, extraTop = CARD_EDGE, extraBottom = if (shown == null) CARD_EDGE else 0.dp,
+        )
+        if (shown != null) {
+            Divider(inset = ROW_INSET)
+            FRow(tr("Stop saving to this folder"), tr("Files already there are kept"), onClick = folder::clearBackupFolder,
+                inset = ROW_INSET, extraBottom = CARD_EDGE)
         }
     }
 }
@@ -170,15 +177,20 @@ private fun DataActionsCard(backups: Backups, onRestoreFile: () -> Unit) {
         Triple(tr("Export receipt photos"), tr("A .zip to keep next to the backup file"), backups.photos::exportPhotos),
         Triple(tr("Import receipt photos"), tr("From a photos .zip; existing photos are kept"), backups.photos::importPhotos),
     )
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-            actions.forEachIndexed { i, (title, sub, go) ->
-                if (i > 0) Divider()
-                FRow(title, sub, onClick = go)
-            }
+    FListCard {
+        actions.forEachIndexed { i, (title, sub, go) ->
+            if (i > 0) Divider(inset = ROW_INSET)
+            FRow(title, sub, onClick = go, inset = ROW_INSET, extraTop = if (i == 0) CARD_EDGE else 0.dp,
+                extraBottom = if (i == actions.lastIndex) CARD_EDGE else 0.dp)
         }
     }
 }
+
+/** This screen's rows start 18dp in from their card's edge. */
+private val ROW_INSET = 18.dp
+
+/** The cards' top and bottom spacing, kept inside the first and last rows so their highlight reaches the rounded edge. */
+private val CARD_EDGE = 4.dp
 
 /** Snapshots on this phone, each with Restore and Delete (both confirmed first). The label sits inside its card. */
 @Composable
@@ -204,6 +216,7 @@ private fun SnapshotsCard(local: List<LocalBackup>, today: LocalDate, backups: B
 
 @Composable
 private fun SnapshotRow(b: LocalBackup, today: LocalDate, onRestore: () -> Unit, onDelete: () -> Unit) {
+    val deleteLabel = tr("Delete snapshot")
     Row(Modifier.fillMaxWidth().heightIn(min = 46.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Column(Modifier.weight(1f)) {
             Text(snapshotWhen(b.name, today), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
@@ -211,9 +224,10 @@ private fun SnapshotRow(b: LocalBackup, today: LocalDate, onRestore: () -> Unit,
         }
         StgTextButton(tr("Restore"), onRestore, color = F.ink)
         Box(
-            Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(F.page).clickable(onClickLabel = tr("Delete snapshot"), onClick = onDelete),
+            Modifier.size(32.dp).clip(F.innerShape).background(F.page).clickable(role = Role.Button, onClick = onDelete)
+                .semantics { contentDescription = deleteLabel },
             contentAlignment = Alignment.Center,
-        ) { Icon(Glyph.Delete, tr("Delete snapshot"), tint = F.muted, modifier = Modifier.size(18.dp)) }
+        ) { Icon(Glyph.Delete, null, tint = F.muted, modifier = Modifier.size(18.dp)) }
     }
 }
 
@@ -256,7 +270,7 @@ private fun CardButton(
     val shape = RoundedCornerShape(radius)
     Box(
         modifier.fillMaxWidth().height(height).clip(shape).background(background)
-            .then(if (border != null) Modifier.border(1.dp, border, shape) else Modifier).clickable(onClick = onClick),
+            .then(if (border != null) Modifier.border(1.dp, border, shape) else Modifier).clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = color, fontSize = 14.sp, fontWeight = weight) }
 }
@@ -296,9 +310,9 @@ private fun ImportPreview(parsed: TabularImport.Parsed, onCancel: () -> Unit, on
 
 @Composable
 private fun AllRowsLine(checked: Boolean, colors: CheckboxColors, onCheck: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).clickable { onCheck(!checked) }.padding(horizontal = 4.dp),
+    Row(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).toggleable(checked, role = Role.Checkbox, onValueChange = onCheck).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked, onCheck, colors = colors)
+        RowCheckbox(checked, colors = colors)
         Text(tr("All"), color = F.ink, fontWeight = FontWeight.Medium)
     }
 }
@@ -308,11 +322,11 @@ private fun AllRowsLine(checked: Boolean, colors: CheckboxColors, onCheck: (Bool
 private fun ImportRowLine(r: TabularImport.Row, checked: Boolean, colors: CheckboxColors, onCheck: (Boolean) -> Unit) {
     val currency = LocalCurrency.current
     Row(
-        Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).clickable { onCheck(!checked) }
+        Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).toggleable(checked, role = Role.Checkbox, onValueChange = onCheck)
             .padding(start = 4.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked, onCheck, colors = colors)
+        RowCheckbox(checked, colors = colors)
         Column(Modifier.weight(1f)) {
             Text("${r.date.short()} ${r.date.year} · " + when (r.type) {
                 DraftType.TRANSFER -> "${r.account} → ${r.toAccount}"
