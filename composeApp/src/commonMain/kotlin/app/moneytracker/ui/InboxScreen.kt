@@ -18,6 +18,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,12 +31,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.domain.Capture
-import app.moneytracker.domain.CaptureStatus
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.isRefund
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
+
+/** What the classic inbox asks for: its holder's actions plus navigation. */
+private class InboxActions(
+    val back: () -> Unit,
+    /** Reads a pasted message; the callback gets the new capture, or null when it wasn't one. */
+    val paste: (String, (Capture?) -> Unit) -> Unit,
+    val add: (Capture) -> Unit,
+    val dismiss: (Capture) -> Unit,
+)
 
 /** Classic list of detected bank messages, each added as an entry or dismissed; a message can be pasted in too. */
 @Composable
@@ -43,22 +49,33 @@ fun InboxScreen() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val scope = rememberCoroutineScope()
-    val captures by repo.captureStore.pendingCaptures.collectAsState()
-    val accountName by repo.accountStore.accountNames.collectAsState()
+    val model = remember(repo) {
+        MessageReviewModel(repo.captureStore, repo.messageIntake, repo.settingsStore, repo.accountStore, repo.categoryStore, repo.io, scope)
+    }
+    val state by model.state.collectAsState()
+    val drafts by model.drafts.collectAsState()
+    val actions = InboxActions(
+        back = nav::pop,
+        paste = model::paste,
+        add = { c -> drafts[c.id]?.let { nav.push(Screen.EditTxn(preset = it, captureId = c.id)) } },
+        dismiss = { c -> model.dismiss(c) {} },
+    )
+    InboxContent(state.captures, state.accountNames, actions)
+}
+
+@Composable
+private fun InboxContent(captures: List<Capture>, accountName: Map<String, String>, actions: InboxActions) {
     var pasting by remember { mutableStateOf(false) }
     var pasteResult by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize()) {
-        BackTopBar(tr("Detected transactions"), nav::pop) {
+        BackTopBar(tr("Detected transactions"), actions.back) {
             TextButton(onClick = { pasting = true; pasteResult = null }) { Text(tr("Paste message"), color = Accent) }
         }
         HorizontalDivider(color = DividerColor)
         pasteResult?.let { Text(it, Modifier.padding(horizontal = 20.dp, vertical = 8.dp), color = SubtleText, fontSize = 13.sp) }
         if (pasting) PasteMessageDialog(onDismiss = { pasting = false }) { msg ->
             pasting = false
-            scope.launch {
-                val c = withContext(repo.io) { repo.messageIntake.ingestMessage("PASTE", "", msg, Clock.System.now().toEpochMilliseconds()) }
-                pasteResult = if (c == null) tr("That doesn't look like a payment message (or it was already added).") else null
-            }
+            actions.paste(msg) { c -> pasteResult = if (c == null) tr("That doesn't look like a payment message (or it was already added).") else null }
         }
         if (captures.isEmpty()) {
             EmptyState(tr("Nothing to review. Turn on \"Detect bank SMS\" in Configuration, or paste a message."), Icons.Outlined.Inbox)
@@ -66,9 +83,7 @@ fun InboxScreen() {
         }
         LazyColumn(Modifier.fillMaxSize()) {
             items(captures, key = { it.id }) { c ->
-                CaptureCard(c, accountName,
-                    onAdd = { nav.push(Screen.EditTxn(preset = repo.messageIntake.draftFromCapture(c), captureId = c.id)) },
-                    onDismiss = { scope.launch { withContext(repo.io) { repo.captureStore.setCaptureStatus(c.id, CaptureStatus.DISMISSED) } } })
+                CaptureCard(c, accountName, onAdd = { actions.add(c) }, onDismiss = { actions.dismiss(c) })
                 HorizontalDivider(color = DividerColor)
             }
         }
