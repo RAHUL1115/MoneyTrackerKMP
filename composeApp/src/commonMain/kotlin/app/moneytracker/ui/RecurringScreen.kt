@@ -40,10 +40,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.DraftType
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.RepeatTiming
-import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.CategoryKind
@@ -52,9 +50,6 @@ import app.moneytracker.domain.RecurringRule
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.isRefund
-import app.moneytracker.ui.collectAsState
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** Classic repeat settings: the timing, then the rules grouped by Income / Expenses / Transfer with group totals. */
 @Composable
@@ -62,59 +57,78 @@ fun RecurringScreen() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val scope = rememberCoroutineScope()
-    val rules by repo.repeatStore.rules.collectAsState()
-    val accounts by repo.accountStore.accounts.collectAsState()
-    val categories by repo.categoryStore.categories.collectAsState()
+    val model = remember(repo) {
+        RepeatsModel(repo.repeatStore, repo.settingsStore, repo.accountStore, repo.categoryStore, repo.io, repo.today, scope)
+    }
+    val state by model.state.collectAsState()
+    RecurringContent(
+        state, onBack = nav::pop, onAdd = { nav.push(Screen.EditTxn(preset = model.newRepeatDraft())) },
+        onTiming = model::setTiming, onSave = model::saveRule, onStop = model::stopRule,
+    )
+}
+
+/** The classic Repeat Setting screen drawn from [state]; the rule editor and timing choice open as dialogs. */
+@Composable
+private fun RecurringContent(
+    state: RepeatsState,
+    onBack: () -> Unit,
+    onAdd: () -> Unit,
+    onTiming: (RepeatTiming) -> Unit,
+    onSave: (RecurringRule) -> Unit,
+    onStop: (RecurringRule) -> Unit,
+) {
     val timing = choiceSpec(Prefs.REPEAT_TIMING, newLayout = false)
     var editing by remember { mutableStateOf<RecurringRule?>(null) }
     var deleting by remember { mutableStateOf(false) }
     var timingDialog by remember { mutableStateOf(false) }
-    fun inBackground(block: () -> Unit) { scope.launch { withContext(repo.io) { block() } } }
 
-    editing?.let { r -> RuleEditDialog(r, accounts, categories, onDismiss = { editing = null }) { updated ->
+    editing?.let { r -> RuleEditDialog(r, state.lookups.accounts, state.lookups.categories, onDismiss = { editing = null }) { updated ->
         editing = null
-        inBackground { repo.repeatStore.saveRule(updated); repo.repeatStore.generateRecurring() }
+        onSave(updated)
     } }
     if (timingDialog) {
         ChoiceDialog(tr("Timing of reflection"), timing.options.map { (v, label) -> v.name to label }, { timingDialog = false }) { v ->
             timingDialog = false
-            inBackground { repo.settingsStore.putSetting(Prefs.REPEAT_TIMING, RepeatTiming.valueOf(v)); repo.repeatStore.generateRecurring() }
+            onTiming(RepeatTiming.valueOf(v))
         }
     }
     Column(Modifier.fillMaxSize()) {
-        BackTopBar(tr("Repeat Setting"), nav::pop) {
-            if (rules.isNotEmpty()) IconButton(onClick = { deleting = !deleting }) {
+        BackTopBar(tr("Repeat Setting"), onBack) {
+            if (state.rules.isNotEmpty()) IconButton(onClick = { deleting = !deleting }) {
                 Icon(Icons.Outlined.Delete, tr("Delete"), tint = if (deleting) DangerColor else LocalContentColor.current)
             }
-            IconButton(onClick = {
-                nav.push(Screen.EditTxn(preset = TxnDraft(DraftType.EXPENSE, repo.today(), "", amount = 0, repeat = RepeatType.MONTHLY)))
-            }) { Icon(Icons.Outlined.Add, tr("Add")) }
+            IconButton(onClick = onAdd) { Icon(Icons.Outlined.Add, tr("Add")) }
         }
         HorizontalDivider(color = DividerColor)
-        ConfigRow(tr("Timing of reflection"), timing.label(rememberSetting(Prefs.REPEAT_TIMING).value)) { timingDialog = true }
-        if (rules.isEmpty()) EmptyState(tr("No repeating transactions. Use “Rep/Inst.” when adding one."), Icons.Outlined.Repeat)
-        else RuleList(rules, deleting, onEdit = { editing = it }) { r -> inBackground { repo.repeatStore.deleteRule(r.id) } }
+        ConfigRow(tr("Timing of reflection"), timing.label(state.timing)) { timingDialog = true }
+        if (state.rules.isEmpty()) EmptyState(tr("No repeating transactions. Use “Rep/Inst.” when adding one."), Icons.Outlined.Repeat)
+        else RuleList(state.groups, state.lookups, deleting, onEdit = { editing = it }, onStop = onStop)
     }
 }
 
+private fun groupTitle(kind: TxnKind) = when (kind) {
+    TxnKind.INCOME -> tr("Income")
+    TxnKind.EXPENSE -> tr("Expenses")
+    TxnKind.TRANSFER_OUT, TxnKind.TRANSFER_IN, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> tr("Transfer")
+}
+
 @Composable
-private fun RuleList(rules: List<RecurringRule>, deleting: Boolean, onEdit: (RecurringRule) -> Unit, onStop: (RecurringRule) -> Unit) {
-    val repo = LocalRepo.current
+private fun RuleList(
+    groups: List<Pair<TxnKind, List<RecurringRule>>>,
+    lookups: RuleLookups,
+    deleting: Boolean,
+    onEdit: (RecurringRule) -> Unit,
+    onStop: (RecurringRule) -> Unit,
+) {
     val currency = LocalCurrency.current
     val currencies = LocalCurrencies.current
-    val accountName by repo.accountStore.accountNames.collectAsState()
-    val catById by repo.categoryStore.categoryById.collectAsState()
     fun main(r: RecurringRule) = Fx.toMain(r.amount, r.currency?.let { currencies[it] }, currency.decimals)
-    val groups = listOf(
-        tr("Income") to rules.filter { it.kind == TxnKind.INCOME },
-        tr("Expenses") to rules.filter { it.kind == TxnKind.EXPENSE },
-        tr("Transfer") to rules.filter { it.kind == TxnKind.TRANSFER_OUT },
-    ).filter { it.second.isNotEmpty() }
     LazyColumn(Modifier.fillMaxSize()) {
-        groups.forEach { (title, list) ->
-            item(key = "g$title") { RuleGroupHeader(title, list.first().kind, currency.format(list.sumOf { main(it) })) }
+        groups.forEach { (kind, list) ->
+            val title = groupTitle(kind)
+            item(key = "g$title") { RuleGroupHeader(title, kind, currency.format(list.sumOf { main(it) })) }
             items(list, key = { it.id }) { r ->
-                RuleLine(r, main(r), deleting, accountName, catById, onEdit = { onEdit(r) }, onStop = { onStop(r) })
+                RuleLine(r, main(r), deleting, lookups.accountNames, lookups.categoryById, onEdit = { onEdit(r) }, onStop = { onStop(r) })
                 HorizontalDivider(color = DividerColor)
             }
         }

@@ -30,6 +30,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,28 +47,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.newId
 import app.moneytracker.domain.Note
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 
 private val NoteColors = listOf(SurfaceColor, Color(0xFFFFF4D6), Color(0xFFE3F2FD), Color(0xFFE8F5E9), Color(0xFFFCE4EC))
 
-private const val DAY_MS = 86_400_000L
-
+/** Classic notes list, in stored order: pinned first, then last changed. */
 @Composable
 fun NotesView() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val notes by repo.noteStore.notes.collectAsState()
+    val scope = rememberCoroutineScope()
+    val model = remember(repo) { NotesModel(repo.noteStore, scope, NoteOrder.LAST_CHANGED) }
+    val notes by model.notes.collectAsState()
+    NotesList(notes) { nav.push(Screen.EditNote(it.id)) }
+}
+
+@Composable
+private fun NotesList(notes: List<Note>, onOpen: (Note) -> Unit) {
     if (notes.isEmpty()) { EmptyState(tr("No notes. Tap + to jot something down.")); return }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         item { Spacer(Modifier.height(8.dp)) }
         items(notes, key = { it.id }) { n ->
             Column(
                 Modifier.fillMaxWidth().padding(vertical = 4.dp).background(NoteColors.getOrElse(n.color) { SurfaceColor }, RoundedCornerShape(8.dp))
-                    .border(1.dp, DividerColor, RoundedCornerShape(8.dp)).clickable { nav.push(Screen.EditNote(n.id)) }.padding(14.dp),
+                    .border(1.dp, DividerColor, RoundedCornerShape(8.dp)).clickable { onOpen(n) }.padding(14.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(n.title.ifBlank { tr("Untitled") }, Modifier.weight(1f), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -80,44 +84,46 @@ fun NotesView() {
     }
 }
 
+/** Classic note editor: Back, the arrow and Save all save, and the editor closes once the save is done. */
 @Composable
 fun EditNoteScreen(noteId: String?) {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val scope = rememberCoroutineScope()
-    val notes by repo.noteStore.notes.collectAsState()
+    // The editor closes only after a save or delete finishes, so the screen's own scope lives long enough.
+    val model = remember(repo) { NoteEditorModel(repo.noteStore, repo.io, scope) }
+    val notes by model.notes.collectAsState()
     var loaded by rememberSaveable { mutableStateOf(noteId == null) }
-    var title by rememberSaveable { mutableStateOf("") }
-    var content by rememberSaveable { mutableStateOf("") }
-    var color by rememberSaveable { mutableStateOf(0) }
-    var pinned by rememberSaveable { mutableStateOf(false) }
-    var createdAt by rememberSaveable { mutableStateOf(0L) }
+    var draft by rememberSaveable(stateSaver = NoteDraftSaver) { mutableStateOf(NoteDraft.undated) }
     LaunchedEffect(notes) {
         if (loaded) return@LaunchedEffect
-        notes.firstOrNull { it.id == noteId }?.let { title = it.title; content = it.content; color = it.color; pinned = it.pinned; createdAt = it.createdAt; loaded = true }
+        notes.firstOrNull { it.id == noteId }?.let { draft = NoteDraft.of(it); loaded = true }
     }
-    fun save() {
-        if (title.isBlank() && content.isBlank()) { nav.pop(); return }
-        val n = Note(noteId ?: newId(), title.trim(), content, color, pinned, if (createdAt == 0L) repo.today().toEpochDays() * DAY_MS else createdAt, 0)
-        scope.launch { withContext(repo.io) { repo.noteStore.saveNote(n) }; nav.pop() }
-    }
+    fun save() = model.saveThen(noteId, draft, repo.today(), then = nav::pop)
     // System Back saves too, same as the arrow — a note is never silently lost.
     val saveState = rememberUpdatedState(::save)
     DisposableEffect(nav) {
         val remove = nav.interceptBack { saveState.value(); true }
         onDispose { remove() }
     }
-    Column(Modifier.fillMaxSize().background(NoteColors.getOrElse(color) { SurfaceColor })) {
-        BackTopBar(tr("Note"), ::save) {
-            IconButton(onClick = { pinned = !pinned }) { Icon(Icons.Outlined.PushPin, tr("Pin"), tint = if (pinned) Accent else SubtleText) }
-            if (noteId != null) IconButton(onClick = { scope.launch { withContext(repo.io) { repo.noteStore.deleteNote(noteId) }; nav.pop() } }) {
-                Icon(Icons.Outlined.Delete, tr("Delete note"))
+    val onDelete = noteId?.let { id -> { model.delete(id, then = nav::pop) } }
+    NoteEditorContent(draft, repo.today(), onChange = { draft = it }, onSave = ::save, onDelete = onDelete)
+}
+
+/** The editor drawn from [draft]; [onDelete] is null for a new note. */
+@Composable
+private fun NoteEditorContent(draft: NoteDraft, today: LocalDate, onChange: (NoteDraft) -> Unit, onSave: () -> Unit, onDelete: (() -> Unit)?) {
+    Column(Modifier.fillMaxSize().background(NoteColors.getOrElse(draft.color) { SurfaceColor })) {
+        BackTopBar(tr("Note"), onSave) {
+            IconButton(onClick = { onChange(draft.copy(pinned = !draft.pinned)) }) {
+                Icon(Icons.Outlined.PushPin, tr("Pin"), tint = if (draft.pinned) Accent else SubtleText)
             }
-            TextButton(onClick = ::save) { Text(tr("Save"), color = Accent) }
+            if (onDelete != null) IconButton(onClick = onDelete) { Icon(Icons.Outlined.Delete, tr("Delete note")) }
+            TextButton(onClick = onSave) { Text(tr("Save"), color = Accent) }
         }
-        NoteColorRow(color) { color = it }
-        NoteDateChip(if (createdAt == 0L) repo.today().toEpochDays() * DAY_MS else createdAt) { createdAt = it }
-        NoteText(title, { title = it }, content) { content = it }
+        NoteColorRow(draft.color) { onChange(draft.copy(color = it)) }
+        NoteDateChip(draft.dayOr(today)) { onChange(draft.copy(createdAt = it)) }
+        NoteText(draft.title, { onChange(draft.copy(title = it)) }, draft.content) { onChange(draft.copy(content = it)) }
     }
 }
 
@@ -135,11 +141,11 @@ private fun NoteColorRow(selected: Int, onPick: (Int) -> Unit) {
 @Composable
 private fun NoteDateChip(createdAt: Long, onPick: (Long) -> Unit) {
     var pickingDate by remember { mutableStateOf(false) }
-    val noteDate = LocalDate.fromEpochDays((createdAt / DAY_MS).toInt())
+    val noteDate = noteDate(createdAt)
     Text("${noteDate.monthNumber}.${noteDate.dayOfMonth} (${noteDate.weekday()})",
         Modifier.padding(horizontal = 20.dp, vertical = 4.dp).border(1.dp, SubtleText, RoundedCornerShape(4.dp))
             .clickable { pickingDate = true }.padding(horizontal = 14.dp, vertical = 4.dp), color = InkSoft)
-    DatePickerHost(pickingDate, noteDate, { pickingDate = false }, { d -> d?.let { onPick(it.toEpochDays() * DAY_MS) } })
+    DatePickerHost(pickingDate, noteDate, { pickingDate = false }, { d -> d?.let { onPick(noteDay(it)) } })
 }
 
 @Composable
