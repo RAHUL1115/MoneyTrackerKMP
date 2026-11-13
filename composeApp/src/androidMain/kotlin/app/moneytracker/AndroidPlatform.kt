@@ -41,18 +41,14 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.FragmentActivity
 import app.moneytracker.ui.BiometricStatus
 import app.moneytracker.ui.BackgroundState
-import app.moneytracker.ui.AppInfo
 import app.moneytracker.ui.BackgroundJobs
-import app.moneytracker.ui.Languages
 import app.moneytracker.ui.Location
 import app.moneytracker.ui.MessageCapture
-import app.moneytracker.ui.Network
 import app.moneytracker.ui.PinSecurity
 import app.moneytracker.ui.Platform
 import app.moneytracker.ui.Photos
 import app.moneytracker.ui.SmartModels
 import app.moneytracker.ui.Voice
-import app.moneytracker.ui.WebDashboardControl
 import app.moneytracker.ui.tr
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -67,10 +63,16 @@ import javax.crypto.spec.PBEKeySpec
  * Must be created in Activity.onCreate (registers activity-result launchers).
  */
 class AndroidPlatform(private val activity: FragmentActivity) :
-    PinSecurity, Photos, Voice, Location, BackgroundJobs, MessageCapture, WebDashboardControl, Languages, AppInfo,
-    Network, SmartModels {
+    PinSecurity, Photos, Voice, Location, BackgroundJobs, MessageCapture, SmartModels {
     private val ctx: Context get() = activity.applicationContext
     private val photoDir get() = PhotoFiles.dir(ctx)
+
+    /** Every capability the shared UI gets; each screen sees only the one it reads. */
+    fun capabilities() = Platform(
+        pinSecurity = this, photos = this, voice = this, location = this, backgroundJobs = this, messageCapture = this,
+        webDashboard = AndroidWebDashboardControl(activity, ::notificationPermission),
+        languages = AndroidLanguages(ctx), appInfo = AndroidAppInfo(activity), network = HttpsNetwork, smartModels = this,
+    )
 
     // ───────────────────────── launchers
 
@@ -299,69 +301,6 @@ class AndroidPlatform(private val activity: FragmentActivity) :
         }
     }
 
-    override val appVersion: String
-        get() = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull().orEmpty()
-
-    override fun licenseText(id: String): String? =
-        runCatching { ctx.assets.open("licenses/$id.txt").bufferedReader().use { it.readText() } }.getOrNull()
-
-    override fun openUrl(url: String) {
-        runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-    }
-
-    override suspend fun httpGet(url: String): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        runCatching {
-            val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-            try {
-                c.connectTimeout = 10_000
-                c.readTimeout = 10_000
-                c.setRequestProperty("Accept", "application/json")
-                c.setRequestProperty("User-Agent", "MoneyTracker")
-                if (c.responseCode == 200) c.inputStream.bufferedReader().use { it.readText() } else null
-            } finally {
-                c.disconnect()
-            }
-        }.getOrNull()
-    }
-
-    // ───────────────────────── web dashboard
-
-    override val state: StateFlow<app.moneytracker.ui.WebDashboardState> = app.moneytracker.web.WebDashboard.state
-
-    override fun refreshWebDashboard() = app.moneytracker.web.WebDashboard.refresh()
-
-    override fun startWebDashboard(onResult: (Boolean) -> Unit) {
-        // The notification is how it's stopped from outside the app, so ask for it; the dashboard runs either way.
-        notificationPermission { _ ->
-            // Listen first, so a missing network or busy port is reported here; the service then keeps it running.
-            if (app.moneytracker.web.WebDashboard.startServer(ctx) == null) return@notificationPermission onResult(false)
-            app.moneytracker.web.WebDashboardService.start(ctx)
-            onResult(true)
-        }
-    }
-
-    override fun stopWebDashboard() = app.moneytracker.web.WebDashboardService.stop(ctx)
-
-    override fun disconnectWebComputer(id: String) = app.moneytracker.web.WebDashboard.disconnect(id)
-
-    override fun setWebPassword(password: String?) {
-        val repo = (ctx as MoneyTrackerApp).database.repo ?: return
-        repo.putSetting(app.moneytracker.data.Prefs.WEB_PASSWORD, password?.let { app.moneytracker.web.WebPassword.hash(it) } ?: "")
-        app.moneytracker.web.WebDashboard.signOutAll()
-    }
-
-    override fun openWifiSettings() {
-        val panel = if (Build.VERSION.SDK_INT >= 29) Intent(Settings.Panel.ACTION_WIFI) else Intent(Settings.ACTION_WIFI_SETTINGS)
-        runCatching { activity.startActivity(panel) }.onFailure { runCatching { activity.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) } }
-    }
-
-    override fun restartApp() {
-        // A fresh task with a new activity; the process (and the open database) stays.
-        MainActivity.skipLockOnce = true
-        activity.startActivity(Intent.makeRestartActivityTask(ComponentName(activity, MainActivity::class.java)))
-        activity.finish()
-    }
-
     override fun openMap(lat: Double, lng: Double) {
         runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:$lat,$lng?q=$lat,$lng"))) }
     }
@@ -422,17 +361,7 @@ class AndroidPlatform(private val activity: FragmentActivity) :
             }
         }
     }
-
-
-    override fun systemLanguage(): String = android.content.res.Resources.getSystem().configuration.locales[0].toLanguageTag()
-    override fun translations(tag: String): Map<String, String> = Translations.load(ctx, tag)
 }
-
-/** The shared UI's view of this class: every capability is this one object, but each screen sees only its slice. */
-fun AndroidPlatform.capabilities() = Platform(
-    pinSecurity = this, photos = this, voice = this, location = this, backgroundJobs = this, messageCapture = this,
-    webDashboard = this, languages = this, appInfo = this, network = this, smartModels = this,
-)
 
 /** Class 2 ("weak") includes most face unlock; fine for an app lock that always has a PIN fallback. */
 private const val MAX_PICK = 5
