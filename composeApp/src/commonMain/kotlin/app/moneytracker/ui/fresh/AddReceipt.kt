@@ -48,6 +48,9 @@ import kotlinx.datetime.minus
 
 // The receipt card of the add screen (AddScreen.kt): amount over a card of rows, the row being filled underlined.
 
+/** Side inset of everything inside the receipt card; each row applies it inside its own tap area. */
+private val ReceiptInset = 16.dp
+
 internal fun shown(f: CurrencyFormat, expr: String) = if (f.symbolAfter) "$expr ${f.symbol}" else "${f.symbol}$expr"
 
 /** "Today", "Yesterday", or "Mon 3 Mar". */
@@ -67,9 +70,10 @@ internal fun ReceiptCard(c: AddContext) {
     val f = c.model.form
     val ui = c.ui
     val focus = LocalFocusManager.current
-    Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).padding(horizontal = 16.dp).padding(top = 14.dp, bottom = 2.dp)) {
+    // No side padding on the card: each row pads itself, so a row's tap highlight spans the card's full width.
+    Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).padding(top = 14.dp, bottom = 2.dp)) {
         val (hint, hintColor) = amountHint(c)
-        Text(hint, Modifier.height(18.dp), color = hintColor, fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium,
+        Text(hint, Modifier.padding(horizontal = ReceiptInset).height(18.dp), color = hintColor, fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
         AmountLine(c) { ui.feeTarget = false; ui.goTo(Step.AMOUNT, focus) }
         // The row being filled is underlined in the accent colour.
@@ -87,7 +91,7 @@ internal fun ReceiptCard(c: AddContext) {
         }
         DateRow(c)
         RowDivider(false)
-        Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = ReceiptInset), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             RowIcon(Glyph.Note, accent = ui.step == Step.NOTE)
             NoteField(c, Modifier.weight(1f), background = Color.Transparent)
         }
@@ -103,7 +107,8 @@ private fun AmountLine(c: AddContext, onClick: () -> Unit) {
     val total = c.model.amountValue()
     val amountText = shown(fmt, addExprShown(if (feeTarget) f.feeText.ifEmpty { "0" } else f.amountText))
     Row(
-        Modifier.fillMaxWidth().height(56.dp).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
+        Modifier.fillMaxWidth().height(56.dp).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+            .padding(horizontal = ReceiptInset),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
@@ -140,9 +145,10 @@ private fun DateRow(c: AddContext) {
     val f = c.model.form
     val focus = LocalFocusManager.current
     val today = remember { c.model.setup.today() }
-    Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(Modifier.fillMaxWidth().height(52.dp).padding(end = ReceiptInset), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
-            Modifier.weight(1f).fillMaxHeight().clickable(onClickLabel = tr("Date")) { focus.clearFocus(); c.ui.sheet = AddSheet.DATE },
+            Modifier.weight(1f).fillMaxHeight().clickable(onClickLabel = tr("Date")) { focus.clearFocus(); c.ui.sheet = AddSheet.DATE }
+                .padding(start = ReceiptInset),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             RowIcon(Glyph.Calendar, accent = false)
@@ -216,7 +222,7 @@ private fun CurrencyChip(f: EntryForm, onClick: () -> Unit) {
 /** Hairline under a receipt row, thicker and in the accent when the row is being filled. Always 2dp tall, so nothing moves. */
 @Composable
 private fun RowDivider(active: Boolean, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(2.dp), contentAlignment = Alignment.BottomStart) {
+    Box(modifier.fillMaxWidth().padding(horizontal = ReceiptInset).height(2.dp), contentAlignment = Alignment.BottomStart) {
         Box(Modifier.fillMaxWidth().height(if (active) 2.dp else 1.dp).background(if (active) F.accent else F.border))
     }
 }
@@ -233,7 +239,8 @@ private fun RowIcon(icon: ImageVector, accent: Boolean) {
 @Composable
 private fun ReceiptRow(icon: ImageVector, value: String, label: String, accent: Boolean = false, missing: Boolean = false, active: Boolean = false, onClick: (() -> Unit)?) {
     Row(
-        Modifier.fillMaxWidth().height(52.dp).then(if (onClick != null) Modifier.clickable(onClickLabel = label, onClick = onClick) else Modifier),
+        Modifier.fillMaxWidth().height(52.dp).then(if (onClick != null) Modifier.clickable(onClickLabel = label, onClick = onClick) else Modifier)
+            .padding(horizontal = ReceiptInset),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         RowIcon(icon, accent || active)
