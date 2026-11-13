@@ -34,9 +34,7 @@
     <ID>EmptyElseBlock:Calc.kt$Calc$if (rhs == 0.0) return null</ID>
     <ID>EmptyElseBlock:SmartModels.kt$PieceSplitter$if (piece[j] &gt;= 0) rev.add(piece[j])</ID>
     <ID>EmptyElseBlock:SmartParser.kt$SmartParser$if (c != null) vals.add(c)</ID>
-    <ID>EmptyElseBlock:WebDashboardFresh.kt$if (text.isEmpty()) Text(tr("New password"), color = F.muted, fontSize = 16.sp)</ID>
     <ID>ForEachOnRange:Common.kt$(1..12).chunked(4)</ID>
-    <ID>LongMethod:AboutScreen.kt$@Composable fun AboutScreen()</ID>
     <ID>LongMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:Common.kt$@Composable fun MonthPickerDialog(selected: YearMonth, current: YearMonth, onDismiss: () -&gt; Unit, onPick: (YearMonth) -&gt; Unit)</ID>
     <ID>LongMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
@@ -45,8 +43,6 @@
     <ID>LongMethod:SmartParser.kt$SmartParser$fun parse(text: String, expenseCategories: List&lt;String&gt;, incomeCategories: List&lt;String&gt;, accounts: List&lt;String&gt;): Result</ID>
     <ID>LongMethod:SmartText.kt$SmartText$fun translit(word: String): String</ID>
     <ID>LongMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
-    <ID>LongMethod:WebDashboardFresh.kt$@Composable internal fun FreshWebDashboard()</ID>
-    <ID>LongParameterList:WebDashboardScreens.kt$WebDashboardUi$( val state: WebDashboardState, val passwordSet: Boolean, val autoStop: Int, val now: Long, val start: () -&gt; Unit, val stop: () -&gt; Unit, val copy: () -&gt; Unit, val disconnect: (String) -&gt; Unit, val setPassword: (String?) -&gt; Unit, val setAutoStop: (Int) -&gt; Unit, val openWifi: () -&gt; Unit, /** Set briefly after Copy. */ val copied: Boolean, )</ID>
     <ID>LoopWithTooManyJumpStatements:SmartParser.kt$SmartParser$for</ID>
     <ID>LoopWithTooManyJumpStatements:SmsParser.kt$SmsParser$for</ID>
     <ID>MatchingDeclarationName:FreshApp.kt$FreshTab</ID>

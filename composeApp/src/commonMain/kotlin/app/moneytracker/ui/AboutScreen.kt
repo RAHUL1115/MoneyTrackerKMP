@@ -62,41 +62,58 @@ fun AboutScreen() {
         BackTopBar(tr("About"), nav::pop)
         HorizontalDivider(color = DividerColor)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 12.dp)) {
-            Column(Modifier.card().fillMaxWidth().padding(20.dp)) {
-                Text("MoneyTracker", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Ink)
-                if (appInfo.appVersion.isNotEmpty()) Text(tr("Version {0}", appInfo.appVersion), color = SubtleText, fontSize = 13.sp)
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    tr("Free and open source under the GNU GPL v3. No ads, no accounts and no internet access: your data stays on this phone."),
-                    color = InkSoft, fontSize = 14.sp, lineHeight = 20.sp,
-                )
-            }
+            AboutHeader(appInfo.appVersion)
             Spacer(Modifier.height(12.dp))
-            Column(Modifier.card()) {
-                AboutLink(GitHubMark, tr("Source code on GitHub"), REPO_URL.removePrefix("https://")) { appInfo.openUrl(REPO_URL) }
-                AboutLink(Icons.Outlined.Description, tr("Read me")) { appInfo.openUrl(doc("README.md")) }
-                AboutLink(Icons.Outlined.PrivacyTip, tr("Privacy policy")) { appInfo.openUrl(doc("PRIVACY.md")) }
-                AboutLink(Icons.Outlined.Gavel, tr("License (GPL-3.0)")) { appInfo.openUrl(doc("LICENSE")) }
-                AboutLink(Icons.Outlined.Security, tr("Report a security issue")) { appInfo.openUrl(doc("SECURITY.md")) }
-                AboutLink(Icons.Outlined.Groups, tr("Contributing"), divider = false) { appInfo.openUrl(doc("CONTRIBUTING.md")) }
-            }
+            ProjectLinks(appInfo::openUrl)
             Spacer(Modifier.height(12.dp))
-            Column(Modifier.card()) {
-                Text(tr("Open-source libraries"), Modifier.padding(start = 20.dp, top = 14.dp, bottom = 4.dp), fontWeight = FontWeight.Medium, color = Ink)
-                LIBRARIES.forEach { (name, by) ->
-                    AboutLink(Icons.Outlined.Code, name, "$by · ${tr("Apache License 2.0")}", external = false) { nav.push(Screen.License("Apache-2.0")) }
-                }
-                AboutLink(Icons.Outlined.Code, "Model2Vec potion-multilingual-128M", "MinishLab · ${tr("MIT License")}", external = false) {
-                    nav.push(Screen.License("MIT-Model2Vec"))
-                }
-                AboutLink(Icons.Outlined.Gavel, tr("License (GPL-3.0)"), tr("Full text, offline"), external = false, divider = false) {
-                    nav.push(Screen.License("GPL-3.0"))
-                }
-            }
+            LibraryLicences(onOpen = { id -> nav.push(Screen.License(id)) })
             Text(
                 tr("Inspired by Money Manager by Realbyte Inc. MoneyTracker is an independent app, not affiliated with or endorsed by Realbyte, and can import Money Manager backups."),
                 Modifier.padding(horizontal = 24.dp, vertical = 16.dp), color = SubtleText, fontSize = 12.sp, lineHeight = 17.sp,
             )
+        }
+    }
+}
+
+@Composable
+private fun AboutHeader(appVersion: String) {
+    Column(Modifier.card().fillMaxWidth().padding(20.dp)) {
+        Text("MoneyTracker", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+        if (appVersion.isNotEmpty()) Text(tr("Version {0}", appVersion), color = SubtleText, fontSize = 13.sp)
+        Spacer(Modifier.height(10.dp))
+        Text(
+            tr("Free and open source under the GNU GPL v3. No ads, no accounts and no internet access: your data stays on this phone."),
+            color = InkSoft, fontSize = 14.sp, lineHeight = 20.sp,
+        )
+    }
+}
+
+/** The GitHub project and its documents, opened in the browser. */
+@Composable
+private fun ProjectLinks(openUrl: (String) -> Unit) {
+    Column(Modifier.card()) {
+        AboutLink(GitHubMark, tr("Source code on GitHub"), REPO_URL.removePrefix("https://")) { openUrl(REPO_URL) }
+        AboutLink(Icons.Outlined.Description, tr("Read me")) { openUrl(doc("README.md")) }
+        AboutLink(Icons.Outlined.PrivacyTip, tr("Privacy policy")) { openUrl(doc("PRIVACY.md")) }
+        AboutLink(Icons.Outlined.Gavel, tr("License (GPL-3.0)")) { openUrl(doc("LICENSE")) }
+        AboutLink(Icons.Outlined.Security, tr("Report a security issue")) { openUrl(doc("SECURITY.md")) }
+        AboutLink(Icons.Outlined.Groups, tr("Contributing"), divider = false) { openUrl(doc("CONTRIBUTING.md")) }
+    }
+}
+
+/** The bundled libraries and licences; [onOpen] gets the id of the licence text to show. */
+@Composable
+private fun LibraryLicences(onOpen: (String) -> Unit) {
+    Column(Modifier.card()) {
+        Text(tr("Open-source libraries"), Modifier.padding(start = 20.dp, top = 14.dp, bottom = 4.dp), fontWeight = FontWeight.Medium, color = Ink)
+        LIBRARIES.forEach { (name, by) ->
+            AboutLink(Icons.Outlined.Code, name, "$by · ${tr("Apache License 2.0")}", external = false) { onOpen("Apache-2.0") }
+        }
+        AboutLink(Icons.Outlined.Code, "Model2Vec potion-multilingual-128M", "MinishLab · ${tr("MIT License")}", external = false) {
+            onOpen("MIT-Model2Vec")
+        }
+        AboutLink(Icons.Outlined.Gavel, tr("License (GPL-3.0)"), tr("Full text, offline"), external = false, divider = false) {
+            onOpen("GPL-3.0")
         }
     }
 }
