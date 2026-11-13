@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -216,20 +215,22 @@ private fun HeroStats(state: InsightsState) {
 private fun PeriodSheet(state: InsightsState, onDismiss: () -> Unit, onPick: (InsightsSpan) -> Unit) {
     val ym = state.choice.month
     Sheet(tr("Period"), onDismiss) {
-        InsightsSpan.entries.forEach { s ->
-            val subtitle = when (s) {
-                InsightsSpan.MONTH -> ym.label()
-                InsightsSpan.YEAR -> ym.year.toString()
-                InsightsSpan.WEEK, InsightsSpan.CUSTOM -> state.choice.copy(span = s).range(state.periods).label()
+        SheetOptionGroup {
+            InsightsSpan.entries.forEach { s ->
+                val subtitle = when (s) {
+                    InsightsSpan.MONTH -> ym.label()
+                    InsightsSpan.YEAR -> ym.year.toString()
+                    InsightsSpan.WEEK, InsightsSpan.CUSTOM -> state.choice.copy(span = s).range(state.periods).label()
+                }
+                SheetOption(tr(s.label()), s == state.choice.span, subtitle = subtitle) { onPick(s) }
             }
-            SheetOption(tr(s.label()), s == state.choice.span, subtitle = subtitle) { onPick(s) }
         }
     }
 }
 
 @Composable
-private fun Stat(label: String, value: String, modifier: Modifier, color: androidx.compose.ui.graphics.Color = F.ink) {
-    Column(modifier.clip(RoundedCornerShape(12.dp)).background(F.page).padding(horizontal = 10.dp, vertical = 8.dp)) {
+private fun Stat(label: String, value: String, modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color = F.ink) {
+    Column(modifier.clip(F.controlShape).background(F.page).padding(horizontal = 10.dp, vertical = 8.dp)) {
         Text(label, color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
         Text(value, color = color, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
     }
