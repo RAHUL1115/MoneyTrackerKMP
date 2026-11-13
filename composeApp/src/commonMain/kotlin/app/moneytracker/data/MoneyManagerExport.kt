@@ -5,6 +5,7 @@ import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.TxnKind
+import app.moneytracker.domain.isTransferFee
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -83,11 +84,11 @@ object MoneyManagerExport {
         }
 
         // Entries. A transfer's fee row and its out-leg share a txUidFee key.
-        val feeKey = d.txns.filter { it.kind == TxnKind.EXPENSE && it.transferGroupId != null }.associate { it.transferGroupId!! to "fee_${it.transferGroupId}" }
+        val feeKey = d.txns.filter { isTransferFee(it.kind, it.transferGroupId) }.mapNotNull { it.transferGroupId }.associateWith { "fee_$it" }
         val repeatOfRule = d.rules.associate { it.id to repeatCode(it.repeat) }
         val accountCurrency = d.accounts.associate { it.id to it.currency }
         d.txns.forEach { t ->
-            val isFee = t.kind == TxnKind.EXPENSE && t.transferGroupId != null
+            val isFee = isTransferFee(t.kind, t.transferGroupId)
             // The time of day lives in ZDATE; without one, when the entry was made.
             val at = t.timeOfDay?.let { LocalDateTime(t.date, LocalTime(it / 60, it % 60)).toInstant(tz).toEpochMilliseconds() }
                 ?: t.createdAt.takeIf { it > 0 } ?: t.date.atStartOfDayIn(tz).toEpochMilliseconds()

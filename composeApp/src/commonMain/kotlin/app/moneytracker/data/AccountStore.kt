@@ -43,8 +43,8 @@ class AccountStore(private val db: Db) {
     fun deleteAccount(id: String) = q.softDeleteAccount(db.now(), id)
     fun restoreAccount(id: String) = q.restoreAccount(db.now(), id)
 
-    fun reorderAccounts(idsInOrder: List<String>) = db.transaction { idsInOrder.forEachIndexed { i, id -> q.setAccountOrder(i.toLong(), db.now(), id) } }
-    fun reorderGroups(idsInOrder: List<String>) = db.transaction { idsInOrder.forEachIndexed { i, id -> q.setGroupOrder(i.toLong(), db.now(), id) } }
+    fun reorderAccounts(idsInOrder: List<String>) = db.saveOrder(idsInOrder, q::setAccountOrder)
+    fun reorderGroups(idsInOrder: List<String>) = db.saveOrder(idsInOrder, q::setGroupOrder)
     fun setAccountHidden(id: String, hidden: Boolean) = q.setAccountHidden(hidden.toLong(), db.now(), id)
 
     fun saveGroup(g: AccountGroup) = q.upsertGroup(GroupRow(g.id, g.name.trim(), g.type.name, g.sortOrder.toLong(), 0, db.now()))

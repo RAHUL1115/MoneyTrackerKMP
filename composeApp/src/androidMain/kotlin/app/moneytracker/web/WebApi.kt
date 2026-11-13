@@ -16,7 +16,6 @@ import app.moneytracker.domain.MODIFIED_BALANCE_NAME
 import app.moneytracker.domain.TAG_PREPAYMENT
 import app.moneytracker.domain.TOTAL_BUDGET
 import app.moneytracker.domain.Txn
-import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.budgetLines
 import app.moneytracker.domain.cardStatus
@@ -322,7 +321,7 @@ class WebApi(
         val lock = when {
             t.kind.isAdjustment -> "Balance adjustments are edited on the phone."
             t.installmentGroupId != null -> "Instalment plans are edited on the phone."
-            t.transferGroupId != null && t.kind == TxnKind.EXPENSE -> "This is a transfer fee: edit the transfer instead."
+            t.isTransferFee -> "This is a transfer fee: edit the transfer instead."
             else -> null
         }
         return mapOf(

@@ -27,4 +27,8 @@ class Db(
     /** A live list query that also remembers its latest result (see [CachedFlow]). */
     fun <R : Any, T> cached(query: () -> Query<R>, map: (List<R>) -> T): CachedFlow<T> =
         CachedFlow(query().asFlow().mapToList(io).map { map(it) }) { map(query().executeAsList()) }
+
+    /** Saves a new order in one transaction: [setOrder] writes each id's position (0 = first) and the change time. */
+    fun saveOrder(idsInOrder: List<String>, setOrder: (position: Long, changedAt: Long, id: String) -> Unit) =
+        transaction { idsInOrder.forEachIndexed { i, id -> setOrder(i.toLong(), now(), id) } }
 }

@@ -18,5 +18,5 @@ class CategoryStore(private val db: Db) {
 
     fun deleteCategory(id: String) = q.softDeleteCategory(db.now(), id, id)
 
-    fun reorderCategories(idsInOrder: List<String>) = db.transaction { idsInOrder.forEachIndexed { i, id -> q.setCategoryOrder(i.toLong(), db.now(), id) } }
+    fun reorderCategories(idsInOrder: List<String>) = db.saveOrder(idsInOrder, q::setCategoryOrder)
 }

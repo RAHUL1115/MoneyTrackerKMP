@@ -39,6 +39,9 @@ enum class TxnKind(val sign: Int) {
  */
 fun isRefund(kind: TxnKind?, amount: Long?) = kind == TxnKind.EXPENSE && amount != null && amount < 0
 
+/** A transfer's fee is an expense row inside the transfer's group; it is edited and deleted with the transfer. */
+fun isTransferFee(kind: TxnKind?, transferGroupId: String?) = kind == TxnKind.EXPENSE && transferGroupId != null
+
 enum class CategoryKind { INCOME, EXPENSE }
 
 enum class RepeatType(val label: String) {
@@ -151,6 +154,7 @@ data class Txn(
     /** What the user typed, in the currency they typed it in. */
     val enteredAmount: Long get() = originalAmount ?: amount
     val isRefund: Boolean get() = isRefund(kind, amount)
+    val isTransferFee: Boolean get() = isTransferFee(kind, transferGroupId)
 }
 
 data class RecurringRule(

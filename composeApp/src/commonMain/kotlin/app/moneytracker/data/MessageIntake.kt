@@ -9,7 +9,6 @@ import app.moneytracker.domain.MessageRules
 import app.moneytracker.domain.SmsParser
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.defaultAccountFor
-import app.moneytracker.domain.isRefund
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -91,11 +90,7 @@ class MessageIntake(
         val s = p?.let { learning.suggest(SmsParser.tokens(it)) }
         val date = Instant.fromEpochMilliseconds(c.receivedAt).toLocalDateTime(TimeZone.currentSystemDefault()).date
         val knownCurrency = p?.currencyCode?.let { code -> currencies.currencyNow(code)?.code }
-        val type = when {
-            c.kind == TxnKind.INCOME -> DraftType.INCOME
-            isRefund(c.kind, c.amount) -> DraftType.REFUND
-            else -> DraftType.EXPENSE
-        }
+        val type = c.kind?.toDraftType(c.amount) ?: DraftType.EXPENSE
         val category = learnedCategory(p, s, type)
         val kind = if (type == DraftType.INCOME) TxnKind.INCOME else TxnKind.EXPENSE
         return TxnDraft(

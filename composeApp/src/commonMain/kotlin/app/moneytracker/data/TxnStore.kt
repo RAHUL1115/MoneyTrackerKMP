@@ -10,7 +10,6 @@ import app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
 import app.moneytracker.domain.RecurringRule
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
-import app.moneytracker.domain.isRefund
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -116,16 +115,13 @@ class TxnStore(
 
     /** Rebuilds an editor draft from a stored transaction (for copy / templates). Amount is in the entered currency. */
     fun draftFrom(t: Txn): TxnDraft {
-        val shape = when {
-            t.transferGroupId != null -> {
-                val group = transferGroup(t.transferGroupId)
-                val out = group.firstOrNull { it.kind == TxnKind.TRANSFER_OUT } ?: t
-                val feeRow = group.firstOrNull { it.kind == TxnKind.EXPENSE }
-                DraftShape(DraftType.TRANSFER, out.accountId, out.toAccountId, feeRow?.enteredAmount ?: 0L, feeRow?.categoryId)
-            }
-            t.kind == TxnKind.INCOME -> DraftShape(DraftType.INCOME, t.accountId, null, 0L, t.categoryId)
-            t.isRefund -> DraftShape(DraftType.REFUND, t.accountId, null, 0L, t.categoryId)
-            else -> DraftShape(DraftType.EXPENSE, t.accountId, null, 0L, t.categoryId)
+        val shape = if (t.transferGroupId != null) {
+            val group = transferGroup(t.transferGroupId)
+            val out = group.firstOrNull { it.kind == TxnKind.TRANSFER_OUT } ?: t
+            val feeRow = group.firstOrNull { it.kind == TxnKind.EXPENSE }
+            DraftShape(DraftType.TRANSFER, out.accountId, out.toAccountId, feeRow?.enteredAmount ?: 0L, feeRow?.categoryId)
+        } else {
+            DraftShape(t.kind.toDraftType(t.amount), t.accountId, null, 0L, t.categoryId)
         }
         val signed = if (t.installmentGroupId != null) installmentGroup(t.installmentGroupId).sumOf { it.enteredAmount } else t.enteredAmount
         val amount = signed * shape.type.sign
@@ -137,9 +133,9 @@ class TxnStore(
     // ───────────────────────── balance adjustments
 
     /**
-     * Records the difference to [target] (account currency) under "Modified Bal.", note "Difference", as in
-     * A neutral adjustment by default (only visible on the account's own page, not in the
-     * Trans. tab or stats), or with [asIncomeExpense] a regular income/expense entry.
+     * Records the difference to [target] (account currency) under "Modified Bal." with the note "Difference": by
+     * default as a neutral adjustment that only the account's own page shows, or with [asIncomeExpense] as a regular
+     * income or expense entry that lists and stats count.
      */
     fun adjustBalance(accountId: String, target: Long, asIncomeExpense: Boolean = false) {
         val current = q.balanceOf(accountId, db.today().toEpochDays().toLong()).executeAsOne().toLong()
@@ -187,7 +183,7 @@ class TxnStore(
 
     /** Moves income/expense rows to another account (transfers keep their accounts). Returns how many changed. */
     fun setAccountMany(ids: Collection<String>, accountId: String): Int = db.transactionWithResult {
-        ids.mapNotNull { txn(it) }.filter { (it.kind == TxnKind.INCOME || it.kind == TxnKind.EXPENSE) && it.transferGroupId == null }
+        ids.mapNotNull { txn(it) }.filter { it.kind.isIncomeOrExpense && it.transferGroupId == null }
             .onEach { q.setTxnAccount(accountId, db.now(), it.id) }.size
     }
 }
