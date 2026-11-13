@@ -1,12 +1,10 @@
 package app.moneytracker.ui.fresh
 
-import app.moneytracker.ui.rememberSetting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,14 +15,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -32,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -40,25 +40,33 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.DraftType
-import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Capture
-import app.moneytracker.domain.CaptureStatus
-import app.moneytracker.domain.TxnKind
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.LocalRepo
+import app.moneytracker.ui.MessageReviewModel
+import app.moneytracker.ui.MessageReviewState
 import app.moneytracker.ui.Screen
-import app.moneytracker.ui.categoryPath
 import app.moneytracker.ui.short
 import app.moneytracker.ui.tr
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+
+/** What the review screen asks for: its holder's actions plus navigation and the inbox import. */
+private class MessageReviewActions(
+    val back: () -> Unit,
+    val dismiss: (Capture) -> Unit,
+    val add: (Capture, TxnDraft) -> Unit,
+    /** Reads a pasted message; the callback gets the new capture, or null when it wasn't one. */
+    val paste: (String, (Capture?) -> Unit) -> Unit,
+    val pasted: () -> Unit,
+    val importInbox: () -> Unit,
+    val openSettings: () -> Unit,
+)
 
 /** Bank SMS review queue: one fixed-size card per message, each with what will be added and its own Dismiss / Add. */
 @Composable
@@ -68,76 +76,91 @@ internal fun SmsReviewScreen() {
     val messageCapture = LocalPlatform.current.messageCapture
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
-    val captures by repo.pendingCaptures.collectAsState(emptyList())
-    val capture by rememberSetting(Prefs.CAPTURE_ENABLED)
-    val days by rememberSetting(Prefs.SMS_IMPORT_DAYS)
-    var pasting by remember { mutableStateOf(false) }
-    var disclosure by remember { mutableStateOf<(() -> Unit)?>(null) }
-
-    fun dismiss(c: Capture) = scope.launch {
-        withContext(repo.io) { repo.setCaptureStatus(c.id, CaptureStatus.DISMISSED) }
-        toaster.show(tr("Dismissed message from {0}", c.sender.ifBlank { tr("pasted text") })) {
-            scope.launch { withContext(repo.io) { repo.setCaptureStatus(c.id, CaptureStatus.PENDING) } }
-        }
+    val model = remember(repo) {
+        MessageReviewModel(repo.captureStore, repo.messageIntake, repo.settingsStore, repo.accountStore, repo.categoryStore, repo.io, scope)
     }
-    fun import() = messageCapture.importInboxMessages(days) { n ->
-        toaster.show(when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages from the last {1} days", n, days) })
-    }
-
-    // Every message's suggested entry. The previous map stays on screen while a new one is worked out, so cards
-    // never flash half-filled.
-    val drafts by produceState(emptyMap<String, TxnDraft>(), captures) {
-        value = withContext(repo.io) { captures.associate { it.id to repo.draftFromCapture(it) } }
-    }
-    var menu by remember { mutableStateOf(false) }
-    SubScreen(
-        tr("Bank messages"), nav::pop,
-        subtitle = tr("{0} to review · read on this phone only", captures.size),
-        actions = {
-            Box {
-                IconTile(Glyph.More, tr("More"), { menu = true })
-                androidx.compose.material3.DropdownMenu(menu, { menu = false }) {
-                    androidx.compose.material3.DropdownMenuItem(text = { Text(tr("Paste a message")) }, onClick = { menu = false; pasting = true })
-                    androidx.compose.material3.DropdownMenuItem(text = { Text(tr("Import last {0} days", days)) },
-                        onClick = { menu = false; if (capture) import() else disclosure = { import() } })
-                    androidx.compose.material3.DropdownMenuItem(text = { Text(tr("Bank SMS settings")) }, onClick = { menu = false; nav.push(Screen.MessageSettings) })
-                }
+    val state by model.state.collectAsState()
+    val drafts by model.drafts.collectAsState()
+    val days = state.importDays
+    val actions = MessageReviewActions(
+        back = nav::pop,
+        dismiss = { c ->
+            model.dismiss(c) { toaster.show(tr("Dismissed message from {0}", c.sender.ifBlank { tr("pasted text") })) { model.undoDismiss(c) } }
+        },
+        add = { c, d -> nav.push(Screen.EditTxn(preset = d, captureId = c.id)) },
+        paste = model::paste,
+        pasted = { toaster.show(tr("Message read · it's in the list")) },
+        importInbox = {
+            messageCapture.importInboxMessages(days) { n ->
+                toaster.show(when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages from the last {1} days", n, days) })
             }
         },
+        openSettings = { nav.push(Screen.MessageSettings) },
+    )
+    SmsReviewContent(state, drafts, actions)
+}
+
+@Composable
+private fun SmsReviewContent(state: MessageReviewState, drafts: Map<String, TxnDraft>, actions: MessageReviewActions) {
+    var pasting by remember { mutableStateOf(false) }
+    var disclosure by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val captures = state.captures
+    // Importing reads the inbox, so it first shows the SMS disclosure while detection is off.
+    val import = { if (state.captureEnabled) actions.importInbox() else disclosure = actions.importInbox }
+    SubScreen(
+        tr("Bank messages"), actions.back,
+        subtitle = tr("{0} to review · read on this phone only", captures.size),
+        actions = { ReviewMenu(state.importDays, onPaste = { pasting = true }, onImport = import, onSettings = actions.openSettings) },
     ) {
-        if (captures.isEmpty()) {
-            FCard(padding = 24.dp) {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.size(56.dp).clip(CircleShape).background(F.accentTint), contentAlignment = Alignment.Center) {
-                        Icon(Glyph.Check, null, tint = F.accent, modifier = Modifier.size(28.dp))
-                    }
-                    Text(tr("Nothing to review"), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        if (capture) tr("New bank messages will show up here. You can also paste one or import older ones.")
-                        else tr("Turn on \"Detect bank SMS\" to get suggestions from bank messages, or paste one."),
-                        color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SmallAction(tr("Paste a message"), Modifier.weight(1f), Glyph.Paste) { pasting = true }
-                        SmallAction(tr("Import last {0} days", days), Modifier.weight(1f)) { if (capture) import() else disclosure = { import() } }
-                    }
-                }
-            }
-        }
+        if (captures.isEmpty()) NothingToReview(state.captureEnabled, state.importDays, onPaste = { pasting = true }, onImport = import)
         // One fixed-size card per message, each with its own Dismiss / Add: nothing to select, so nothing shifts.
         captures.forEach { c ->
-            androidx.compose.runtime.key(c.id) {
+            key(c.id) {
                 val d = drafts[c.id]
-                MessageCard(c, d, onDismiss = { dismiss(c) }, onAdd = { d?.let { nav.push(Screen.EditTxn(preset = it, captureId = c.id)) } })
+                MessageCard(c, d, state, onDismiss = { actions.dismiss(c) }, onAdd = { d?.let { actions.add(c, it) } })
             }
         }
         if (captures.isNotEmpty()) Text(tr("Add opens the editor filled in; nothing is saved until you tap Save there. Your corrections are suggested next time for messages like this."),
             color = F.muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 4.dp))
     }
 
-    if (pasting) PasteSheet(onDismiss = { pasting = false }) { pasting = false; toaster.show(tr("Message read · it's in the list")) }
+    if (pasting) PasteSheet(onDismiss = { pasting = false }, onPaste = actions.paste) { pasting = false; actions.pasted() }
     disclosure?.let { action ->
         Confirm(tr("Detect bank SMS"), smsDisclosureText(), tr("Continue"), onDismiss = { disclosure = null }, danger = false) { action() }
+    }
+}
+
+@Composable
+private fun ReviewMenu(days: Int, onPaste: () -> Unit, onImport: () -> Unit, onSettings: () -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    Box {
+        IconTile(Glyph.More, tr("More"), { menu = true })
+        DropdownMenu(menu, { menu = false }) {
+            DropdownMenuItem(text = { Text(tr("Paste a message")) }, onClick = { menu = false; onPaste() })
+            DropdownMenuItem(text = { Text(tr("Import last {0} days", days)) }, onClick = { menu = false; onImport() })
+            DropdownMenuItem(text = { Text(tr("Bank SMS settings")) }, onClick = { menu = false; onSettings() })
+        }
+    }
+}
+
+@Composable
+private fun NothingToReview(captureEnabled: Boolean, days: Int, onPaste: () -> Unit, onImport: () -> Unit) {
+    FCard(padding = 24.dp) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(56.dp).clip(CircleShape).background(F.accentTint), contentAlignment = Alignment.Center) {
+                Icon(Glyph.Check, null, tint = F.accent, modifier = Modifier.size(28.dp))
+            }
+            Text(tr("Nothing to review"), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                if (captureEnabled) tr("New bank messages will show up here. You can also paste one or import older ones.")
+                else tr("Turn on \"Detect bank SMS\" to get suggestions from bank messages, or paste one."),
+                color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SmallAction(tr("Paste a message"), Modifier.weight(1f), Glyph.Paste, onPaste)
+                SmallAction(tr("Import last {0} days", days), Modifier.weight(1f), onClick = onImport)
+            }
+        }
     }
 }
 
@@ -164,14 +187,7 @@ private fun reviewAmount(d: TxnDraft?): String {
 
 /** One waiting message: sender and time, what will be added (category · account), the amount, two lines of the SMS. */
 @Composable
-private fun MessageCard(c: Capture, d: TxnDraft?, onDismiss: () -> Unit, onAdd: () -> Unit) {
-    val repo = LocalRepo.current
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val accountName by repo.accountNames.collectAsState(emptyMap())
-    val catName = d?.categoryId?.let { catById[it]?.name }
-    val acct = d?.accountId?.let { accountName[it] }
-    val missing = listOfNotNull(tr("category").takeIf { catName == null }, tr("account").takeIf { acct == null })
-    val income = d?.type == DraftType.REFUND || d?.type == DraftType.INCOME
+private fun MessageCard(c: Capture, d: TxnDraft?, names: MessageReviewState, onDismiss: () -> Unit, onAdd: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -181,20 +197,7 @@ private fun MessageCard(c: Capture, d: TxnDraft?, onDismiss: () -> Unit, onAdd: 
                 color = F.ink, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             Text(whenLabel(c.receivedAt), color = F.muted, fontSize = 12.sp)
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(F.fill), contentAlignment = Alignment.Center) {
-                Text((catName ?: "?").take(2).uppercase(), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(d?.note?.ifBlank { null } ?: c.merchant.ifBlank { c.sender }, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    if (missing.isEmpty()) "$catName · $acct" else listOfNotNull(catName, acct, tr("{0} not known", missing.joinToString(tr(" and ")))).joinToString(" · "),
-                    color = if (missing.isEmpty()) F.muted else F.warn, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Text(reviewAmount(d), color = if (income) F.income else F.expense, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = F.money)
-        }
+        SuggestedEntry(c, d, names)
         Text(c.text, color = F.muted, fontSize = 12.sp, lineHeight = 17.sp, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.height(44.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).clickable(onClick = onDismiss).padding(horizontal = 18.dp),
@@ -207,8 +210,31 @@ private fun MessageCard(c: Capture, d: TxnDraft?, onDismiss: () -> Unit, onAdd: 
     }
 }
 
+/** The entry a message suggests: category mark, note, "category · account" (amber when one is unknown) and the amount. */
 @Composable
-private fun SmallAction(text: String, modifier: Modifier, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, onClick: () -> Unit) {
+private fun SuggestedEntry(c: Capture, d: TxnDraft?, names: MessageReviewState) {
+    val catName = d?.categoryId?.let { names.categoryById[it]?.name }
+    val acct = d?.accountId?.let { names.accountNames[it] }
+    val missing = listOfNotNull(tr("category").takeIf { catName == null }, tr("account").takeIf { acct == null })
+    val income = d?.type == DraftType.REFUND || d?.type == DraftType.INCOME
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(F.fill), contentAlignment = Alignment.Center) {
+            Text((catName ?: "?").take(2).uppercase(), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(d?.note?.ifBlank { null } ?: c.merchant.ifBlank { c.sender }, color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                if (missing.isEmpty()) "$catName · $acct" else listOfNotNull(catName, acct, tr("{0} not known", missing.joinToString(tr(" and ")))).joinToString(" · "),
+                color = if (missing.isEmpty()) F.muted else F.warn, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(reviewAmount(d), color = if (income) F.income else F.expense, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = F.money)
+    }
+}
+
+@Composable
+private fun SmallAction(text: String, modifier: Modifier, icon: ImageVector? = null, onClick: () -> Unit) {
     Row(
         modifier.height(48.dp).clip(F.iconShape).background(F.card).border(1.dp, F.border, F.iconShape).clickable(onClick = onClick).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
@@ -219,9 +245,7 @@ private fun SmallAction(text: String, modifier: Modifier, icon: androidx.compose
 }
 
 @Composable
-private fun PasteSheet(onDismiss: () -> Unit, onRead: (Capture) -> Unit) {
-    val repo = LocalRepo.current
-    val scope = rememberCoroutineScope()
+private fun PasteSheet(onDismiss: () -> Unit, onPaste: (String, (Capture?) -> Unit) -> Unit, onRead: (Capture) -> Unit) {
     var text by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
     Sheet(
@@ -230,11 +254,7 @@ private fun PasteSheet(onDismiss: () -> Unit, onRead: (Capture) -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SecondaryButton(tr("Cancel"), onDismiss, Modifier.weight(0.4f))
                 PrimaryButton(tr("Read message"), enabled = text.isNotBlank(), modifier = Modifier.weight(0.6f), onClick = {
-                    val msg = text
-                    scope.launch {
-                        val c = withContext(repo.io) { repo.ingestMessage("PASTE", "", msg, Clock.System.now().toEpochMilliseconds()) }
-                        if (c == null) error = true else onRead(c)
-                    }
+                    onPaste(text) { c -> if (c == null) error = true else onRead(c) }
                 })
             }
         },

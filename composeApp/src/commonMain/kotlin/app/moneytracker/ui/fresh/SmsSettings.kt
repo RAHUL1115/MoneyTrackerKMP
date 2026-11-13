@@ -1,9 +1,5 @@
 package app.moneytracker.ui.fresh
 
-import app.moneytracker.ui.saveSetting
-import app.moneytracker.ui.rememberSetting
-import app.moneytracker.data.SmsOriginal
-import app.moneytracker.data.Setting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,15 +7,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,14 +39,39 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.Prefs
+import app.moneytracker.data.SmsOriginal
+import app.moneytracker.data.TextSetting
 import app.moneytracker.domain.MessageRules
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.LocalRepo
+import app.moneytracker.ui.MessageSettingsModel
+import app.moneytracker.ui.MessageSettingsState
 import app.moneytracker.ui.Screen
+import app.moneytracker.ui.SmsFilters
+import app.moneytracker.ui.SmsHealth
+import app.moneytracker.ui.SmsSwitches
+import app.moneytracker.ui.backgroundSteps
+import app.moneytracker.ui.hasAutostartManager
+import app.moneytracker.ui.rememberSmsHealth
+import app.moneytracker.ui.smsPermissionSteps
 import app.moneytracker.ui.tr
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+
+/** What the Bank SMS settings screen asks for: its holder's settings plus the phone's SMS and background controls. */
+private class SmsSettingsActions(
+    /** Opens the review queue or the accounts (for their matching rules). */
+    val open: (Screen) -> Unit,
+    /** Turns detection on or off through the phone; the stored switch follows what the phone allowed. */
+    val setCapture: (Boolean) -> Unit,
+    val setAlert: (Boolean) -> Unit,
+    val setAutoSave: (Boolean) -> Unit,
+    val setShowOriginal: (SmsOriginal) -> Unit,
+    val setImportDays: (Int) -> Unit,
+    val importInbox: () -> Unit,
+    /** Saves one filter list; the label names it in the confirmation. */
+    val saveFilter: (TextSetting, String, String) -> Unit,
+    val openBackgroundSettings: (autostart: Boolean) -> Unit,
+)
 
 /** Bank SMS settings: detection switches, how the original message is kept, inbox import and the filters. */
 @Composable
@@ -65,121 +82,53 @@ internal fun SmsSettingsScreen() {
     val messageCapture = LocalPlatform.current.messageCapture
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
-    val pending by repo.pendingCaptures.collectAsState(emptyList())
-    val captureSetting by rememberSetting(Prefs.CAPTURE_ENABLED)
-    val alert by rememberSetting(Prefs.SMS_ALERT)
-    val autoSave by rememberSetting(Prefs.SMS_AUTO_SAVE)
-    val showOriginal by rememberSetting(Prefs.SMS_SHOW_ORIGINAL)
-    val blockedSenders by rememberSetting(Prefs.SMS_BLOCKED_SENDERS)
-    val blockedPhrases by rememberSetting(Prefs.SMS_BLOCKED_PHRASES)
-    val contentFilter by rememberSetting(Prefs.SMS_CONTENT_FILTER)
-    val days by rememberSetting(Prefs.SMS_IMPORT_DAYS)
+    val model = remember(repo) { MessageSettingsModel(repo.settingsStore, repo.captureStore, repo.io, scope) }
+    val state by model.state.collectAsState()
+    val health = rememberSmsHealth()
+    val capture = state.switches.captureEnabled && health.permission
+    val days = state.switches.importDays
+    val actions = SmsSettingsActions(
+        open = nav::push,
+        setCapture = { on -> messageCapture.setMessageCapture(on) { active -> model.put(Prefs.CAPTURE_ENABLED, active) } },
+        setAlert = { on -> if (!capture) toaster.show(tr("Turn on “Detect bank SMS” first")) else model.put(Prefs.SMS_ALERT, on) },
+        setAutoSave = { model.put(Prefs.SMS_AUTO_SAVE, it) },
+        setShowOriginal = { model.put(Prefs.SMS_SHOW_ORIGINAL, it) },
+        setImportDays = { model.put(Prefs.SMS_IMPORT_DAYS, it) },
+        importInbox = {
+            messageCapture.importInboxMessages(days) { n ->
+                when (n) {
+                    null -> toaster.show(tr("SMS permission was not granted"))
+                    0 -> toaster.show(tr("No new bank messages found"))
+                    else -> toaster.show(tr("Added {0} messages from the last {1} days", n, days))
+                }
+            }
+        },
+        saveFilter = { key, text, label -> model.saveFilter(key, text); toaster.show(tr("{0} saved", label)) },
+        openBackgroundSettings = { autostart -> backgroundJobs.openBackgroundSettings(autostart) },
+    )
+    SmsSettingsContent(state, health, capture, onBack = nav::pop, actions)
+}
+
+@Composable
+private fun SmsSettingsContent(state: MessageSettingsState, health: SmsHealth, capture: Boolean, onBack: () -> Unit, actions: SmsSettingsActions) {
     var disclosure by remember { mutableStateOf<(() -> Unit)?>(null) }   // action waiting on the SMS disclosure
-    var editing by remember { mutableStateOf<app.moneytracker.data.TextSetting?>(null) }
     var customDays by remember { mutableStateOf(false) }
     var keepRunning by remember { mutableStateOf(false) }
-    val health = app.moneytracker.ui.rememberSmsHealth()
-    val capture = captureSetting && health.permission
 
-    fun <T> put(s: Setting<T>, value: T) = scope.saveSetting(repo, s, value)
-    fun import() = messageCapture.importInboxMessages(days) { n ->
-        when (n) {
-            null -> toaster.show(tr("SMS permission was not granted"))
-            0 -> toaster.show(tr("No new bank messages found"))
-            else -> toaster.show(tr("Added {0} messages from the last {1} days", n, days))
-        }
-    }
-
-    SubScreen(tr("Bank SMS"), nav::pop) {
-        Row(
-            Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).clickable { nav.push(Screen.Inbox) }.padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {
-                Icon(Glyph.Message, null, tint = F.accent, modifier = Modifier.size(18.dp))
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(tr("Detected messages"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Text(if (pending.isEmpty()) tr("Nothing waiting") else tr("{0} waiting for review", pending.size), color = F.muted, fontSize = 12.sp)
-            }
-            Text(tr("Review ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        }
+    SubScreen(tr("Bank SMS"), onBack) {
+        ReviewLinkCard(state.waiting) { actions.open(Screen.Inbox) }
         FCard {
             Text(tr("Bank messages are read on this phone only. Nothing is uploaded. Detection is an assistant, so check suggestions before saving."),
                 color = F.ink, fontSize = 13.sp, lineHeight = 19.sp)
         }
-
-        FCard(padding = 0.dp) {
-            Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-                SwitchLine(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture) { on ->
-                    val apply = { messageCapture.setMessageCapture(on) { active -> put(Prefs.CAPTURE_ENABLED, active) } }
-                    if (on) disclosure = apply else apply()
-                }
-                if (!health.permission) {
-                    Text(app.moneytracker.ui.smsPermissionSteps(), color = F.muted, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(bottom = 12.dp))
-                }
-                if (capture) {
-                    Divider()
-                    HealthLine(tr("Keep detection running"),
-                        if (health.background.restricted) tr("This phone is limiting MoneyTracker in the background") else tr("Let MoneyTracker start when an SMS arrives"),
-                        tr("Check ›"), warn = health.background.restricted) { keepRunning = true }
-                }
-                Divider()
-                SwitchLine(tr("Alert for detected messages"), tr("A notification when a bank message is detected"), alert, dimmed = !capture) { on ->
-                    if (!capture) toaster.show(tr("Turn on “Detect bank SMS” first")) else put(Prefs.SMS_ALERT, on)
-                }
-                Divider()
-                SwitchLine(tr("Save automatically"), tr("Add the entry right away when the account is recognised. A guessed usual account, or no account, waits for your review"), autoSave) { on ->
-                    put(Prefs.SMS_AUTO_SAVE, on)
-                }
-                Divider()
-                val origHint = when (showOriginal) {
-                    SmsOriginal.OFF -> tr("Not kept on entries"); SmsOriginal.WHILE_EDITING -> tr("Shown only while editing an entry"); SmsOriginal.KEEP -> tr("Always shown in entry details")
-                }
-                // A compact choice on the right of its row, like a switch would sit.
-                Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(tr("Original message on entries"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Text(origHint, color = F.muted, fontSize = 12.sp)
-                    }
-                    val opts = listOf(SmsOriginal.OFF to tr("Hide"), SmsOriginal.WHILE_EDITING to tr("While editing"), SmsOriginal.KEEP to tr("Show"))
-                    val selected = opts.indexOfFirst { it.first == showOriginal }.coerceAtLeast(0)
-                    SmsSegmented(opts.map { it.second }, selected, { put(Prefs.SMS_SHOW_ORIGINAL, opts[it].first) },
-                        segmentHeight = 36.dp, outer = 10.dp, inner = 8.dp, inset = 3.dp, track = F.page, fill = false)
-                }
-            }
-        }
-
-        FCard {
-            Text(tr("Import older messages"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(tr("Reads bank messages already in your SMS inbox into Detected messages. Pick how many days back."),
-                Modifier.padding(top = 3.dp), color = F.muted, fontSize = 12.sp)
-            val presets = listOf(7, 30, 90, 180)
-            val opts = presets.map { tr("{0} days", it) } + (if (days in presets) tr("Other") else tr("{0} days", days))
-            val sel = presets.indexOf(days).let { if (it < 0) presets.size else it }
-            SmsSegmented(opts, sel, { i -> if (i < presets.size) put(Prefs.SMS_IMPORT_DAYS, presets[i]) else customDays = true },
-                Modifier.padding(top = 14.dp), segmentHeight = 40.dp, outer = 12.dp, inner = 9.dp, inset = 4.dp, track = F.track, fill = true)
-            PrimaryButton(tr("Import messages"), { if (capture) import() else disclosure = { import() } }, Modifier.padding(top = 12.dp))
-        }
-
-        FCard(padding = 0.dp) {
-            Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-                Text(tr("Filters").uppercase(), Modifier.padding(top = 12.dp, bottom = 2.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
-                listOf(
-                    Triple(Prefs.SMS_BLOCKED_SENDERS, tr("Blocked numbers"), tr("Messages from these senders are ignored")) to blockedSenders,
-                    Triple(Prefs.SMS_BLOCKED_PHRASES, tr("Blocked words"), tr("Messages containing these are ignored")) to blockedPhrases,
-                    Triple(Prefs.SMS_CONTENT_FILTER, tr("Content filter"), tr("Removed from a message before it is read")) to contentFilter,
-                ).forEach { (def, value) ->
-                    val (key, label, hint) = def
-                    FilterLine(key, label, hint, value, open = editing == key, onToggle = { editing = if (editing == key) null else key }) { text ->
-                        put(key, MessageRules.lines(text).joinToString("\n")); editing = null; toaster.show(tr("{0} saved", label))
-                    }
-                    Divider()
-                }
-                FRow(tr("Account matching rules"), tr("Sender and card digits, set on each account"), value = tr("Per account") + " ›", valueColor = F.accent, chevron = false, onClick = { nav.push(Screen.AccountList) })
-            }
-        }
+        SwitchesCard(
+            state.switches, health, capture, actions,
+            onCapture = { on -> val apply = { actions.setCapture(on) }; if (on) disclosure = apply else apply() },
+            onKeepRunning = { keepRunning = true },
+        )
+        ImportCard(state.switches.importDays, actions.setImportDays, onCustom = { customDays = true },
+            onImport = { if (capture) actions.importInbox() else disclosure = actions.importInbox })
+        FiltersCard(state.filters, actions)
         Text(tr("Content-filter words are removed before a message is read, which helps when a bank adds text that confuses the amount or shop name."),
             color = F.muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 4.dp))
     }
@@ -187,33 +136,141 @@ internal fun SmsSettingsScreen() {
     disclosure?.let { action ->
         Confirm(tr("Detect bank SMS"), smsDisclosureText(), tr("Continue"), onDismiss = { disclosure = null }, danger = false) { action() }
     }
-    if (keepRunning) {
-        val autostart = app.moneytracker.ui.hasAutostartManager(health.background.maker)
-        Sheet(tr("Keep detection running"), { keepRunning = false }, bottom = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (autostart) PrimaryButton(tr("Open Autostart"), { backgroundJobs.openBackgroundSettings(autostart = true); keepRunning = false }, Modifier.fillMaxWidth())
-                SecondaryButton(tr("Open app settings"), { backgroundJobs.openBackgroundSettings(autostart = false); keepRunning = false }, Modifier.fillMaxWidth())
+    if (keepRunning) KeepRunningSheet(health, onDismiss = { keepRunning = false }) { autostart -> actions.openBackgroundSettings(autostart); keepRunning = false }
+    if (customDays) CustomDaysSheet(state.switches.importDays, onDismiss = { customDays = false }) { actions.setImportDays(it); customDays = false }
+}
+
+@Composable
+private fun ReviewLinkCard(waiting: Int, onOpen: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).clickable(onClick = onOpen).padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {
+            Icon(Glyph.Message, null, tint = F.accent, modifier = Modifier.size(18.dp))
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(tr("Detected messages"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(if (waiting == 0) tr("Nothing waiting") else tr("{0} waiting for review", waiting), color = F.muted, fontSize = 12.sp)
+        }
+        Text(tr("Review ›"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun SwitchesCard(
+    switches: SmsSwitches, health: SmsHealth, capture: Boolean, actions: SmsSettingsActions, onCapture: (Boolean) -> Unit, onKeepRunning: () -> Unit,
+) {
+    FCard(padding = 0.dp) {
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
+            SwitchLine(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture, onChange = onCapture)
+            if (!health.permission) {
+                Text(smsPermissionSteps(), color = F.muted, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(bottom = 12.dp))
             }
-        }) {
-            Text(tr("Some phones stop apps from starting in the background. Bank SMS are then only read when you open MoneyTracker, or at the next background check (about every 15 minutes while the phone is in use)."),
-                color = F.muted, fontSize = 13.sp, lineHeight = 19.sp)
-            Text(app.moneytracker.ui.backgroundSteps(health.background.maker), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, lineHeight = 20.sp)
+            if (capture) {
+                Divider()
+                HealthLine(tr("Keep detection running"),
+                    if (health.background.restricted) tr("This phone is limiting MoneyTracker in the background") else tr("Let MoneyTracker start when an SMS arrives"),
+                    tr("Check ›"), warn = health.background.restricted, onClick = onKeepRunning)
+            }
+            Divider()
+            SwitchLine(tr("Alert for detected messages"), tr("A notification when a bank message is detected"), switches.alert, dimmed = !capture, onChange = actions.setAlert)
+            Divider()
+            SwitchLine(tr("Save automatically"), tr("Add the entry right away when the account is recognised. A guessed usual account, or no account, waits for your review"),
+                switches.autoSave, onChange = actions.setAutoSave)
+            Divider()
+            OriginalMessageLine(switches.showOriginal, actions.setShowOriginal)
         }
     }
-    if (customDays) {
-        var text by remember { mutableStateOf(days.toString()) }
-        val value = text.toIntOrNull()?.takeIf { it in 1..365 }
-        Sheet(tr("Days to import"), { customDays = false }, bottom = {
-            PrimaryButton(tr("Save"), { value?.let { put(Prefs.SMS_IMPORT_DAYS, it) }; customDays = false }, enabled = value != null)
-        }) {
-            Text(tr("How far back to read the SMS inbox (1 to 365 days)."), color = F.muted, fontSize = 13.sp)
-            BasicTextField(
-                text, { text = it.filter(Char::isDigit).take(3) },
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, F.border, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 12.dp),
-                singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = TextStyle(color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium), cursorBrush = SolidColor(F.accent),
-            )
+}
+
+/** How a message's text is kept on its entry: a compact choice on the right of its row, like a switch would sit. */
+@Composable
+private fun OriginalMessageLine(showOriginal: SmsOriginal, onPick: (SmsOriginal) -> Unit) {
+    val origHint = when (showOriginal) {
+        SmsOriginal.OFF -> tr("Not kept on entries"); SmsOriginal.WHILE_EDITING -> tr("Shown only while editing an entry"); SmsOriginal.KEEP -> tr("Always shown in entry details")
+    }
+    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(tr("Original message on entries"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(origHint, color = F.muted, fontSize = 12.sp)
         }
+        val opts = listOf(SmsOriginal.OFF to tr("Hide"), SmsOriginal.WHILE_EDITING to tr("While editing"), SmsOriginal.KEEP to tr("Show"))
+        val selected = opts.indexOfFirst { it.first == showOriginal }.coerceAtLeast(0)
+        SmsSegmented(opts.map { it.second }, selected, { onPick(opts[it].first) },
+            segmentHeight = 36.dp, outer = 10.dp, inner = 8.dp, inset = 3.dp, track = F.page, fill = false)
+    }
+}
+
+@Composable
+private fun ImportCard(days: Int, onDays: (Int) -> Unit, onCustom: () -> Unit, onImport: () -> Unit) {
+    FCard {
+        Text(tr("Import older messages"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(tr("Reads bank messages already in your SMS inbox into Detected messages. Pick how many days back."),
+            Modifier.padding(top = 3.dp), color = F.muted, fontSize = 12.sp)
+        val presets = listOf(7, 30, 90, 180)
+        val opts = presets.map { tr("{0} days", it) } + (if (days in presets) tr("Other") else tr("{0} days", days))
+        val sel = presets.indexOf(days).let { if (it < 0) presets.size else it }
+        SmsSegmented(opts, sel, { i -> if (i < presets.size) onDays(presets[i]) else onCustom() },
+            Modifier.padding(top = 14.dp), segmentHeight = 40.dp, outer = 12.dp, inner = 9.dp, inset = 4.dp, track = F.track, fill = true)
+        PrimaryButton(tr("Import messages"), onImport, Modifier.padding(top = 12.dp))
+    }
+}
+
+@Composable
+private fun FiltersCard(filters: SmsFilters, actions: SmsSettingsActions) {
+    var editing by remember { mutableStateOf<TextSetting?>(null) }
+    FCard(padding = 0.dp) {
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
+            Text(tr("Filters").uppercase(), Modifier.padding(top = 12.dp, bottom = 2.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
+            listOf(
+                Triple(Prefs.SMS_BLOCKED_SENDERS, tr("Blocked numbers"), tr("Messages from these senders are ignored")) to filters.blockedSenders,
+                Triple(Prefs.SMS_BLOCKED_PHRASES, tr("Blocked words"), tr("Messages containing these are ignored")) to filters.blockedPhrases,
+                Triple(Prefs.SMS_CONTENT_FILTER, tr("Content filter"), tr("Removed from a message before it is read")) to filters.contentFilter,
+            ).forEach { (def, value) ->
+                val (key, label, hint) = def
+                FilterLine(key, label, hint, value, open = editing == key, onToggle = { editing = if (editing == key) null else key }) { text ->
+                    editing = null
+                    actions.saveFilter(key, text, label)
+                }
+                Divider()
+            }
+            FRow(tr("Account matching rules"), tr("Sender and card digits, set on each account"), value = tr("Per account") + " ›", valueColor = F.accent,
+                chevron = false, onClick = { actions.open(Screen.AccountList) })
+        }
+    }
+}
+
+@Composable
+private fun KeepRunningSheet(health: SmsHealth, onDismiss: () -> Unit, onOpen: (autostart: Boolean) -> Unit) {
+    val autostart = hasAutostartManager(health.background.maker)
+    Sheet(tr("Keep detection running"), onDismiss, bottom = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (autostart) PrimaryButton(tr("Open Autostart"), { onOpen(true) }, Modifier.fillMaxWidth())
+            SecondaryButton(tr("Open app settings"), { onOpen(false) }, Modifier.fillMaxWidth())
+        }
+    }) {
+        Text(tr("Some phones stop apps from starting in the background. Bank SMS are then only read when you open MoneyTracker, or at the next background check (about every 15 minutes while the phone is in use)."),
+            color = F.muted, fontSize = 13.sp, lineHeight = 19.sp)
+        Text(backgroundSteps(health.background.maker), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, lineHeight = 20.sp)
+    }
+}
+
+@Composable
+private fun CustomDaysSheet(days: Int, onDismiss: () -> Unit, onSave: (Int) -> Unit) {
+    var text by remember { mutableStateOf(days.toString()) }
+    val value = text.toIntOrNull()?.takeIf { it in 1..365 }
+    Sheet(tr("Days to import"), onDismiss, bottom = {
+        PrimaryButton(tr("Save"), { if (value != null) onSave(value) else onDismiss() }, enabled = value != null)
+    }) {
+        Text(tr("How far back to read the SMS inbox (1 to 365 days)."), color = F.muted, fontSize = 13.sp)
+        BasicTextField(
+            text, { text = it.filter(Char::isDigit).take(3) },
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, F.border, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 12.dp),
+            singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = TextStyle(color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium), cursorBrush = SolidColor(F.accent),
+        )
     }
 }
 
@@ -253,7 +310,7 @@ internal fun SmsSwitch(checked: Boolean) {
 }
 
 @Composable
-private fun FilterLine(key: app.moneytracker.data.TextSetting, label: String, hint: String, value: String?, open: Boolean, onToggle: () -> Unit, onSave: (String) -> Unit) {
+private fun FilterLine(key: TextSetting, label: String, hint: String, value: String?, open: Boolean, onToggle: () -> Unit, onSave: (String) -> Unit) {
     val items = MessageRules.lines(value)
     Column {
         Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable(onClick = onToggle).padding(vertical = 12.dp),
@@ -270,17 +327,21 @@ private fun FilterLine(key: app.moneytracker.data.TextSetting, label: String, hi
             }
             Text(summary, Modifier.widthIn(max = 130.dp), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (open) {
-            var text by remember(key) { mutableStateOf(value.orEmpty()) }
-            Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmsTextArea(text, { text = it })
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("One per line."), Modifier.weight(1f), color = F.muted, fontSize = 12.sp)
-                    Box(Modifier.height(44.dp).clip(RoundedCornerShape(10.dp)).background(F.accent).clickable { onSave(text) }.padding(horizontal = 18.dp),
-                        contentAlignment = Alignment.Center) {
-                        Text(tr("Save"), color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+        if (open) FilterEditor(key, value, onSave)
+    }
+}
+
+/** The open filter: one entry per line, saved with its own button. */
+@Composable
+private fun FilterEditor(key: TextSetting, value: String?, onSave: (String) -> Unit) {
+    var text by remember(key) { mutableStateOf(value.orEmpty()) }
+    Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SmsTextArea(text, { text = it })
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(tr("One per line."), Modifier.weight(1f), color = F.muted, fontSize = 12.sp)
+            Box(Modifier.height(44.dp).clip(RoundedCornerShape(10.dp)).background(F.accent).clickable { onSave(text) }.padding(horizontal = 18.dp),
+                contentAlignment = Alignment.Center) {
+                Text(tr("Save"), color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
