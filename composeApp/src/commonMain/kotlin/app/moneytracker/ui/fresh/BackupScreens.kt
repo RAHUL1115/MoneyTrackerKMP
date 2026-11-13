@@ -40,7 +40,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.TabularImport
-import app.moneytracker.ui.LocalBackup
+import app.moneytracker.ui.LocalBackups
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalRepo
@@ -79,20 +79,20 @@ private fun snapshotKind(file: String): String = when (SNAPSHOT_NAME.find(snapsh
 internal fun FreshBackup() {
     val nav = LocalNavigator.current
     val repo = LocalRepo.current
-    val backup = LocalBackup.current
+    val backups = LocalBackups.current
     val toaster = LocalToaster.current
-    val local by backup.localBackups.collectAsState()
-    val status by backup.status.collectAsState()
-    val pendingImport by backup.pendingImport.collectAsState()
-    val folder by backup.backupFolder.collectAsState()
-    val folderProblem by backup.backupFolderProblem.collectAsState()
+    val local by backups.saved.localBackups.collectAsState()
+    val status by backups.status.message.collectAsState()
+    val pendingImport by backups.spreadsheet.pendingImport.collectAsState()
+    val folder by backups.folder.backupFolder.collectAsState()
+    val folderProblem by backups.folder.backupFolderProblem.collectAsState()
     var restoring by remember { mutableStateOf<app.moneytracker.data.LocalBackup?>(null) }
     var deleting by remember { mutableStateOf<app.moneytracker.data.LocalBackup?>(null) }
     var confirmFile by remember { mutableStateOf(false) }
     var resetting by remember { mutableStateOf<Boolean?>(null) }   // true = everything, false = entries only
     val today = repo.today()
 
-    pendingImport?.let { ImportPreview(it, onCancel = backup::cancelImport, onImport = backup::confirmImport) }
+    pendingImport?.let { ImportPreview(it, onCancel = backups.spreadsheet::cancelImport, onImport = backups.spreadsheet::confirmImport) }
 
     SubScreen(tr("Backup & data"), nav::pop) {
         val s = status
@@ -106,15 +106,15 @@ internal fun FreshBackup() {
                     s ?: local.firstOrNull()?.let { tr("Last snapshot: {0}", snapshotWhen(it.name, today)) } ?: tr("No snapshots yet."),
                     Modifier.weight(1f), color = if (failed) F.danger else F.accent, fontSize = 14.sp, fontWeight = FontWeight.Medium,
                 )
-                if (s != null) StgTextButton(tr("OK"), backup::clearStatus)
+                if (s != null) StgTextButton(tr("OK"), backups.status::clearStatus)
             }
             Text(
                 tr("A snapshot is taken automatically once a day (last 10 kept). Choose a backup folder and each one is also saved there, where file managers and cloud apps can reach it and it survives uninstalling the app."),
                 Modifier.padding(top = 8.dp, bottom = 14.dp), color = F.muted, fontSize = 13.sp,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CardButton(tr("Back up now"), backup::backupNow, Modifier.weight(1f), F.accent, F.onAccent, FontWeight.SemiBold)
-                CardButton(tr("Share a copy…"), backup::shareBackup, Modifier.weight(1f), F.page, F.ink)
+                CardButton(tr("Back up now"), backups.saved::backupNow, Modifier.weight(1f), F.accent, F.onAccent, FontWeight.SemiBold)
+                CardButton(tr("Share a copy…"), backups.files::shareBackup, Modifier.weight(1f), F.page, F.ink)
             }
         }
 
@@ -128,21 +128,21 @@ internal fun FreshBackup() {
                         folderProblem -> tr("Can't reach {0}. Choose again", folder!!)
                         else -> tr("Daily and manual backups are also saved to {0}", folder!!)
                     },
-                    onClick = backup::pickBackupFolder,
+                    onClick = backups.folder::pickBackupFolder,
                 )
-                if (folder != null) { Divider(); FRow(tr("Stop saving to this folder"), tr("Files already there are kept"), onClick = backup::clearBackupFolder) }
+                if (folder != null) { Divider(); FRow(tr("Stop saving to this folder"), tr("Files already there are kept"), onClick = backups.folder::clearBackupFolder) }
             }
         }
 
         val actions = listOf<Triple<String, String, () -> Unit>>(
             Triple(tr("Restore from a file"), tr("Replaces current data · reads .mtbak and .mmbak · a snapshot is saved first")) { confirmFile = true },
-            Triple(tr("Save a backup file"), tr("To another folder, SD card or cloud drive"), backup::exportToFile),
-            Triple(tr("Export CSV"), tr("All entries, for any spreadsheet app"), backup::exportCsv),
-            Triple(tr("Export Excel"), tr("All entries as .xlsx"), backup::exportExcel),
-            Triple(tr("Import CSV / Excel"), tr("Preview rows before adding"), backup::importSpreadsheet),
-            Triple(tr("Export as .mmbak"), tr("To open your data in another money app"), backup::exportMoneyManager),
-            Triple(tr("Export receipt photos"), tr("A .zip to keep next to the backup file"), backup::exportPhotos),
-            Triple(tr("Import receipt photos"), tr("From a photos .zip; existing photos are kept"), backup::importPhotos),
+            Triple(tr("Save a backup file"), tr("To another folder, SD card or cloud drive"), backups.files::exportToFile),
+            Triple(tr("Export CSV"), tr("All entries, for any spreadsheet app"), backups.files::exportCsv),
+            Triple(tr("Export Excel"), tr("All entries as .xlsx"), backups.files::exportExcel),
+            Triple(tr("Import CSV / Excel"), tr("Preview rows before adding"), backups.spreadsheet::importSpreadsheet),
+            Triple(tr("Export as .mmbak"), tr("To open your data in another money app"), backups.files::exportMoneyManager),
+            Triple(tr("Export receipt photos"), tr("A .zip to keep next to the backup file"), backups.photos::exportPhotos),
+            Triple(tr("Import receipt photos"), tr("From a photos .zip; existing photos are kept"), backups.photos::importPhotos),
         )
         FCard(padding = 0.dp) {
             Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
@@ -192,13 +192,13 @@ internal fun FreshBackup() {
     }
 
     val replaceBody = tr("Your current data will be replaced. A safety snapshot of it is taken first, so you can undo this from the list.")
-    if (confirmFile) Confirm(tr("Restore from a file?"), replaceBody, tr("Choose file"), { confirmFile = false }, danger = false) { backup.importFromFile() }
+    if (confirmFile) Confirm(tr("Restore from a file?"), replaceBody, tr("Choose file"), { confirmFile = false }, danger = false) { backups.files.importFromFile() }
     restoring?.let { b ->
-        Confirm(tr("Restore “{0}”?", snapshotWhen(b.name, today)), replaceBody, tr("Restore"), { restoring = null }, danger = false) { backup.restoreLocal(b.name) }
+        Confirm(tr("Restore “{0}”?", snapshotWhen(b.name, today)), replaceBody, tr("Restore"), { restoring = null }, danger = false) { backups.saved.restoreLocal(b.name) }
     }
     deleting?.let { b ->
         Confirm(tr("Delete this snapshot?"), tr("“{0}” is removed from this phone. This can't be undone.", "${snapshotKind(b.name)} · ${snapshotWhen(b.name, today)}"),
-            tr("Delete"), { deleting = null }) { backup.deleteLocal(b.name); toaster.show(tr("Snapshot deleted")) }
+            tr("Delete"), { deleting = null }) { backups.saved.deleteLocal(b.name); toaster.show(tr("Snapshot deleted")) }
     }
     resetting?.let { everything ->
         Confirm(
@@ -206,7 +206,7 @@ internal fun FreshBackup() {
             if (everything) tr("Deletes all entries, accounts, categories, budgets, repeats, bookmarks and tags, and returns to the starting setup. Passcode and settings stay. A snapshot is saved first.")
             else tr("Deletes all entries, budgets, repeats, bookmarks and detected SMS. Accounts and categories stay. A snapshot is saved first, so this can be undone from the list below."),
             if (everything) tr("Reset") else tr("Clear"), { resetting = null },
-        ) { backup.reset(everything) }
+        ) { backups.saved.reset(everything) }
     }
 }
 

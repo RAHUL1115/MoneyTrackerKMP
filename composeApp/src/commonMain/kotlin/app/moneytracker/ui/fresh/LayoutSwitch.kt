@@ -25,7 +25,7 @@ val LocalNewLayout = compositionLocalOf { false }
 @Composable
 fun LayoutSwitchDialog(toNew: Boolean, onDismiss: () -> Unit) {
     val repo = LocalRepo.current
-    val platform = LocalPlatform.current
+    val appInfo = LocalPlatform.current.appInfo
     val scope = rememberCoroutineScope()
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -39,7 +39,7 @@ fun LayoutSwitchDialog(toNew: Boolean, onDismiss: () -> Unit) {
             TextButton(onClick = {
                 scope.launch {
                     withContext(repo.io) { repo.putSetting(Prefs.UI_LAYOUT, if (toNew) app.moneytracker.data.UiLayout.NEW else app.moneytracker.data.UiLayout.CLASSIC) }
-                    platform.restartApp()
+                    appInfo.restartApp()
                 }
             }) { Text(tr("Restart now"), color = Accent, fontWeight = FontWeight.Medium) }
         },

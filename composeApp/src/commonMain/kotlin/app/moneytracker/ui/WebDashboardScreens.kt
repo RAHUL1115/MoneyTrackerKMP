@@ -98,18 +98,18 @@ internal class WebDashboardUi(
 @Composable
 internal fun rememberWebDashboardUi(onMessage: (String) -> Unit): WebDashboardUi {
     val repo = LocalRepo.current
-    val platform = LocalPlatform.current
+    val dashboard = LocalPlatform.current.webDashboard
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
-    val state by platform.webDashboard.collectAsState()
+    val state by dashboard.state.collectAsState()
     val password by rememberSetting(Prefs.WEB_PASSWORD)
     val autoStop by rememberSetting(Prefs.WEB_AUTO_STOP)
     var now by remember { mutableLongStateOf(Clock.System.now().toEpochMilliseconds()) }
     var copied by remember { mutableStateOf(false) }
     // No lifecycle hook in common code: a cheap re-check notices Wi-Fi changes and keeps "Active 2 min ago" current.
-    LaunchedEffect(platform) {
+    LaunchedEffect(dashboard) {
         while (true) {
-            platform.refreshWebDashboard()
+            dashboard.refreshWebDashboard()
             now = Clock.System.now().toEpochMilliseconds()
             delay(2000)
         }
@@ -120,18 +120,18 @@ internal fun rememberWebDashboardUi(onMessage: (String) -> Unit): WebDashboardUi
         passwordSet = password.isNotEmpty(),
         autoStop = autoStop.takeIf { it in WEB_AUTO_STOPS } ?: Prefs.WEB_AUTO_STOP.default,
         now = now,
-        start = { platform.startWebDashboard { ok -> if (!ok) onMessage(platform.webDashboard.value.error ?: tr("Couldn't start the web dashboard")) } },
-        stop = { platform.stopWebDashboard() },
+        start = { dashboard.startWebDashboard { ok -> if (!ok) onMessage(dashboard.state.value.error ?: tr("Couldn't start the web dashboard")) } },
+        stop = { dashboard.stopWebDashboard() },
         copy = { state.address?.let { clipboard.setText(AnnotatedString("http://$it")); copied = true } },
-        disconnect = { platform.disconnectWebComputer(it) },
+        disconnect = { dashboard.disconnectWebComputer(it) },
         setPassword = { pw ->
             scope.launch {
-                withContext(repo.io) { platform.setWebPassword(pw) }
+                withContext(repo.io) { dashboard.setWebPassword(pw) }
                 onMessage(if (pw == null) tr("Password turned off") else tr("Password saved. Computers sign in again."))
             }
         },
         setAutoStop = { m -> scope.saveSetting(repo, Prefs.WEB_AUTO_STOP, m) },
-        openWifi = { platform.openWifiSettings() },
+        openWifi = { dashboard.openWifiSettings() },
         copied = copied,
     )
 }
@@ -139,7 +139,7 @@ internal fun rememberWebDashboardUi(onMessage: (String) -> Unit): WebDashboardUi
 /** Short line for the More / Settings tile. */
 @Composable
 internal fun webDashboardStatus(): String {
-    val state by LocalPlatform.current.webDashboard.collectAsState()
+    val state by LocalPlatform.current.webDashboard.state.collectAsState()
     return if (state.running) tr("On · {0}", state.address.orEmpty()) else tr("Use from a computer")
 }
 

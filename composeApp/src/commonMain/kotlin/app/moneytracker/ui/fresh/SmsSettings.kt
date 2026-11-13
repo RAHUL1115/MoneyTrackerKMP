@@ -61,7 +61,8 @@ import kotlinx.coroutines.withContext
 internal fun SmsSettingsScreen() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
+    val backgroundJobs = LocalPlatform.current.backgroundJobs
+    val messageCapture = LocalPlatform.current.messageCapture
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
     val pending by repo.pendingCaptures.collectAsState(emptyList())
@@ -81,7 +82,7 @@ internal fun SmsSettingsScreen() {
     val capture = captureSetting && health.permission
 
     fun <T> put(s: Setting<T>, value: T) = scope.saveSetting(repo, s, value)
-    fun import() = platform.importInboxMessages(days) { n ->
+    fun import() = messageCapture.importInboxMessages(days) { n ->
         when (n) {
             null -> toaster.show(tr("SMS permission was not granted"))
             0 -> toaster.show(tr("No new bank messages found"))
@@ -111,7 +112,7 @@ internal fun SmsSettingsScreen() {
         FCard(padding = 0.dp) {
             Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
                 SwitchLine(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture) { on ->
-                    val apply = { platform.setMessageCapture(on) { active -> put(Prefs.CAPTURE_ENABLED, active) } }
+                    val apply = { messageCapture.setMessageCapture(on) { active -> put(Prefs.CAPTURE_ENABLED, active) } }
                     if (on) disclosure = apply else apply()
                 }
                 if (!health.permission) {
@@ -190,8 +191,8 @@ internal fun SmsSettingsScreen() {
         val autostart = app.moneytracker.ui.hasAutostartManager(health.background.maker)
         Sheet(tr("Keep detection running"), { keepRunning = false }, bottom = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (autostart) PrimaryButton(tr("Open Autostart"), { platform.openBackgroundSettings(autostart = true); keepRunning = false }, Modifier.fillMaxWidth())
-                SecondaryButton(tr("Open app settings"), { platform.openBackgroundSettings(autostart = false); keepRunning = false }, Modifier.fillMaxWidth())
+                if (autostart) PrimaryButton(tr("Open Autostart"), { backgroundJobs.openBackgroundSettings(autostart = true); keepRunning = false }, Modifier.fillMaxWidth())
+                SecondaryButton(tr("Open app settings"), { backgroundJobs.openBackgroundSettings(autostart = false); keepRunning = false }, Modifier.fillMaxWidth())
             }
         }) {
             Text(tr("Some phones stop apps from starting in the background. Bank SMS are then only read when you open MoneyTracker, or at the next background check (about every 15 minutes while the phone is in use)."),

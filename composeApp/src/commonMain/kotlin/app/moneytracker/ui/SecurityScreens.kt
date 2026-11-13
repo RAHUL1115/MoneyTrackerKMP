@@ -93,17 +93,17 @@ private fun PinPad(title: String, subtitle: String?, error: String?, onComplete:
 @Composable
 fun LockScreen(hash: String, onUnlocked: () -> Unit) {
     val repo = LocalRepo.current
-    val platform = LocalPlatform.current
+    val pinSecurity = LocalPlatform.current.pinSecurity
     val biometricOn by rememberSetting(Prefs.BIOMETRIC)
-    val status by platform.biometricStatus.collectAsState()
+    val status by pinSecurity.biometricStatus.collectAsState()
     val canUseBiometric = biometricOn && status == BiometricStatus.AVAILABLE
     var error by remember { mutableStateOf<String?>(null) }
     var attempts by remember { mutableStateOf(0) }
-    fun promptBiometric() = platform.authenticate(tr("Unlock MoneyTracker"), onUnlocked) { msg -> error = msg }
+    fun promptBiometric() = pinSecurity.authenticate(tr("Unlock MoneyTracker"), onUnlocked) { msg -> error = msg }
     // Offer the biometric prompt straight away; the PIN pad stays underneath as the fallback.
     LaunchedEffect(canUseBiometric) { if (canUseBiometric) promptBiometric() }
     PinPad(tr("Enter passcode"), if (canUseBiometric) tr("or use your fingerprint / face") else null, error, onComplete = { pin ->
-        if (platform.unlock(pin, hash, repo)) { onUnlocked(); true }
+        if (pinSecurity.unlock(pin, hash, repo)) { onUnlocked(); true }
         else { attempts++; error = tr("Wrong passcode ({0})", attempts); false }
     }) {
         if (canUseBiometric) {
@@ -121,11 +121,11 @@ private enum class PinStep { NONE, VERIFY_FOR_CHANGE, VERIFY_FOR_OFF, NEW, CONFI
 fun SecurityScreen() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
+    val pinSecurity = LocalPlatform.current.pinSecurity
     val scope = rememberCoroutineScope()
     val passcode by rememberSetting(Prefs.PASSCODE)
     val biometricOn by rememberSetting(Prefs.BIOMETRIC)
-    val status by platform.biometricStatus.collectAsState()
+    val status by pinSecurity.biometricStatus.collectAsState()
     val hasPasscode = passcode.isNotBlank()
     var step by remember { mutableStateOf(PinStep.NONE) }
     var first by remember { mutableStateOf<String?>(null) }
@@ -136,7 +136,7 @@ fun SecurityScreen() {
     fun <T> put(s: app.moneytracker.data.Setting<T>, value: T) = scope.saveSetting(repo, s, value)
     fun turnOff() { put(Prefs.PASSCODE, ""); put(Prefs.BIOMETRIC, false); message = tr("Passcode turned off") }
     /** Turning biometrics on requires one successful scan, so we know the sensor works for this user. */
-    fun enableBiometric() = platform.authenticate(tr("Confirm it's you"), onSuccess = {
+    fun enableBiometric() = pinSecurity.authenticate(tr("Confirm it's you"), onSuccess = {
         put(Prefs.BIOMETRIC, true); message = tr("Biometric unlock is on")
     }) { msg -> message = msg }
 
@@ -146,13 +146,13 @@ fun SecurityScreen() {
             // Changing or removing the lock needs the current PIN (or a biometric scan) — the phone may be in someone else's hands.
             LaunchedEffect(Unit) {
                 if (biometricOn && status == BiometricStatus.AVAILABLE) {
-                    platform.authenticate(tr("Confirm it's you"), onSuccess = {
+                    pinSecurity.authenticate(tr("Confirm it's you"), onSuccess = {
                         if (forOff) { turnOff(); step = PinStep.NONE } else { first = null; error = null; step = PinStep.NEW }
                     })
                 }
             }
             PinPad(tr("Enter current passcode"), null, error, onComplete = { pin ->
-                if (!platform.checkPin(pin, passcode.orEmpty())) { error = tr("Wrong passcode"); false }
+                if (!pinSecurity.checkPin(pin, passcode.orEmpty())) { error = tr("Wrong passcode"); false }
                 else {
                     error = null
                     if (forOff) { turnOff(); step = PinStep.NONE } else { first = null; step = PinStep.NEW }
@@ -167,7 +167,7 @@ fun SecurityScreen() {
                 if (step == PinStep.NEW) { first = pin; error = null; step = PinStep.CONFIRM; false }
                 else if (f == pin) {
                     val wasNew = !hasPasscode
-                    put(Prefs.PASSCODE, platform.hashPin(pin))
+                    put(Prefs.PASSCODE, pinSecurity.hashPin(pin))
                     step = PinStep.NONE; first = null
                     message = tr("Passcode saved")
                     if (wasNew && status == BiometricStatus.AVAILABLE && !biometricOn) offerBiometric = true
@@ -207,7 +207,7 @@ fun SecurityScreen() {
                         Text(tr("Unlock with fingerprint / face"))
                         Text(tr("No fingerprint or face is set up on this phone yet."), fontSize = 13.sp, color = SubtleText)
                         Text(
-                            tr("Set up in phone settings"), Modifier.padding(top = 8.dp).clickable { platform.openBiometricEnrollment() },
+                            tr("Set up in phone settings"), Modifier.padding(top = 8.dp).clickable { pinSecurity.openBiometricEnrollment() },
                             color = Accent, fontWeight = FontWeight.Medium,
                         )
                     }
@@ -259,7 +259,7 @@ fun OnboardingScreen() {
     var symbol by remember { mutableStateOf("₹") }
     var decimals by remember { mutableStateOf(2) }
     var newLayout by remember { mutableStateOf(true) }
-    val platform = LocalPlatform.current
+    val appInfo = LocalPlatform.current.appInfo
     val pages = listOf(
         tr("Track every rupee") to tr("Add income, expenses and transfers in a few taps with the built-in keypad."),
         tr("See where it goes") to tr("Daily, calendar and monthly views, stats by category, budgets and card statements."),
@@ -318,7 +318,7 @@ fun OnboardingScreen() {
                         repo.putSetting(Prefs.ONBOARDED, true)
                     }
                     // The layout is chosen when the app starts, so the new one needs a quick restart.
-                    if (newLayout) platform.restartApp()
+                    if (newLayout) appInfo.restartApp()
                 }
             },
             contentAlignment = Alignment.Center,

@@ -7,7 +7,13 @@ import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
-import app.moneytracker.data.BackupController
+import app.moneytracker.data.BackupFolder
+import app.moneytracker.data.BackupStatus
+import app.moneytracker.data.Backups
+import app.moneytracker.data.FileTransfer
+import app.moneytracker.data.PhotoArchive
+import app.moneytracker.data.SavedBackups
+import app.moneytracker.data.SpreadsheetImport
 import app.moneytracker.data.MoneyManagerBackup
 import app.moneytracker.data.MoneyManagerExport
 import app.moneytracker.data.IosMoneyManagerSource
@@ -42,7 +48,7 @@ class AndroidBackupController(
     private val db: DatabaseManager,
     private val hashPin: (String) -> String,
     private val portablePinHash: (String) -> String?,
-) : BackupController {
+) : BackupStatus, SavedBackups, BackupFolder, FileTransfer, SpreadsheetImport, PhotoArchive {
 
     private val dir = File(activity.filesDir, "backups").apply { mkdirs() }
     private val mutex = Mutex()
@@ -69,7 +75,7 @@ class AndroidBackupController(
     }
     override fun cancelImport() { _pending.value = null }
     override val localBackups: StateFlow<List<LocalBackup>> = _local
-    override val status: StateFlow<String?> = _status
+    override val message: StateFlow<String?> = _status
 
     private val exportLauncher = activity.registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/octet-stream"),
@@ -296,7 +302,7 @@ class AndroidBackupController(
     }
 
     private fun exportPhotosTo(uri: Uri): String {
-        val files = Photos.dir(activity).listFiles()?.filter { it.isFile }.orEmpty()
+        val files = PhotoFiles.dir(activity).listFiles()?.filter { it.isFile }.orEmpty()
         if (files.isEmpty()) return tr("No photos to export")
         activity.contentResolver.openOutputStream(uri, "wt")?.use { out ->
             java.util.zip.ZipOutputStream(out).use { zip ->
@@ -311,7 +317,7 @@ class AndroidBackupController(
     }
 
     private fun importPhotosFrom(uri: Uri): String {
-        val dir = Photos.dir(activity)
+        val dir = PhotoFiles.dir(activity)
         var added = 0
         activity.contentResolver.openInputStream(uri)?.use { input ->
             java.util.zip.ZipInputStream(input).use { zip ->
@@ -490,3 +496,8 @@ class AndroidBackupController(
         const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     }
 }
+
+/** The shared UI's view of this class: every capability is this one object, but each screen sees only its slice. */
+fun AndroidBackupController.capabilities() = Backups(
+    status = this, saved = this, folder = this, files = this, spreadsheet = this, photos = this,
+)

@@ -46,7 +46,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.BackupController
+import app.moneytracker.data.Backups
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.ColorSet
@@ -59,7 +59,7 @@ import app.moneytracker.domain.CurrencyFormat
 val LocalRepo = compositionLocalOf<MoneyRepository> { error("No repository") }
 val LocalCurrency = compositionLocalOf { CurrencyFormat() }
 val LocalNavigator = compositionLocalOf<Navigator> { error("No navigator") }
-val LocalBackup = compositionLocalOf<BackupController> { error("No backup controller") }
+val LocalBackups = compositionLocalOf<Backups> { error("No backups") }
 /** Non-main currencies by ISO code, for rendering foreign amounts. */
 val LocalCurrencies = compositionLocalOf<Map<String, app.moneytracker.domain.Currency>> { emptyMap() }
 
@@ -98,9 +98,9 @@ enum class Tab(val title: String) { TRANS("Trans."), STATS("Stats"), ACCOUNTS("A
 @Composable
 fun App(
     repo: MoneyRepository?,
-    backup: BackupController,
+    backups: Backups,
     navigator: Navigator,
-    platform: PlatformServices,
+    platform: Platform,
     locked: Boolean,
     onUnlocked: () -> Unit,
     launchAction: LaunchAction?,
@@ -118,13 +118,13 @@ fun App(
     val wantAccent = AccentChoice.entries.firstOrNull { it.name == accentSetting } ?: AccentChoice.TEAL
     if (accentChoice != wantAccent) accentChoice = wantAccent
     // Language: Configuration › Language, or the phone's language.
-    val platformForLanguage = platform
+    val languages = platform.languages
     val languageSetting by remember(repo) { repo?.setting(Prefs.LANGUAGE) ?: kotlinx.coroutines.flow.flowOf(null) }
         .collectAsState(repo?.settingNow(Prefs.LANGUAGE))
     LaunchedEffect(languageSetting) {
-        val tag = languageSetting?.takeIf { it.isNotEmpty() } ?: I18n.resolve(platformForLanguage.systemLanguage())
+        val tag = languageSetting?.takeIf { it.isNotEmpty() } ?: I18n.resolve(languages.systemLanguage())
         I18n.rtl = tag.substringBefore('-') in I18n.RTL
-        I18n.table = if (tag == "en") emptyMap() else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { platformForLanguage.translations(tag) }
+        I18n.table = if (tag == "en") emptyMap() else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { languages.translations(tag) }
     }
     LaunchedEffect(wantDark) { onDarkThemeChanged(wantDark) }
     androidx.compose.runtime.CompositionLocalProvider(
@@ -156,7 +156,7 @@ fun App(
             LaunchedEffect(repo) {
                 kotlinx.coroutines.withContext(repo.io) {
                     val due = repo.settingNow(Prefs.RATES_CHECKED) < kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - 20 * 3_600_000L
-                    if (repo.settingNow(Prefs.RATES_AUTO) && due) repo.updateRates(platform::httpGet)
+                    if (repo.settingNow(Prefs.RATES_AUTO) && due) repo.updateRates(platform.network::httpGet)
                 }
             }
             val masked = Privacy.masked
@@ -164,7 +164,7 @@ fun App(
                 LocalRepo provides repo,
                 LocalCurrency provides currency.copy(masked = masked),
                 LocalNavigator provides navigator,
-                LocalBackup provides backup,
+                LocalBackups provides backups,
                 LocalPlatform provides platform,
                 LocalCurrencies provides currencies.associate { it.code to it.copy(masked = masked) },
                 LocalListPrefs provides ListPrefs(showTime = timeInput == TimeInput.LIST, showDescription = showDescription),

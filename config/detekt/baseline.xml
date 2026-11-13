@@ -39,7 +39,7 @@
     <ID>CyclomaticComplexMethod:ActivityTab.kt$@OptIn(ExperimentalFoundationApi::class) @Composable internal fun ActEntryRow( txn: Txn, data: ActEntryData, selecting: Boolean = false, selected: Boolean = false, showDate: Boolean = false, compact: Boolean = false, /** Space from the card's edges to the content; the tap highlight still spans the full width. */ inset: Dp = ENTRY_INSET, onLongClick: (() -&gt; Unit)? = null, onClick: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
-    <ID>CyclomaticComplexMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backup: BackupController, navigator: Navigator, platform: PlatformServices, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
+    <ID>CyclomaticComplexMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backups: Backups, navigator: Navigator, platform: Platform, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
     <ID>CyclomaticComplexMethod:BackupScreens.kt$@Composable internal fun FreshBackup()</ID>
     <ID>CyclomaticComplexMethod:BudgetScreen.kt$@Composable internal fun BudgetBody()</ID>
     <ID>CyclomaticComplexMethod:CategoriesScreens.kt$@Composable internal fun FreshCategories(kind: CategoryKind)</ID>
@@ -146,7 +146,7 @@
     <ID>LongMethod:AddScreen.kt$@Composable fun receiptCard()</ID>
     <ID>LongMethod:AddScreen.kt$@Composable fun tray(modifier: Modifier)</ID>
     <ID>LongMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
-    <ID>LongMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backup: BackupController, navigator: Navigator, platform: PlatformServices, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
+    <ID>LongMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backups: Backups, navigator: Navigator, platform: Platform, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
     <ID>LongMethod:App.kt$@Composable private fun Home()</ID>
     <ID>LongMethod:BackupScreens.kt$@Composable internal fun FreshBackup()</ID>
     <ID>LongMethod:BackupScreens.kt$@Composable private fun ImportPreview(parsed: TabularImport.Parsed, onCancel: () -&gt; Unit, onImport: (Set&lt;Int&gt;) -&gt; Unit)</ID>
@@ -248,10 +248,7 @@
     <ID>TooGenericExceptionCaught:DatabaseManager.kt$DatabaseManager.Companion$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HttpServer.kt$HttpServer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Log.kt$Log$t: Throwable</ID>
-    <ID>TooManyFunctions:AndroidPlatform.kt$AndroidPlatform : PlatformServices</ID>
-    <ID>TooManyFunctions:Backup.kt$BackupController</ID>
     <ID>TooManyFunctions:MoneyRepository.kt$MoneyRepository</ID>
-    <ID>TooManyFunctions:Platform.kt$PlatformServices</ID>
     <ID>UnusedParameter:TransactionsScreen.kt$ps: PeriodSettings</ID>
     <ID>UnusedParameter:WebApi.kt$WebApi$r: MoneyRepository</ID>
     <ID>UnusedParameter:WebApi.kt$WebApi$s: Session</ID>

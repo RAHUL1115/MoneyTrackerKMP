@@ -50,7 +50,7 @@ import app.moneytracker.domain.budgetLines
 import app.moneytracker.domain.classify
 import app.moneytracker.domain.effectiveBudgets
 import app.moneytracker.domain.totals
-import app.moneytracker.ui.LocalBackup
+import app.moneytracker.ui.LocalBackups
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalRepo
@@ -149,7 +149,7 @@ internal fun ActivityMonthsView(
 private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val backup = LocalBackup.current
+    val fileTransfer = LocalBackups.current.files
     val currency = LocalCurrency.current
     val range = ps.month(ym)
     // One read model for the Total card (same numbers as the classic Total view).
@@ -168,7 +168,7 @@ private fun MonthTotal(ym: YearMonth, ps: PeriodSettings) {
                 Text(ym.actLongLabel(), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
             }
             Row(
-                Modifier.height(36.dp).clip(RoundedCornerShape(12.dp)).background(F.page).clickable(onClickLabel = tr("Export data to Excel")) { backup.exportExcel() }
+                Modifier.height(36.dp).clip(RoundedCornerShape(12.dp)).background(F.page).clickable(onClickLabel = tr("Export data to Excel")) { fileTransfer.exportExcel() }
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {

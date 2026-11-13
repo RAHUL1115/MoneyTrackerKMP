@@ -102,7 +102,8 @@ fun ListenSheet(onDismiss: () -> Unit, look: ListenLook = ListenLook.classic(), 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ListenSheetBody(onDismiss: () -> Unit, startTyping: Boolean, onDone: (SmartGuess?) -> Unit) {
-    val platform = LocalPlatform.current
+    val voice = LocalPlatform.current.voice
+    val smartModels = LocalPlatform.current.smartModels
     val repo = LocalRepo.current
     val currency = LocalCurrency.current
     val categories by repo.categories.collectAsState(emptyList())
@@ -141,19 +142,19 @@ private fun ListenSheetBody(onDismiss: () -> Unit, startTyping: Boolean, onDone:
     fun openEditor(text: String) {
         session?.cancel()
         scope.launch {
-            val p = parser ?: SmartEntry.parser(platform)
+            val p = parser ?: SmartEntry.parser(smartModels)
             val g = if (p != null && text.isNotBlank()) SmartEntry.guess(p, text, repo.today(), currency, categories, accounts, learned, usual) else null
             onDismiss()
             onDone(g)
         }
     }
 
-    LaunchedEffect(Unit) { parser = SmartEntry.parser(platform); reparse(heard) }
+    LaunchedEffect(Unit) { parser = SmartEntry.parser(smartModels); reparse(heard) }
 
     DisposableEffect(attempt, typing) {
         state = ListenState.LISTENING; error = null; level = 0f
         if (typing) return@DisposableEffect onDispose {}
-        val s = platform.startSpeech(object : SpeechListener {
+        val s = voice.startSpeech(object : SpeechListener {
             override fun onLevel(level: Float) { setLevel(level) }
             override fun onPartial(text: String) { if (!typing) { heard = text; reparse(text) } }
             override fun onFinal(text: String) {

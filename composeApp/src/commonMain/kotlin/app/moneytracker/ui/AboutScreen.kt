@@ -57,14 +57,14 @@ private val LIBRARIES = listOf(
 @Composable
 fun AboutScreen() {
     val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
+    val appInfo = LocalPlatform.current.appInfo
     Column(Modifier.fillMaxSize().background(PageBackground)) {
         BackTopBar(tr("About"), nav::pop)
         HorizontalDivider(color = DividerColor)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 12.dp)) {
             Column(Modifier.card().fillMaxWidth().padding(20.dp)) {
                 Text("MoneyTracker", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Ink)
-                if (platform.appVersion.isNotEmpty()) Text(tr("Version {0}", platform.appVersion), color = SubtleText, fontSize = 13.sp)
+                if (appInfo.appVersion.isNotEmpty()) Text(tr("Version {0}", appInfo.appVersion), color = SubtleText, fontSize = 13.sp)
                 Spacer(Modifier.height(10.dp))
                 Text(
                     tr("Free and open source under the GNU GPL v3. No ads, no accounts and no internet access: your data stays on this phone."),
@@ -73,12 +73,12 @@ fun AboutScreen() {
             }
             Spacer(Modifier.height(12.dp))
             Column(Modifier.card()) {
-                AboutLink(GitHubMark, tr("Source code on GitHub"), REPO_URL.removePrefix("https://")) { platform.openUrl(REPO_URL) }
-                AboutLink(Icons.Outlined.Description, tr("Read me")) { platform.openUrl(doc("README.md")) }
-                AboutLink(Icons.Outlined.PrivacyTip, tr("Privacy policy")) { platform.openUrl(doc("PRIVACY.md")) }
-                AboutLink(Icons.Outlined.Gavel, tr("License (GPL-3.0)")) { platform.openUrl(doc("LICENSE")) }
-                AboutLink(Icons.Outlined.Security, tr("Report a security issue")) { platform.openUrl(doc("SECURITY.md")) }
-                AboutLink(Icons.Outlined.Groups, tr("Contributing"), divider = false) { platform.openUrl(doc("CONTRIBUTING.md")) }
+                AboutLink(GitHubMark, tr("Source code on GitHub"), REPO_URL.removePrefix("https://")) { appInfo.openUrl(REPO_URL) }
+                AboutLink(Icons.Outlined.Description, tr("Read me")) { appInfo.openUrl(doc("README.md")) }
+                AboutLink(Icons.Outlined.PrivacyTip, tr("Privacy policy")) { appInfo.openUrl(doc("PRIVACY.md")) }
+                AboutLink(Icons.Outlined.Gavel, tr("License (GPL-3.0)")) { appInfo.openUrl(doc("LICENSE")) }
+                AboutLink(Icons.Outlined.Security, tr("Report a security issue")) { appInfo.openUrl(doc("SECURITY.md")) }
+                AboutLink(Icons.Outlined.Groups, tr("Contributing"), divider = false) { appInfo.openUrl(doc("CONTRIBUTING.md")) }
             }
             Spacer(Modifier.height(12.dp))
             Column(Modifier.card()) {
@@ -125,8 +125,8 @@ private fun AboutLink(
 @Composable
 fun LicenseScreen(id: String) {
     val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
-    val text = remember(id) { platform.licenseText(id) }
+    val appInfo = LocalPlatform.current.appInfo
+    val text = remember(id) { appInfo.licenseText(id) }
     Column(Modifier.fillMaxSize().background(SurfaceColor)) {
         BackTopBar(when { id == "GPL-3.0" -> "GNU GPL v3"; id.startsWith("MIT") -> "MIT License"; else -> "Apache License 2.0" }, nav::pop)
         HorizontalDivider(color = DividerColor)

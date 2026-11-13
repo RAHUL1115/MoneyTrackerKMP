@@ -16,7 +16,7 @@ fun isPortablePinHash(stored: String?) = stored?.startsWith(PORTABLE_PIN_PREFIX)
  * Checks [pin] at the lock screen. The passcode from before a restore is accepted too, so a backup whose passcode
  * can't be checked on this phone never locks you out; whichever matches becomes the passcode, in the portable form.
  */
-fun PlatformServices.unlock(pin: String, stored: String, repo: MoneyRepository): Boolean {
+fun PinSecurity.unlock(pin: String, stored: String, repo: MoneyRepository): Boolean {
     val previous = repo.settingNow(Prefs.PASSCODE_PREVIOUS)
     when {
         checkPin(pin, stored) -> if (!isPortablePinHash(stored)) repo.putSetting(Prefs.PASSCODE, hashPin(pin))
@@ -28,11 +28,6 @@ fun PlatformServices.unlock(pin: String, stored: String, repo: MoneyRepository):
     return true
 }
 
-/**
- * Device features the shared UI needs. Android implements it in androidMain; another platform
- * (iOS, desktop) only has to provide its own implementation — screens stay unchanged.
- * Callbacks run on the main thread.
- */
 /**
  * [maker]: lower-case manufacturer, e.g. "vivo". [restricted]: Android's battery optimisation or background
  * restriction applies to the app. Maker battery managers (vivo, Xiaomi, Oppo…) can block it even when this is false.
@@ -75,8 +70,11 @@ interface SpeechSession {
     fun cancel()
 }
 
-interface PlatformServices {
-    // security
+/**
+ * The passcode and the phone's biometrics. A passcode hash carries its own salt, so a restored backup unlocks
+ * on any phone.
+ */
+interface PinSecurity {
     /** A new hash for [pin], with its own salt inside, so it checks out on any install. */
     fun hashPin(pin: String): String
     /** True when [pin] matches [stored], in either the portable form or an older install-only one. */
@@ -92,16 +90,20 @@ interface PlatformServices {
      * (lockout, sensor unavailable); it is not called when the user simply taps "Use passcode".
      */
     fun authenticate(title: String, onSuccess: () -> Unit, onError: (String) -> Unit = {})
+}
 
-    // photos (stored privately, referenced by file name)
+/** Receipt photos, stored privately and referenced by file name. */
+interface Photos {
     fun pickPhoto(onPicked: (fileName: String) -> Unit)
     fun takePhoto(onTaken: (fileName: String) -> Unit)
     fun deletePhotoFile(fileName: String)
     @Composable fun PhotoImage(fileName: String, modifier: Modifier)
     /** Whole photo, scaled to fit (full-screen viewer). */
     @Composable fun PhotoFull(fileName: String, modifier: Modifier)
+}
 
-    // input helpers
+/** Speech to text, through the system popup or the app's own listening sheet. */
+interface Voice {
     val voiceAvailable: Boolean
     fun listen(onText: (String) -> Unit)
     /** True when MoneyTracker's own listening sheet can turn speech into text on this phone. */
@@ -111,44 +113,36 @@ interface PlatformServices {
      * [listener] while the person speaks. Returns null when nothing can listen here.
      */
     fun startSpeech(listener: SpeechListener): SpeechSession?
-    /** A Smart entry model file (bytes), or null when the app doesn't ship it. */
-    fun readSmartModel(name: String): ByteArray?
+}
+
+/** Where an entry was made, and showing that place on a map. */
+interface Location {
     fun currentLocation(onResult: (lat: Double, lng: Double) -> Unit, onUnavailable: () -> Unit)
     fun openMap(lat: Double, lng: Double)
+}
 
-    // background features; each returns via [onResult] whether it is now active (permissions may be refused)
+/** Work the app does while closed. Each setter returns via [onResult] whether it is now active (permissions may be refused). */
+interface BackgroundJobs {
     fun setReminder(enabled: Boolean, hour: Int, minute: Int, onResult: (Boolean) -> Unit)
     fun setQuickAddNotification(enabled: Boolean, onResult: (Boolean) -> Unit)
+    /** Phone maker and whether Android limits the app in the background, which delays SMS detection. */
+    fun backgroundState(): BackgroundState
+    /** Opens the maker's autostart manager ([autostart]) or the app's own settings page; false if neither opened. */
+    fun openBackgroundSettings(autostart: Boolean): Boolean
+}
+
+/** Bank SMS capture: turning it on, reading the inbox once, and checking the permission is still there. */
+interface MessageCapture {
     fun setMessageCapture(enabled: Boolean, onResult: (Boolean) -> Unit)
     /** Reads bank messages already in the SMS inbox (last [days] days); [onResult] gets how many were added, null if refused. */
     fun importInboxMessages(days: Int, onResult: (Int?) -> Unit)
     /** False when "Detect bank SMS" can't run because the SMS permission was taken away. */
     fun messagePermissionGranted(): Boolean
-    /** Phone maker and whether Android limits the app in the background, which delays SMS detection. */
-    fun backgroundState(): BackgroundState
-    /** Opens the maker's autostart manager ([autostart]) or the app's own settings page; false if neither opened. */
-    fun openBackgroundSettings(autostart: Boolean): Boolean
+}
 
-    // languages
-    /** The phone's language tag, e.g. "hi-IN". */
-    fun systemLanguage(): String
-    /** Translation table for a shipped language tag (English text → translation); empty if missing. */
-    fun translations(tag: String): Map<String, String>
-
-    // about
-    /** Version shown to users, e.g. "0.1.0-build.42". */
-    val appVersion: String
-    /** A license text shipped with the app (e.g. "GPL-3.0"), or null if missing. */
-    fun licenseText(id: String): String?
-    /** Opens a web page in the browser. */
-    fun openUrl(url: String)
-
-    // network: used only for exchange rates (daily unless turned off, and only with other currencies)
-    /** The body of an HTTPS GET to [url], or null on any failure (no connection, timeout, not 200). */
-    suspend fun httpGet(url: String): String?
-
-    // web dashboard: the phone serves a page to computers on the same Wi-Fi (local network only)
-    val webDashboard: StateFlow<WebDashboardState>
+/** The phone serves a page to computers on the same Wi-Fi (local network only). */
+interface WebDashboardControl {
+    val state: StateFlow<WebDashboardState>
     /** Re-checks Wi-Fi (call while the dashboard screen is open). */
     fun refreshWebDashboard()
     /** Starts serving in the background, with a notification; [onResult] is false when it couldn't start. */
@@ -158,14 +152,62 @@ interface PlatformServices {
     /** Saves (or with null removes) the dashboard password; every computer has to sign in again. */
     fun setWebPassword(password: String?)
     fun openWifiSettings()
+}
 
+/** The phone's language and the translations shipped with the app. */
+interface Languages {
+    /** The phone's language tag, e.g. "hi-IN". */
+    fun systemLanguage(): String
+    /** Translation table for a shipped language tag (English text → translation); empty if missing. */
+    fun translations(tag: String): Map<String, String>
+}
+
+/** What the About screen shows, and the app-level actions around it. */
+interface AppInfo {
+    /** Version shown to users, e.g. "0.1.0-build.42". */
+    val appVersion: String
+    /** A license text shipped with the app (e.g. "GPL-3.0"), or null if missing. */
+    fun licenseText(id: String): String?
+    /** Opens a web page in the browser. */
+    fun openUrl(url: String)
     /** Closes the screens and opens the app again from the start (used after switching layouts). */
     fun restartApp()
 }
 
+/** Used only for exchange rates (daily unless turned off, and only with other currencies). */
+interface Network {
+    /** The body of an HTTPS GET to [url], or null on any failure (no connection, timeout, not 200). */
+    suspend fun httpGet(url: String): String?
+}
+
+/** The model files Smart entry loads. */
+interface SmartModels {
+    /** A Smart entry model file (bytes), or null when the app doesn't ship it. */
+    fun readSmartModel(name: String): ByteArray?
+}
+
+/**
+ * Device features the shared UI needs, one small capability per field. Android implements them in androidMain;
+ * another platform (iOS, desktop) only has to provide its own. Screens take only the fields they use.
+ * Callbacks run on the main thread.
+ */
+data class Platform(
+    val pinSecurity: PinSecurity,
+    val photos: Photos,
+    val voice: Voice,
+    val location: Location,
+    val backgroundJobs: BackgroundJobs,
+    val messageCapture: MessageCapture,
+    val webDashboard: WebDashboardControl,
+    val languages: Languages,
+    val appInfo: AppInfo,
+    val network: Network,
+    val smartModels: SmartModels,
+)
+
 enum class BiometricStatus { AVAILABLE, NOT_ENROLLED, UNSUPPORTED }
 
-val LocalPlatform = compositionLocalOf<PlatformServices> { error("No platform services") }
+val LocalPlatform = compositionLocalOf<Platform> { error("No platform services") }
 
 /** One-shot actions requested from outside the UI (shortcut, widget, notification). */
 enum class LaunchAction { ADD_EXPENSE, ADD_INCOME, ADD_TRANSFER, VOICE, INBOX, SEARCH, WEB_DASHBOARD }

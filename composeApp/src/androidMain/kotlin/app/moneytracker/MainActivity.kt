@@ -57,7 +57,7 @@ class MainActivity : FragmentActivity() {
         setContent {
             LaunchedEffect(Unit) { snapshotFlow { navigator.canPop }.collect { back.isEnabled = it } }
             App(
-                repo = db.repo, backup = backup, navigator = navigator, platform = platform,
+                repo = db.repo, backups = backup.capabilities(), navigator = navigator, platform = platform.capabilities(),
                 locked = locked, onUnlocked = { locked = false; process.unlocked = true },
                 launchAction = launchAction, onLaunchHandled = { launchAction = null },
                 onDarkThemeChanged = ::applySystemBars,

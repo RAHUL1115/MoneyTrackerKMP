@@ -110,7 +110,6 @@ private enum class TransView(val title: String) { DAILY("Daily"), CALENDAR("Cale
 fun TransactionsTab() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
     val currency = LocalCurrency.current
     val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
     var periodKey by rememberPeriod()
@@ -556,7 +555,7 @@ private val MonthAmountStyle = TextStyle(fontSize = 13.sp, lineHeight = 18.sp, f
 private fun TotalView(ym: YearMonth, range: DateRange, ps: PeriodSettings) {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val backup = LocalBackup.current
+    val fileTransfer = LocalBackups.current.files
     val currency = LocalCurrency.current
     // One read model for the Total card (same numbers as the new layout's Months view).
     val m by remember(ym, range) { repo.views.month(ym) }.collectAsState()
@@ -620,7 +619,7 @@ private fun TotalView(ym: YearMonth, range: DateRange, ps: PeriodSettings) {
             }
             Row(
                 Modifier.fillMaxWidth().padding(top = 16.dp).border(1.dp, DividerColor, RoundedCornerShape(6.dp))
-                    .clickable { backup.exportExcel() }.padding(14.dp),
+                    .clickable { fileTransfer.exportExcel() }.padding(14.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Description, null, tint = Color(0xFF1E8E3E))
@@ -644,7 +643,6 @@ private fun StatLine(label: String, value: String) {
 private fun SelectionBar(selected: List<Txn>, onClear: () -> Unit) {
     val repo = LocalRepo.current
     val currency = LocalCurrency.current
-    val platform = LocalPlatform.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val categories by repo.categories.collectAsState(emptyList())
     val accounts by repo.accounts.collectAsState(emptyList())
@@ -802,7 +800,7 @@ private fun ClassicDetectedCard() {
 /** Smart add at the top of the Daily list: tap the box to type an entry the way you'd say it, or the mic to speak it. */
 @Composable
 private fun ClassicSmartAddBar(onType: () -> Unit, onSpeak: () -> Unit) {
-    val platform = LocalPlatform.current
+    val voice = LocalPlatform.current.voice
     Row(
         Modifier.fillMaxWidth().padding(top = 6.dp).card(ListCardMargin).height(52.dp)
             .clickable(onClickLabel = tr("Type an entry"), onClick = onType)
@@ -811,7 +809,7 @@ private fun ClassicSmartAddBar(onType: () -> Unit, onSpeak: () -> Unit) {
     ) {
         Text(tr("Type or say it: “1,200 for new shoes”"), Modifier.weight(1f), color = SubtleText, fontSize = 14.sp, maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        if (platform.speechAvailable) {
+        if (voice.speechAvailable) {
             Box(
                 Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Accent).clickable(onClickLabel = tr("Say an entry"), onClick = onSpeak),
                 contentAlignment = Alignment.Center,
