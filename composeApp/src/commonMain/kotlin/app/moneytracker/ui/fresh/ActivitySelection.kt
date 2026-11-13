@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -159,7 +160,7 @@ private fun RowScope.PanelButton(text: String, enabled: Boolean, danger: Boolean
     Box(
         Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp))
             .background(if (danger) F.danger else F.page.copy(alpha = 0.14f))
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(text, color = (if (danger) Color.White else F.page).copy(alpha = if (enabled) 1f else 0.45f), fontSize = 12.sp, fontWeight = FontWeight.Medium)

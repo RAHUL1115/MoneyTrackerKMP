@@ -34,6 +34,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -114,7 +117,7 @@ private fun SearchContent(q: SearchQuery, state: SearchState, model: SearchModel
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter).padding(top = 12.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
-                Modifier.height(52.dp).clip(F.buttonShape).background(F.card).clickable(onClick = model::clear).padding(horizontal = 20.dp),
+                Modifier.height(52.dp).clip(F.buttonShape).background(F.card).clickable(role = Role.Button, onClick = model::clear).padding(horizontal = 20.dp),
                 contentAlignment = Alignment.Center,
             ) { Text(tr("Clear"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
             PrimaryButton(tr("Apply filter to Activity"), onApply, Modifier.weight(1f))
@@ -137,10 +140,12 @@ private fun SearchBox(text: String, onText: (String) -> Unit, onBack: () -> Unit
                 BasicTextField(text, onText, Modifier.fillMaxWidth(), singleLine = true,
                     textStyle = TextStyle(color = F.ink, fontSize = 14.sp), cursorBrush = SolidColor(F.accent))
             }
+            val clearLabel = tr("Clear search text")
             if (text.isNotEmpty()) Box(
-                Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(F.page).clickable(onClickLabel = tr("Clear search text")) { onText("") },
+                Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(F.page).semantics { contentDescription = clearLabel }
+                    .clickable(role = Role.Button) { onText("") },
                 contentAlignment = Alignment.Center,
-            ) { Icon(Glyph.Close, tr("Clear search text"), tint = F.muted, modifier = Modifier.size(16.dp)) }
+            ) { Icon(Glyph.Close, null, tint = F.muted, modifier = Modifier.size(16.dp)) }
         }
     }
 }
@@ -161,13 +166,13 @@ private fun SearchFilters(q: SearchQuery, state: SearchState, model: SearchModel
     FCard(modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ChipGroup(tr("Type")) {
-                SearchType.entries.forEach { t -> ActChip(tr(t.title), t in q.types) { model.toggleType(t) } }
+                SearchType.entries.forEach { t -> ActChip(tr(t.title), t in q.types, Role.Checkbox) { model.toggleType(t) } }
             }
             ChipGroup(tr("Accounts"), scroll = true) {
-                state.accounts.forEach { a -> ActChip(a.name, a.id in q.accountIds) { model.toggleAccount(a.id) } }
+                state.accounts.forEach { a -> ActChip(a.name, a.id in q.accountIds, Role.Checkbox) { model.toggleAccount(a.id) } }
             }
             if (state.tags.isNotEmpty()) ChipGroup(tr("Tags"), scroll = true) {
-                searchTagChoices(state.tags, q.tagIds, "").forEach { t -> ActChip("#${t.name}", t.id in q.tagIds) { model.pickTag(t) } }
+                searchTagChoices(state.tags, q.tagIds, "").forEach { t -> ActChip("#${t.name}", t.id in q.tagIds, Role.Checkbox) { model.pickTag(t) } }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AmountField(tr("Min amount"), q.minText, currency.format(0), Modifier.weight(1f), model::setMin)
@@ -192,7 +197,7 @@ private fun DatesRow(q: SearchQuery, range: DateRange, onClick: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         FieldLabel(tr("Dates"), Modifier.weight(1f))
         Row(
-            Modifier.height(34.dp).clip(RoundedCornerShape(10.dp)).background(F.page).clickable(onClick = onClick).padding(horizontal = 12.dp),
+            Modifier.height(34.dp).clip(F.innerShape).background(F.page).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(if (q.dates == SearchDates.ALL) tr("All time") else "${range.start.searchLabel()} – ${range.endInclusive.searchLabel()}".takeIf { q.dates != SearchDates.CUSTOM || q.from != null || q.to != null } ?: tr("Custom"),
