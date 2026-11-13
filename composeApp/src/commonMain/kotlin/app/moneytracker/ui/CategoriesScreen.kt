@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,11 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.newId
-import app.moneytracker.domain.Account
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.CategoryKind
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** Classic categories: income or expense, reordered with arrows, edited in a dialog. */
 @Composable
@@ -50,33 +46,42 @@ fun CategoriesScreen(initialKind: CategoryKind) {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val scope = rememberCoroutineScope()
-    val categories by repo.categoryStore.categories.collectAsState()
+    val model = remember(repo) { CategoriesModel(repo.categoryStore, repo.accountStore, repo.settingsStore, repo.io, scope) }
+    val state by model.state.collectAsState()
+    CategoriesContent(state, initialKind, onBack = nav::pop, onMove = model::move, onSave = model::save, onDelete = model::delete)
+}
+
+@Composable
+private fun CategoriesContent(
+    state: CategoriesState,
+    initialKind: CategoryKind,
+    onBack: () -> Unit,
+    onMove: (Category, Int) -> Unit,
+    onSave: (Category) -> Unit,
+    onDelete: (Category) -> Unit,
+) {
     var kind by remember { mutableStateOf(initialKind) }
-    val accounts by repo.accountStore.accounts.collectAsState()
-    val accountNames by repo.accountStore.accountNames.collectAsState()
-    val useSubcategories by repo.settingsStore.useSubcategories.collectAsState(false)
     var editing by remember { mutableStateOf<Category?>(null) }
     var deleting by remember { mutableStateOf<Category?>(null) }
-    fun reorder(order: List<String>) { scope.launch { withContext(repo.io) { repo.categoryStore.reorderCategories(order) } } }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            BackTopBar(if (kind == CategoryKind.INCOME) tr("Income categories") else tr("Expense categories"), nav::pop)
+            BackTopBar(if (kind == CategoryKind.INCOME) tr("Income categories") else tr("Expense categories"), onBack)
             UnderlineTabs(listOf(tr("Income"), tr("Expense")), kind.ordinal) { kind = CategoryKind.entries[it] }
-            CategoryList(kind, categories, accountNames, useSubcategories, onEdit = { editing = it }, onDelete = { deleting = it }, onReorder = ::reorder)
+            CategoryList(state, kind, onEdit = { editing = it }, onDelete = { deleting = it }, onMove = onMove)
         }
-        AddFab(Modifier.align(Alignment.BottomEnd)) { editing = Category("", "", kind, null, categories.size) }
+        AddFab(Modifier.align(Alignment.BottomEnd)) { editing = state.blank(kind) }
     }
 
     editing?.let { c ->
-        CategoryEditDialog(c, categories, accounts, accountNames, useSubcategories, onDismiss = { editing = null }) { saved ->
-            scope.launch { withContext(repo.io) { repo.categoryStore.saveCategory(saved) } }
+        CategoryEditDialog(c, state, onDismiss = { editing = null }) { saved ->
+            onSave(saved)
             editing = null
         }
     }
     deleting?.let { c ->
         CategoryDeleteDialog(c, onDismiss = { deleting = null }) {
-            scope.launch { withContext(repo.io) { repo.categoryStore.deleteCategory(c.id) } }
+            onDelete(c)
             deleting = null
         }
     }
@@ -84,21 +89,24 @@ fun CategoriesScreen(initialKind: CategoryKind) {
 
 @Composable
 private fun CategoryList(
+    state: CategoriesState,
     kind: CategoryKind,
-    categories: List<Category>,
-    accountNames: Map<String, String>,
-    useSubcategories: Boolean,
     onEdit: (Category) -> Unit,
     onDelete: (Category) -> Unit,
-    onReorder: (List<String>) -> Unit,
+    onMove: (Category, Int) -> Unit,
 ) {
     LazyColumn(Modifier.fillMaxSize()) {
-        if (!useSubcategories) item(key = "hint") {
+        if (!state.useSubcategories) item(key = "hint") {
             Text(tr("Sub-categories are off. Turn them on in Configuration to add or show them."),
                 Modifier.fillMaxWidth().background(PageBackground).padding(horizontal = 24.dp, vertical = 10.dp), fontSize = 12.sp, color = SubtleText)
         }
-        items(flattenCategories(categories.filter { it.kind == kind }).filter { useSubcategories || it.parentId == null }, key = { it.id }) { c ->
-            CategoryLine(c, categories, accountNames, onEdit = { onEdit(c) }, onDelete = { onDelete(c) }, onReorder = onReorder)
+        items(state.shown(kind), key = { it.id }) { c ->
+            val siblings = state.siblingsOf(c)
+            val at = siblings.indexOf(c)
+            CategoryLine(
+                c, state.accountNames, canMoveUp = at > 0, canMoveDown = at < siblings.lastIndex,
+                onEdit = { onEdit(c) }, onDelete = { onDelete(c) }, onMove = { delta -> onMove(c, delta) },
+            )
             HorizontalDivider(color = DividerColor)
         }
         item { Spacer(Modifier.height(96.dp)) }
@@ -109,11 +117,12 @@ private fun CategoryList(
 @Composable
 private fun CategoryLine(
     c: Category,
-    categories: List<Category>,
     accountNames: Map<String, String>,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onReorder: (List<String>) -> Unit,
+    onMove: (delta: Int) -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().background(if (c.parentId == null) SurfaceColor else PageBackground).clickable(onClick = onEdit)
@@ -126,36 +135,21 @@ private fun CategoryLine(
             c.defaultAccountId?.let { accountNames[it] }?.let { Text(tr("Default: {0}", it), fontSize = 12.sp, color = IncomeColor) }
         }
         // Reorder among siblings (main categories, or the subs of one main).
-        val siblings = categories.filter { it.kind == c.kind && it.parentId == c.parentId }
-        val i = siblings.indexOf(c)
-        fun move(delta: Int) {
-            val order = siblings.map { it.id }.toMutableList()
-            val j = i + delta
-            if (j !in order.indices) return
-            order[i] = order[j].also { order[j] = order[i] }
-            onReorder(order)
-        }
-        IconButton(onClick = { move(-1) }, enabled = i > 0) { Icon(Icons.Outlined.KeyboardArrowUp, tr("Move {0} up", c.name), tint = SubtleText) }
-        IconButton(onClick = { move(1) }, enabled = i < siblings.lastIndex) { Icon(Icons.Outlined.KeyboardArrowDown, tr("Move {0} down", c.name), tint = SubtleText) }
+        IconButton(onClick = { onMove(-1) }, enabled = canMoveUp) { Icon(Icons.Outlined.KeyboardArrowUp, tr("Move {0} up", c.name), tint = SubtleText) }
+        IconButton(onClick = { onMove(1) }, enabled = canMoveDown) { Icon(Icons.Outlined.KeyboardArrowDown, tr("Move {0} down", c.name), tint = SubtleText) }
         IconButton(onClick = onDelete) { Icon(Icons.Outlined.Delete, tr("Delete {0}", c.name), tint = SubtleText) }
     }
 }
 
 @Composable
-private fun CategoryEditDialog(
-    c: Category,
-    categories: List<Category>,
-    accounts: List<Account>,
-    accountNames: Map<String, String>,
-    useSubcategories: Boolean,
-    onDismiss: () -> Unit,
-    onSave: (Category) -> Unit,
-) {
+private fun CategoryEditDialog(c: Category, state: CategoriesState, onDismiss: () -> Unit, onSave: (Category) -> Unit) {
+    val categories = state.categories
+    val accountNames = state.accountNames
     var name by remember(c) { mutableStateOf(c.name) }
     var parentId by remember(c) { mutableStateOf(c.parentId) }
     var defaultAccount by remember(c) { mutableStateOf(c.defaultAccountId) }
     val parents = categories.filter { it.kind == c.kind && it.parentId == null && it.id != c.id }
-    val hasChildren = categories.any { it.parentId == c.id }
+    val hasChildren = state.childrenOf(c).isNotEmpty()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (c.id.isEmpty()) tr("Add category") else tr("Edit category")) },
@@ -164,11 +158,11 @@ private fun CategoryEditDialog(
                 OutlinedTextField(name, { name = it }, singleLine = true, label = { Text(tr("Name (emoji welcome 🍜)")) })
                 val inherited = parentId?.let { p -> categories.firstOrNull { it.id == p }?.defaultAccountId }?.let { accountNames[it] }
                 Picker(
-                    tr("Default account"), listOf<String?>(null) + accounts.map { it.id }, defaultAccount,
+                    tr("Default account"), listOf<String?>(null) + state.accounts.map { it.id }, defaultAccount,
                     { id -> id?.let { accountNames[it] } ?: inherited?.let { tr("Same as main category ({0})", it) } ?: tr("None") },
                     { defaultAccount = it },
                 )
-                if (!hasChildren && useSubcategories) {
+                if (!hasChildren && state.useSubcategories) {
                     Picker(tr("Parent (optional)"), listOf<Category?>(null) + parents, parents.firstOrNull { it.id == parentId },
                         { it?.name ?: tr("None — main category") }, { parentId = it?.id })
                 }
