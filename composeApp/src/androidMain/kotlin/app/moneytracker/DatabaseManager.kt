@@ -1,6 +1,7 @@
 package app.moneytracker
 
 import android.content.Context
+import android.database.SQLException
 import android.database.sqlite.SQLiteDatabase
 import android.os.Handler
 import android.os.Looper
@@ -92,7 +93,8 @@ class DatabaseManager(private val context: Context) {
                 if (db.version > MoneyDatabase.Schema.version) return "Backup is from a newer app version"
                 null
             }
-        } catch (e: Exception) {
+        } catch (e: SQLException) {
+            // Not a database at all, unreadable or damaged past opening: SQLite's own exceptions all land here.
             Log.w("Db", e) { "backup file check failed" }
             "Not a valid database file"
         }

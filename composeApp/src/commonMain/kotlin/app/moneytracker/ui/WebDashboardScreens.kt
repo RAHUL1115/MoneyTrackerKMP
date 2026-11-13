@@ -105,12 +105,19 @@ internal class WebDashboardModel(
     }
 }
 
-/** Everything the two dashboard screens show and do. */
+/** Everything the two dashboard screens show, plus [actions] for what they do. */
 internal class WebDashboardUi(
     val state: WebDashboardState,
     val passwordSet: Boolean,
     val autoStop: Int,
     val now: Long,
+    /** Set briefly after Copy. */
+    val copied: Boolean,
+    val actions: WebDashboardActions,
+)
+
+/** The taps both dashboard screens handle. */
+internal class WebDashboardActions(
     val start: () -> Unit,
     val stop: () -> Unit,
     val copy: () -> Unit,
@@ -118,8 +125,6 @@ internal class WebDashboardUi(
     val setPassword: (String?) -> Unit,
     val setAutoStop: (Int) -> Unit,
     val openWifi: () -> Unit,
-    /** Set briefly after Copy. */
-    val copied: Boolean,
 )
 
 @Composable
@@ -148,14 +153,16 @@ internal fun rememberWebDashboardUi(onMessage: (String) -> Unit): WebDashboardUi
         passwordSet = password.isNotEmpty(),
         autoStop = autoStop.takeIf { it in WEB_AUTO_STOPS } ?: Prefs.WEB_AUTO_STOP.default,
         now = now,
-        start = { model.start(onMessage) },
-        stop = { dashboard.stopWebDashboard() },
-        copy = { state.address?.let { clipboard.setText(AnnotatedString("http://$it")); copied = true } },
-        disconnect = { dashboard.disconnectWebComputer(it) },
-        setPassword = { pw -> model.setPassword(pw, onMessage) },
-        setAutoStop = model::setAutoStop,
-        openWifi = { dashboard.openWifiSettings() },
         copied = copied,
+        actions = WebDashboardActions(
+            start = { model.start(onMessage) },
+            stop = { dashboard.stopWebDashboard() },
+            copy = { state.address?.let { clipboard.setText(AnnotatedString("http://$it")); copied = true } },
+            disconnect = { dashboard.disconnectWebComputer(it) },
+            setPassword = { pw -> model.setPassword(pw, onMessage) },
+            setAutoStop = model::setAutoStop,
+            openWifi = { dashboard.openWifiSettings() },
+        ),
     )
 }
 
@@ -181,21 +188,21 @@ fun WebDashboardScreen() {
         HorizontalDivider(color = DividerColor)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             when {
-                !s.running && !s.wifi -> NoWifiCard(ui.openWifi)
-                !s.running -> StartCard(s, ui.start)
+                !s.running && !s.wifi -> NoWifiCard(ui.actions.openWifi)
+                !s.running -> StartCard(s, ui.actions.start)
                 else -> RunningCard(ui)
             }
             ConfigSection(tr("Options"))
             OptionRow(tr("Password"), tr("Asked once per visit on the computer"), if (ui.passwordSet) tr("On") else tr("Off")) { passwordDialog = true }
             OptionRow(tr("Stop automatically"), tr("When no computer has visited for a while"), autoStopLabel(ui.autoStop)) {
-                ui.setAutoStop(WEB_AUTO_STOPS[(WEB_AUTO_STOPS.indexOf(ui.autoStop) + 1) % WEB_AUTO_STOPS.size])
+                ui.actions.setAutoStop(WEB_AUTO_STOPS[(WEB_AUTO_STOPS.indexOf(ui.autoStop) + 1) % WEB_AUTO_STOPS.size])
             }
             Text(tr("Works only on your local network. Without a password, anyone on the same Wi-Fi who knows the address can open it, so set one on shared or public Wi-Fi."),
                 Modifier.padding(start = 22.dp, end = 22.dp, top = 14.dp, bottom = 32.dp), fontSize = 13.sp, color = SubtleText, lineHeight = 19.sp)
         }
     }
 
-    if (passwordDialog) PasswordDialog(ui.passwordSet, onClose = { passwordDialog = false }, onSave = ui.setPassword)
+    if (passwordDialog) PasswordDialog(ui.passwordSet, onClose = { passwordDialog = false }, onSave = ui.actions.setPassword)
     message?.let { m ->
         AlertDialog(onDismissRequest = { message = null }, text = { Text(m) },
             confirmButton = { TextButton(onClick = { message = null }) { Text(tr("OK")) } })
@@ -256,13 +263,13 @@ private fun RunningCard(ui: WebDashboardUi) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(s.address.orEmpty(), Modifier.weight(1f), fontFamily = FontFamily.Monospace, fontSize = 19.sp, fontWeight = FontWeight.Medium)
-            TextButton(onClick = ui.copy) { Text(if (ui.copied) tr("Copied") else tr("Copy"), color = Accent, fontWeight = FontWeight.Medium) }
+            TextButton(onClick = ui.actions.copy) { Text(if (ui.copied) tr("Copied") else tr("Copy"), color = Accent, fontWeight = FontWeight.Medium) }
         }
         Text(tr("Full address: http://{0} · keeps running when you leave the app, until you stop it.", s.address.orEmpty()),
             fontSize = 12.sp, color = SubtleText, lineHeight = 17.sp)
-        OutlineButton(tr("Stop"), ui.stop, danger = true, fill = true)
+        OutlineButton(tr("Stop"), ui.actions.stop, danger = true, fill = true)
     }
-    ConnectedComputers(s.computers, ui.now, ui.disconnect)
+    ConnectedComputers(s.computers, ui.now, ui.actions.disconnect)
 }
 
 @Composable

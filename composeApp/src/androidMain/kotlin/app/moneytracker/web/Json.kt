@@ -28,7 +28,11 @@ internal object Json {
             is Iterable<*> -> {
                 out.append('[')
                 var first = true
-                for (item in v) { if (!first) out.append(','); first = false; write(out, item) }
+                for (item in v) {
+                    if (!first) out.append(',')
+                    first = false
+                    write(out, item)
+                }
                 out.append(']')
             }
             else -> string(out, v.toString())
@@ -74,7 +78,10 @@ internal object Json {
                 't' -> word("true", true)
                 'f' -> word("false", false)
                 'n' -> word("null", null)
-                else -> if (c == '-' || c.isDigit()) num() else throw IllegalArgumentException("Unexpected '$c'")
+                else -> {
+                    require(c == '-' || c.isDigit()) { "Unexpected '$c'" }
+                    num()
+                }
             }
         }
 

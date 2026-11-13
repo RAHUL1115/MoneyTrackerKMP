@@ -227,16 +227,32 @@ object Reminders {
     }
 }
 
+/**
+ * Runs [work] on a thread of its own, then finishes [pending]. Background work of receivers and widgets goes through
+ * here: a crash on that thread would end the whole app, so any failure is logged at ERROR as "[what] failed" instead.
+ */
+@Suppress("TooGenericExceptionCaught")
+private fun finishOffMainThread(pending: BroadcastReceiver.PendingResult, tag: String, what: String, work: () -> Unit) {
+    Thread {
+        try {
+            work()
+        } catch (e: Exception) {
+            Log.e(tag, e) { "$what failed" }
+        } finally {
+            pending.finish()
+        }
+    }.start()
+}
+
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pending = goAsync()
         Log.i("Reminder") { "reminder fired" }
-        // A crash on this background thread would end the whole app, so any failure is logged instead.
-        Thread {
-            try { ensureTranslations(ctx); Notifications.showReminder(ctx); Reminders.rearm(ctx) }
-            catch (e: Exception) { Log.e("Reminder", e) { "showing the reminder failed" } }
-            finally { pending.finish() }
-        }.start()
+        finishOffMainThread(pending, "Reminder", "showing the reminder") {
+            ensureTranslations(ctx)
+            Notifications.showReminder(ctx)
+            Reminders.rearm(ctx)
+        }
     }
 }
 
@@ -274,18 +290,13 @@ class SmsReceiver : BroadcastReceiver() {
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
         val pending = goAsync()
         Log.d("Sms") { "received ${messages.size} part(s)" }
-        // A crash on this background thread would end the whole app, so any failure is logged instead.
-        Thread {
-            try {
-                val r = repo(ctx)
-                messages.groupBy { it.originatingAddress.orEmpty() }.forEach { (sender, parts) ->
-                    val text = parts.joinToString("") { it.messageBody.orEmpty() }
-                    r.messageIntake.ingestMessage("SMS", sender, text, parts.first().timestampMillis)?.let { Detected.alert(ctx, r, it) }
-                }
-            } catch (e: Exception) {
-                Log.e("Sms", e) { "handling a received SMS failed" }
-            } finally { pending.finish() }
-        }.start()
+        finishOffMainThread(pending, "Sms", "handling a received SMS") {
+            val r = repo(ctx)
+            messages.groupBy { it.originatingAddress.orEmpty() }.forEach { (sender, parts) ->
+                val text = parts.joinToString("") { it.messageBody.orEmpty() }
+                r.messageIntake.ingestMessage("SMS", sender, text, parts.first().timestampMillis)?.let { Detected.alert(ctx, r, it) }
+            }
+        }
     }
 }
 
@@ -468,18 +479,13 @@ private class WidgetStyle(ctx: Context, r: app.moneytracker.data.MoneyRepository
 internal class WidgetSize(val widthDp: Int)
 internal fun sizeOf(manager: AppWidgetManager, id: Int) = WidgetSize(manager.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH))
 
-/**
- * Base for the home-screen widgets: renders off the main thread with the user's data. A crash on that thread would
- * end the whole app, so any failure is logged instead.
- */
+/** Base for the home-screen widgets: renders off the main thread with the user's data. */
 abstract class MoneyWidget : AppWidgetProvider() {
     override fun onUpdate(ctx: Context, manager: AppWidgetManager, ids: IntArray) {
-        val pending = goAsync()
-        Thread {
-            try { ids.forEach { manager.updateAppWidget(it, build(ctx, repo(ctx), sizeOf(manager, it))) }; afterUpdate(manager, ids) }
-            catch (e: Exception) { Log.e("Widget", e) { "${this::class.simpleName} update failed" } }
-            finally { pending.finish() }
-        }.start()
+        finishOffMainThread(goAsync(), "Widget", "${this::class.simpleName} update") {
+            ids.forEach { manager.updateAppWidget(it, build(ctx, repo(ctx), sizeOf(manager, it))) }
+            afterUpdate(manager, ids)
+        }
     }
 
     /** Called after the widgets were redrawn, e.g. to reload list rows. */
@@ -487,12 +493,9 @@ abstract class MoneyWidget : AppWidgetProvider() {
 
     /** Resized: rebuild so the layout fits the new width. */
     override fun onAppWidgetOptionsChanged(ctx: Context, manager: AppWidgetManager, id: Int, options: android.os.Bundle) {
-        val pending = goAsync()
-        Thread {
-            try { manager.updateAppWidget(id, build(ctx, repo(ctx), sizeOf(manager, id))) }
-            catch (e: Exception) { Log.e("Widget", e) { "${this::class.simpleName} resize failed" } }
-            finally { pending.finish() }
-        }.start()
+        finishOffMainThread(goAsync(), "Widget", "${this::class.simpleName} resize") {
+            manager.updateAppWidget(id, build(ctx, repo(ctx), sizeOf(manager, id)))
+        }
     }
 
     internal abstract fun build(ctx: Context, r: app.moneytracker.data.MoneyRepository, size: WidgetSize): RemoteViews
@@ -594,7 +597,7 @@ class CardsWidgetService : android.widget.RemoteViewsService() {
             }
         }
 
-        override fun onCreate() {}
+        override fun onCreate() = Unit   // rows load in onDataSetChanged
         override fun onDestroy() { rows = emptyList() }
         override fun getCount() = rows.size
         override fun getViewAt(position: Int) = rows[position]

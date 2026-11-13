@@ -17,10 +17,10 @@ import app.moneytracker.data.SpreadsheetImport
 import app.moneytracker.data.MoneyManagerBackup
 import app.moneytracker.data.MoneyManagerExport
 import app.moneytracker.data.IosMoneyManagerSource
-import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.TabularImport
 import app.moneytracker.data.LocalBackup
 import app.moneytracker.ui.tr
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -111,86 +111,24 @@ class AndroidBackupController(
 
     // ───────────────────────── backup folder (picked by the person, outside app storage)
 
-    private val prefs = activity.getSharedPreferences("backup", android.content.Context.MODE_PRIVATE)
-    private val _folder = MutableStateFlow(prefs.getString(FOLDER_KEY, null)?.let { folderLabel(Uri.parse(it)) })
-    private val _folderProblem = MutableStateFlow(false)
-    override val backupFolder: StateFlow<String?> = _folder
-    override val backupFolderProblem: StateFlow<Boolean> = _folderProblem
+    private val folder = ChosenBackupFolder(activity.contentResolver, activity.getSharedPreferences("backup", android.content.Context.MODE_PRIVATE))
+    override val backupFolder: StateFlow<String?> = folder.label
+    override val backupFolderProblem: StateFlow<Boolean> = folder.problem
 
     private val folderLauncher = activity.registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri ?: return@registerForActivityResult
         runWithMessage {
-            val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            activity.contentResolver.takePersistableUriPermission(uri, flags)
-            prefs.getString(FOLDER_KEY, null)?.takeIf { it != uri.toString() }?.let { old ->
-                runCatching { activity.contentResolver.releasePersistableUriPermission(Uri.parse(old), flags) }
-            }
-            prefs.edit().putString(FOLDER_KEY, uri.toString()).apply()
-            _folder.value = folderLabel(uri)
-            _folderProblem.value = false
+            folder.choose(uri)
             // Start the folder off with a fresh backup, so it's useful straight away.
             snapshot("manual")
-            if (_folderProblem.value) error(tr("Could not write to that folder"))
-            tr("Backups will also be saved to {0}", _folder.value ?: "")
+            if (folder.problem.value) error(tr("Could not write to that folder"))
+            tr("Backups will also be saved to {0}", folder.label.value ?: "")
         }
     }
 
     override fun pickBackupFolder() = folderLauncher.launch(null)
 
-    override fun clearBackupFolder() {
-        prefs.getString(FOLDER_KEY, null)?.let { old ->
-            val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            runCatching { activity.contentResolver.releasePersistableUriPermission(Uri.parse(old), flags) }
-        }
-        prefs.edit().remove(FOLDER_KEY).apply()
-        _folder.value = null
-        _folderProblem.value = false
-    }
-
-    /** "primary:Documents/MoneyTracker" → "Documents/MoneyTracker"; other providers (Drive…) → the folder's name. */
-    private fun folderLabel(tree: Uri): String {
-        val id = runCatching { android.provider.DocumentsContract.getTreeDocumentId(tree) }.getOrNull().orEmpty()
-        if (id.startsWith("primary:")) return id.removePrefix("primary:").ifEmpty { tr("Phone storage") }
-        val doc = runCatching { android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, id) }.getOrNull()
-        val name = doc?.let { d ->
-            runCatching {
-                activity.contentResolver.query(d, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)
-                    ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
-            }.getOrNull()
-        }
-        return name ?: id.substringAfter(':').ifEmpty { tr("Chosen folder") }
-    }
-
-    /** Copies [file] into the chosen folder as MoneyTracker-<kind>-<time>.mtbak and keeps the newest [KEEP] of that kind there. */
-    private fun copyToFolder(file: File, kind: String) {
-        val tree = prefs.getString(FOLDER_KEY, null)?.let { Uri.parse(it) } ?: return
-        val cr = activity.contentResolver
-        try {
-            val parentId = android.provider.DocumentsContract.getTreeDocumentId(tree)
-            val parent = android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, parentId)
-            val name = "MoneyTracker-${file.name}"
-            val target = android.provider.DocumentsContract.createDocument(cr, parent, "application/octet-stream", name) ?: error("create")
-            cr.openOutputStream(target, "w")?.use { out -> file.inputStream().use { it.copyTo(out) } } ?: error("write")
-            // Prune old copies of this kind (only files this app named).
-            val children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId)
-            val cols = arrayOf(android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID, android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-            val mine = ArrayList<Pair<String, String>>()
-            cr.query(children, cols, null, null, null)?.use { c ->
-                while (c.moveToNext()) {
-                    val n = c.getString(1) ?: continue
-                    if (n.startsWith("MoneyTracker-$kind-") && n.endsWith(".$EXT")) mine.add(c.getString(0) to n)
-                }
-            }
-            // Names carry the time (yyyyMMdd-HHmmss), so sorting by name is newest-last.
-            mine.sortedByDescending { it.second }.drop(KEEP).forEach { (id, _) ->
-                runCatching { android.provider.DocumentsContract.deleteDocument(cr, android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, id)) }
-            }
-            _folderProblem.value = false
-        } catch (e: Exception) {
-            Log.w("Backup", e) { "copy to the chosen folder failed" }
-            _folderProblem.value = true
-        }
-    }
+    override fun clearBackupFolder() = folder.clear()
 
     override fun backupNow() = run(tr("Backup created")) { snapshot("manual") }
 
@@ -249,12 +187,20 @@ class AndroidBackupController(
 
     private fun run(success: String, block: suspend () -> Unit) = runWithMessage { block(); success }
 
+    /**
+     * Runs a backup action off the main thread, one at a time, and shows what [block] returns. Actions reach into
+     * SQLite, files and any document provider the person picked, each with its own exceptions, so every failure is
+     * logged and shown as "Failed: …" instead of crashing the app.
+     */
+    @Suppress("TooGenericExceptionCaught")
     private fun runWithMessage(block: suspend () -> String) {
         activity.lifecycleScope.launch {
             mutex.withLock {
                 _status.value = tr("Working…")
                 _status.value = try {
                     withContext(Dispatchers.IO) { block() }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.e("Backup", e) { "backup/restore action failed" }
                     tr("Failed: {0}", e.message ?: e::class.simpleName)
@@ -269,7 +215,7 @@ class AndroidBackupController(
         db.dbFile.copyTo(out, overwrite = true)
         DatabaseManager.validate(out)?.let { out.delete(); Log.e("Backup") { "$kind snapshot failed its check: $it" }; error(it) }
         Log.i("Backup") { "$kind snapshot written (${out.length() / 1024} KB)" }
-        if (kind == "auto" || kind == "manual") copyToFolder(out, kind)
+        if (kind == "auto" || kind == "manual") folder.copyIn(out, kind)
         prune()
         refresh()
         return out
@@ -304,35 +250,14 @@ class AndroidBackupController(
     private fun exportPhotosTo(uri: Uri): String {
         val files = PhotoFiles.dir(activity).listFiles()?.filter { it.isFile }.orEmpty()
         if (files.isEmpty()) return tr("No photos to export")
-        activity.contentResolver.openOutputStream(uri, "wt")?.use { out ->
-            java.util.zip.ZipOutputStream(out).use { zip ->
-                files.forEach { f ->
-                    zip.putNextEntry(java.util.zip.ZipEntry(f.name))
-                    f.inputStream().use { it.copyTo(zip) }
-                    zip.closeEntry()
-                }
-            }
-        } ?: error(tr("Cannot write to the selected location"))
+        activity.contentResolver.openOutputStream(uri, "wt")?.use { out -> PhotoZip.write(files, out) }
+            ?: error(tr("Cannot write to the selected location"))
         return tr("Exported {0} photos", files.size)
     }
 
     private fun importPhotosFrom(uri: Uri): String {
-        val dir = PhotoFiles.dir(activity)
-        var added = 0
-        activity.contentResolver.openInputStream(uri)?.use { input ->
-            java.util.zip.ZipInputStream(input).use { zip ->
-                while (true) {
-                    val e = zip.nextEntry ?: break
-                    // Flat names only: never follow paths out of the photos folder.
-                    val name = File(e.name).name
-                    if (!e.isDirectory && name.isNotBlank() && !name.startsWith(".")) {
-                        val target = File(dir, name)
-                        if (!target.exists()) { target.outputStream().use { zip.copyTo(it) }; added++ }
-                    }
-                    zip.closeEntry()
-                }
-            }
-        } ?: error(tr("Cannot read the selected file"))
+        val added = activity.contentResolver.openInputStream(uri)?.use { input -> PhotoZip.read(input, PhotoFiles.dir(activity)) }
+            ?: error(tr("Cannot read the selected file"))
         return tr("Imported {0} photos", added)
     }
 
@@ -488,7 +413,6 @@ class AndroidBackupController(
 
     companion object {
         const val KEEP = 10
-        private const val FOLDER_KEY = "folderUri"
         /** Our own backup format (a copy of the database). Restore tells formats apart by content, not by name. */
         const val EXT = "mtbak"
         /** Backups made before 0.1.7; still listed and restorable. */

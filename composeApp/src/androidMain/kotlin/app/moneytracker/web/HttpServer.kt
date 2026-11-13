@@ -90,13 +90,17 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
                 break // stop() closed the socket
             } catch (e: IOException) {
                 Log.d("Web") { "accept failed: ${e::class.simpleName}" }
-                continue
+                null
             }
-            try {
-                p.execute { serve(client) }
-            } catch (_: RejectedExecutionException) {
-                client.closeLogged("rejected connection") // stop() shut the pool down
-            }
+            client?.let { dispatch(it, p) }
+        }
+    }
+
+    private fun dispatch(client: Socket, p: ExecutorService) {
+        try {
+            p.execute { serve(client) }
+        } catch (_: RejectedExecutionException) {
+            client.closeLogged("rejected connection") // stop() shut the pool down
         }
     }
 
@@ -105,9 +109,7 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
         val input = BufferedInputStream(c.getInputStream())
         val res = try {
             val req = read(input, c.inetAddress?.hostAddress.orEmpty()) ?: return@use
-            // The handler is the whole app behind the page: whatever it throws, answer 500 and keep the server up.
-            try { handler(req).also { r -> Log.d("Web") { "${req.method} ${req.path} → ${r.status}" } } }
-            catch (e: Exception) { Log.e("Web", e) { "${req.method} ${req.path} crashed" }; HttpResponse.error(500, "Something went wrong on the phone.") }
+            respond(req)
         } catch (e: BadRequest) {
             Log.w("Web") { "bad request: ${e.status}" }
             HttpResponse.error(e.status, e.message ?: "Bad request")
@@ -116,6 +118,15 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
             return@use
         }
         try { write(c, res) } catch (e: IOException) { Log.d("Web") { "reply not sent: ${e::class.simpleName}" } }
+    }
+
+    /** The handler is the whole app behind the page: whatever it throws, answer 500 and keep the server up. */
+    @Suppress("TooGenericExceptionCaught")
+    private fun respond(req: HttpRequest): HttpResponse = try {
+        handler(req).also { r -> Log.d("Web") { "${req.method} ${req.path} → ${r.status}" } }
+    } catch (e: Exception) {
+        Log.e("Web", e) { "${req.method} ${req.path} crashed" }
+        HttpResponse.error(500, "Something went wrong on the phone.")
     }
 
     private fun Closeable.closeLogged(what: String) {
@@ -127,31 +138,52 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
     private fun read(input: InputStream, remote: String): HttpRequest? {
         val head = readHead(input) ?: return null
         val lines = head.split("\r\n")
-        val parts = lines.first().split(' ')
-        if (parts.size != 3 || !parts[2].startsWith("HTTP/1.")) throw BadRequest(400, "Bad request line")
-        val headers = HashMap<String, String>()
-        for (line in lines.drop(1)) {
-            if (line.isEmpty()) continue
-            val idx = line.indexOf(':')
-            if (idx <= 0) throw BadRequest(400, "Bad header")
-            headers[line.substring(0, idx).trim().lowercase()] = line.substring(idx + 1).trim()
-        }
-        if (headers["transfer-encoding"] != null) throw BadRequest(411, "Send a Content-Length")
-        val length = headers["content-length"]?.toLongOrNull() ?: 0L
-        if (length < 0 || length > MAX_BODY) throw BadRequest(413, "Too large")
-        val body = ByteArray(length.toInt())
-        var read = 0
-        while (read < body.size) {
-            val n = input.read(body, read, body.size - read)
-            if (n < 0) throw BadRequest(400, "Body cut short")
-            read += n
-        }
+        val parts = requestLine(lines.first())
+        val headers = headers(lines.drop(1))
+        val body = readBody(input, bodyLength(headers))
         val target = parts[1]
         val path = decode(target.substringBefore('?'))
         val query = target.substringAfter('?', "").split('&').filter { it.isNotEmpty() }.associate {
             decode(it.substringBefore('=')) to decode(it.substringAfter('=', ""))
         }
         return HttpRequest(parts[0].uppercase(), path, query, headers, body, remote)
+    }
+
+    /** "GET /path HTTP/1.1" → its three parts. */
+    private fun requestLine(line: String): List<String> {
+        val parts = line.split(' ')
+        if (parts.size != 3 || !parts[2].startsWith("HTTP/1.")) throw BadRequest(400, "Bad request line")
+        return parts
+    }
+
+    /** Header lines → a map with lower-case names. */
+    private fun headers(lines: List<String>): Map<String, String> {
+        val headers = HashMap<String, String>()
+        for (line in lines.filter { it.isNotEmpty() }) {
+            val idx = line.indexOf(':')
+            if (idx <= 0) throw BadRequest(400, "Bad header")
+            headers[line.substring(0, idx).trim().lowercase()] = line.substring(idx + 1).trim()
+        }
+        return headers
+    }
+
+    /** Only bodies with a Content-Length up to [MAX_BODY]; chunked uploads are refused. */
+    private fun bodyLength(headers: Map<String, String>): Int {
+        if (headers["transfer-encoding"] != null) throw BadRequest(411, "Send a Content-Length")
+        val length = headers["content-length"]?.toLongOrNull() ?: 0L
+        if (length < 0 || length > MAX_BODY) throw BadRequest(413, "Too large")
+        return length.toInt()
+    }
+
+    private fun readBody(input: InputStream, length: Int): ByteArray {
+        val body = ByteArray(length)
+        var read = 0
+        while (read < body.size) {
+            val n = input.read(body, read, body.size - read)
+            if (n < 0) throw BadRequest(400, "Body cut short")
+            read += n
+        }
+        return body
     }
 
     /** Reads up to the blank line that ends the headers. */
