@@ -64,6 +64,12 @@ import kotlinx.datetime.LocalDate
 
 private fun LocalDate.searchLabel() = "$dayOfMonth ${monthShort(monthNumber)} $year"
 
+/** Space between the search screen's sections (tags, filters, count, results). */
+private val SECTION_GAP = 16.dp
+
+/** Side padding of a result row's content and of the dividers between results. */
+private val RESULT_INSET = 16.dp
+
 /** Which end of a custom date range the date picker is setting. */
 private enum class DateEnd { FROM, TO }
 
@@ -96,14 +102,14 @@ private fun SearchContent(q: SearchQuery, state: SearchState, model: SearchModel
     var datesSheet by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
         SearchBox(q.text, model::setText, onBack)
-        LazyColumn(
-            Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(start = F.gutter, end = F.gutter, bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            if (q.text.trim().startsWith("#")) item(key = "tagSuggest") { TagSuggestions(q, state.tags, model::pickTag) }
-            item(key = "filters") { SearchFilters(q, state, model, onDates = { datesSheet = true }) }
-            if (state.active) item(key = "count") { ResultCount(state) }
+        // Sections are SECTION_GAP apart; each result is its own item, so the gaps sit on the items, not the list.
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = F.gutter, end = F.gutter, bottom = 8.dp)) {
+            val tagsShown = q.text.trim().startsWith("#")
+            if (tagsShown) item(key = "tagSuggest") { TagSuggestions(q, state.tags, model::pickTag) }
+            item(key = "filters") {
+                SearchFilters(q, state, model, onDates = { datesSheet = true }, Modifier.padding(top = if (tagsShown) SECTION_GAP else 0.dp))
+            }
+            if (state.active) item(key = "count") { ResultCount(state, Modifier.padding(top = SECTION_GAP)) }
             results(state, onOpen)
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter).padding(top = 12.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -150,9 +156,9 @@ private fun TagSuggestions(q: SearchQuery, tags: List<Tag>, onPick: (Tag) -> Uni
 }
 
 @Composable
-private fun SearchFilters(q: SearchQuery, state: SearchState, model: SearchModel, onDates: () -> Unit) {
+private fun SearchFilters(q: SearchQuery, state: SearchState, model: SearchModel, onDates: () -> Unit, modifier: Modifier) {
     val currency = LocalCurrency.current
-    FCard {
+    FCard(modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ChipGroup(tr("Type")) {
                 SearchType.entries.forEach { t -> ActChip(tr(t.title), t in q.types) { model.toggleType(t) } }
@@ -197,10 +203,10 @@ private fun DatesRow(q: SearchQuery, range: DateRange, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ResultCount(state: SearchState) {
+private fun ResultCount(state: SearchState, modifier: Modifier) {
     val currency = LocalCurrency.current
     val n = state.results.size
-    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(if (n == 1) tr("1 entry") else tr("{0} entries", n), Modifier.weight(1f), color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         Text(buildAnnotatedString {
             append(tr("in") + " ")
@@ -213,20 +219,16 @@ private fun ResultCount(state: SearchState) {
 
 private fun LazyListScope.results(state: SearchState, onOpen: (Txn) -> Unit) {
     if (!state.active) item(key = "hint") {
-        Text(tr("Type a word or pick a filter to find entries."), Modifier.fillMaxWidth().padding(16.dp), color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
+        Text(tr("Type a word or pick a filter to find entries."), Modifier.padding(top = SECTION_GAP).fillMaxWidth().padding(16.dp),
+            color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
     } else if (state.results.isEmpty()) item(key = "none") {
-        FCard(padding = 24.dp) {
+        FCard(Modifier.padding(top = SECTION_GAP), padding = 24.dp) {
             Text(tr("No matches"), Modifier.fillMaxWidth(), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
             Text(tr("Try fewer words, another date range, or clear the filters."), Modifier.fillMaxWidth().padding(top = 6.dp),
                 color = F.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
         }
-    } else item(key = "results") {
-        Column(Modifier.fillMaxWidth().clip(F.cardShape).background(F.card)) {
-            state.results.forEachIndexed { i, t ->
-                if (i > 0) Divider(16.dp)
-                ActEntryRow(t, state.lookups, showDate = true, inset = 16.dp) { onOpen(t) }
-            }
-        }
+    } else entryCardItems(state.results, keyPrefix = "r", inset = RESULT_INSET, gapAbove = SECTION_GAP) { t ->
+        ActEntryRow(t, state.lookups, showDate = true, inset = RESULT_INSET) { onOpen(t) }
     }
 }
 
