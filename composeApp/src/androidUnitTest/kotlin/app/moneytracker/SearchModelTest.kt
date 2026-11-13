@@ -14,6 +14,7 @@ import app.moneytracker.ui.ActKind
 import app.moneytracker.ui.SearchDates
 import app.moneytracker.ui.SearchModel
 import app.moneytracker.ui.SearchQuery
+import app.moneytracker.ui.SearchRules
 import app.moneytracker.ui.SearchState
 import app.moneytracker.ui.SearchType
 import app.moneytracker.ui.entryFeed
@@ -45,8 +46,8 @@ class SearchModelTest {
         repo.txnStore.create(TxnDraft(DraftType.TRANSFER, LocalDate.parse("2026-03-05"), "acc_bank", toAccountId = "acc_cash", amount = 1_000, note = "Pizza cash"))
     }
 
-    private fun model(scope: CoroutineScope, q: SearchQuery = SearchQuery()) = SearchModel(
-        repo.txnStore, repo.accountStore, repo.tagStore, repo.settingsStore, repo.entryFeed(), repo.today, Dispatchers.Unconfined, scope, q,
+    private fun model(scope: CoroutineScope, q: SearchQuery = SearchQuery(), rules: SearchRules = SearchRules()) = SearchModel(
+        repo.txnStore, repo.accountStore, repo.tagStore, repo.settingsStore, repo.entryFeed(), repo.today, Dispatchers.Unconfined, scope, q, rules,
     )
 
     /** Query changes are Compose state; tell its observers, as a frame would. */
@@ -130,5 +131,27 @@ class SearchModelTest {
         val saver = SearchModel.saver { model(backgroundScope, it) }
         val saved = with(saver) { SaverScope { true }.save(model(backgroundScope, q)) }
         assertEquals(q, saver.restore(saved!!)!!.query)
+    }
+
+    @Test fun classicListsATransferFeeBesideItsTransfer() = runTest {
+        val day = LocalDate.parse("2026-03-07")
+        repo.txnStore.create(TxnDraft(DraftType.TRANSFER, day, "acc_bank", toAccountId = "acc_cash", amount = 4_000, fee = 50, categoryId = "cat_ex_0", note = "Rent"))
+        val bank = repo.accountStore.accountNow("acc_bank")!!.name
+        fun SearchModel.bankOn7th() = apply { setText(bank); setDates(SearchDates.CUSTOM); setFrom(day); setTo(day) }
+
+        val newLayout = model(backgroundScope).bankOn7th()
+        assertEquals(1, newLayout.settled { it.range.start == day && it.results.isNotEmpty() }.results.size)
+        val classic = model(backgroundScope, rules = SearchRules.Classic).bankOn7th()
+        assertEquals(listOf(TxnKind.EXPENSE, TxnKind.TRANSFER_OUT), classic.settled { it.results.size == 2 }.results.map { it.kind })
+    }
+
+    @Test fun classicWaitsForTextAmountOrTagBeforeADateRangeSearches() = runTest {
+        val classic = model(backgroundScope, rules = SearchRules.Classic)
+        classic.setDates(SearchDates.MONTH)
+        val s = classic.settled { it.range.start.monthNumber == 3 && it.range.endInclusive.monthNumber == 3 }
+        assertFalse(s.active)
+        assertTrue(s.results.isEmpty())
+        classic.setText("pizza")
+        assertEquals(listOf("Pizza cash", "Pizza night"), classic.settled { it.results.size == 2 }.results.map { it.note })
     }
 }

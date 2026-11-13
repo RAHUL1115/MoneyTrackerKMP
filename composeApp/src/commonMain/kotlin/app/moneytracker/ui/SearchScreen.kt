@@ -29,10 +29,8 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -41,17 +39,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.PeriodSettings
-import app.moneytracker.domain.DateRange
-import app.moneytracker.domain.Flow
 import app.moneytracker.domain.Tag
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.classify
-import app.moneytracker.ui.collectAsState
-import kotlinx.coroutines.withContext
-import kotlinx.datetime.LocalDate
-
-private enum class SearchSpan(val label: String) { MONTH("This month"), THREE("3 months"), YEAR("This year"), ALL("All time") }
 
 /**
  * Tags to offer under a search box: the selected ones first, then the rest. While the text starts with #,
@@ -70,52 +60,43 @@ fun pickSearchTag(tag: Tag, selected: List<String>, text: String, setText: (Stri
     return selected + tag.id
 }
 
-private fun SearchSpan.range(ps: PeriodSettings, today: LocalDate): DateRange = when (this) {
-    SearchSpan.MONTH -> ps.month(ps.labelFor(today))
-    SearchSpan.THREE -> DateRange(ps.month(ps.labelFor(today).plus(-2)).start, ps.month(ps.labelFor(today)).endInclusive)
-    SearchSpan.YEAR -> ps.year(today.year)
-    SearchSpan.ALL -> DateRange(LocalDate(1970, 1, 1), LocalDate(2200, 1, 1))
-}
+/** Classic's four date chips, as the shared search dates, with classic's own labels. */
+private val classicDates = listOf(
+    SearchDates.MONTH to "This month", SearchDates.THREE to "3 months", SearchDates.YEAR to "This year", SearchDates.ALL to "All time",
+)
 
-/** What the search form holds; the classic search screen's own state. */
-private class SearchForm {
-    var text by mutableStateOf("")
-    var span by mutableStateOf(SearchSpan.ALL)
-    var minText by mutableStateOf("")
-    var maxText by mutableStateOf("")
-    var tagIds by mutableStateOf(listOf<String>())
-}
+/** What the classic search form asks of its holder. */
+private class SearchFormActions(
+    val setText: (String) -> Unit,
+    val setDates: (SearchDates) -> Unit,
+    val pickTag: (Tag) -> Unit,
+    val setMin: (String) -> Unit,
+    val setMax: (String) -> Unit,
+)
 
-/** Classic search. The new layout has its own search screen. */
+/** Classic search: text, date chips, tags and amounts over every entry, drawn from the shared [SearchModel]. */
 @Composable
 fun SearchScreen() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val currency = LocalCurrency.current
-    val ps by repo.settingsStore.periodSettings.collectAsState()
-    val f = remember { SearchForm() }
-    val accounts by repo.accountStore.accounts.collectAsState()
-    val categories by repo.categoryStore.categories.collectAsState()
-    val range = f.span.range(ps, repo.today())
-    val min = currency.parse(f.minText)
-    val max = currency.parse(f.maxText)
-    // Re-run on any change; cheap single SQL query with LIMIT.
-    val searching = f.text.isNotBlank() || min != null || max != null || f.tagIds.isNotEmpty()
-    val results by produceState(emptyList<Txn>(), f.text, range, min, max, f.tagIds, accounts, categories) {
-        value = if (!searching) emptyList() else withContext(repo.io) { repo.txnStore.search(f.text, range, min, max, f.tagIds.toSet()) }
-    }
+    val scope = rememberCoroutineScope()
+    fun create(q: SearchQuery) = SearchModel(
+        repo.txnStore, repo.accountStore, repo.tagStore, repo.settingsStore, repo.entryFeed(), repo.today, repo.io, scope, q, SearchRules.Classic,
+    )
+    val model = rememberSaveable(repo, saver = SearchModel.saver(::create)) { create(SearchQuery()) }
+    val state by model.state.collectAsState()
+    val actions = SearchFormActions(model::setText, model::setDates, model::pickTag, model::setMin, model::setMax)
 
     Column(Modifier.fillMaxSize()) {
         BackTopBar(tr("Search"), nav::pop)
-        SearchFormCard(f)
+        SearchFormCard(model.query, state.tags, actions)
         HorizontalDivider(color = DividerColor)
-        SearchResults(results, searching) { nav.push(Screen.EditTxn(txnId = it.id)) }
+        SearchResults(state) { nav.push(Screen.EditTxn(txnId = it.id)) }
     }
 }
 
 @Composable
-private fun SearchFormCard(f: SearchForm) {
-    val allTags by LocalRepo.current.tagStore.tags.collectAsState()
+private fun SearchFormCard(q: SearchQuery, allTags: List<Tag>, actions: SearchFormActions) {
     Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 20.dp, vertical = 8.dp)) {
         Row(
             Modifier.fillMaxWidth().background(PageBackground, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
@@ -123,14 +104,14 @@ private fun SearchFormCard(f: SearchForm) {
         ) {
             Icon(Icons.Outlined.Search, null, tint = SubtleText)
             Box(Modifier.weight(1f).padding(start = 8.dp)) {
-                if (f.text.isEmpty()) Text(tr("Note, category, account or #tag"), color = SubtleText)
-                BasicTextField(f.text, { f.text = it }, singleLine = true, textStyle = TextStyle(fontSize = 15.sp), cursorBrush = SolidColor(Accent), modifier = Modifier.fillMaxWidth())
+                if (q.text.isEmpty()) Text(tr("Note, category, account or #tag"), color = SubtleText)
+                BasicTextField(q.text, actions.setText, singleLine = true, textStyle = TextStyle(fontSize = 15.sp), cursorBrush = SolidColor(Accent), modifier = Modifier.fillMaxWidth())
             }
         }
         Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SearchSpan.entries.forEach { s -> Chip(tr(s.label), s == f.span) { f.span = s } }
+            classicDates.forEach { (d, label) -> Chip(tr(label), d == q.dates) { actions.setDates(d) } }
         }
-        val tagChoices = searchTagChoices(allTags, f.tagIds, f.text)
+        val tagChoices = searchTagChoices(allTags, q.tagIds, q.text)
         if (tagChoices.isNotEmpty()) {
             Row(
                 Modifier.padding(top = 4.dp).fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -138,43 +119,37 @@ private fun SearchFormCard(f: SearchForm) {
             ) {
                 Text(tr("Tags"), color = SubtleText, fontSize = 13.sp)
                 tagChoices.forEach { t ->
-                    val on = t.id in f.tagIds
-                    Chip(if (on) "#${t.name}  ✕" else "#${t.name}", on) { f.tagIds = pickSearchTag(t, f.tagIds, f.text) { f.text = it } }
+                    val on = t.id in q.tagIds
+                    Chip(if (on) "#${t.name}  ✕" else "#${t.name}", on) { actions.pickTag(t) }
                 }
             }
         }
         Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedTextField(f.minText, { f.minText = it }, Modifier.weight(1f), label = { Text(tr("Min amount")) }, singleLine = true,
+            OutlinedTextField(q.minText, actions.setMin, Modifier.weight(1f), label = { Text(tr("Min amount")) }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-            OutlinedTextField(f.maxText, { f.maxText = it }, Modifier.weight(1f), label = { Text(tr("Max amount")) }, singleLine = true,
+            OutlinedTextField(q.maxText, actions.setMax, Modifier.weight(1f), label = { Text(tr("Max amount")) }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
         }
     }
 }
 
 @Composable
-private fun SearchResults(results: List<Txn>, searching: Boolean, onOpen: (Txn) -> Unit) {
-    val repo = LocalRepo.current
+private fun SearchResults(state: SearchState, onOpen: (Txn) -> Unit) {
     val currency = LocalCurrency.current
-    val rules by repo.reportStore.reportRules.collectAsState()
-    val tagNames by repo.tagStore.txnTagNames.collectAsState()
-    val accountName by repo.accountStore.accountNames.collectAsState()
-    val catById by repo.categoryStore.categoryById.collectAsState()
-    val rows = results.map { rules.row(it) }
-    val inc = rows.filter { classify(it) == Flow.INCOME }.sumOf { it.amount }
-    val exp = rows.filter { classify(it) == Flow.EXPENSE }.sumOf { it.amount }
+    val results = state.results
+    val look = state.lookups
     if (results.isNotEmpty()) {
-        Text(tr("{0} found · income {1} · expense {2}", results.size, currency.format(inc), currency.format(exp)),
+        Text(tr("{0} found · income {1} · expense {2}", results.size, currency.format(state.earned), currency.format(state.spent)),
             Modifier.padding(horizontal = 20.dp, vertical = 8.dp), color = SubtleText, fontSize = 13.sp)
     }
     LazyColumn(Modifier.fillMaxSize()) {
         results.groupBy { it.date }.forEach { (date, list) ->
             item(key = "h$date") { Text(date.long(), Modifier.fillMaxWidth().background(PageBackground).padding(horizontal = 20.dp, vertical = 6.dp), color = SubtleText, fontSize = 13.sp) }
             items(list, key = { it.id }) { t ->
-                TxnLine(t, accountName, catById, classify(rules.row(t)), tags = tagNames[t.id].orEmpty()) { onOpen(t) }
+                TxnLine(t, look.accountName, look.catById, classify(look.rules.row(t)), tags = look.tags[t.id].orEmpty()) { onOpen(t) }
             }
         }
-        if (results.isEmpty() && searching) item { EmptyState(tr("No matches"), Icons.Outlined.Search) }
+        if (results.isEmpty() && state.active) item { EmptyState(tr("No matches"), Icons.Outlined.Search) }
     }
 }
 
