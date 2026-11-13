@@ -23,12 +23,6 @@
     <ID>ComplexCondition:TabularImport.kt$TabularImport$v.any { it == ',' || it == '"' || it == '\n' || it == '\r' }</ID>
     <ID>ComplexCondition:WebApi.kt$WebApi.Companion$ip.isEmpty() || ip.any { !(it.isLetterOrDigit() || it == '.' || it == ':' || it == '%') }</ID>
     <ID>CyclomaticComplexMethod:AccountPredictor.kt$AccountPredictor$fun rank(history: List&lt;Past&gt;, ask: Ask, allowed: Set&lt;String&gt;? = null): List&lt;Pair&lt;String, Double&gt;&gt;</ID>
-    <ID>CyclomaticComplexMethod:ActivityCalendar.kt$@Composable internal fun ActivityCalendarView( ym: YearMonth, range: DateRange, weekStart: DayOfWeek, onPrev: () -&gt; Unit, onNext: () -&gt; Unit, onPickMonth: () -&gt; Unit, )</ID>
-    <ID>CyclomaticComplexMethod:ActivityMonths.kt$@Composable internal fun ActivityMonthsView( ym: YearMonth, ps: PeriodSettings, onPick: (YearMonth) -&gt; Unit, onOpenList: (YearMonth) -&gt; Unit, onPickMonth: () -&gt; Unit, )</ID>
-    <ID>CyclomaticComplexMethod:ActivityTab.kt$@Composable internal fun ActivityTab()</ID>
-    <ID>CyclomaticComplexMethod:ActivityTab.kt$@Composable private fun ActList( range: DateRange, ym: YearMonth, kind: ActKind, onKind: (ActKind) -&gt; Unit, onPrev: () -&gt; Unit, onNext: () -&gt; Unit, onPickMonth: () -&gt; Unit, selecting: Boolean, selection: Set&lt;String&gt;, onSelect: (String) -&gt; Unit, onEndSelect: () -&gt; Unit, )</ID>
-    <ID>CyclomaticComplexMethod:ActivityTab.kt$@Composable private fun SelectionPanel(selected: List&lt;Txn&gt;, onDone: () -&gt; Unit, modifier: Modifier)</ID>
-    <ID>CyclomaticComplexMethod:ActivityTab.kt$@OptIn(ExperimentalFoundationApi::class) @Composable internal fun ActEntryRow( txn: Txn, data: ActEntryData, selecting: Boolean = false, selected: Boolean = false, showDate: Boolean = false, compact: Boolean = false, /** Space from the card's edges to the content; the tap highlight still spans the full width. */ inset: Dp = ENTRY_INSET, onLongClick: (() -&gt; Unit)? = null, onClick: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
     <ID>CyclomaticComplexMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
@@ -51,7 +45,6 @@
     <ID>CyclomaticComplexMethod:MoreScreen.kt$@Composable fun ConfigurationScreen()</ID>
     <ID>CyclomaticComplexMethod:MoreScreen.kt$@Composable fun RecurringScreen()</ID>
     <ID>CyclomaticComplexMethod:MoreScreen.kt$@Composable private fun RuleEditDialog( rule: RecurringRule, accounts: List&lt;Account&gt;, categories: List&lt;Category&gt;, onDismiss: () -&gt; Unit, onSave: (RecurringRule) -&gt; Unit, )</ID>
-    <ID>CyclomaticComplexMethod:SearchFresh.kt$@Composable internal fun FreshSearch()</ID>
     <ID>CyclomaticComplexMethod:SecurityScreens.kt$@Composable fun OnboardingScreen()</ID>
     <ID>CyclomaticComplexMethod:SecurityScreens.kt$@Composable fun SecurityScreen()</ID>
     <ID>CyclomaticComplexMethod:SettingsModel.kt$@Composable fun rememberSettingGroups(newLayout: Boolean, a: SettingActions): List&lt;SettingGroup&gt;</ID>
@@ -66,10 +59,6 @@
     <ID>CyclomaticComplexMethod:SmsParser.kt$SmsParser$fun vendorOf(text: String): String?</ID>
     <ID>CyclomaticComplexMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
     <ID>CyclomaticComplexMethod:ToolsScreens.kt$@Composable fun CalculatorScreen()</ID>
-    <ID>CyclomaticComplexMethod:TransactionsScreen.kt$@Composable fun TransactionsTab()</ID>
-    <ID>CyclomaticComplexMethod:TransactionsScreen.kt$@Composable fun TxnLine( txn: Txn, accountName: Map&lt;String, String&gt;, catById: Map&lt;String, app.moneytracker.domain.Category&gt;, flow: Flow, runningBalance: Long? = null, tags: List&lt;String&gt; = emptyList(), hasPhoto: Boolean = false, inset: androidx.compose.ui.unit.Dp = 16.dp, selected: Boolean = false, onLongClick: (() -&gt; Unit)? = null, onClick: () -&gt; Unit, )</ID>
-    <ID>CyclomaticComplexMethod:TransactionsScreen.kt$@Composable private fun CalendarView(range: DateRange, weekStart: DayOfWeek)</ID>
-    <ID>CyclomaticComplexMethod:TxnFilter.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun FilterSheet(range: DateRange, initial: TxnFilter, onDismiss: () -&gt; Unit, onApply: (TxnFilter) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:WebApi.kt$WebApi$private fun draft(r: MoneyRepository, b: Map&lt;*, *&gt;, existing: Txn?): TxnDraft</ID>
     <ID>CyclomaticComplexMethod:Xlsx.kt$Xlsx$private fun readSheet(bytes: ByteArray, shared: List&lt;String&gt;): List&lt;List&lt;String&gt;&gt;</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:MoreScreen.kt$val (kind, y, mo, d, h, mi) = m.destructured</ID>
@@ -88,18 +77,9 @@
     <ID>EmptyElseBlock:Xlsx.kt$Xlsx$if (!ch.isLetter()) break</ID>
     <ID>EmptyFunctionBlock:AndroidSpeech.kt$AndroidSpeech.RealSession${}</ID>
     <ID>EmptyFunctionBlock:Background.kt$CardsWidgetService.&lt;no name provided&gt;${}</ID>
-    <ID>ForEachOnRange:ActivityCalendar.kt$(0 until 7).map { DayOfWeek.entries[(weekStart.ordinal + it) % 7] }</ID>
     <ID>ForEachOnRange:Common.kt$(1..12).chunked(4)</ID>
     <ID>ForEachOnRange:SecurityScreens.kt$0..3</ID>
-    <ID>ForEachOnRange:TransactionsScreen.kt$(0 until 7).map { DayOfWeek.entries[(weekStart.ordinal + it) % 7] }</ID>
     <ID>LongMethod:AboutScreen.kt$@Composable fun AboutScreen()</ID>
-    <ID>LongMethod:ActivityCalendar.kt$@Composable internal fun ActivityCalendarView( ym: YearMonth, range: DateRange, weekStart: DayOfWeek, onPrev: () -&gt; Unit, onNext: () -&gt; Unit, onPickMonth: () -&gt; Unit, )</ID>
-    <ID>LongMethod:ActivityMonths.kt$@Composable internal fun ActivityMonthsView( ym: YearMonth, ps: PeriodSettings, onPick: (YearMonth) -&gt; Unit, onOpenList: (YearMonth) -&gt; Unit, onPickMonth: () -&gt; Unit, )</ID>
-    <ID>LongMethod:ActivityMonths.kt$@Composable private fun MonthTotal(ym: YearMonth, ps: PeriodSettings)</ID>
-    <ID>LongMethod:ActivityTab.kt$@Composable internal fun ActivityTab()</ID>
-    <ID>LongMethod:ActivityTab.kt$@Composable private fun ActList( range: DateRange, ym: YearMonth, kind: ActKind, onKind: (ActKind) -&gt; Unit, onPrev: () -&gt; Unit, onNext: () -&gt; Unit, onPickMonth: () -&gt; Unit, selecting: Boolean, selection: Set&lt;String&gt;, onSelect: (String) -&gt; Unit, onEndSelect: () -&gt; Unit, )</ID>
-    <ID>LongMethod:ActivityTab.kt$@Composable private fun SelectionPanel(selected: List&lt;Txn&gt;, onDone: () -&gt; Unit, modifier: Modifier)</ID>
-    <ID>LongMethod:ActivityTab.kt$@OptIn(ExperimentalFoundationApi::class) @Composable internal fun ActEntryRow( txn: Txn, data: ActEntryData, selecting: Boolean = false, selected: Boolean = false, showDate: Boolean = false, compact: Boolean = false, /** Space from the card's edges to the content; the tap highlight still spans the full width. */ inset: Dp = ENTRY_INSET, onLongClick: (() -&gt; Unit)? = null, onClick: () -&gt; Unit, )</ID>
     <ID>LongMethod:AddScreen.kt$@Composable fun receiptCard()</ID>
     <ID>LongMethod:AddScreen.kt$@Composable fun tray(modifier: Modifier)</ID>
     <ID>LongMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
@@ -126,7 +106,6 @@
     <ID>LongMethod:MoreScreen.kt$@Composable fun RecurringScreen()</ID>
     <ID>LongMethod:MoreScreen.kt$@Composable private fun ImportPreviewDialog(parsed: app.moneytracker.data.TabularImport.Parsed, onCancel: () -&gt; Unit, onImport: (Set&lt;Int&gt;) -&gt; Unit)</ID>
     <ID>LongMethod:MoreScreen.kt$@Composable private fun RuleEditDialog( rule: RecurringRule, accounts: List&lt;Account&gt;, categories: List&lt;Category&gt;, onDismiss: () -&gt; Unit, onSave: (RecurringRule) -&gt; Unit, )</ID>
-    <ID>LongMethod:SearchFresh.kt$@Composable internal fun FreshSearch()</ID>
     <ID>LongMethod:SecurityScreens.kt$@Composable fun OnboardingScreen()</ID>
     <ID>LongMethod:SecurityScreens.kt$@Composable fun SecurityScreen()</ID>
     <ID>LongMethod:SettingsModel.kt$@Composable fun rememberSettingGroups(newLayout: Boolean, a: SettingActions): List&lt;SettingGroup&gt;</ID>
@@ -137,14 +116,6 @@
     <ID>LongMethod:SmartText.kt$SmartText$fun translit(word: String): String</ID>
     <ID>LongMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
     <ID>LongMethod:ToolsScreens.kt$@Composable fun CalculatorScreen()</ID>
-    <ID>LongMethod:TransactionsScreen.kt$@Composable fun TransactionsTab()</ID>
-    <ID>LongMethod:TransactionsScreen.kt$@Composable fun TxnLine( txn: Txn, accountName: Map&lt;String, String&gt;, catById: Map&lt;String, app.moneytracker.domain.Category&gt;, flow: Flow, runningBalance: Long? = null, tags: List&lt;String&gt; = emptyList(), hasPhoto: Boolean = false, inset: androidx.compose.ui.unit.Dp = 16.dp, selected: Boolean = false, onLongClick: (() -&gt; Unit)? = null, onClick: () -&gt; Unit, )</ID>
-    <ID>LongMethod:TransactionsScreen.kt$@Composable private fun CalendarView(range: DateRange, weekStart: DayOfWeek)</ID>
-    <ID>LongMethod:TransactionsScreen.kt$@Composable private fun DailyView(range: DateRange, onType: () -&gt; Unit, onSpeak: () -&gt; Unit)</ID>
-    <ID>LongMethod:TransactionsScreen.kt$@Composable private fun MonthlyView(selected: YearMonth, ps: PeriodSettings)</ID>
-    <ID>LongMethod:TransactionsScreen.kt$@Composable private fun SelectionBar(selected: List&lt;Txn&gt;, onClear: () -&gt; Unit)</ID>
-    <ID>LongMethod:TransactionsScreen.kt$@Composable private fun TotalView(ym: YearMonth, range: DateRange, ps: PeriodSettings)</ID>
-    <ID>LongMethod:TxnFilter.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun FilterSheet(range: DateRange, initial: TxnFilter, onDismiss: () -&gt; Unit, onApply: (TxnFilter) -&gt; Unit)</ID>
     <ID>LongMethod:WebDashboardFresh.kt$@Composable internal fun FreshWebDashboard()</ID>
     <ID>LongMethod:WebDashboardScreens.kt$@Composable fun WebDashboardScreen()</ID>
     <ID>LongParameterList:WebDashboardScreens.kt$WebDashboardUi$( val state: WebDashboardState, val passwordSet: Boolean, val autoStop: Int, val now: Long, val start: () -&gt; Unit, val stop: () -&gt; Unit, val copy: () -&gt; Unit, val disconnect: (String) -&gt; Unit, val setPassword: (String?) -&gt; Unit, val setAutoStop: (Int) -&gt; Unit, val openWifi: () -&gt; Unit, /** Set briefly after Copy. */ val copied: Boolean, )</ID>
@@ -181,7 +152,6 @@
     <ID>TooGenericExceptionCaught:HttpServer.kt$HttpServer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Log.kt$Log$t: Throwable</ID>
     <ID>TooManyFunctions:MoneyRepository.kt$MoneyRepository</ID>
-    <ID>UnusedParameter:TransactionsScreen.kt$ps: PeriodSettings</ID>
     <ID>UnusedParameter:WebApi.kt$WebApi$r: MoneyRepository</ID>
     <ID>UnusedParameter:WebApi.kt$WebApi$s: Session</ID>
     <ID>UnusedPrivateProperty:SettingsScreens.kt$val backup = LocalBackup.current</ID>

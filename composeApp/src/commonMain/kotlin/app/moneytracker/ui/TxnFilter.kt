@@ -1,7 +1,6 @@
 package app.moneytracker.ui
 
 import androidx.compose.foundation.background
-import app.moneytracker.domain.ReportRules
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,13 +26,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,12 +41,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.domain.Category
-import app.moneytracker.domain.CategoryKind
 import app.moneytracker.domain.DateRange
-import app.moneytracker.domain.ReportRow
 import app.moneytracker.domain.Txn
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 
 /**
  * Trans.-tab filter. Within a dimension any checked item matches; across dimensions all must match
@@ -75,52 +68,22 @@ data class TxnFilter(
     }
 }
 
-val LocalTxnFilter = compositionLocalOf { TxnFilter() }
-
-/**
- * Entries in [range] for the Trans. tab, narrowed by the active filter. Balance adjustments are left out,
- * they only appear on their account's page.
- */
-@Composable
-fun rememberFilteredTxns(range: DateRange): State<List<Txn>> {
-    val repo = LocalRepo.current
-    val filter = LocalTxnFilter.current
-    val categories by repo.categories.collectAsState(emptyList())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    return remember(range, filter, catById) {
-        repo.txnsBetween(range).map { list ->
-            // Looked up on every change, so entries tagged later still match.
-            val tagged = filter.tagIds.flatMapTo(mutableSetOf()) { repo.txnIdsWithTag(it) }
-            list.filter { !it.kind.isAdjustment && (!filter.isActive || filter.matches(it, catById, tagged)) }
-        }.flowOn(repo.io)
-    }.collectAsState(emptyList())
-}
-
-/** Report rows for [range]; with a filter they are rebuilt from the matching entries. */
-@Composable
-fun rememberFilteredRows(range: DateRange): State<List<ReportRow>> {
-    val repo = LocalRepo.current
-    val filter = LocalTxnFilter.current
-    if (!filter.isActive) return remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
-    val rules by repo.reportRules.collectAsState(ReportRules.Empty)
-    val txns by rememberFilteredTxns(range)
-    // TRANSFER_IN mirrors TRANSFER_OUT; report rows count each transfer once.
-    return androidx.compose.runtime.rememberUpdatedState(txns.filter { it.kind.isListed }.map { rules.row(it) })
-}
+/** Name lookups for [TxnFilter.names]; [liveCategoryIds] are the categories not deleted. */
+class FilterNames(
+    val catById: Map<String, Category>,
+    val liveCategoryIds: Set<String>,
+    val accountName: Map<String, String>,
+    val tagName: Map<String, String>,
+)
 
 /** What the filter bar lists: categories, accounts, then tags as #name. */
-@Composable
-internal fun filterNames(filter: TxnFilter, catById: Map<String, Category>, accountName: Map<String, String>): List<String> {
-    val tags by LocalRepo.current.tags.collectAsState(emptyList())
-    val tagName = tags.associate { it.id to it.name }
-    return filter.categoryIds.mapNotNull { catById[it]?.name } + filter.accountIds.mapNotNull { accountName[it] } +
-        filter.tagIds.mapNotNull { tagName[it]?.let { n -> "#$n" } }
-}
+fun TxnFilter.names(n: FilterNames, includeDeletedCategories: Boolean = true): List<String> =
+    categoryIds.filter { includeDeletedCategories || it in n.liveCategoryIds }.mapNotNull { n.catById[it]?.name } +
+        accountIds.mapNotNull { n.accountName[it] } + tagIds.mapNotNull { n.tagName[it]?.let { name -> "#$name" } }
 
 /** Bar shown under the tabs while a filter is applied. */
 @Composable
-fun FilterBar(filter: TxnFilter, catById: Map<String, Category>, accountName: Map<String, String>, onEdit: () -> Unit, onClear: () -> Unit) {
-    val names = filterNames(filter, catById, accountName)
+fun FilterBar(names: List<String>, onEdit: () -> Unit, onClear: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().background(AccentTint).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -134,70 +97,67 @@ fun FilterBar(filter: TxnFilter, catById: Map<String, Category>, accountName: Ma
 }
 
 /** Income / Expenses / Account checklists with this period's amounts; Apply sets the filter. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterSheet(range: DateRange, initial: TxnFilter, onDismiss: () -> Unit, onApply: (TxnFilter) -> Unit) {
     val repo = LocalRepo.current
-    val currency = LocalCurrency.current
-    val categories by repo.categories.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
-    val accountNames by repo.accountNames.collectAsState(emptyMap())
-    val txns by remember(range) { repo.txnsBetween(range) }.collectAsState(emptyList())
-    val catById by repo.categoryById.collectAsState(emptyMap())
+    val scope = rememberCoroutineScope()
+    val model = remember(repo, range) { FilterChoicesModel(range, repo.txnStore, repo.categoryStore, repo.accountStore, scope) }
+    val choices by model.state.collectAsState()
+    FilterSheetContent(choices, initial, onDismiss, onApply)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterSheetContent(choices: FilterChoices, initial: TxnFilter, onDismiss: () -> Unit, onApply: (TxnFilter) -> Unit) {
     var cats by remember { mutableStateOf(initial.categoryIds) }
     var accs by remember { mutableStateOf(initial.accountIds) }
     var tags by remember { mutableStateOf(initial.tagIds) }   // not editable here; kept unless cleared
     var tab by remember { mutableStateOf(1) }
-    val mainOf = { t: Txn -> t.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } }
-    val perCategory = txns.filter { it.kind.isIncomeOrExpense }.groupBy { mainOf(it) }.mapValues { (_, v) -> v.sumOf { it.amount } }
-    val perAccount = txns.groupBy { it.accountId }.mapValues { (_, v) -> v.sumOf { it.signedAccountValue } }
-
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = SurfaceColor) {
         Column(Modifier.navigationBarsPadding()) {
             Text(tr("Filter"), Modifier.padding(horizontal = 20.dp), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Ink)
             Spacer(Modifier.height(8.dp))
             UnderlineTabs(listOf(tr("Income"), tr("Expenses"), tr("Account")), tab) { tab = it }
-            data class Line(val id: String, val label: String, val amount: Long?)
-            val lines = when (tab) {
-                0, 1 -> {
-                    val kind = if (tab == 0) CategoryKind.INCOME else CategoryKind.EXPENSE
-                    // Deleted categories still show while they have entries in this period.
-                    val deleted = perCategory.keys.mapNotNull { id -> id?.let { catById[it] } }
-                        .filter { it.kind == kind && it.parentId == null && categories.none { c -> c.id == it.id } }
-                    (categories.filter { it.kind == kind && it.parentId == null } + deleted).map { Line(it.id, it.name, perCategory[it.id]) }
-                }
-                // Hidden and deleted accounts show while they have entries in this period.
-                else -> accounts.filter { !it.hidden || it.id in perAccount }.map { Line(it.id, it.name, perAccount[it.id]) } +
-                    perAccount.keys.filter { id -> accounts.none { it.id == id } }.map { Line(it, accountNames[it] ?: it, perAccount[it]) }
-            }
             val selected = if (tab == 2) accs else cats
-            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 380.dp)) {
-                items(lines, key = { it.id }) { l ->
-                    val on = l.id in selected
-                    Row(
-                        Modifier.fillMaxWidth().clickable {
-                            if (tab == 2) accs = if (on) accs - l.id else accs + l.id else cats = if (on) cats - l.id else cats + l.id
-                        }.padding(start = 8.dp, end = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(on, null, colors = CheckboxDefaults.colors(checkedColor = Accent), modifier = Modifier.padding(12.dp))
-                        Text(l.label, Modifier.weight(1f), color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(l.amount?.let { currency.format(it) } ?: "", color = SubtleText, fontSize = 13.sp)
-                    }
-                }
+            FilterChecklist(choices.forTab(tab), selected) { id ->
+                val on = id in selected
+                if (tab == 2) accs = if (on) accs - id else accs + id else cats = if (on) cats - id else cats + id
             }
-            Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(
-                    Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(FillColor)
-                        .clickable { cats = emptySet(); accs = emptySet(); tags = emptySet() },
-                    contentAlignment = Alignment.Center,
-                ) { Text(tr("Clear"), color = Ink, fontWeight = FontWeight.Medium) }
-                Box(
-                    Modifier.weight(2f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(Accent)
-                        .clickable { onApply(TxnFilter(cats, accs, tags)) },
-                    contentAlignment = Alignment.Center,
-                ) { Text(tr("Filter"), color = Color.White, fontWeight = FontWeight.SemiBold) }
+            FilterSheetButtons(
+                onClear = { cats = emptySet(); accs = emptySet(); tags = emptySet() },
+                onApply = { onApply(TxnFilter(cats, accs, tags)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun FilterChecklist(lines: List<FilterLine>, selected: Set<String>, onToggle: (String) -> Unit) {
+    val currency = LocalCurrency.current
+    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 380.dp)) {
+        items(lines, key = { it.id }) { l ->
+            Row(
+                Modifier.fillMaxWidth().clickable { onToggle(l.id) }.padding(start = 8.dp, end = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(l.id in selected, null, colors = CheckboxDefaults.colors(checkedColor = Accent), modifier = Modifier.padding(12.dp))
+                Text(l.label, Modifier.weight(1f), color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(l.amount?.let { currency.format(it) } ?: "", color = SubtleText, fontSize = 13.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun FilterSheetButtons(onClear: () -> Unit, onApply: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(
+            Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(FillColor).clickable(onClick = onClear),
+            contentAlignment = Alignment.Center,
+        ) { Text(tr("Clear"), color = Ink, fontWeight = FontWeight.Medium) }
+        Box(
+            Modifier.weight(2f).height(48.dp).clip(RoundedCornerShape(14.dp)).background(Accent).clickable(onClick = onApply),
+            contentAlignment = Alignment.Center,
+        ) { Text(tr("Filter"), color = Color.White, fontWeight = FontWeight.SemiBold) }
     }
 }

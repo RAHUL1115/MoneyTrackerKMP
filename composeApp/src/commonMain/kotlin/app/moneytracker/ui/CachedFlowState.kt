@@ -30,8 +30,8 @@ fun <T> CachedFlow<T>.collectAsState(): State<T> {
 @Composable
 fun <T> rememberSetting(s: Setting<T>, initial: T = s.default): State<T> {
     val repo = LocalRepo.current
-    return remember(repo, s) { repo.setting(s) }.composeCollectAsState(initial)
+    return remember(repo, s) { repo.settingsStore.setting(s) }.composeCollectAsState(initial)
 }
 
 /** Saves a setting off the main thread. */
-fun <T> CoroutineScope.saveSetting(repo: MoneyRepository, s: Setting<T>, value: T) = launch(repo.io) { repo.putSetting(s, value) }
+fun <T> CoroutineScope.saveSetting(repo: MoneyRepository, s: Setting<T>, value: T) = launch(repo.io) { repo.settingsStore.putSetting(s, value) }
