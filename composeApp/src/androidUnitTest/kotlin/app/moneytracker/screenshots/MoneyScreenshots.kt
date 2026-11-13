@@ -1,11 +1,16 @@
 package app.moneytracker.screenshots
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import app.moneytracker.ui.Screen
@@ -28,8 +33,17 @@ abstract class MoneyScreenshotTest(private val newLayout: Boolean) : ScreenshotT
     }
 
     /** Swipes the screen's list up until it can go no further. */
-    protected fun scrollToEnd() {
-        repeat(SWIPES_TO_END) { compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() } }
+    protected fun scrollToEnd() = scrollToEndOf(hasScrollAction())
+
+    private fun scrollToEndOf(list: SemanticsMatcher) {
+        repeat(SWIPES_TO_END) { compose.onAllNodes(list).onFirst().performTouchInput { swipeUp() } }
+        compose.waitForIdle()
+    }
+
+    /** Scrolls the list that shows [text] all the way down in one jump, whatever its rows look like. */
+    protected fun jumpToEndPast(text: String) {
+        compose.onAllNodes(hasScrollAction() and hasAnyDescendant(hasText(text))).onFirst()
+            .performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, FAR_DOWN) }
         compose.waitForIdle()
     }
 
@@ -45,6 +59,7 @@ abstract class MoneyScreenshotTest(private val newLayout: Boolean) : ScreenshotT
 
     private companion object {
         const val SWIPES_TO_END = 6
+        const val FAR_DOWN = 100_000f
     }
 }
 
@@ -56,7 +71,7 @@ class NewMoneyScreenshots : MoneyScreenshotTest(newLayout = true) {
     @Test fun accountEditSwitches() { show(Screen.EditAccount("acc_card")); scrollToEnd(); shoot("account_edit_switches") }
     @Test fun manageAccounts() { show(); tap("Accounts"); tapIcon("Account groups"); shootScreen("manage_accounts") }
     @Test fun insightsBreakdown() { show(); tap("Insights"); tapContaining("Food"); scrollTo("Top entries"); shoot("insights_breakdown") }
-    @Test fun insightsTopEntries() { show(); tap("Insights"); scrollTo("Fuel"); shoot("insights_top_entries") }
+    @Test fun insightsTopEntries() { show(); tap("Insights"); jumpToEndPast("Top entries"); shoot("insights_top_entries") }
     @Test fun budgetTotalOpen() { show(Screen.Budget); tap(" · Edit"); shoot("budget_total_open") }
     @Test fun budgetCategoryOpen() { show(Screen.Budget); tapContaining("Transport"); scrollTo("Month overview"); shoot("budget_category_open") }
     @Test fun budgetAddSheet() { show(Screen.Budget); tap("+ Category"); shootScreen("budget_add_sheet") }
