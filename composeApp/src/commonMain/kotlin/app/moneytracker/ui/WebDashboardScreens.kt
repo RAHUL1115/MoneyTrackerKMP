@@ -51,6 +51,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.Prefs
+import app.moneytracker.data.SettingsStore
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -78,6 +81,30 @@ internal fun activeLabel(lastSeen: Long, now: Long): String {
     }
 }
 
+/** The dashboard's actions that save something or report back: starting, the password and the auto-stop. */
+internal class WebDashboardModel(
+    private val dashboard: WebDashboardControl,
+    private val settings: SettingsStore,
+    private val io: CoroutineDispatcher,
+    private val scope: CoroutineScope,
+) {
+    /** Starts serving; [onFailed] gets why it couldn't. */
+    fun start(onFailed: (String) -> Unit) =
+        dashboard.startWebDashboard { ok -> if (!ok) onFailed(dashboard.state.value.error ?: tr("Couldn't start the web dashboard")) }
+
+    /** Saves or (with null) removes the password, then tells [onDone] what changed. */
+    fun setPassword(password: String?, onDone: (String) -> Unit) {
+        scope.launch {
+            withContext(io) { dashboard.setWebPassword(password) }
+            onDone(if (password == null) tr("Password turned off") else tr("Password saved. Computers sign in again."))
+        }
+    }
+
+    fun setAutoStop(minutes: Int) {
+        scope.launch(io) { settings.putSetting(Prefs.WEB_AUTO_STOP, minutes) }
+    }
+}
+
 /** Everything the two dashboard screens show and do. */
 internal class WebDashboardUi(
     val state: WebDashboardState,
@@ -100,6 +127,7 @@ internal fun rememberWebDashboardUi(onMessage: (String) -> Unit): WebDashboardUi
     val repo = LocalRepo.current
     val dashboard = LocalPlatform.current.webDashboard
     val scope = rememberCoroutineScope()
+    val model = remember(repo, dashboard) { WebDashboardModel(dashboard, repo.settingsStore, repo.io, scope) }
     val clipboard = LocalClipboardManager.current
     val state by dashboard.state.collectAsState()
     val password by rememberSetting(Prefs.WEB_PASSWORD)
@@ -120,17 +148,12 @@ internal fun rememberWebDashboardUi(onMessage: (String) -> Unit): WebDashboardUi
         passwordSet = password.isNotEmpty(),
         autoStop = autoStop.takeIf { it in WEB_AUTO_STOPS } ?: Prefs.WEB_AUTO_STOP.default,
         now = now,
-        start = { dashboard.startWebDashboard { ok -> if (!ok) onMessage(dashboard.state.value.error ?: tr("Couldn't start the web dashboard")) } },
+        start = { model.start(onMessage) },
         stop = { dashboard.stopWebDashboard() },
         copy = { state.address?.let { clipboard.setText(AnnotatedString("http://$it")); copied = true } },
         disconnect = { dashboard.disconnectWebComputer(it) },
-        setPassword = { pw ->
-            scope.launch {
-                withContext(repo.io) { dashboard.setWebPassword(pw) }
-                onMessage(if (pw == null) tr("Password turned off") else tr("Password saved. Computers sign in again."))
-            }
-        },
-        setAutoStop = { m -> scope.saveSetting(repo, Prefs.WEB_AUTO_STOP, m) },
+        setPassword = { pw -> model.setPassword(pw, onMessage) },
+        setAutoStop = model::setAutoStop,
         openWifi = { dashboard.openWifiSettings() },
         copied = copied,
     )
@@ -158,71 +181,9 @@ fun WebDashboardScreen() {
         HorizontalDivider(color = DividerColor)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             when {
-                !s.running && !s.wifi -> Column(
-                    Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 26.dp, vertical = 30.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Box(Modifier.size(56.dp).background(PageBackground, CircleShape), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.WifiOff, null, tint = SubtleText, modifier = Modifier.size(26.dp))
-                    }
-                    Text(tr("Connect to Wi-Fi to use the web dashboard"), fontSize = 17.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
-                    Text(tr("The computer and this phone need to be on the same Wi-Fi network. Mobile data doesn't work for this."),
-                        fontSize = 14.sp, color = SubtleText, textAlign = TextAlign.Center, lineHeight = 20.sp)
-                    OutlineButton(tr("Open Wi-Fi settings"), ui.openWifi)
-                }
-                !s.running -> Column(
-                    Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 24.dp, vertical = 22.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Box(Modifier.size(48.dp).background(AccentTint, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.Computer, null, tint = Accent, modifier = Modifier.size(24.dp))
-                    }
-                    Text(tr("Use MoneyTracker from a computer"), fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                    Text(tr("Open your entries in a browser on a computer on the same Wi-Fi. See totals and charts, search, and add or edit entries with a full keyboard."),
-                        fontSize = 14.sp, lineHeight = 21.sp)
-                    Text(tr("The page comes from this phone. Nothing is sent to the internet."), fontSize = 13.sp, color = SubtleText)
-                    (s.stopReason ?: s.error)?.let { Text(it, fontSize = 13.sp, color = ExpenseColor) }
-                    Box(
-                        Modifier.fillMaxWidth().height(48.dp).background(Accent, RoundedCornerShape(24.dp)).clickable(onClick = ui.start),
-                        contentAlignment = Alignment.Center,
-                    ) { Text(tr("Start"), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
-                }
-                else -> {
-                    Column(
-                        Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 24.dp, vertical = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(Modifier.size(8.dp).background(Accent, CircleShape))
-                            Text(tr("On · Wi-Fi"), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Accent)
-                        }
-                        Text(tr("On the computer, type this in the browser:"), fontSize = 14.sp)
-                        Row(
-                            Modifier.fillMaxWidth().background(PageBackground, RoundedCornerShape(12.dp)).padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(s.address.orEmpty(), Modifier.weight(1f), fontFamily = FontFamily.Monospace, fontSize = 19.sp, fontWeight = FontWeight.Medium)
-                            TextButton(onClick = ui.copy) { Text(if (ui.copied) tr("Copied") else tr("Copy"), color = Accent, fontWeight = FontWeight.Medium) }
-                        }
-                        Text(tr("Full address: http://{0} · keeps running when you leave the app, until you stop it.", s.address.orEmpty()),
-                            fontSize = 12.sp, color = SubtleText, lineHeight = 17.sp)
-                        OutlineButton(tr("Stop"), ui.stop, danger = true, fill = true)
-                    }
-                    ConfigSection(tr("Connected computers"))
-                    Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(vertical = 4.dp)) {
-                        if (s.computers.isEmpty()) Text(tr("None yet. Open the address on a computer."),
-                            Modifier.padding(horizontal = 26.dp, vertical = 14.dp), fontSize = 14.sp, color = SubtleText)
-                        s.computers.forEach { c ->
-                            Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 26.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Text(c.name, fontSize = 15.sp)
-                                    Text(activeLabel(c.lastSeen, ui.now), fontSize = 12.sp, color = SubtleText)
-                                }
-                                TextButton(onClick = { ui.disconnect(c.id) }) { Text(tr("Disconnect"), color = Accent) }
-                            }
-                        }
-                    }
-                }
+                !s.running && !s.wifi -> NoWifiCard(ui.openWifi)
+                !s.running -> StartCard(s, ui.start)
+                else -> RunningCard(ui)
             }
             ConfigSection(tr("Options"))
             OptionRow(tr("Password"), tr("Asked once per visit on the computer"), if (ui.passwordSet) tr("On") else tr("Off")) { passwordDialog = true }
@@ -234,33 +195,118 @@ fun WebDashboardScreen() {
         }
     }
 
-    if (passwordDialog) {
-        var text by remember { mutableStateOf("") }
-        val ok = text.length >= WEB_PASSWORD_MIN
-        AlertDialog(
-            onDismissRequest = { passwordDialog = false },
-            title = { Text(tr("Dashboard password")) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(tr("The computer asks for it before showing anything. It's separate from your app passcode."), fontSize = 14.sp)
-                    OutlinedTextField(text, { text = it.take(64) }, label = { Text(tr("Password")) }, singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
-                    Text(tr("At least 4 characters. After 5 wrong tries the computer waits a minute."), fontSize = 12.sp, color = SubtleText)
-                }
-            },
-            confirmButton = { TextButton(onClick = { ui.setPassword(text); passwordDialog = false }, enabled = ok) { Text(tr("Save")) } },
-            dismissButton = {
-                Row {
-                    if (ui.passwordSet) TextButton(onClick = { ui.setPassword(null); passwordDialog = false }) { Text(tr("Turn off"), color = ExpenseColor) }
-                    TextButton(onClick = { passwordDialog = false }) { Text(tr("Cancel")) }
-                }
-            },
-        )
-    }
+    if (passwordDialog) PasswordDialog(ui.passwordSet, onClose = { passwordDialog = false }, onSave = ui.setPassword)
     message?.let { m ->
         AlertDialog(onDismissRequest = { message = null }, text = { Text(m) },
             confirmButton = { TextButton(onClick = { message = null }) { Text(tr("OK")) } })
     }
+}
+
+@Composable
+private fun NoWifiCard(openWifi: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 26.dp, vertical = 30.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(56.dp).background(PageBackground, CircleShape), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.WifiOff, null, tint = SubtleText, modifier = Modifier.size(26.dp))
+        }
+        Text(tr("Connect to Wi-Fi to use the web dashboard"), fontSize = 17.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
+        Text(tr("The computer and this phone need to be on the same Wi-Fi network. Mobile data doesn't work for this."),
+            fontSize = 14.sp, color = SubtleText, textAlign = TextAlign.Center, lineHeight = 20.sp)
+        OutlineButton(tr("Open Wi-Fi settings"), openWifi)
+    }
+}
+
+@Composable
+private fun StartCard(s: WebDashboardState, start: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 24.dp, vertical = 22.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(48.dp).background(AccentTint, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.Computer, null, tint = Accent, modifier = Modifier.size(24.dp))
+        }
+        Text(tr("Use MoneyTracker from a computer"), fontSize = 18.sp, fontWeight = FontWeight.Medium)
+        Text(tr("Open your entries in a browser on a computer on the same Wi-Fi. See totals and charts, search, and add or edit entries with a full keyboard."),
+            fontSize = 14.sp, lineHeight = 21.sp)
+        Text(tr("The page comes from this phone. Nothing is sent to the internet."), fontSize = 13.sp, color = SubtleText)
+        (s.stopReason ?: s.error)?.let { Text(it, fontSize = 13.sp, color = ExpenseColor) }
+        Box(
+            Modifier.fillMaxWidth().height(48.dp).background(Accent, RoundedCornerShape(24.dp)).clickable(onClick = start),
+            contentAlignment = Alignment.Center,
+        ) { Text(tr("Start"), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
+    }
+}
+
+@Composable
+private fun RunningCard(ui: WebDashboardUi) {
+    val s = ui.state
+    Column(
+        Modifier.fillMaxWidth().background(SurfaceColor).padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(8.dp).background(Accent, CircleShape))
+            Text(tr("On · Wi-Fi"), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Accent)
+        }
+        Text(tr("On the computer, type this in the browser:"), fontSize = 14.sp)
+        Row(
+            Modifier.fillMaxWidth().background(PageBackground, RoundedCornerShape(12.dp)).padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(s.address.orEmpty(), Modifier.weight(1f), fontFamily = FontFamily.Monospace, fontSize = 19.sp, fontWeight = FontWeight.Medium)
+            TextButton(onClick = ui.copy) { Text(if (ui.copied) tr("Copied") else tr("Copy"), color = Accent, fontWeight = FontWeight.Medium) }
+        }
+        Text(tr("Full address: http://{0} · keeps running when you leave the app, until you stop it.", s.address.orEmpty()),
+            fontSize = 12.sp, color = SubtleText, lineHeight = 17.sp)
+        OutlineButton(tr("Stop"), ui.stop, danger = true, fill = true)
+    }
+    ConnectedComputers(s.computers, ui.now, ui.disconnect)
+}
+
+@Composable
+private fun ConnectedComputers(computers: List<WebVisitor>, now: Long, disconnect: (String) -> Unit) {
+    ConfigSection(tr("Connected computers"))
+    Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(vertical = 4.dp)) {
+        if (computers.isEmpty()) Text(tr("None yet. Open the address on a computer."),
+            Modifier.padding(horizontal = 26.dp, vertical = 14.dp), fontSize = 14.sp, color = SubtleText)
+        computers.forEach { c ->
+            Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 26.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(c.name, fontSize = 15.sp)
+                    Text(activeLabel(c.lastSeen, now), fontSize = 12.sp, color = SubtleText)
+                }
+                TextButton(onClick = { disconnect(c.id) }) { Text(tr("Disconnect"), color = Accent) }
+            }
+        }
+    }
+}
+
+/** Sets the dashboard password ([onSave] with null turns it off, offered while one is set). */
+@Composable
+private fun PasswordDialog(passwordSet: Boolean, onClose: () -> Unit, onSave: (String?) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    val ok = text.length >= WEB_PASSWORD_MIN
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(tr("Dashboard password")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(tr("The computer asks for it before showing anything. It's separate from your app passcode."), fontSize = 14.sp)
+                OutlinedTextField(text, { text = it.take(64) }, label = { Text(tr("Password")) }, singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+                Text(tr("At least 4 characters. After 5 wrong tries the computer waits a minute."), fontSize = 12.sp, color = SubtleText)
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(text); onClose() }, enabled = ok) { Text(tr("Save")) } },
+        dismissButton = {
+            Row {
+                if (passwordSet) TextButton(onClick = { onSave(null); onClose() }) { Text(tr("Turn off"), color = ExpenseColor) }
+                TextButton(onClick = onClose) { Text(tr("Cancel")) }
+            }
+        },
+    )
 }
 
 @Composable
