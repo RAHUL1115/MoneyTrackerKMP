@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -103,11 +105,9 @@ private fun AccountEditContent(
     }) {
         BasicsCard(form, onChange, choices, clearError) { sheet = AccountEditSheet.CURRENCY }
         if (credit) CardBillingCard(form, onChange, choices) { sheet = it }
-        if (type?.isDebitCard == true) FCard(padding = 4.dp) {
-            Column(Modifier.padding(horizontal = 12.dp)) {
-                FRow(tr("Linked bank account"), tr("Card spends come out of this account"), value = choices.accountName(form.paymentAccountId),
-                    valueColor = F.accent, onClick = { sheet = AccountEditSheet.PAY_FROM })
-            }
+        if (type?.isDebitCard == true) FListCard {
+            FRow(tr("Linked bank account"), tr("Card spends come out of this account"), value = choices.accountName(form.paymentAccountId),
+                valueColor = F.accent, onClick = { sheet = AccountEditSheet.PAY_FROM }, inset = LIST_INSET, extraTop = 4.dp, extraBottom = 4.dp)
         }
         SwitchesCard(form, onChange, credit)
         FCard {
@@ -119,7 +119,7 @@ private fun AccountEditContent(
         }
         // Destructive, so red text alone rather than a button.
         if (!isNew) Box(
-            Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(F.iconShape).clickable(onClick = onDelete),
+            Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(F.iconShape).clickable(role = Role.Button, onClick = onDelete),
             contentAlignment = Alignment.Center,
         ) { Text(tr("Delete account"), color = F.danger, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
     }
@@ -129,16 +129,25 @@ private fun AccountEditContent(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BasicsCard(form: AccountForm, onChange: (AccountForm) -> Unit, choices: AccountFormChoices, clearError: () -> Unit, onCurrency: () -> Unit) {
-    FCard {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    // The fields keep the card's padding; the Currency row spans the card so its highlight does too.
+    FListCard {
+        Column(Modifier.fillMaxWidth().padding(start = F.cardPadding, end = F.cardPadding, top = F.cardPadding), verticalArrangement = Arrangement.spacedBy(FIELD_GAP)) {
             MoneyTextField(tr("Name"), form.name, { onChange(form.copy(name = it)); clearError() })
             Column {
                 Text(tr("Group").uppercase(), Modifier.padding(start = 4.dp, bottom = 8.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    choices.groups.forEach { g -> Pill(g.name, g.id == form.groupId, { onChange(form.copy(groupId = g.id)); clearError() }) }
+                FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    choices.groups.forEach { g ->
+                        Pill(g.name, g.id == form.groupId, { onChange(form.copy(groupId = g.id)); clearError() }, role = Role.RadioButton)
+                    }
                 }
             }
-            if (choices.currencies.isNotEmpty()) FRow(tr("Currency"), value = choices.currencyLabel(form.currency), onClick = onCurrency)
+        }
+        if (choices.currencies.isNotEmpty()) {
+            Gap(FIELD_GAP)
+            FRow(tr("Currency"), value = choices.currencyLabel(form.currency), onClick = onCurrency, inset = F.cardPadding)
+        }
+        Gap(FIELD_GAP)
+        Column(Modifier.fillMaxWidth().padding(start = F.cardPadding, end = F.cardPadding, bottom = F.cardPadding)) {
             MoneyTextField(tr("Memo (optional)"), form.memo, { onChange(form.copy(memo = it)) }, placeholder = tr("e.g. Lifetime free, 5% on food"), singleLine = false)
         }
     }
@@ -146,48 +155,56 @@ private fun BasicsCard(form: AccountForm, onChange: (AccountForm) -> Unit, choic
 
 @Composable
 private fun CardBillingCard(form: AccountForm, onChange: (AccountForm) -> Unit, choices: AccountFormChoices, onSheet: (AccountEditSheet) -> Unit) {
-    FCard {
-        SectionLabel(tr("Card billing"), Modifier.padding(bottom = 8.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MoneyTextField(tr("Statement day"), form.settlementDay, { onChange(form.copy(settlementDay = it.filter(Char::isDigit).take(2))) },
-                    Modifier.weight(1f), keyboard = KeyboardType.Number)
-                MoneyTextField(tr("Payment day"), form.paymentDay, { onChange(form.copy(paymentDay = it.filter(Char::isDigit).take(2))) }, Modifier.weight(1f),
-                    keyboard = KeyboardType.Number)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MoneyTextField(tr("Monthly limit"), form.limitText, { onChange(form.copy(limitText = it)) }, Modifier.weight(1f),
-                    placeholder = tr("Optional"), keyboard = KeyboardType.Decimal)
-                MoneyTextField(tr("Usage target"), form.targetText, { onChange(form.copy(targetText = it)) }, Modifier.weight(1f),
-                    placeholder = tr("Optional"), keyboard = KeyboardType.Decimal)
-            }
+    // The fields keep the card's padding; the rows under them span the card so their highlight does too.
+    FListCard {
+        Column(Modifier.fillMaxWidth().padding(start = F.cardPadding, end = F.cardPadding, top = F.cardPadding)) {
+            SectionLabel(tr("Card billing"), Modifier.padding(bottom = 8.dp))
+            CardBillingFields(form, onChange)
+            Gap(4.dp)
         }
-        Gap(4.dp)
-        FRow(tr("Bill paid from"), value = choices.accountName(form.paymentAccountId), valueColor = F.accent, onClick = { onSheet(AccountEditSheet.PAY_FROM) })
-        if (form.targetText.isNotBlank()) FRow(tr("Target compared with"), value = if (form.targetType == 2) tr("3 months average") else tr("Previous month"),
-            valueColor = F.accent, onClick = { onSheet(AccountEditSheet.BASIS) })
+        val targetRow = form.targetText.isNotBlank()
+        FRow(tr("Bill paid from"), value = choices.accountName(form.paymentAccountId), valueColor = F.accent, onClick = { onSheet(AccountEditSheet.PAY_FROM) },
+            inset = F.cardPadding, extraBottom = if (targetRow) 0.dp else F.cardPadding)
+        if (targetRow) FRow(tr("Target compared with"), value = if (form.targetType == 2) tr("3 months average") else tr("Previous month"),
+            valueColor = F.accent, onClick = { onSheet(AccountEditSheet.BASIS) }, inset = F.cardPadding, extraBottom = F.cardPadding)
     }
 }
 
-/** Switches as a list: at least 58 tall each, a line between them. */
+/** Statement and payment days, monthly limit and usage target, two to a row. */
+@Composable
+private fun CardBillingFields(form: AccountForm, onChange: (AccountForm) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MoneyTextField(tr("Statement day"), form.settlementDay, { onChange(form.copy(settlementDay = it.filter(Char::isDigit).take(2))) },
+                Modifier.weight(1f), keyboard = KeyboardType.Number)
+            MoneyTextField(tr("Payment day"), form.paymentDay, { onChange(form.copy(paymentDay = it.filter(Char::isDigit).take(2))) }, Modifier.weight(1f),
+                keyboard = KeyboardType.Number)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MoneyTextField(tr("Monthly limit"), form.limitText, { onChange(form.copy(limitText = it)) }, Modifier.weight(1f),
+                placeholder = tr("Optional"), keyboard = KeyboardType.Decimal)
+            MoneyTextField(tr("Usage target"), form.targetText, { onChange(form.copy(targetText = it)) }, Modifier.weight(1f),
+                placeholder = tr("Optional"), keyboard = KeyboardType.Decimal)
+        }
+    }
+}
+
+/** Switches as a list: at least 58 tall each, a line between them; each row pads itself so its highlight spans the card. */
 @Composable
 private fun SwitchesCard(form: AccountForm, onChange: (AccountForm) -> Unit, credit: Boolean) {
-    FCard(padding = 4.dp) {
-        Column(Modifier.padding(horizontal = 12.dp)) {
-            SwitchSlot { MoneySwitchRow(tr("Include in totals"), tr("Counts toward net worth"), form.includeInTotals) { onChange(form.copy(includeInTotals = it)) } }
-            Divider()
-            SwitchSlot {
-                MoneySwitchRow(tr("Transfers in count as expense"),
-                    tr("Turn this on for savings, investments or loans so money moved there shows in your spending."), form.transferAsExpense) {
-                    onChange(form.copy(transferAsExpense = it))
-                }
-            }
-            Divider()
-            SwitchSlot { MoneySwitchRow(tr("Hide from lists"), tr("History and balance stay"), form.hidden) { onChange(form.copy(hidden = it)) } }
-            if (credit) {
-                Divider()
-                SwitchSlot { MoneySwitchRow(tr("Bill is auto-paid"), null, form.autoPay) { onChange(form.copy(autoPay = it)) } }
-            }
+    val slot = Modifier.heightIn(min = 58.dp)
+    FListCard(verticalPadding = 4.dp) {
+        MoneySwitchRow(tr("Include in totals"), tr("Counts toward net worth"), form.includeInTotals, slot, LIST_INSET) { onChange(form.copy(includeInTotals = it)) }
+        Divider(LIST_INSET)
+        MoneySwitchRow(tr("Transfers in count as expense"),
+            tr("Turn this on for savings, investments or loans so money moved there shows in your spending."), form.transferAsExpense, slot, LIST_INSET) {
+            onChange(form.copy(transferAsExpense = it))
+        }
+        Divider(LIST_INSET)
+        MoneySwitchRow(tr("Hide from lists"), tr("History and balance stay"), form.hidden, slot, LIST_INSET) { onChange(form.copy(hidden = it)) }
+        if (credit) {
+            Divider(LIST_INSET)
+            MoneySwitchRow(tr("Bill is auto-paid"), null, form.autoPay, slot, LIST_INSET) { onChange(form.copy(autoPay = it)) }
         }
     }
 }
@@ -197,24 +214,32 @@ private fun EditSheetFor(sheet: AccountEditSheet, form: AccountForm, onChange: (
     fun pick(f: AccountForm) { onChange(f); onClose() }
     when (sheet) {
         AccountEditSheet.CURRENCY -> Sheet(tr("Currency"), onClose) {
-            SheetOption(tr("Main currency ({0})", choices.mainFmt.symbol), form.currency == null) { pick(form.copy(currency = null)) }
-            choices.currencies.forEach { c -> SheetOption("${c.code} ${c.symbol}", form.currency == c.code) { pick(form.copy(currency = c.code)) } }
+            SheetOptionGroup {
+                SheetOption(tr("Main currency ({0})", choices.mainFmt.symbol), form.currency == null) { pick(form.copy(currency = null)) }
+                choices.currencies.forEach { c -> SheetOption("${c.code} ${c.symbol}", form.currency == c.code) { pick(form.copy(currency = c.code)) } }
+            }
         }
         AccountEditSheet.PAY_FROM -> Sheet(if (credit) tr("Bill paid from") else tr("Linked bank account"), onClose) {
-            SheetOption(tr("None"), form.paymentAccountId == null) { pick(form.copy(paymentAccountId = null)) }
-            choices.others.filter { !it.hidden || it.id == form.paymentAccountId }.forEach { a ->
-                SheetOption(a.name, a.id == form.paymentAccountId, subtitle = choices.groups.firstOrNull { it.id == a.groupId }?.name) {
-                    pick(form.copy(paymentAccountId = a.id))
+            SheetOptionGroup {
+                SheetOption(tr("None"), form.paymentAccountId == null) { pick(form.copy(paymentAccountId = null)) }
+                choices.others.filter { !it.hidden || it.id == form.paymentAccountId }.forEach { a ->
+                    SheetOption(a.name, a.id == form.paymentAccountId, subtitle = choices.groups.firstOrNull { it.id == a.groupId }?.name) {
+                        pick(form.copy(paymentAccountId = a.id))
+                    }
                 }
             }
         }
         AccountEditSheet.BASIS -> Sheet(tr("Target compared with"), onClose) {
-            SheetOption(tr("Previous month"), form.targetType == 1, subtitle = tr("Last billing cycle's spending")) { pick(form.copy(targetType = 1)) }
-            SheetOption(tr("3 months average"), form.targetType == 2, subtitle = tr("Average of the last three cycles")) { pick(form.copy(targetType = 2)) }
+            SheetOptionGroup {
+                SheetOption(tr("Previous month"), form.targetType == 1, subtitle = tr("Last billing cycle's spending")) { pick(form.copy(targetType = 1)) }
+                SheetOption(tr("3 months average"), form.targetType == 2, subtitle = tr("Average of the last three cycles")) { pick(form.copy(targetType = 2)) }
+            }
         }
     }
 }
 
-@Composable
-private fun SwitchSlot(content: @Composable () -> Unit) =
-    Box(Modifier.fillMaxWidth().heightIn(min = 58.dp), contentAlignment = Alignment.CenterStart) { content() }
+/** Side padding of the list rows (switches, linked account) inside their cards; dividers use the same inset. */
+private val LIST_INSET = 16.dp
+
+/** Space between the fields of the basics card. */
+private val FIELD_GAP = 14.dp

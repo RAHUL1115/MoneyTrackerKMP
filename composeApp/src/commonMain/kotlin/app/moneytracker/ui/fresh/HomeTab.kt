@@ -25,6 +25,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.offset
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,7 +78,7 @@ private fun HomeContent(state: HomeState, entryData: app.moneytracker.ui.EntryLo
             state.days.forEach { day -> RecentDay(day, entryData) }
             Text(tr("See everything in Activity ›"),
                 Modifier.align(Alignment.CenterHorizontally).height(44.dp).clip(F.iconShape).background(F.card)
-                    .clickable { onOpenTab(FreshTab.ACTIVITY) }.padding(horizontal = 20.dp).wrapContentHeight(),
+                    .clickable(role = Role.Button) { onOpenTab(FreshTab.ACTIVITY) }.padding(horizontal = 20.dp).wrapContentHeight(),
                 color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
     }
@@ -120,14 +123,15 @@ private fun SpendingHero(state: HomeState, onOpenTab: (FreshTab) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         // While amounts are hidden, a tap on a figure peeks at them instead of opening its tab.
-        Column(Modifier.fillMaxWidth().clickable(onClick = Privacy.tap { onOpenTab(FreshTab.ACTIVITY) }), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.fillMaxWidth().figureTap(Privacy.tap { onOpenTab(FreshTab.ACTIVITY) }), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(tr("Spent today"), color = F.muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             Text(currency.format(state.spentToday), color = F.ink, fontSize = 34.sp, lineHeight = 42.sp,
                 fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            HeroFigure(tr("Yesterday"), currency.format(state.spentYesterday), Modifier.weight(1f), Privacy.tap { onOpenTab(FreshTab.ACTIVITY) })
-            HeroFigure(tr("{0} so far", tr(actMonthNames[state.month.month - 1])), currency.format(state.monthSpent), Modifier.weight(1f), Privacy.tap { onOpenTab(FreshTab.INSIGHTS) })
+            HeroFigure(tr("Yesterday"), currency.format(state.spentYesterday), Privacy.tap { onOpenTab(FreshTab.ACTIVITY) }, Modifier.weight(1f))
+            HeroFigure(tr("{0} so far", tr(actMonthNames[state.month.month - 1])), currency.format(state.monthSpent), Privacy.tap { onOpenTab(FreshTab.INSIGHTS) },
+                Modifier.weight(1f))
         }
         // The budget line shows once a budget is set; setting one lives on the Budget screen.
         state.budget?.let { BudgetLeft(it, state.daysLeft) }
@@ -138,7 +142,7 @@ private fun SpendingHero(state: HomeState, onOpenTab: (FreshTab) -> Unit) {
 private fun BudgetLeft(budget: BudgetLine, daysLeft: Int) {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    Column(Modifier.fillMaxWidth().clickable(onClick = Privacy.tap { nav.push(Screen.Budget) }), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().figureTap(Privacy.tap { nav.push(Screen.Budget) }), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val left = budget.remaining
         Row {
             Text(if (left >= 0) tr("{0} left in budget", currency.format(left)) else tr("{0} over budget", currency.format(-left)),
@@ -149,9 +153,25 @@ private fun BudgetLeft(budget: BudgetLine, daysLeft: Int) {
     }
 }
 
+/** How far a hero figure's tap highlight reaches past its text on every side. */
+private val FIGURE_TAP_PAD = 8.dp
+
+/**
+ * A hero figure's tap: a rounded highlight [FIGURE_TAP_PAD] larger than the text on every side, without moving
+ * anything. The padding sits inside the clickable, and the layout step hands the same amount back, so the figure
+ * measures and sits exactly where it would without it.
+ */
+private fun Modifier.figureTap(onClick: () -> Unit): Modifier = this
+    .layout { measurable, constraints ->
+        val pad = FIGURE_TAP_PAD.roundToPx()
+        val placeable = measurable.measure(constraints.offset(2 * pad, 2 * pad))
+        layout(placeable.width - 2 * pad, placeable.height - 2 * pad) { placeable.place(-pad, -pad) }
+    }
+    .clip(F.controlShape).clickable(onClick = onClick).padding(FIGURE_TAP_PAD)
+
 @Composable
-private fun HeroFigure(label: String, value: String, modifier: Modifier, onClick: () -> Unit) {
-    Column(modifier.clickable(onClick = onClick), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+private fun HeroFigure(label: String, value: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.figureTap(onClick), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(value, color = F.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1)
     }

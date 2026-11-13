@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,15 +44,15 @@ internal fun AmountEditor(label: String, initial: Long?, onRemove: (() -> Unit)?
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MoneyTextField(label, text, { text = it }, Modifier.weight(1f), keyboard = KeyboardType.Decimal, placeholder = currency.format(0))
             Box(
-                Modifier.height(44.dp).clip(RoundedCornerShape(10.dp)).background(if (enabled) F.accent else F.fill)
-                    .clickable(enabled = enabled) { if (value != null) { if (value == 0L) onRemove?.invoke() else onSave(value) } }.padding(horizontal = 16.dp),
+                Modifier.height(44.dp).clip(F.innerShape).background(if (enabled) F.accent else F.fill)
+                    .clickable(enabled = enabled, role = Role.Button) { if (value != null) { if (value == 0L) onRemove?.invoke() else onSave(value) } }.padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center,
             ) { Text(tr("Save"), color = if (enabled) F.onAccent else F.muted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
         }
         if (link != null || onRemove != null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { link?.invoke() }
             if (onRemove != null) Text(tr("Remove budget"),
-                Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onRemove).padding(horizontal = 10.dp, vertical = 8.dp),
+                Modifier.clip(F.innerShape).clickable(role = Role.Button, onClick = onRemove).padding(horizontal = 10.dp, vertical = 8.dp),
                 color = F.danger, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         }
     }
@@ -76,11 +76,13 @@ internal fun AddBudgetSheet(state: BudgetState, nameOf: (String) -> String, onDi
     }) {
         Text(tr("Applies from {0} onward.", state.month.label()), color = F.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 4.dp))
         if (options.isEmpty()) Text(tr("Every category already has a budget."), color = F.muted, fontSize = 14.sp, modifier = Modifier.padding(vertical = 8.dp))
-        // Three columns of tiles; the picked one gets an accent outline.
-        options.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { c -> CategoryTile(categoryPath(c.id, state.catById), c.name, picked == c.id, Modifier.weight(1f)) { picked = c.id } }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+        // Three columns of tiles; the picked one gets an accent outline. One group of choices for TalkBack.
+        if (options.isNotEmpty()) SheetOptionGroup {
+            options.chunked(3).forEach { row ->
+                Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { c -> CategoryTile(categoryPath(c.id, state.catById), c.name, picked == c.id, Modifier.weight(1f)) { picked = c.id } }
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
             }
         }
         Gap(8.dp)
@@ -90,11 +92,11 @@ internal fun AddBudgetSheet(state: BudgetState, nameOf: (String) -> String, onDi
 
 /** A category in the add-budget sheet: mark and name in a white tile, outlined in the accent when picked. */
 @Composable
-private fun CategoryTile(label: String, markName: String, picked: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
+private fun CategoryTile(label: String, markName: String, picked: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val shape = F.optionShape
     Row(
         modifier.height(48.dp).clip(shape).background(if (picked) F.accentTint else F.card)
-            .border(if (picked) 2.dp else 1.dp, if (picked) F.accent else F.border, shape).clickable(onClick = onClick).padding(horizontal = 8.dp),
+            .border(if (picked) 2.dp else 1.dp, if (picked) F.accent else F.border, shape).choiceTap(picked, Role.RadioButton, onClick).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Mark(markName, 26.dp)

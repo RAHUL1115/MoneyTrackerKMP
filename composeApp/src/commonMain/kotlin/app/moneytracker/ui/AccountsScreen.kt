@@ -31,10 +31,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.AccountSummary
@@ -95,12 +97,14 @@ private fun AccountsTabContent(summary: AccountSummary?) {
 @Composable
 private fun GroupCard(group: AccountGroup, groupLines: List<AccountLine>) {
     val nav = LocalNavigator.current
+    val shown = groupLines.filter { !it.account.hidden }
     Column(Modifier.padding(top = 10.dp).card()) {
         if (group.type.isCreditCard) CardGroupHeader(group, groupLines) else GroupHeader(group, groupLines)
-        groupLines.filter { !it.account.hidden }.forEach { line ->
-            AccountRow(line) { nav.push(Screen.AccountDetail(line.account.id)) }
+        // The last row takes the card's bottom spacing into its highlight.
+        shown.forEachIndexed { i, line ->
+            AccountRow(line, extraBottom = if (i == shown.lastIndex) CARD_BOTTOM else 0.dp) { nav.push(Screen.AccountDetail(line.account.id)) }
         }
-        Spacer(Modifier.height(6.dp))
+        if (shown.isEmpty()) Spacer(Modifier.height(CARD_BOTTOM))
     }
 }
 
@@ -131,10 +135,11 @@ private fun GroupHeader(group: AccountGroup, groupLines: List<AccountLine>) {
 }
 
 @Composable
-private fun AccountRow(line: AccountLine, onClick: () -> Unit) {
+private fun AccountRow(line: AccountLine, extraBottom: Dp, onClick: () -> Unit) {
     val fmt = line.account.currency?.let { LocalCurrencies.current[it]?.format } ?: LocalCurrency.current
     Row(
-        Modifier.fillMaxWidth().background(SurfaceColor).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        // The row's own background stays exactly where it was (it repaints the card's anti-aliased edge); the spacing under it is tap area only.
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(bottom = extraBottom).background(SurfaceColor).padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -185,12 +190,17 @@ private fun CardColumn(label: String, value: String, color: Color = Ink) {
     }
 }
 
+private val OutlineButtonShape = RoundedCornerShape(16.dp)
+
+/** Space under a group card's last account row. */
+private val CARD_BOTTOM = 6.dp
+
 @Composable
 fun SmallOutlineButton(label: String, onClick: () -> Unit) {
     Text(
         label,
-        Modifier.minimumInteractiveComponentSize().border(1.dp, BorderColor, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
+        Modifier.minimumInteractiveComponentSize().border(1.dp, BorderColor, OutlineButtonShape)
+            .clip(OutlineButtonShape).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
         fontSize = 13.sp,
     )
 }
