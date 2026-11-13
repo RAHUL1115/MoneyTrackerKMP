@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -25,11 +27,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.domain.Totals
@@ -108,7 +113,7 @@ private fun WeekdayRow(weekStart: DayOfWeek) {
 private fun MonthGrid(cal: CalendarState, picked: LocalDate, today: LocalDate, onPick: (LocalDate) -> Unit) {
     val range = cal.range
     val cells = generateSequence(cal.firstDay) { it.plus(DatePeriod(days = 1)) }.takeWhile { it <= range.endInclusive }.toList()
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
         cells.chunked(7).forEach { week ->
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 week.forEach { d ->
@@ -131,20 +136,22 @@ private fun RowScope.DayCell(d: LocalDate, cal: CalendarState, on: Boolean, toda
         d == today -> F.accentTint
         else -> Color.Transparent
     }
+    val label = if (d.dayOfMonth == 1 && cal.range.start.dayOfMonth != 1) "${d.dayOfMonth}/${d.monthNumber}" else d.dayOfMonth.toString()
+    val amt = when {
+        out > 0 -> compact(out, currency.decimals)
+        out < 0 -> "+" + compact(-out, currency.decimals)
+        (cal.dayCounts[d] ?: 0) > 0 -> "•"
+        else -> ""
+    }
+    // TalkBack reads the date and the day's amount; the dot (entries that cancel out) is left unsaid.
+    val spoken = listOf("${d.dayOfMonth} ${monthShort(d.monthNumber)}", amt).filter { it.isNotEmpty() && it != "•" }.joinToString(", ")
     Column(
         Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(10.dp)).background(bg)
-            .clickable(onClickLabel = "${d.dayOfMonth} ${monthShort(d.monthNumber)}", onClick = onClick)
+            .selectable(selected = on, onClick = onClick).semantics { contentDescription = spoken }
             .padding(top = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        val label = if (d.dayOfMonth == 1 && cal.range.start.dayOfMonth != 1) "${d.dayOfMonth}/${d.monthNumber}" else d.dayOfMonth.toString()
         Text(label, color = when { on -> F.onAccent; d > today -> F.muted; else -> F.ink }, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        val amt = when {
-            out > 0 -> compact(out, currency.decimals)
-            out < 0 -> "+" + compact(-out, currency.decimals)
-            (cal.dayCounts[d] ?: 0) > 0 -> "•"
-            else -> ""
-        }
         Text(amt, color = when { on -> F.onAccent.copy(alpha = 0.8f); out < 0 -> F.income; out > 0 -> F.expense; else -> F.muted },
             fontSize = 9.5.sp, fontWeight = FontWeight.Medium, maxLines = 1, style = F.money)
     }
@@ -167,19 +174,28 @@ private fun compact(minor: Long, decimals: Int): String {
 
 @Composable
 private fun DayCard(day: LocalDate, today: LocalDate, entries: List<Txn>, lookups: EntryLookups, onAdd: () -> Unit, onOpen: (Txn) -> Unit) {
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(top = 6.dp, bottom = 10.dp)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(42.dp), verticalAlignment = Alignment.CenterVertically) {
-                val label = (if (day == today) tr("Today") + ", " else day.weekday() + " ") + "${day.dayOfMonth} ${tr(actMonthNames[day.monthNumber - 1])}"
-                Text(label, Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text(tr("+ Add on this day"), Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onAdd).padding(6.dp),
-                    color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            }
-            if (entries.isEmpty()) Text(tr("Nothing recorded on this day."), Modifier.padding(horizontal = 16.dp).padding(top = 6.dp, bottom = 4.dp), color = F.muted, fontSize = 13.sp)
-            entries.forEach { t ->
-                Divider(16.dp)
-                ActEntryRow(t, lookups, compact = true, inset = 16.dp) { onOpen(t) }
-            }
+    // The card's bottom space goes inside the last row, so that row's tap highlight reaches the card's edge.
+    FListCard {
+        Gap(6.dp)
+        Row(Modifier.fillMaxWidth().padding(horizontal = DAY_INSET).height(42.dp), verticalAlignment = Alignment.CenterVertically) {
+            val label = (if (day == today) tr("Today") + ", " else day.weekday() + " ") + "${day.dayOfMonth} ${tr(actMonthNames[day.monthNumber - 1])}"
+            Text(label, Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(tr("+ Add on this day"), Modifier.clip(F.tagShape).clickable(role = Role.Button, onClick = onAdd).padding(6.dp),
+                color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        }
+        if (entries.isEmpty()) {
+            Text(tr("Nothing recorded on this day."), Modifier.padding(horizontal = DAY_INSET).padding(top = 6.dp, bottom = 4.dp + DAY_CARD_BOTTOM),
+                color = F.muted, fontSize = 13.sp)
+        }
+        entries.forEachIndexed { i, t ->
+            Divider(DAY_INSET)
+            ActEntryRow(t, lookups, compact = true, inset = DAY_INSET, extraBottom = if (i == entries.lastIndex) DAY_CARD_BOTTOM else 0.dp) { onOpen(t) }
         }
     }
 }
+
+/** Side padding of the day card's header, rows and dividers. */
+private val DAY_INSET = 16.dp
+
+/** Space between the day card's last line and its bottom edge. */
+private val DAY_CARD_BOTTOM = 10.dp

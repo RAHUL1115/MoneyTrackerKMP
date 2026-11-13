@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +54,12 @@ import app.moneytracker.ui.rememberMonthsModel
 import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
 
+/** Side padding of a month row's content and of the dividers between months. */
+private val MONTH_INSET = 14.dp
+
+/** Where a week row's content and its dashed divider start: indented under the month's name. */
+private val WEEK_START = MONTH_INSET + 16.dp
+
 /** The year's months (each opening into weeks) under a TOTAL card for the picked month. */
 @Composable
 internal fun ActivityMonthsView(activity: ActivityModel, onOpenList: (YearMonth) -> Unit, onPickMonth: () -> Unit) {
@@ -69,16 +76,14 @@ internal fun ActivityMonthsView(activity: ActivityModel, onOpenList: (YearMonth)
     ) {
         YearHeader(ym, rollup.totals, onStep = activity::stepMonths, onPickMonth = onPickMonth)
         MonthTotal(ym, month)
-        FCard(padding = 0.dp) {
-            Column(Modifier.padding(horizontal = 14.dp)) {
-                rollup.months.forEachIndexed { i, mr ->
-                    if (i > 0) Divider()
-                    val m = mr.month.month
-                    MonthLine(mr, picked = m == ym.month, now = mr.month == period.periods.labelFor(today), isOpen = open == m) {
-                        activity.showMonth(mr.month); open = if (open == m) 0 else m
-                    }
-                    if (open == m) Weeks(mr, today) { onOpenList(mr.month) }
+        FListCard {
+            rollup.months.forEachIndexed { i, mr ->
+                if (i > 0) Divider(MONTH_INSET)
+                val m = mr.month.month
+                MonthLine(mr, picked = m == ym.month, now = mr.month == period.periods.labelFor(today), isOpen = open == m) {
+                    activity.showMonth(mr.month); open = if (open == m) 0 else m
                 }
+                if (open == m) Weeks(mr, today) { onOpenList(mr.month) }
             }
         }
     }
@@ -104,7 +109,7 @@ private fun MonthLine(mr: MonthRollup, picked: Boolean, now: Boolean, isOpen: Bo
     val currency = LocalCurrency.current
     val mt = mr.totals
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClick = onClick),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 56.dp).padding(horizontal = MONTH_INSET),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(Modifier.width(6.dp).height(32.dp).clip(RoundedCornerShape(999.dp)).background(if (picked) F.accent else Color.Transparent))
@@ -121,15 +126,17 @@ private fun MonthLine(mr: MonthRollup, picked: Boolean, now: Boolean, isOpen: Bo
     }
 }
 
+/** An open month's weeks, indented under it; the space under the last week sits inside its tap highlight. */
 @Composable
 private fun Weeks(mr: MonthRollup, today: LocalDate, onClick: () -> Unit) {
     val currency = LocalCurrency.current
-    Column(Modifier.padding(start = 16.dp, bottom = 10.dp)) {
-        mr.weeks.forEach { (w, wt) ->
+    Column {
+        mr.weeks.forEachIndexed { i, (w, wt) ->
             val ahead = w.start > today
-            DashedDivider()
+            DashedDivider(Modifier.padding(start = WEEK_START, end = MONTH_INSET))
             Row(
-                Modifier.fillMaxWidth().heightIn(min = 36.dp).clickable(onClick = onClick),
+                Modifier.fillMaxWidth().clickable(onClick = onClick).padding(bottom = if (i == mr.weeks.lastIndex) 10.dp else 0.dp)
+                    .heightIn(min = 36.dp).padding(start = WEEK_START, end = MONTH_INSET),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 val label = if (w.start == w.endInclusive) "${w.start.dayOfMonth} ${monthShort(w.start.monthNumber)}"
@@ -160,7 +167,8 @@ private fun MonthTotal(ym: YearMonth, m: MonthTotals) {
                 Text(ym.actLongLabel(), color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
             }
             Row(
-                Modifier.height(36.dp).clip(RoundedCornerShape(12.dp)).background(F.page).clickable(onClickLabel = tr("Export data to Excel")) { fileTransfer.exportExcel() }
+                Modifier.height(36.dp).clip(F.controlShape).background(F.page)
+                    .clickable(onClickLabel = tr("Export data to Excel"), role = Role.Button) { fileTransfer.exportExcel() }
                     .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
@@ -225,9 +233,9 @@ private fun LastMonthLine(ym: YearMonth, expense: Long, prevExpense: Long) {
 
 /** Hairline between weeks, dashed so it reads lighter than the month dividers. */
 @Composable
-private fun DashedDivider() {
+private fun DashedDivider(modifier: Modifier) {
     val color = F.border
-    Canvas(Modifier.fillMaxWidth().height(1.dp)) {
+    Canvas(modifier.fillMaxWidth().height(1.dp)) {
         drawLine(color, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), strokeWidth = size.height,
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
     }
