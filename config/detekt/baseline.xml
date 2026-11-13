@@ -66,7 +66,6 @@
     <ID>LoopWithTooManyJumpStatements:SmsParser.kt$SmsParser$for</ID>
     <ID>MatchingDeclarationName:FreshApp.kt$FreshTab</ID>
     <ID>MatchingDeclarationName:Glyphs.kt$Glyph</ID>
-    <ID>MatchingDeclarationName:MessageScreens.kt$SmsHealth</ID>
     <ID>MemberNameEqualsClassName:Glyphs.kt$Glyph$private fun glyph(name: String, vararg paths: String, width: Float = 1.8f): ImageVector</ID>
     <ID>MemberNameEqualsClassName:Log.kt$Log$fun log(level: Level, tag: String, error: Throwable?, message: () -&gt; String)</ID>
     <ID>NestedBlockDepth:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>

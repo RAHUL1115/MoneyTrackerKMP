@@ -20,54 +20,18 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.Prefs
 import app.moneytracker.domain.MessageRules
-
-/** Whether detection can run (SMS permission) and how the phone treats the app in the background; re-checked while shown. */
-internal data class SmsHealth(val permission: Boolean, val background: BackgroundState)
-
-@Composable
-internal fun rememberSmsHealth(): SmsHealth {
-    val backgroundJobs = LocalPlatform.current.backgroundJobs
-    val messageCapture = LocalPlatform.current.messageCapture
-    var health by remember { mutableStateOf(SmsHealth(messageCapture.messagePermissionGranted(), backgroundJobs.backgroundState())) }
-    // No lifecycle hook in common code: a cheap re-check picks up changes made in the phone's settings.
-    LaunchedEffect(messageCapture, backgroundJobs) {
-        while (true) {
-            kotlinx.coroutines.delay(1500)
-            health = SmsHealth(messageCapture.messagePermissionGranted(), backgroundJobs.backgroundState())
-        }
-    }
-    return health
-}
-
-private val autostartMakers = listOf("vivo", "iqoo", "xiaomi", "redmi", "poco", "oppo", "realme", "oneplus", "huawei", "honor", "letv")
-
-/** Android 13+ blocks SMS permissions for apps installed outside a store until "restricted settings" are allowed. */
-internal fun smsPermissionSteps(): String =
-    tr("If Android says it's a restricted setting (common when installed from GitHub): open Settings › Apps › MoneyTracker, tap ⋮ › Allow restricted settings, then allow SMS under Permissions.")
-
-/** Makers with their own autostart manager that the app knows how to open. */
-internal fun hasAutostartManager(maker: String) = autostartMakers.any { it in maker }
-
-/** Where this phone keeps the switches that let MoneyTracker start when an SMS arrives. */
-internal fun backgroundSteps(maker: String): String = when {
-    listOf("vivo", "iqoo").any { it in maker } -> tr("Settings › Battery › Background power consumption management › MoneyTracker › Allow. Then turn on MoneyTracker in Autostart (Settings › Apps › Autostart, or i Manager › App manager).")
-    listOf("xiaomi", "redmi", "poco").any { it in maker } -> tr("Turn on Autostart for MoneyTracker, then set Battery saver to No restrictions (Settings › Apps › Manage apps › MoneyTracker).")
-    listOf("oppo", "realme", "oneplus").any { it in maker } -> tr("Settings › Apps › MoneyTracker › Battery: allow background activity and auto launch.")
-    "samsung" in maker -> tr("Settings › Battery › Background usage limits: make sure MoneyTracker isn't under Sleeping or Deep sleeping apps. In app info, set Battery to Unrestricted.")
-    listOf("huawei", "honor").any { it in maker } -> tr("Settings › Battery › App launch › MoneyTracker: choose Manage manually and turn everything on.")
-    else -> tr("Settings › Apps › MoneyTracker › Battery › Unrestricted.")
-}
 
 /** Explains why detection can be late and opens the right settings page. Shared by both layouts. */
 @Composable
@@ -96,26 +60,17 @@ internal fun KeepRunningDialog(health: SmsHealth, onDismiss: () -> Unit) {
     )
 }
 
-/** The SMS settings classic draws, read live. */
-private class SmsSettingValues(
-    val alert: Boolean,
-    val autoSave: Boolean,
-    val showOriginal: SmsOriginal,
-    val blockedSenders: String,
-    val blockedPhrases: String,
-    val contentFilter: String,
-    val days: Int,
-)
-
-@Composable
-private fun rememberSmsSettingValues() = SmsSettingValues(
-    alert = rememberSetting(Prefs.SMS_ALERT).value,
-    autoSave = rememberSetting(Prefs.SMS_AUTO_SAVE).value,
-    showOriginal = rememberSetting(Prefs.SMS_SHOW_ORIGINAL).value,
-    blockedSenders = rememberSetting(Prefs.SMS_BLOCKED_SENDERS).value,
-    blockedPhrases = rememberSetting(Prefs.SMS_BLOCKED_PHRASES).value,
-    contentFilter = rememberSetting(Prefs.SMS_CONTENT_FILTER).value,
-    days = rememberSetting(Prefs.SMS_IMPORT_DAYS).value,
+/** What classic Bank SMS settings asks for: its holder's saves plus the phone's SMS controls. */
+private class SmsSettingActions(
+    /** Turns detection on or off through the phone; the stored switch follows what the phone allowed. */
+    val setCapture: (Boolean) -> Unit,
+    val setAlert: (Boolean) -> Unit,
+    val setAutoSave: (Boolean) -> Unit,
+    val setShowOriginal: (SmsOriginal) -> Unit,
+    val setImportDays: (Int) -> Unit,
+    /** Reads the inbox; the callback gets how many messages were added, or null without SMS permission. */
+    val importInbox: ((Int?) -> Unit) -> Unit,
+    val saveFilter: (TextSetting, String) -> Unit,
 )
 
 /** The dialog classic Bank SMS settings has open. */
@@ -132,55 +87,67 @@ private sealed interface SmsDialog {
 /** SMS settings: detection switches, block lists, the content filter and inbox import. */
 @Composable
 fun MessageSettingsScreen() {
+    val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val model = rememberSettingsModel()
-    val v = rememberSmsSettingValues()
-    val captureSetting by rememberSetting(Prefs.CAPTURE_ENABLED)
-    var dialog by remember { mutableStateOf<SmsDialog?>(null) }
+    val messageCapture = LocalPlatform.current.messageCapture
+    val scope = rememberCoroutineScope()
+    val model = remember(repo) { MessageSettingsModel(repo.settingsStore, repo.captureStore, repo.io, scope) }
+    val state by model.state.collectAsState()
     val health = rememberSmsHealth()
-    val capture = captureSetting && health.permission
-
-    Column(Modifier.fillMaxSize()) {
-        BackTopBar(tr("Bank SMS"), nav::pop)
-        HorizontalDivider(color = DividerColor)
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            SmsSection(v, capture, health, model) { dialog = it }
-            SmsFilters(v) { dialog = it }
-            Spacer(Modifier.height(24.dp))
-        }
-    }
-    dialog?.let { d -> SmsSettingDialog(d, v, health, model) { dialog = null } }
+    val actions = SmsSettingActions(
+        setCapture = { on -> messageCapture.setMessageCapture(on) { active -> model.put(Prefs.CAPTURE_ENABLED, active) } },
+        setAlert = { model.put(Prefs.SMS_ALERT, it) },
+        setAutoSave = { model.put(Prefs.SMS_AUTO_SAVE, it) },
+        setShowOriginal = { model.put(Prefs.SMS_SHOW_ORIGINAL, it) },
+        setImportDays = { model.put(Prefs.SMS_IMPORT_DAYS, it) },
+        importInbox = { onDone -> messageCapture.importInboxMessages(state.switches.importDays, onDone) },
+        saveFilter = model::saveFilter,
+    )
+    MessageSettingsContent(state, health, onBack = nav::pop, actions)
 }
 
 @Composable
-private fun SmsSection(v: SmsSettingValues, capture: Boolean, health: SmsHealth, model: SettingsModel, open: (SmsDialog) -> Unit) {
-    val messageCapture = LocalPlatform.current.messageCapture
+private fun MessageSettingsContent(state: MessageSettingsState, health: SmsHealth, onBack: () -> Unit, actions: SmsSettingActions) {
+    var dialog by remember { mutableStateOf<SmsDialog?>(null) }
+    val capture = state.switches.captureEnabled && health.permission
+    Column(Modifier.fillMaxSize()) {
+        BackTopBar(tr("Bank SMS"), onBack)
+        HorizontalDivider(color = DividerColor)
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            SmsSection(state.switches, capture, health, actions) { dialog = it }
+            SmsFilterRows(state.filters) { dialog = it }
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+    dialog?.let { d -> SmsSettingDialog(d, state, health, actions) { dialog = null } }
+}
+
+@Composable
+private fun SmsSection(v: SmsSwitches, capture: Boolean, health: SmsHealth, actions: SmsSettingActions, open: (SmsDialog) -> Unit) {
     val originalLabel = when (v.showOriginal) { SmsOriginal.OFF -> tr("Hide"); SmsOriginal.WHILE_EDITING -> tr("Show only while editing"); SmsOriginal.KEEP -> tr("Show") }
     ConfigSection(tr("SMS"))
     ConfigToggle(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture) { on ->
-        val apply = { messageCapture.setMessageCapture(on) { active -> model.save(Prefs.CAPTURE_ENABLED, active) } }
+        val apply = { actions.setCapture(on) }
         if (on) open(SmsDialog.Disclosure(apply)) else apply()
     }
     if (!health.permission) Text(smsPermissionSteps(), Modifier.padding(horizontal = 28.dp, vertical = 8.dp), fontSize = 12.sp, color = SubtleText)
     if (capture) ConfigRow(tr("Keep detection running"), if (health.background.restricted) tr("Restricted") else tr("Check")) { open(SmsDialog.KeepRunning) }
-    ConfigToggle(tr("Alert for detected messages"), null, v.alert) { model.save(Prefs.SMS_ALERT, it) }
-    ConfigToggle(tr("Save automatically"), tr("Add the entry right away when the account is recognised. A guessed usual account, or no account, waits for your review"), v.autoSave) {
-        model.save(Prefs.SMS_AUTO_SAVE, it)
-    }
+    ConfigToggle(tr("Alert for detected messages"), null, v.alert, actions.setAlert)
+    ConfigToggle(tr("Save automatically"), tr("Add the entry right away when the account is recognised. A guessed usual account, or no account, waits for your review"), v.autoSave, actions.setAutoSave)
     ConfigRow(tr("Original message on entries"), originalLabel) { open(SmsDialog.Original) }
-    ConfigRow(tr("Import SMS from the last {0} days", v.days), tr("Import")) {
+    ConfigRow(tr("Import SMS from the last {0} days", v.importDays), tr("Import")) {
         val import = {
-            messageCapture.importInboxMessages(v.days) { n ->
+            actions.importInbox { n ->
                 open(SmsDialog.Message(when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages to Detected SMS", n) }))
             }
         }
         if (capture) import() else open(SmsDialog.Disclosure(import))
     }
-    ConfigRow(tr("Days to import"), "${v.days}") { open(SmsDialog.Days) }
+    ConfigRow(tr("Days to import"), "${v.importDays}") { open(SmsDialog.Days) }
 }
 
 @Composable
-private fun SmsFilters(v: SmsSettingValues, open: (SmsDialog) -> Unit) {
+private fun SmsFilterRows(v: SmsFilters, open: (SmsDialog) -> Unit) {
     fun count(text: String?) = MessageRules.lines(text).size.let { if (it == 0) tr("None") else "$it" }
     ConfigSection(tr("Filters"))
     ConfigRow(tr("Blocked numbers"), count(v.blockedSenders)) { open(SmsDialog.EditList(Prefs.SMS_BLOCKED_SENDERS, tr("Blocked numbers"))) }
@@ -192,7 +159,7 @@ private fun SmsFilters(v: SmsSettingValues, open: (SmsDialog) -> Unit) {
 }
 
 @Composable
-private fun SmsSettingDialog(d: SmsDialog, v: SmsSettingValues, health: SmsHealth, model: SettingsModel, close: () -> Unit) {
+private fun SmsSettingDialog(d: SmsDialog, state: MessageSettingsState, health: SmsHealth, actions: SmsSettingActions, close: () -> Unit) {
     when (d) {
         is SmsDialog.Disclosure -> DisclosureDialog(tr("Detect bank SMS"),
             tr("MoneyTracker reads SMS from banks and card issuers on this phone to suggest income and expense entries. " +
@@ -204,11 +171,12 @@ private fun SmsSettingDialog(d: SmsDialog, v: SmsSettingValues, health: SmsHealt
             confirmButton = { TextButton(onClick = close) { Text(tr("OK")) } })
         SmsDialog.Original -> ChoiceDialog(tr("Original message on entries"),
             listOf(SmsOriginal.KEEP to tr("Show"), SmsOriginal.OFF to tr("Hide"), SmsOriginal.WHILE_EDITING to tr("Show only while editing")).map { (o, label) -> o.name to label },
-            close) { model.save(Prefs.SMS_SHOW_ORIGINAL, SmsOriginal.valueOf(it)); close() }
-        SmsDialog.Days -> ImportDaysDialog(v.days, close) { model.save(Prefs.SMS_IMPORT_DAYS, it) }
+            close) { actions.setShowOriginal(SmsOriginal.valueOf(it)); close() }
+        SmsDialog.Days -> ImportDaysDialog(state.switches.importDays, close, actions.setImportDays)
         is SmsDialog.EditList -> {
-            val current = when (d.key) { Prefs.SMS_BLOCKED_SENDERS -> v.blockedSenders; Prefs.SMS_BLOCKED_PHRASES -> v.blockedPhrases; else -> v.contentFilter }
-            LinesDialog(d.title, current, close) { model.save(d.key, MessageRules.lines(it).joinToString("\n")) }
+            val f = state.filters
+            val current = when (d.key) { Prefs.SMS_BLOCKED_SENDERS -> f.blockedSenders; Prefs.SMS_BLOCKED_PHRASES -> f.blockedPhrases; else -> f.contentFilter }
+            LinesDialog(d.title, current, close) { actions.saveFilter(d.key, it) }
         }
     }
 }
