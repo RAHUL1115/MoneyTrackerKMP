@@ -22,15 +22,7 @@
     <ID>ComplexCondition:SmsParser.kt$SmsParser$cleaned.length &lt; 2 || cleaned.all { it.isDigit() || it == 'x' || it == 'X' || it == '*' }</ID>
     <ID>ComplexCondition:TabularImport.kt$TabularImport$v.any { it == ',' || it == '"' || it == '\n' || it == '\r' }</ID>
     <ID>ComplexCondition:WebApi.kt$WebApi.Companion$ip.isEmpty() || ip.any { !(it.isLetterOrDigit() || it == '.' || it == ':' || it == '%') }</ID>
-    <ID>CyclomaticComplexMethod:AccountDetailScreen.kt$@Composable private fun AdjustSheet(line: AccountLine, fmt: CurrencyFormat, onDismiss: () -&gt; Unit)</ID>
-    <ID>CyclomaticComplexMethod:AccountDetailScreen.kt$@Composable private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List&lt;Txn&gt;, today: LocalDate)</ID>
-    <ID>CyclomaticComplexMethod:AccountDetailScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable internal fun AccountDetailBody(accountId: String)</ID>
-    <ID>CyclomaticComplexMethod:AccountDetailScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable private fun PaySheet(line: AccountLine, fmt: CurrencyFormat, today: LocalDate, onDismiss: () -&gt; Unit)</ID>
-    <ID>CyclomaticComplexMethod:AccountEditScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable internal fun AccountEditBody(accountId: String?)</ID>
     <ID>CyclomaticComplexMethod:AccountPredictor.kt$AccountPredictor$fun rank(history: List&lt;Past&gt;, ask: Ask, allowed: Set&lt;String&gt;? = null): List&lt;Pair&lt;String, Double&gt;&gt;</ID>
-    <ID>CyclomaticComplexMethod:AccountsScreen.kt$@Composable fun AccountDetailScreen(accountId: String)</ID>
-    <ID>CyclomaticComplexMethod:AccountsScreen.kt$@Composable fun AccountsTab()</ID>
-    <ID>CyclomaticComplexMethod:AccountsScreen.kt$@Composable fun EditAccountScreen(accountId: String?)</ID>
     <ID>CyclomaticComplexMethod:ActivityCalendar.kt$@Composable internal fun ActivityCalendarView( ym: YearMonth, range: DateRange, weekStart: DayOfWeek, onPrev: () -&gt; Unit, onNext: () -&gt; Unit, onPickMonth: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:ActivityMonths.kt$@Composable internal fun ActivityMonthsView( ym: YearMonth, ps: PeriodSettings, onPick: (YearMonth) -&gt; Unit, onOpenList: (YearMonth) -&gt; Unit, onPickMonth: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:ActivityTab.kt$@Composable internal fun ActivityTab()</ID>
@@ -61,9 +53,6 @@
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$private fun etcRows(s: Map&lt;String, String&gt;): List&lt;Triple&lt;Int, String, String&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
-    <ID>CyclomaticComplexMethod:MoneyTab.kt$@Composable internal fun MoneyTab()</ID>
-    <ID>CyclomaticComplexMethod:MoneyTab.kt$@Composable private fun AccountRow(l: AccountLine, today: LocalDate)</ID>
-    <ID>CyclomaticComplexMethod:MoneyTab.kt$@Composable private fun ManageSheet(lines: List&lt;AccountLine&gt;, onDismiss: () -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:MoreScreen.kt$@Composable fun BackupScreen()</ID>
     <ID>CyclomaticComplexMethod:MoreScreen.kt$@Composable fun CategoriesScreen(initialKind: CategoryKind)</ID>
     <ID>CyclomaticComplexMethod:MoreScreen.kt$@Composable fun ConfigurationScreen()</ID>
@@ -118,16 +107,6 @@
     <ID>ForEachOnRange:SecurityScreens.kt$0..3</ID>
     <ID>ForEachOnRange:TransactionsScreen.kt$(0 until 7).map { DayOfWeek.entries[(weekStart.ordinal + it) % 7] }</ID>
     <ID>LongMethod:AboutScreen.kt$@Composable fun AboutScreen()</ID>
-    <ID>LongMethod:AccountDetailScreen.kt$@Composable private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List&lt;Txn&gt;, today: LocalDate)</ID>
-    <ID>LongMethod:AccountDetailScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable internal fun AccountDetailBody(accountId: String)</ID>
-    <ID>LongMethod:AccountDetailScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable private fun PaySheet(line: AccountLine, fmt: CurrencyFormat, today: LocalDate, onDismiss: () -&gt; Unit)</ID>
-    <ID>LongMethod:AccountEditScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable internal fun AccountEditBody(accountId: String?)</ID>
-    <ID>LongMethod:AccountsScreen.kt$@Composable fun AccountDetailScreen(accountId: String)</ID>
-    <ID>LongMethod:AccountsScreen.kt$@Composable fun AccountGroupsScreen()</ID>
-    <ID>LongMethod:AccountsScreen.kt$@Composable fun AccountListScreen()</ID>
-    <ID>LongMethod:AccountsScreen.kt$@Composable fun AccountsTab()</ID>
-    <ID>LongMethod:AccountsScreen.kt$@Composable fun AccountsTrendScreen()</ID>
-    <ID>LongMethod:AccountsScreen.kt$@Composable fun EditAccountScreen(accountId: String?)</ID>
     <ID>LongMethod:ActivityCalendar.kt$@Composable internal fun ActivityCalendarView( ym: YearMonth, range: DateRange, weekStart: DayOfWeek, onPrev: () -&gt; Unit, onNext: () -&gt; Unit, onPickMonth: () -&gt; Unit, )</ID>
     <ID>LongMethod:ActivityMonths.kt$@Composable internal fun ActivityMonthsView( ym: YearMonth, ps: PeriodSettings, onPick: (YearMonth) -&gt; Unit, onOpenList: (YearMonth) -&gt; Unit, onPickMonth: () -&gt; Unit, )</ID>
     <ID>LongMethod:ActivityMonths.kt$@Composable private fun MonthTotal(ym: YearMonth, ps: PeriodSettings)</ID>
@@ -163,10 +142,6 @@
     <ID>LongMethod:MessageScreens.kt$@Composable fun MessageSettingsScreen()</ID>
     <ID>LongMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>LongMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
-    <ID>LongMethod:MoneyTab.kt$@Composable /** Tapping the card opens or closes the last six months of net worth. */ private fun NetWorthHero(net: Long, assets: Long, liabilities: Long, trendOn: Boolean, onToggle: () -&gt; Unit)</ID>
-    <ID>LongMethod:MoneyTab.kt$@Composable internal fun MoneyTab()</ID>
-    <ID>LongMethod:MoneyTab.kt$@Composable private fun AccountRow(l: AccountLine, today: LocalDate)</ID>
-    <ID>LongMethod:MoneyTab.kt$@Composable private fun ManageSheet(lines: List&lt;AccountLine&gt;, onDismiss: () -&gt; Unit)</ID>
     <ID>LongMethod:MoreScreen.kt$@Composable fun BackupScreen()</ID>
     <ID>LongMethod:MoreScreen.kt$@Composable fun CategoriesScreen(initialKind: CategoryKind)</ID>
     <ID>LongMethod:MoreScreen.kt$@Composable fun ConfigurationScreen()</ID>
