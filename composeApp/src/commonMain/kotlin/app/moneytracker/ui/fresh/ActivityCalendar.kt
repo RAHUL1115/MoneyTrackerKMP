@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,51 +32,37 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.domain.DateRange
-import app.moneytracker.domain.YearMonth
-import app.moneytracker.domain.totals
+import app.moneytracker.domain.Totals
+import app.moneytracker.domain.Txn
+import app.moneytracker.ui.ActivityModel
+import app.moneytracker.ui.CalendarState
+import app.moneytracker.ui.EntryLookups
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.monthShort
-import app.moneytracker.ui.rememberFilteredRows
-import app.moneytracker.ui.rememberFilteredTxns
+import app.moneytracker.ui.rememberCalendarModel
 import app.moneytracker.ui.tr
 import app.moneytracker.ui.weekday
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 
 private val weekdayShort = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
 /** Month grid with each day's spending; the picked day's entries below it. */
 @Composable
-internal fun ActivityCalendarView(
-    ym: YearMonth,
-    range: DateRange,
-    weekStart: DayOfWeek,
-    onPrev: () -> Unit,
-    onNext: () -> Unit,
-    onPickMonth: () -> Unit,
-) {
-    val repo = LocalRepo.current
+internal fun ActivityCalendarView(activity: ActivityModel, onPickMonth: () -> Unit) {
     val nav = LocalNavigator.current
-    val currency = LocalCurrency.current
-    val today = repo.today()
-    val rows by rememberFilteredRows(range)
-    val t = totals(rows)
-    val byDay = rows.groupBy { it.date }.mapValues { totals(it.value) }
-    val counts = rows.groupingBy { it.date }.eachCount()
-    var picked by rememberSaveable(ym.key) { mutableStateOf((if (today in range) today else range.start).toEpochDays()) }
+    val today = LocalRepo.current.today()
+    val model = rememberCalendarModel(activity)
+    val period by activity.state.collectAsState()
+    val cal by model.state.collectAsState()
+    val range = period.range
+    var picked by rememberSaveable(period.period.key) { mutableStateOf((if (today in range) today else range.start).toEpochDays()) }
     val day = LocalDate.fromEpochDays(picked)
-
-    var first = range.start
-    while (first.dayOfWeek != weekStart) first = first.minus(DatePeriod(days = 1))
-    val cells = generateSequence(first) { it.plus(DatePeriod(days = 1)) }.takeWhile { it <= range.endInclusive }.toList()
-
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter).padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -82,57 +70,83 @@ internal fun ActivityCalendarView(
         FCard(padding = 0.dp) { Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 14.dp)) {
             // Arrows sit at the card's edges; the month and its totals in the middle.
             Box(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-                ActPeriodSwitch(ym.actLongLabel(), onPrev, onNext, onPickMonth, tile = true, minWidth = 150) {
-                    Text(buildAnnotatedString {
-                        append(tr("Out") + " ")
-                        withStyle(SpanStyle(color = F.ink, fontWeight = FontWeight.SemiBold)) { append(currency.format(t.expense)) }
-                        append(" · " + tr("In") + " ")
-                        withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.SemiBold)) { append(currency.format(t.income)) }
-                    }, color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, style = F.money)
+                ActPeriodSwitch(period.period.actLongLabel(), { activity.stepMonths(-1) }, { activity.stepMonths(1) }, onPickMonth, tile = true, minWidth = 150) {
+                    OutIn(cal.totals)
                 }
             }
             Gap(8.dp)
-            Row(Modifier.fillMaxWidth()) {
-                (0 until 7).map { DayOfWeek.entries[(weekStart.ordinal + it) % 7] }.forEach { dow ->
-                    Text(tr(weekdayShort[dow.ordinal]), Modifier.weight(1f), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
-                }
-            }
+            WeekdayRow(cal.weekStart)
             Gap(6.dp)
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                cells.chunked(7).forEach { week ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        week.forEach { d ->
-                            if (d !in range) Box(Modifier.weight(1f).height(46.dp))
-                            else {
-                                val on = d == day
-                                val dt = byDay[d]
-                                val out = dt?.let { it.expense - it.income } ?: 0L
-                                val bg = when { on -> F.accent; d == today -> F.accentTint; else -> Color.Transparent }
-                                Column(
-                                    Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(10.dp)).background(bg)
-                                        .clickable(onClickLabel = "${d.dayOfMonth} ${monthShort(d.monthNumber)}") { picked = d.toEpochDays() }
-                                        .padding(top = 4.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp),
-                                ) {
-                                    val label = if (d.dayOfMonth == 1 && range.start.dayOfMonth != 1) "${d.dayOfMonth}/${d.monthNumber}" else d.dayOfMonth.toString()
-                                    Text(label, color = when { on -> F.onAccent; d > today -> F.muted; else -> F.ink }, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                                    val amt = when {
-                                        out > 0 -> compact(out, currency.decimals)
-                                        out < 0 -> "+" + compact(-out, currency.decimals)
-                                        (counts[d] ?: 0) > 0 -> "•"
-                                        else -> ""
-                                    }
-                                    Text(amt, color = when { on -> F.onAccent.copy(alpha = 0.8f); out < 0 -> F.income; out > 0 -> F.expense; else -> F.muted },
-                                        fontSize = 9.5.sp, fontWeight = FontWeight.Medium, maxLines = 1, style = F.money)
-                                }
-                            }
-                        }
-                        repeat(7 - week.size) { Box(Modifier.weight(1f)) }
-                    }
-                }
-            }
+            MonthGrid(cal, day, today) { picked = it.toEpochDays() }
         } }
-        DayCard(day, today, onAdd = { nav.push(Screen.EditTxn(date = day)) })
+        DayCard(day, today, cal.entriesOn(day), cal.lookups, onAdd = { nav.push(Screen.EditTxn(date = day)) }) { nav.push(Screen.EditTxn(txnId = it.id)) }
+    }
+}
+
+@Composable
+private fun OutIn(t: Totals) {
+    val currency = LocalCurrency.current
+    Text(buildAnnotatedString {
+        append(tr("Out") + " ")
+        withStyle(SpanStyle(color = F.ink, fontWeight = FontWeight.SemiBold)) { append(currency.format(t.expense)) }
+        append(" · " + tr("In") + " ")
+        withStyle(SpanStyle(color = F.income, fontWeight = FontWeight.SemiBold)) { append(currency.format(t.income)) }
+    }, color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, style = F.money)
+}
+
+@Composable
+private fun WeekdayRow(weekStart: DayOfWeek) {
+    Row(Modifier.fillMaxWidth()) {
+        List(7) { DayOfWeek.entries[(weekStart.ordinal + it) % 7] }.forEach { dow ->
+            Text(tr(weekdayShort[dow.ordinal]), Modifier.weight(1f), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+/** The month's days in weeks from the week-start day; days outside the month stay empty. */
+@Composable
+private fun MonthGrid(cal: CalendarState, picked: LocalDate, today: LocalDate, onPick: (LocalDate) -> Unit) {
+    val range = cal.range
+    val cells = generateSequence(cal.firstDay) { it.plus(DatePeriod(days = 1)) }.takeWhile { it <= range.endInclusive }.toList()
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        cells.chunked(7).forEach { week ->
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                week.forEach { d ->
+                    if (d !in range) Box(Modifier.weight(1f).height(46.dp))
+                    else DayCell(d, cal, on = d == picked, today = today) { onPick(d) }
+                }
+                repeat(7 - week.size) { Box(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.DayCell(d: LocalDate, cal: CalendarState, on: Boolean, today: LocalDate, onClick: () -> Unit) {
+    val currency = LocalCurrency.current
+    val dt = cal.dayTotals[d]
+    val out = dt?.let { it.expense - it.income } ?: 0L
+    val bg = when {
+        on -> F.accent
+        d == today -> F.accentTint
+        else -> Color.Transparent
+    }
+    Column(
+        Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(10.dp)).background(bg)
+            .clickable(onClickLabel = "${d.dayOfMonth} ${monthShort(d.monthNumber)}", onClick = onClick)
+            .padding(top = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        val label = if (d.dayOfMonth == 1 && cal.range.start.dayOfMonth != 1) "${d.dayOfMonth}/${d.monthNumber}" else d.dayOfMonth.toString()
+        Text(label, color = when { on -> F.onAccent; d > today -> F.muted; else -> F.ink }, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        val amt = when {
+            out > 0 -> compact(out, currency.decimals)
+            out < 0 -> "+" + compact(-out, currency.decimals)
+            (cal.dayCounts[d] ?: 0) > 0 -> "•"
+            else -> ""
+        }
+        Text(amt, color = when { on -> F.onAccent.copy(alpha = 0.8f); out < 0 -> F.income; out > 0 -> F.expense; else -> F.muted },
+            fontSize = 9.5.sp, fontWeight = FontWeight.Medium, maxLines = 1, style = F.money)
     }
 }
 
@@ -152,11 +166,7 @@ private fun compact(minor: Long, decimals: Int): String {
 }
 
 @Composable
-private fun DayCard(day: LocalDate, today: LocalDate, onAdd: () -> Unit) {
-    val nav = LocalNavigator.current
-    val txns by rememberFilteredTxns(DateRange(day, day))
-    val data = rememberActEntryData()
-    val visible = txns.filter { it.kind.isListed }
+private fun DayCard(day: LocalDate, today: LocalDate, entries: List<Txn>, lookups: EntryLookups, onAdd: () -> Unit, onOpen: (Txn) -> Unit) {
     FCard(padding = 0.dp) {
         Column(Modifier.padding(top = 6.dp, bottom = 10.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(42.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -165,10 +175,10 @@ private fun DayCard(day: LocalDate, today: LocalDate, onAdd: () -> Unit) {
                 Text(tr("+ Add on this day"), Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onAdd).padding(6.dp),
                     color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
-            if (visible.isEmpty()) Text(tr("Nothing recorded on this day."), Modifier.padding(horizontal = 16.dp).padding(top = 6.dp, bottom = 4.dp), color = F.muted, fontSize = 13.sp)
-            visible.forEach { t ->
+            if (entries.isEmpty()) Text(tr("Nothing recorded on this day."), Modifier.padding(horizontal = 16.dp).padding(top = 6.dp, bottom = 4.dp), color = F.muted, fontSize = 13.sp)
+            entries.forEach { t ->
                 Divider(16.dp)
-                ActEntryRow(t, data, compact = true, inset = 16.dp) { nav.push(Screen.EditTxn(txnId = t.id)) }
+                ActEntryRow(t, lookups, compact = true, inset = 16.dp) { onOpen(t) }
             }
         }
     }

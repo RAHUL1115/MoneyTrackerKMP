@@ -1,203 +1,165 @@
 package app.moneytracker.ui
 
-import app.moneytracker.data.Swipe
-import app.moneytracker.data.Prefs
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import app.moneytracker.domain.ReportRules
-import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.launch
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material.icons.outlined.MarkEmailUnread
-import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.StarOutline
-import androidx.compose.material3.IconButton
-import app.moneytracker.data.PeriodSettings
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import app.moneytracker.data.MoneyRepository
-import app.moneytracker.domain.AccountType
-import app.moneytracker.domain.DateRange
-import app.moneytracker.domain.Flow
-import app.moneytracker.domain.Periods
-import app.moneytracker.domain.ReportRow
-import app.moneytracker.domain.TOTAL_BUDGET
-import app.moneytracker.domain.Txn
-import app.moneytracker.domain.TxnKind
-import app.moneytracker.domain.CaptureStatus
-import app.moneytracker.domain.YearMonth
-import app.moneytracker.domain.budgetLines
+import app.moneytracker.data.Prefs
+import app.moneytracker.data.Swipe
 import app.moneytracker.domain.classify
-import app.moneytracker.domain.effectiveBudgets
-import app.moneytracker.domain.totals
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
-import kotlinx.datetime.plus
 
 /** Remembers the selected report month (per tab). */
 @Composable
 fun rememberPeriod(): MutableState<Int> {
     val repo = LocalRepo.current
     return rememberSaveable {
-        mutableStateOf(repo.periodSettingsNow().labelFor(repo.today()).key)
+        mutableStateOf(repo.settingsStore.periodSettingsNow().labelFor(repo.today()).key)
     }
 }
 
 private enum class TransView(val title: String) { DAILY("Daily"), CALENDAR("Calendar"), MONTHLY("Monthly"), TOTAL("Total"), NOTE("Note") }
 
+/** Which of the tab's sheets and dialogs is open. */
+private enum class TransSheet { FILTER, MONTH, LISTEN }
+
 @Composable
 fun TransactionsTab() {
-    val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val currency = LocalCurrency.current
-    val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
-    var periodKey by rememberPeriod()
-    var view by rememberSaveable {
-        mutableStateOf(repo.settingNow(Prefs.START_SCREEN).let { s -> TransView.entries.first { it.name == s.name } })
-    }
-    val ym = YearMonth.fromKey(periodKey)
-    val range = ps.month(ym)
-    var filter by remember { mutableStateOf(TxnFilter()) }
-    var filterSheet by remember { mutableStateOf(false) }
-    var monthPicker by remember { mutableStateOf(false) }
-    var listening by remember { mutableStateOf(false) }
+    val model = rememberActivityModel()
+    val state by model.state.collectAsState()
+    var view by rememberSaveable { mutableStateOf(TransView.entries.first { it.name == model.startScreen.name }) }
+    var sheet by remember { mutableStateOf<TransSheet?>(null) }
     var listenTyping by remember { mutableStateOf(false) }
-    val filterCats by repo.categories.collectAsState(emptyList())
-    val filterAccounts by repo.accountNames.collectAsState(emptyMap())
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            val actions: @Composable () -> Unit = {
-                // Detected SMS open from the card at the top of Daily; no separate icon up here.
-                // No mic here: the Smart add bar under the tabs has it, next to typing.
-                PrivacyEyeButton()
-                IconButton(onClick = { nav.push(Screen.Templates) }) { Icon(Icons.Outlined.StarOutline, tr("Bookmarks")) }
-                IconButton(onClick = { nav.push(Screen.Search) }) { Icon(Icons.Outlined.Search, tr("Search")) }
-                IconButton(onClick = { filterSheet = true }) {
-                    Icon(Icons.Outlined.FilterList, tr("Filter"), tint = if (filter.isActive) Accent else androidx.compose.material3.LocalContentColor.current)
-                }
-            }
-            if (view == TransView.MONTHLY) {
-                MonthTopBar(ym.year.toString(), { periodKey = ym.plus(-12).key }, { periodKey = ym.plus(12).key }, onLabelClick = { monthPicker = true }, actions = actions)
-            } else {
-                MonthTopBar(ym.label(), { periodKey = ym.plus(-1).key }, { periodKey = ym.plus(1).key }, onLabelClick = { monthPicker = true }, actions = actions)
-            }
-            if (monthPicker) MonthPickerDialog(ym, ps.labelFor(repo.today()), { monthPicker = false }) { periodKey = it.key; monthPicker = false }
+            TransTopBar(state, yearly = view == TransView.MONTHLY, onStep = model::stepMonths, onSheet = { sheet = it })
             UnderlineTabs(TransView.entries.map { tr(it.title) }, view.ordinal) { view = TransView.entries[it] }
-            if (filter.isActive && view != TransView.TOTAL && view != TransView.NOTE) {
-                FilterBar(filter, filterCats.associateBy { it.id }, filterAccounts, onEdit = { filterSheet = true }, onClear = { filter = TxnFilter() })
+            if (state.filter.isActive && view != TransView.TOTAL && view != TransView.NOTE) {
+                // The classic bar names only categories that still exist.
+                FilterBar(state.filterNames(includeDeletedCategories = false), onEdit = { sheet = TransSheet.FILTER }, onClear = model::clearFilter)
             }
-            val swipe by rememberSetting(Prefs.SWIPE)
-            // Horizontal swipe: next/previous month (default) or tab, per Configuration.
-            val swipeModifier = if (swipe == Swipe.NONE) Modifier else Modifier.pointerInput(swipe, view, periodKey) {
-                var dx = 0f
-                detectHorizontalDragGestures(onDragStart = { dx = 0f }, onDragEnd = {
-                    val dir = when { dx < -120f -> 1; dx > 120f -> -1; else -> 0 }
-                    if (dir != 0) {
-                        if (swipe == Swipe.TAB) view = TransView.entries[(view.ordinal + dir).coerceIn(0, TransView.entries.lastIndex)]
-                        else periodKey = ym.plus(dir * if (view == TransView.MONTHLY) 12 else 1).key
-                    }
-                }) { _, amount -> dx += amount }
-            }
-            androidx.compose.runtime.CompositionLocalProvider(LocalTxnFilter provides filter) {
-              Column(Modifier.fillMaxSize().then(swipeModifier)) {
-                when (view) {
-                    TransView.DAILY -> DailyView(range, onType = { listenTyping = true; listening = true }, onSpeak = { listenTyping = false; listening = true })
-                    TransView.CALENDAR -> CalendarView(range, ps.weekStart)
-                    TransView.MONTHLY -> MonthlyView(ym, ps)
-                    TransView.TOTAL -> androidx.compose.runtime.CompositionLocalProvider(LocalTxnFilter provides TxnFilter()) { TotalView(ym, range, ps) }
-                    TransView.NOTE -> NotesView()
-                }
-              }
-            }
+            TransBody(model, view, onView = { view = it }, onListen = { typing -> listenTyping = typing; sheet = TransSheet.LISTEN })
         }
-        if (listening) ListenSheet(onDismiss = { listening = false }, startTyping = listenTyping) { g -> nav.push(Screen.EditTxn(preset = g?.draft)) }
-        if (filterSheet) FilterSheet(range, filter, onDismiss = { filterSheet = false }) { filter = it; filterSheet = false }
-        // Note button beside + on the Daily view (Configuration › Note button).
-        val noteButton by rememberSetting(Prefs.NOTE_BUTTON)
-        Row(Modifier.align(Alignment.BottomEnd), verticalAlignment = Alignment.CenterVertically) {
-            if (view == TransView.DAILY && noteButton) {
-                androidx.compose.material3.SmallFloatingActionButton(
-                    onClick = { nav.push(Screen.EditNote()) }, modifier = Modifier.padding(end = 0.dp, bottom = 20.dp),
-                    containerColor = SurfaceColor, contentColor = Accent, shape = RoundedCornerShape(14.dp),
-                ) { Icon(Icons.Outlined.EditNote, tr("Add note")) }
-            }
-            AddFab {
-                if (view == TransView.NOTE) nav.push(Screen.EditNote()) else nav.push(Screen.EditTxn())
-            }
+        TransSheets(model, sheet, listenTyping, onClose = { sheet = null })
+        TransFabs(view, Modifier.align(Alignment.BottomEnd))
+    }
+}
+
+@Composable
+private fun TransTopBar(state: ActivityState, yearly: Boolean, onStep: (Int) -> Unit, onSheet: (TransSheet) -> Unit) {
+    val nav = LocalNavigator.current
+    val ym = state.period
+    val actions: @Composable () -> Unit = {
+        // Detected SMS open from the card at the top of Daily; no separate icon up here.
+        // No mic here: the Smart add bar under the tabs has it, next to typing.
+        PrivacyEyeButton()
+        IconButton(onClick = { nav.push(Screen.Templates) }) { Icon(Icons.Outlined.StarOutline, tr("Bookmarks")) }
+        IconButton(onClick = { nav.push(Screen.Search) }) { Icon(Icons.Outlined.Search, tr("Search")) }
+        IconButton(onClick = { onSheet(TransSheet.FILTER) }) {
+            Icon(Icons.Outlined.FilterList, tr("Filter"), tint = if (state.filter.isActive) Accent else LocalContentColor.current)
+        }
+    }
+    val step = if (yearly) 12 else 1
+    MonthTopBar(if (yearly) ym.year.toString() else ym.label(), { onStep(-step) }, { onStep(step) }, onLabelClick = { onSheet(TransSheet.MONTH) }, actions = actions)
+}
+
+/** The picked view; a horizontal swipe changes the month (a year on Monthly) or the view, per Configuration. */
+@Composable
+private fun TransBody(model: ActivityModel, view: TransView, onView: (TransView) -> Unit, onListen: (typing: Boolean) -> Unit) {
+    val state by model.state.collectAsState()
+    val swipe by rememberSetting(Prefs.SWIPE)
+    val swipeModifier = if (swipe == Swipe.NONE) Modifier else Modifier.swipeSteps(swipe, view, state.period) { dir ->
+        if (swipe == Swipe.TAB) onView(TransView.entries[(view.ordinal + dir).coerceIn(0, TransView.entries.lastIndex)])
+        else model.stepMonths(dir * if (view == TransView.MONTHLY) 12 else 1)
+    }
+    Column(Modifier.fillMaxSize().then(swipeModifier)) {
+        when (view) {
+            TransView.DAILY -> DailyView(model, onType = { onListen(true) }, onSpeak = { onListen(false) })
+            TransView.CALENDAR -> CalendarView(model)
+            TransView.MONTHLY -> MonthlyView(model)
+            TransView.TOTAL -> TotalView(model)
+            TransView.NOTE -> NotesView()
         }
     }
 }
 
-/** Running total of everything before [range] (shown when carry-over is on). */
 @Composable
-fun rememberCarryOver(range: DateRange): Long? {
+private fun TransSheets(model: ActivityModel, sheet: TransSheet?, listenTyping: Boolean, onClose: () -> Unit) {
+    val nav = LocalNavigator.current
     val repo = LocalRepo.current
-    val on by rememberSetting(Prefs.CARRY_OVER)
-    val before = DateRange(LocalDate(1970, 1, 1), range.start.minus(DatePeriod(days = 1)))
-    val rows by remember(before) { repo.reportRows(before) }.collectAsState(emptyList())
-    return if (on) totals(rows).net else null
+    val state by model.state.collectAsState()
+    when (sheet) {
+        TransSheet.MONTH -> MonthPickerDialog(state.period, state.periods.labelFor(repo.today()), onClose) { model.showMonth(it); onClose() }
+        TransSheet.LISTEN -> ListenSheet(onDismiss = onClose, startTyping = listenTyping) { g -> nav.push(Screen.EditTxn(preset = g?.draft)) }
+        TransSheet.FILTER -> FilterSheet(state.range, state.filter, onDismiss = onClose) { model.setFilter(it); onClose() }
+        null -> {}
+    }
+}
+
+/** + (a note on Notes), with the Note button beside it on Daily (Configuration › Note button). */
+@Composable
+private fun TransFabs(view: TransView, modifier: Modifier) {
+    val nav = LocalNavigator.current
+    val noteButton by rememberSetting(Prefs.NOTE_BUTTON)
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        if (view == TransView.DAILY && noteButton) {
+            SmallFloatingActionButton(
+                onClick = { nav.push(Screen.EditNote()) }, modifier = Modifier.padding(end = 0.dp, bottom = 20.dp),
+                containerColor = SurfaceColor, contentColor = Accent, shape = RoundedCornerShape(14.dp),
+            ) { Icon(Icons.Outlined.EditNote, tr("Add note")) }
+        }
+        AddFab {
+            if (view == TransView.NOTE) nav.push(Screen.EditNote()) else nav.push(Screen.EditTxn())
+        }
+    }
 }
 
 @Composable
@@ -205,37 +167,38 @@ fun AddFab(modifier: Modifier = Modifier, onClick: () -> Unit) {
     FloatingActionButton(
         onClick = onClick, modifier = modifier.padding(20.dp), shape = RoundedCornerShape(18.dp),
         containerColor = Accent, contentColor = Color.White,
-        elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(3.dp, 3.dp, 3.dp, 3.dp),
+        elevation = FloatingActionButtonDefaults.elevation(3.dp, 3.dp, 3.dp, 3.dp),
     ) { Icon(Icons.Filled.Add, tr("Add"), Modifier.size(28.dp)) }
 }
 
 // ───────────────────────── Daily
 
 @Composable
-private fun DailyView(range: DateRange, onType: () -> Unit, onSpeak: () -> Unit) {
-    val repo = LocalRepo.current
+private fun DailyView(activity: ActivityModel, onType: () -> Unit, onSpeak: () -> Unit) {
     val nav = LocalNavigator.current
-    val currency = LocalCurrency.current
-    val txns by rememberFilteredTxns(range)
-    val rows by rememberFilteredRows(range)
-    val categories by repo.categories.collectAsState(emptyList())
-    val tagNames by repo.txnTagNames.collectAsState(emptyMap())
-    val photos by repo.txnIdsWithPhotos.collectAsState(emptySet())
-    val carry = rememberCarryOver(range)
-    val accountName by repo.accountNames.collectAsState(emptyMap())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val reportRules by repo.reportRules.collectAsState(ReportRules.Empty)
-
+    val model = rememberEntryListModel(activity)
+    val period by activity.state.collectAsState()
+    val list by model.state.collectAsState()
     // Multi-select: long-press starts it, taps toggle, Back clears it.
-    var selection by remember(range) { mutableStateOf(emptySet<String>()) }
-    androidx.compose.runtime.DisposableEffect(selection.isEmpty()) {
+    var selection by remember(period.range) { mutableStateOf(emptySet<String>()) }
+    DisposableEffect(selection.isEmpty()) {
         val remove = if (selection.isEmpty()) ({}) else nav.interceptBack { selection = emptySet(); true }
         onDispose { remove() }
     }
-    if (selection.isNotEmpty()) {
-        SelectionBar(txns.filter { it.id in selection }, onClear = { selection = emptySet() })
+    if (selection.isNotEmpty()) SelectionBar(list.entries.filter { it.id in selection }, onClear = { selection = emptySet() })
+    DailyContent(list, selection, onType, onSpeak, onToggle = { id -> selection = if (id in selection) selection - id else selection + id }) {
+        nav.push(Screen.EditTxn(txnId = it))
     }
-    val t = totals(rows)
+}
+
+@Composable
+private fun DailyContent(
+    list: EntryListState, selection: Set<String>, onType: () -> Unit, onSpeak: () -> Unit, onToggle: (String) -> Unit, onOpen: (String) -> Unit,
+) {
+    val nav = LocalNavigator.current
+    val currency = LocalCurrency.current
+    val t = list.totals
+    val carry = list.carryOver
     if (carry != null) {
         SummaryStrip(listOf(
             Triple(tr("Carried over"), carry, InkSoft), Triple(tr("Income"), t.income, IncomeColor),
@@ -243,577 +206,71 @@ private fun DailyView(range: DateRange, onType: () -> Unit, onSpeak: () -> Unit)
         ), currency)
     } else IncomeExpenseStrip(t.income, t.expense, currency)
     // Repeats not added yet that fall in this period, summed in one row (shown on future months).
-    val rules by repo.rules.collectAsState(emptyList())
-    val pending = rules.flatMap { r -> app.moneytracker.domain.Recurrence.upcoming(r, range).map { r to it } }
-    if (pending.isNotEmpty()) UpcomingRepeatsRow(pending, catById, currency) { nav.push(Screen.Recurring) }
-    // TRANSFER_IN rows mirror TRANSFER_OUT; show each transfer once.
-    val visible = txns.filter { it.kind.isListed }
-    if (visible.isEmpty()) { ClassicSmartAddBar(onType, onSpeak); ClassicDetectedCard(); EmptyState(icon = Icons.Outlined.Inbox); return }
-    val dayTotals = rows.groupBy { it.date }.mapValues { totals(it.value) }
-    // Smart add latches: shown when the list opens, gone once it scrolls out of view (coming back to the top doesn't
-    // bring it back), and revealed again by a second pull down while already at the top.
-    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-    var barShown by remember { mutableStateOf(true) }
-    androidx.compose.runtime.LaunchedEffect(listState) {
-        androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex }.collect { if (it >= 1) barShown = false }
-    }
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val revealPx = with(density) { 56.dp.toPx() }
-    val pull = remember {
-        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
-            var pulled = 0f
-            override fun onPostScroll(consumed: androidx.compose.ui.geometry.Offset, available: androidx.compose.ui.geometry.Offset,
-                                      source: androidx.compose.ui.input.nestedscroll.NestedScrollSource): androidx.compose.ui.geometry.Offset {
-                // Downward drag the list couldn't use: it's already at the top.
-                if (!barShown && available.y > 0f && source == androidx.compose.ui.input.nestedscroll.NestedScrollSource.UserInput) {
-                    pulled += available.y
-                    if (pulled > revealPx) { barShown = true; pulled = 0f }
-                } else if (available.y <= 0f) pulled = 0f
-                return androidx.compose.ui.geometry.Offset.Zero
-            }
-            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity { pulled = 0f; return androidx.compose.ui.unit.Velocity.Zero }
-        }
-    }
-    LazyColumn(Modifier.fillMaxSize().nestedScroll(pull), state = listState) {
+    list.upcoming?.let { UpcomingRepeatsRow(it) { nav.push(Screen.Recurring) } }
+    if (list.visible.isEmpty()) { ClassicSmartAddBar(onType, onSpeak); ClassicDetectedCard(); EmptyState(icon = Icons.Outlined.Inbox); return }
+    DailyList(list, selection, onType, onSpeak, onToggle, onOpen)
+}
+
+@Composable
+private fun DailyList(
+    list: EntryListState, selection: Set<String>, onType: () -> Unit, onSpeak: () -> Unit, onToggle: (String) -> Unit, onOpen: (String) -> Unit,
+) {
+    val currency = LocalCurrency.current
+    val listState = rememberLazyListState()
+    val barShown = rememberSmartAddLatch(listState)
+    val lookups = list.lookups
+    LazyColumn(Modifier.fillMaxSize().nestedScroll(barShown), state = listState) {
         item(key = "smartAdd") {
-            androidx.compose.animation.AnimatedVisibility(
-                barShown,
-                enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-                exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
-            ) { ClassicSmartAddBar(onType, onSpeak) }
+            AnimatedVisibility(barShown.shown, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) { ClassicSmartAddBar(onType, onSpeak) }
         }
         // The newest bank SMS payment, ready to add in one tap; stays put while scrolling back up.
         item(key = "detected") { ClassicDetectedCard() }
         // One card per day: header and its entries.
-        visible.groupBy { it.date }.forEach { (date, dayTxns) ->
+        list.days.forEach { (date, dayTxns) ->
             item(key = "h$date") {
-                val dt = dayTotals[date]
+                val dt = list.dayTotals[date]
                 Column(Modifier.padding(top = 6.dp).card(ListCardMargin).padding(bottom = 4.dp)) {
                     DayHeader(date, dt?.income ?: 0, dt?.expense ?: 0, currency, inset = ListRowInset)
                     dayTxns.forEach { txn ->
                         TxnLine(
-                            txn, accountName, catById, classify(reportRules.row(txn)), tags = tagNames[txn.id].orEmpty(), hasPhoto = txn.id in photos,
-                            inset = ListRowInset, selected = txn.id in selection,
-                            onLongClick = { selection = selection + txn.id },
-                        ) {
-                            if (selection.isNotEmpty()) selection = if (txn.id in selection) selection - txn.id else selection + txn.id
-                            else nav.push(Screen.EditTxn(txnId = txn.id))
-                        }
+                            txn, lookups.accountName, lookups.catById, classify(lookups.rules.row(txn)), tags = lookups.tags[txn.id].orEmpty(),
+                            hasPhoto = txn.id in lookups.photos, inset = ListRowInset, selected = txn.id in selection,
+                            onLongClick = { if (txn.id !in selection) onToggle(txn.id) },
+                        ) { if (selection.isNotEmpty()) onToggle(txn.id) else onOpen(txn.id) }
                     }
                 }
             }
         }
         item { Spacer(Modifier.height(96.dp)) }
     }
-}
-
-/** One transaction: category (left, grey) · note + account (middle) · amount (right). */
-@Composable
-fun TxnLine(
-    txn: Txn,
-    accountName: Map<String, String>,
-    catById: Map<String, app.moneytracker.domain.Category>,
-    flow: Flow,
-    runningBalance: Long? = null,
-    tags: List<String> = emptyList(),
-    hasPhoto: Boolean = false,
-    inset: androidx.compose.ui.unit.Dp = 16.dp,
-    selected: Boolean = false,
-    onLongClick: (() -> Unit)? = null,
-    onClick: () -> Unit,
-) {
-    val currency = LocalCurrency.current
-    val currencies = LocalCurrencies.current
-    Row(
-        Modifier.fillMaxWidth().background(if (selected) AccentTint else SurfaceColor)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(horizontal = inset, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.width(82.dp).padding(end = 8.dp)) {
-            val (main, sub) = when (txn.kind) {
-                TxnKind.TRANSFER_OUT, TxnKind.TRANSFER_IN -> tr("Transfer") to null
-                TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> tr(app.moneytracker.domain.MODIFIED_BALANCE_NAME) to null
-                TxnKind.INCOME, TxnKind.EXPENSE -> mainCategoryName(txn.categoryId, catById) to subCategoryName(txn.categoryId, catById)
-            }
-            Text(main, color = SubtleText, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (sub != null) Text(sub, color = SubtleText, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Column(Modifier.weight(1f).padding(end = 8.dp)) {
-            val account = when (txn.kind) {
-                TxnKind.TRANSFER_OUT -> "${accountName[txn.accountId].orEmpty()} → ${accountName[txn.toAccountId].orEmpty()}"
-                TxnKind.TRANSFER_IN -> "${accountName[txn.toAccountId].orEmpty()} → ${accountName[txn.accountId].orEmpty()}"
-                TxnKind.INCOME, TxnKind.EXPENSE, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> accountName[txn.accountId].orEmpty()
-            }
-            val title = listOfNotNull(txn.note.ifBlank { null }, txn.installmentLabel).joinToString(" ")
-            // The note line is always there, even empty, so every entry has the same shape and the account sits on line two.
-            Text(title, color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val prefs = LocalListPrefs.current
-            if (prefs.showDescription && txn.memo.isNotBlank()) Text(txn.memo, color = SubtleText, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            val marks = buildString {
-                if (txn.isRefund) append("  · ").append(tr("Refund"))
-                if (txn.recurringRuleId != null) append("  ↻")
-                if (hasPhoto) append("  📷")
-                if (txn.lat != null) append("  📍")
-            }
-            val time = if (LocalListPrefs.current.showTime) txn.timeOfDay?.let { formatTime(it) + "  " }.orEmpty() else ""
-            Text(time + account + marks, color = SubtleText, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (tags.isNotEmpty()) Text(tags.joinToString(" ") { "#$it" }, color = IncomeColor, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            // A refund is money back: shown as +amount in the income colour.
-            val refund = txn.isRefund
-            val color = when {
-                refund && flow != Flow.NONE -> IncomeColor
-                flow == Flow.INCOME -> IncomeColor
-                flow == Flow.EXPENSE -> ExpenseColor
-                else -> InkSoft
-            }
-            fun shown(v: Long) = if (refund) -v else v
-            val foreign = txn.currency?.let { currencies[it] }
-            if (foreign != null && txn.originalAmount != null) {
-                Text(foreign.format.format(shown(txn.originalAmount), showSign = refund), color = color, style = EntryAmountStyle)
-                Text(currency.format(shown(txn.amount), showSign = refund), color = SubtleText, fontSize = 12.sp, style = Tabular)
-            } else Text(currency.format(shown(txn.amount), showSign = refund), color = color, style = EntryAmountStyle)
-            if (runningBalance != null) {
-                Text("(${currency.format(runningBalance, withSymbol = false)})", color = SubtleText, fontSize = 10.sp, style = Tabular)
-            }
-        }
-    }
-}
-
-// ───────────────────────── Calendar
-
-@Composable
-private fun CalendarView(range: DateRange, weekStart: DayOfWeek) {
-    val repo = LocalRepo.current
-    val nav = LocalNavigator.current
-    val currency = LocalCurrency.current
-    val rows by rememberFilteredRows(range)
-    val t = totals(rows)
-    IncomeExpenseStrip(t.income, t.expense, currency)
-
-    val today = repo.today()
-    // Always six weeks; days of the neighbouring months show their amounts greyed.
-    var first = range.start
-    while (first.dayOfWeek != weekStart) first = first.minus(DatePeriod(days = 1))
-    val grid = DateRange(first, first.plus(DatePeriod(days = 41)))
-    val gridRows by rememberFilteredRows(grid)
-    val byDay = gridRows.groupBy { it.date }.mapValues { totals(it.value) }
-    var dayDialog by remember { mutableStateOf<LocalDate?>(null) }
-    val weeks = (0 until 6).map { w -> List(7) { i -> first.plus(DatePeriod(days = w * 7 + i)) } }
-    Column(Modifier.fillMaxSize().background(SurfaceColor)) {
-        Row(Modifier.fillMaxWidth().background(PageBackground).padding(vertical = 4.dp)) {
-            (0 until 7).map { DayOfWeek.entries[(weekStart.ordinal + it) % 7] }.forEach { dow ->
-                Text(tr(dow.name.take(3).lowercase().replaceFirstChar { it.uppercase() }), Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 13.sp,
-                    color = when (dow) { DayOfWeek.SUNDAY -> ExpenseColor; DayOfWeek.SATURDAY -> IncomeColor; else -> SubtleText })
-            }
-        }
-        Column(Modifier.fillMaxSize()) {
-            weeks.forEach { week ->
-                Row(Modifier.fillMaxWidth().weight(1f)) {
-                    week.forEach { day ->
-                        val inRange = day in range
-                        val dt = byDay[day]
-                        Column(
-                            Modifier.weight(1f).fillMaxHeight()
-                                .background(if (inRange) SurfaceColor else PageBackground)
-                                .border(0.5.dp, DividerColor)
-                                .clickable { dayDialog = day }
-                                .padding(3.dp),
-                        ) {
-                            val label = if (day.dayOfMonth == 1 || day == first) "${day.monthNumber}.${day.dayOfMonth}" else "${day.dayOfMonth}"
-                            val color = when {
-                                !inRange -> SubtleText
-                                day.dayOfWeek == DayOfWeek.SUNDAY -> ExpenseColor
-                                day.dayOfWeek == DayOfWeek.SATURDAY -> IncomeColor
-                                else -> InkSoft
-                            }
-                            if (day == today) {
-                                Text(label, Modifier.fillMaxWidth().background(Color(0xFF3B3F5C)).padding(horizontal = 2.dp), color = Color.White, fontSize = 12.sp)
-                            } else Text(label, color = color, fontSize = 12.sp)
-                            Spacer(Modifier.weight(1f))
-                            if (dt != null && (dt.income != 0L || dt.expense != 0L)) {
-                                val small = 10.sp
-                                val fade = if (inRange) 1f else 0.45f
-                                if (dt.income > 0) Text(currency.format(dt.income, withSymbol = false), Modifier.fillMaxWidth(), color = IncomeColor.copy(alpha = fade), fontSize = small, textAlign = TextAlign.End, maxLines = 1)
-                                if (dt.expense > 0) Text(currency.format(dt.expense, withSymbol = false), Modifier.fillMaxWidth(), color = ExpenseColor.copy(alpha = fade), fontSize = small, textAlign = TextAlign.End, maxLines = 1)
-                                // The day's total only when there is both income and expense (otherwise it repeats the one figure).
-                                if (dt.income > 0 && dt.expense > 0) Text(currency.format(dt.net, withSymbol = false), Modifier.fillMaxWidth(), color = InkSoft.copy(alpha = fade), fontSize = small, textAlign = TextAlign.End, maxLines = 1)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    dayDialog?.let { day -> DayDialog(day, onDismiss = { dayDialog = null }) }
-}
-
-/** Transactions of one calendar day with an "Add" shortcut for that date. */
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-@Composable
-private fun DayDialog(day: LocalDate, onDismiss: () -> Unit) {
-    val repo = LocalRepo.current
-    val nav = LocalNavigator.current
-    val currency = LocalCurrency.current
-    val range = DateRange(day, day)
-    val txns by rememberFilteredTxns(range)
-    val categories by repo.categories.collectAsState(emptyList())
-    val accountName by repo.accountNames.collectAsState(emptyMap())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    val rules by repo.reportRules.collectAsState(ReportRules.Empty)
-    val visible = txns.filter { it.kind.isListed }
-    val tt = totals(visible.map { rules.row(it) })
-    // A bottom sheet keeps rows full width (a dialog squeezed account names to "Ban…").
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = SurfaceColor) {
-        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(day.long(), style = MaterialTheme.typography.titleMedium)
-                if (visible.isNotEmpty()) {
-                    Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (tt.income > 0) Text(currency.format(tt.income), color = IncomeColor, fontSize = 13.sp)
-                        if (tt.expense > 0) Text(currency.format(tt.expense), color = ExpenseColor, fontSize = 13.sp)
-                    }
-                }
-            }
-            androidx.compose.material3.TextButton(onClick = { onDismiss(); nav.push(Screen.EditTxn(date = day)) }) { Text(tr("+ Add"), color = Accent) }
-        }
-        HorizontalDivider(color = DividerColor)
-        Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-            if (visible.isEmpty()) Text(tr("Nothing recorded on this day."), Modifier.padding(20.dp), color = SubtleText)
-            visible.forEach { t ->
-                TxnLine(t, accountName, catById, classify(rules.row(t))) { onDismiss(); nav.push(Screen.EditTxn(txnId = t.id)) }
-            }
-        }
-    }
-}
-
-// ───────────────────────── Monthly
-
-@Composable
-private fun MonthlyView(selected: YearMonth, ps: PeriodSettings) {
-    val repo = LocalRepo.current
-    val currency = LocalCurrency.current
-    val year = selected.year
-    val yearRange = ps.year(year)
-    val rows by rememberFilteredRows(yearRange)
-    var expanded by remember(year) { mutableStateOf(selected.month) }
-
-    // Same year → month → week rollup as the new layout's Months view.
-    val rollup = remember(rows, ps, year) { app.moneytracker.data.ReadModels.yearRollup(rows, ps, year, repo.today()) }
-    IncomeExpenseStrip(rollup.totals.income, rollup.totals.expense, currency)
-
-    LazyColumn(Modifier.fillMaxSize().background(SurfaceColor)) {
-        for (mr in rollup.months) {
-            val m = mr.month.month
-            val range = mr.range
-            val mt = mr.totals
-            item(key = "m$m") {
-                Row(
-                    Modifier.fillMaxWidth().clickable { expanded = if (expanded == m) 0 else m }.padding(horizontal = 20.dp, vertical = 12.dp),
-                ) {
-                    Column(Modifier.weight(0.8f)) {
-                        Text(monthShort(m), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        if (expanded == m) Text("${range.start.monthNumber}.${range.start.dayOfMonth} ~ ${range.endInclusive.monthNumber}.${range.endInclusive.dayOfMonth}", fontSize = 11.sp, color = SubtleText, style = Tabular)
-                    }
-                    Text(currency.format(mt.income), color = if (mt.income == 0L) ZeroColor else IncomeColor, modifier = Modifier.weight(1f), textAlign = TextAlign.End, maxLines = 1, style = MonthAmountStyle)
-                    Column(Modifier.weight(1f).padding(start = 8.dp), horizontalAlignment = Alignment.End) {
-                        Text(currency.format(mt.expense), color = if (mt.expense == 0L) ZeroColor else ExpenseColor, maxLines = 1, style = MonthAmountStyle)
-                        Text(currency.format(mt.net), color = if (mt.net == 0L) ZeroColor else SubtleText, fontSize = 11.sp, style = Tabular, maxLines = 1)
-                    }
-                }
-            }
-            if (expanded == m) {
-                items(mr.weeks, key = { "w${it.first.start}" }) { (w, wt) ->
-                    val isCurrent = repo.today() in w
-                    Row(
-                        Modifier.fillMaxWidth().background(if (isCurrent) AccentTint else PageBackground)
-                            .padding(start = 44.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
-                    ) {
-                        Text("${pad(w.start.monthNumber)}.${pad(w.start.dayOfMonth)} ~ ${pad(w.endInclusive.monthNumber)}.${pad(w.endInclusive.dayOfMonth)}", Modifier.weight(0.8f), fontSize = 13.sp, style = Tabular, maxLines = 1)
-                        Text(currency.format(wt.income), color = if (wt.income == 0L) ZeroColor else IncomeColor, fontSize = 13.sp, style = Tabular, modifier = Modifier.weight(1f), textAlign = TextAlign.End, maxLines = 1)
-                        Column(Modifier.weight(1f).padding(start = 8.dp), horizontalAlignment = Alignment.End) {
-                            Text(currency.format(wt.expense), color = if (wt.expense == 0L) ZeroColor else ExpenseColor, fontSize = 13.sp, style = Tabular, maxLines = 1)
-                            Text(currency.format(wt.net), color = if (wt.net == 0L) ZeroColor else SubtleText, fontSize = 11.sp, style = Tabular, maxLines = 1)
-                        }
-                    }
-                }
-            }
-        }
-        item { Spacer(Modifier.height(96.dp)) }
-    }
-}
-
-private fun pad(n: Int) = n.toString().padStart(2, '0')
-
-/** A month's totals: same size as its weeks', set apart by weight. */
-private val MonthAmountStyle = TextStyle(fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum")
-
-// ───────────────────────── Total
-
-@Composable
-private fun TotalView(ym: YearMonth, range: DateRange, ps: PeriodSettings) {
-    val repo = LocalRepo.current
-    val nav = LocalNavigator.current
-    val fileTransfer = LocalBackups.current.files
-    val currency = LocalCurrency.current
-    // One read model for the Total card (same numbers as the new layout's Months view).
-    val m by remember(ym, range) { repo.views.month(ym) }.collectAsState()
-    val t = m.totals
-    IncomeExpenseStrip(t.income, t.expense, currency)
-    val cardExpense = m.cardExpense
-    val otherExpense = m.otherExpense
-    val savingsTransfers = m.saved
-    val compared = m.comparedToLastMonth
-    val total = m.budget.total
-
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.EditNote, null, Modifier.size(28.dp))
-                Text(tr("Budget"), Modifier.padding(start = 10.dp).weight(1f), fontSize = 18.sp)
-                Row(
-                    Modifier.background(PageBackground, RoundedCornerShape(4.dp)).clickable { nav.push(Screen.Budget) }.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(tr("Budget Setting"), color = SubtleText)
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = SubtleText, modifier = Modifier.size(18.dp))
-                }
-            }
-            if (total == null) {
-                Text(tr("No budget for this month yet. Set one to see how much is left."), Modifier.padding(top = 12.dp), color = SubtleText, fontSize = 13.sp)
-            }
-            if (total != null) {
-                Spacer(Modifier.height(16.dp))
-                Row(Modifier.clickable { nav.push(Screen.BudgetDetail(ym.key)) }) {
-                    Text(tr("Total budget"), Modifier.weight(1f), color = SubtleText)
-                    Text("${currency.format(total.spent)} / ${currency.format(total.budget)}")
-                }
-                LinearProgressIndicator(
-                    progress = { total.ratio.coerceIn(0f, 1f) }, Modifier.fillMaxWidth().padding(top = 8.dp).height(8.dp),
-                    color = if (total.ratio > 1f) ExpenseColor else IncomeColor, trackColor = PageBackground,
-                )
-                Text(
-                    if (total.remaining >= 0) tr("{0} left", currency.format(total.remaining)) else tr("{0} over budget", currency.format(-total.remaining)),
-                    Modifier.padding(top = 6.dp), color = SubtleText, fontSize = 13.sp,
-                )
-                Text(tr("See each category ›"), Modifier.padding(top = 6.dp).clickable { nav.push(Screen.BudgetDetail(ym.key)) },
-                    color = Accent, fontSize = 13.sp)
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.AccountBalanceWallet, null, Modifier.size(26.dp))
-                Text(tr("Accounts"), Modifier.padding(start = 10.dp).weight(1f), fontSize = 18.sp)
-                Text(range.dotted(), color = SubtleText)
-            }
-            Column(
-                Modifier.fillMaxWidth().padding(top = 16.dp).border(1.dp, DividerColor, RoundedCornerShape(6.dp)).padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                StatLine(tr("Compared expenses (last month)"), compared?.let { "$it%" } ?: "–")
-                StatLine(tr("Expenses (cash, bank)"), currency.format(otherExpense))
-                StatLine(tr("Expenses (card)"), currency.format(cardExpense))
-                StatLine(tr("Saved / invested"), currency.format(savingsTransfers))
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(top = 16.dp).border(1.dp, DividerColor, RoundedCornerShape(6.dp))
-                    .clickable { fileTransfer.exportExcel() }.padding(14.dp),
-                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Outlined.Description, null, tint = Color(0xFF1E8E3E))
-                Text(tr("Export data to Excel"), Modifier.padding(start = 8.dp))
-            }
-        }
-        Spacer(Modifier.height(96.dp))
-    }
-}
-
-@Composable
-private fun StatLine(label: String, value: String) {
-    Row {
-        Text(label, Modifier.weight(1f), color = SubtleText)
-        Text(value)
-    }
-}
-
-/** Shown while entries are selected: count, net sum and bulk actions. */
-@Composable
-private fun SelectionBar(selected: List<Txn>, onClear: () -> Unit) {
-    val repo = LocalRepo.current
-    val currency = LocalCurrency.current
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val categories by repo.categories.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
-    var dialog by remember { mutableStateOf<String?>(null) }
-    var message by remember { mutableStateOf<String?>(null) }
-    val ids = selected.map { it.id }
-    fun run(block: () -> Int?) = scope.launch {
-        val changed = withContext(repo.io) { block() }
-        if (changed != null && changed < ids.size) message = tr("{0} of {1} entries changed (transfers keep their accounts and have no category).", changed, ids.size)
-        onClear()
-    }
-    val net = selected.filter { it.kind.isListed }.sumOf { it.signedAmount }
-    Row(Modifier.fillMaxWidth().background(Accent).padding(start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onClear) { Icon(Icons.Filled.Close, tr("Cancel selection"), tint = Color.White) }
-        Column(Modifier.weight(1f)) {
-            Text(tr("{0} selected", selected.size), color = Color.White, fontWeight = FontWeight.SemiBold)
-            Text(currency.format(net, showSign = true), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
-        }
-        IconButton(onClick = { dialog = "date" }) { Icon(Icons.Outlined.CalendarMonth, tr("Change date"), tint = Color.White) }
-        IconButton(onClick = { dialog = "category" }) { Icon(Icons.Outlined.Category, tr("Change category"), tint = Color.White) }
-        IconButton(onClick = { dialog = "account" }) { Icon(Icons.Outlined.AccountBalanceWallet, tr("Change account"), tint = Color.White) }
-        IconButton(onClick = { dialog = "delete" }) { Icon(Icons.Outlined.Delete, tr("Delete"), tint = Color.White) }
-    }
-    when (dialog) {
-        "date" -> DatePickerHost(true, selected.firstOrNull()?.date, { dialog = null }, { d -> if (d != null) run { repo.setDateMany(ids, d); null } })
-        "category" -> ChoiceDialog(tr("Change category"), flattenCategories(categories).map { it.id to (if (it.parentId != null) "    " + it.name else it.name) },
-            { dialog = null }) { id -> dialog = null; run { repo.setCategoryMany(ids, id) } }
-        "account" -> ChoiceDialog(tr("Change account"), accounts.filter { !it.hidden }.map { it.id to it.name }, { dialog = null }) { id ->
-            dialog = null; run { repo.setAccountMany(ids, id) }
-        }
-        "delete" -> androidx.compose.material3.AlertDialog(
-            onDismissRequest = { dialog = null },
-            title = { Text(tr("Delete {0} entries?", selected.size)) },
-            text = { Text(tr("Transfers are deleted with both sides.")) },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { dialog = null; run { repo.deleteMany(ids); null } }) { Text(tr("Delete"), color = DangerColor) } },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { dialog = null }) { Text(tr("Cancel")) } },
-        )
-    }
-    message?.let { m ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { message = null }, text = { Text(m) },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { message = null }) { Text(tr("OK")) } },
-        )
-    }
-}
-
-/** Scrollable single-choice list dialog. */
-@Composable
-fun ChoiceDialog(title: String, options: List<Pair<String, String>>, onDismiss: () -> Unit, onPick: (String) -> Unit) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            LazyColumn(Modifier.heightIn(max = 420.dp)) {
-                items(options, key = { it.first }) { (id, label) ->
-                    Text(label, Modifier.fillMaxWidth().clickable { onPick(id) }.padding(vertical = 12.dp), color = Ink)
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
-    )
-}
-
-/** Shown before a sensitive permission prompt (SMS, location): what is read, why, and that it stays on the phone. */
-@Composable
-fun DisclosureDialog(title: String, body: String, onDismiss: () -> Unit, onContinue: () -> Unit) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(body) },
-        confirmButton = { androidx.compose.material3.TextButton(onClick = onContinue) { Text(tr("Continue")) } },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(tr("Not now")) } },
-    )
-}
-
-/** "Repeat · Rent, To mom, … · 11/1 · −30,000": repeating entries still to come in the shown period (not in the totals). */
-@Composable
-private fun UpcomingRepeatsRow(
-    pending: List<Pair<app.moneytracker.domain.RecurringRule, kotlinx.datetime.LocalDate>>,
-    catById: Map<String, app.moneytracker.domain.Category>,
-    currency: app.moneytracker.domain.CurrencyFormat,
-    onClick: () -> Unit,
-) {
-    val currencies = LocalCurrencies.current
-    val names = pending.map { (r, _) -> r }.distinct().map { r -> r.note.ifBlank { categoryPath(r.categoryId, catById) } }
-    val first = pending.minOf { it.second }
-    val sum = pending.sumOf { (r, _) ->
-        val main = app.moneytracker.domain.Fx.toMain(r.amount, r.currency?.let { currencies[it] }, currency.decimals)
-        if (r.kind == TxnKind.INCOME) main else -main
-    }
-    Row(
-        Modifier.fillMaxWidth().background(SurfaceColor).clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(tr("Repeat"), Modifier.width(96.dp), color = SubtleText, fontSize = 14.sp)
-        Column(Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(names.joinToString(",  "), color = InkSoft, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${first.monthNumber}/${first.dayOfMonth}", color = SubtleText, fontSize = 11.sp)
-        }
-        Text(currency.format(sum), color = Ink, fontSize = 15.sp)
-    }
-    HorizontalDivider(color = DividerColor)
 }
 
 /**
- * The newest detected bank SMS payment at the top of the Daily list, tinted so it stands apart from saved entries.
- * Tapping it opens Detected transactions, where it's added or dismissed.
+ * Smart add latches: shown when the list opens, gone once it scrolls out of view (coming back to the top doesn't
+ * bring it back), and revealed again by a second pull down while already at the top.
  */
-@Composable
-private fun ClassicDetectedCard() {
-    val repo = LocalRepo.current
-    val nav = LocalNavigator.current
-    val currency = LocalCurrency.current
-    val captures by repo.pendingCaptures.collectAsState(emptyList())
-    val accountName by repo.accountNames.collectAsState(emptyMap())
-    val catById by repo.categoryById.collectAsState(emptyMap())
-    // Newest first: the payment that just arrived is the one on screen.
-    val c = captures.maxByOrNull { it.receivedAt } ?: return
-    val draft by androidx.compose.runtime.produceState<app.moneytracker.data.TxnDraft?>(null, c.id) {
-        value = withContext(repo.io) { repo.draftFromCapture(c) }
+private class SmartAddLatch(private val revealPx: Float) : NestedScrollConnection {
+    var shown by mutableStateOf(true)
+    private var pulled = 0f
+
+    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+        // Downward drag the list couldn't use: it's already at the top.
+        if (!shown && available.y > 0f && source == NestedScrollSource.UserInput) {
+            pulled += available.y
+            if (pulled > revealPx) { shown = true; pulled = 0f }
+        } else if (available.y <= 0f) pulled = 0f
+        return Offset.Zero
     }
-    val d = draft ?: return
-    val refund = app.moneytracker.domain.isRefund(c.kind, c.amount)
-    val income = c.kind == TxnKind.INCOME || refund
-    val amount = currency.format(kotlin.math.abs(d.amount))
-    val line = Accent.copy(alpha = 0.18f)
-    // Tinted so it reads as "waiting for you", not as one of the saved entries below. The whole card opens the
-    // detected SMS; only a complete payment gets the one-tap Add.
-    Column(
-        Modifier.fillMaxWidth().padding(top = 6.dp).padding(horizontal = ListCardMargin).clip(RoundedCornerShape(16.dp))
-            .background(AccentTint).border(1.dp, Accent.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
-            .clickable(onClickLabel = tr("Open detected SMS")) { nav.push(Screen.Inbox) }
-            .padding(start = ListRowInset + 2.dp, end = ListRowInset + 2.dp, bottom = 4.dp),
-    ) {
-        Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.MarkEmailUnread, null, Modifier.size(16.dp), tint = Accent)
-            Text(tr("Found in bank SMS"), Modifier.weight(1f).padding(start = 6.dp), color = Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            Text(if (captures.size > 1) tr("+{0} more ›", captures.size - 1) else tr("Open ›"), color = Accent, fontSize = 12.sp)
-        }
-        HorizontalDivider(color = line)
-        Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(d.categoryId?.let { catById[it]?.name } ?: tr("Category?"), Modifier.width(76.dp), color = if (d.categoryId == null) ExpenseColor else SubtleText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(c.merchant.ifBlank { d.note.ifBlank { c.sender } }, color = Ink, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                // Plain like a saved row: what's missing is chosen on the detected SMS screen, no prompts here.
-                Text(accountName[d.accountId] ?: c.sender, color = SubtleText,
-                    fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            Text((if (refund) "+" else "") + amount, Modifier.padding(start = 8.dp), color = if (income) IncomeColor else ExpenseColor, fontSize = 15.sp)
-        }
-    }
+
+    override suspend fun onPreFling(available: Velocity): Velocity { pulled = 0f; return Velocity.Zero }
 }
 
-/** Smart add at the top of the Daily list: tap the box to type an entry the way you'd say it, or the mic to speak it. */
 @Composable
-private fun ClassicSmartAddBar(onType: () -> Unit, onSpeak: () -> Unit) {
-    val voice = LocalPlatform.current.voice
-    Row(
-        Modifier.fillMaxWidth().padding(top = 6.dp).card(ListCardMargin).height(52.dp)
-            .clickable(onClickLabel = tr("Type an entry"), onClick = onType)
-            .padding(start = ListRowInset + 4.dp, end = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(tr("Type or say it: “1,200 for new shoes”"), Modifier.weight(1f), color = SubtleText, fontSize = 14.sp, maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        if (voice.speechAvailable) {
-            Box(
-                Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Accent).clickable(onClickLabel = tr("Say an entry"), onClick = onSpeak),
-                contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Outlined.Mic, tr("Say an entry"), tint = Color.White, modifier = Modifier.size(20.dp)) }
-        }
+private fun rememberSmartAddLatch(listState: LazyListState): SmartAddLatch {
+    val revealPx = with(LocalDensity.current) { 56.dp.toPx() }
+    val latch = remember { SmartAddLatch(revealPx) }
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }.collect { if (it >= 1) latch.shown = false }
     }
+    return latch
 }
