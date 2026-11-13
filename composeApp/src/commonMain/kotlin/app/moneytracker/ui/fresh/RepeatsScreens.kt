@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -23,8 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.Prefs
@@ -132,32 +133,40 @@ private fun groupTitle(kind: TxnKind) = when (kind) {
 private fun RepeatsSummary(state: RepeatsState, main: (RecurringRule) -> Long, onTiming: () -> Unit) {
     val currency = LocalCurrency.current
     val rules = state.rules
-    // The summary is the screen's hero, so it gets the hero's rounder corners.
-    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card).padding(18.dp)) {
+    // The summary is the screen's hero, so it gets the hero's rounder corners. Its parts pad themselves, so the
+    // timing row's highlight reaches the card's edges.
+    Column(Modifier.fillMaxWidth().clip(F.heroShape).background(F.card)) {
         val next = rules.minOfOrNull { it.nextDate }
-        Text(next?.let { tr("Next run · {0}", it.long()) } ?: tr("Nothing scheduled"), color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-        Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(next?.let { tr("Next run · {0}", it.long()) } ?: tr("Nothing scheduled"), Modifier.padding(start = ROW_INSET, end = ROW_INSET, top = ROW_INSET),
+            color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Row(Modifier.fillMaxWidth().padding(horizontal = ROW_INSET, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Stat(tr("Spending"), currency.format(rules.filter { it.kind == TxnKind.EXPENSE }.sumOf { main(it) }), Modifier.weight(1f))
             Stat(tr("Income"), currency.format(rules.filter { it.kind == TxnKind.INCOME }.sumOf { main(it) }), Modifier.weight(1f))
             Stat(tr("Active rules"), rules.size.toString(), Modifier.weight(1f))
         }
-        Divider()
-        FRow(tr("Repeat entries are added"), value = timingOptions().label(state.timing), valueColor = F.accent, onClick = onTiming)
+        Divider(inset = ROW_INSET)
+        FRow(tr("Repeat entries are added"), value = timingOptions().label(state.timing), valueColor = F.accent, onClick = onTiming,
+            inset = ROW_INSET, extraBottom = ROW_INSET)
     }
 }
+
+/** This screen's rows start 18dp in from their card's edge. */
+private val ROW_INSET = 18.dp
+
+/** A rule card's bottom spacing, kept inside its last row so that row's highlight reaches the rounded edge. */
+private val CARD_EDGE = 4.dp
 
 @Composable
 private fun RuleGroupCard(title: String, list: List<RecurringRule>, main: (RecurringRule) -> Long, lookups: RuleLookups, onClick: (RecurringRule) -> Unit) {
     val currency = LocalCurrency.current
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-            // The group's title sits inside its card, above a hairline.
-            Text("$title · ${currency.format(list.sumOf { main(it) })}".uppercase(), Modifier.padding(top = 14.dp, bottom = 8.dp),
-                color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
-            list.forEach { r ->
-                Divider()
-                RuleRow(r, main(r), lookups.accountNames, lookups.categoryById) { onClick(r) }
-            }
+    FListCard {
+        // The group's title sits inside its card, above a hairline.
+        Text("$title · ${currency.format(list.sumOf { main(it) })}".uppercase(),
+            Modifier.padding(start = ROW_INSET, end = ROW_INSET, top = CARD_EDGE + 14.dp, bottom = 8.dp),
+            color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
+        list.forEachIndexed { i, r ->
+            Divider(inset = ROW_INSET)
+            RuleRow(r, main(r), lookups.accountNames, lookups.categoryById, extraBottom = if (i == list.lastIndex) CARD_EDGE else 0.dp) { onClick(r) }
         }
     }
 }
@@ -165,7 +174,7 @@ private fun RuleGroupCard(title: String, list: List<RecurringRule>, main: (Recur
 @Composable
 private fun TimingSheet(timing: RepeatTiming, onDismiss: () -> Unit, onPick: (RepeatTiming) -> Unit) {
     Sheet(tr("Repeat entries are added"), onDismiss) {
-        timingOptions().options.forEach { (value, text) -> SheetOption(text, selected = value == timing) { onPick(value) } }
+        SheetOptionGroup { timingOptions().options.forEach { (value, text) -> SheetOption(text, selected = value == timing) { onPick(value) } } }
     }
 }
 
@@ -184,11 +193,13 @@ private fun routeOf(r: RecurringRule, accountName: Map<String, String>, catById:
 }
 
 @Composable
-private fun RuleRow(r: RecurringRule, mainAmount: Long, accountName: Map<String, String>, catById: Map<String, Category>, onClick: () -> Unit) {
+private fun RuleRow(
+    r: RecurringRule, mainAmount: Long, accountName: Map<String, String>, catById: Map<String, Category>, extraBottom: Dp, onClick: () -> Unit,
+) {
     val currency = LocalCurrency.current
     val refund = isRefund(r.kind, r.amount)
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 64.dp).padding(vertical = 12.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(bottom = extraBottom).heightIn(min = 64.dp).padding(horizontal = ROW_INSET, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         if (r.kind == TxnKind.TRANSFER_OUT) Mark(tr("Transfer"), 38.dp, icon = Glyph.Swap) else Mark(mainCategoryName(r.categoryId, catById), 38.dp)
@@ -265,7 +276,7 @@ private fun RuleSheetButtons(ok: Boolean, onStop: () -> Unit, onSave: () -> Unit
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Stopping is destructive but secondary: red text on a soft red, only as wide as its words.
         Box(
-            Modifier.height(52.dp).clip(F.buttonShape).background(F.dangerTint).clickable(onClick = onStop).padding(horizontal = 16.dp),
+            Modifier.height(52.dp).clip(F.buttonShape).background(F.dangerTint).clickable(role = Role.Button, onClick = onStop).padding(horizontal = 16.dp),
             contentAlignment = Alignment.Center,
         ) { Text(tr("Stop rule"), color = F.danger, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
         PrimaryButton(tr("Save changes"), enabled = ok, modifier = Modifier.weight(1f), onClick = onSave)
@@ -299,6 +310,6 @@ private fun RuleSummaryLine(form: RuleForm) {
         if (parsed != null && parsed > 0) tr("{0} {1}, next on {2}", form.fmt.format(parsed), tr(form.repeat.label).lowercase(), form.next.long()) +
             (form.end?.let { ", " + tr("last by {0}", "${it.short()} ${it.year}") } ?: ", " + tr("with no end date")) + "."
         else tr("Enter an amount."),
-        Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(F.page).padding(12.dp), color = F.muted, fontSize = 13.sp,
+        Modifier.padding(top = 8.dp).fillMaxWidth().clip(F.controlShape).background(F.page).padding(12.dp), color = F.muted, fontSize = 13.sp,
     )
 }

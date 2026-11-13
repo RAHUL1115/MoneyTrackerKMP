@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -39,6 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -113,7 +118,7 @@ private fun NoteCard(n: Note, today: LocalDate, onClick: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(n.title.ifBlank { tr("Untitled") }, Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (n.pinned) Text(tr("Pinned"), Modifier.clip(RoundedCornerShape(999.dp)).background(F.accentTint).padding(horizontal = 8.dp, vertical = 3.dp),
+            if (n.pinned) Text(tr("Pinned"), Modifier.clip(F.pillShape).background(F.accentTint).padding(horizontal = 8.dp, vertical = 3.dp),
                 color = F.accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         }
         if (n.content.isNotBlank()) Text(n.content, color = F.ink.copy(alpha = 0.8f), fontSize = 13.sp, lineHeight = 19.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
@@ -192,7 +197,8 @@ private fun NoteEditorContent(
 @Composable
 private fun PinButton(pinned: Boolean, onToggle: () -> Unit) {
     Row(
-        Modifier.height(44.dp).clip(F.iconShape).background(if (pinned) F.accentTint else F.card).clickable(onClick = onToggle).padding(horizontal = 12.dp),
+        Modifier.height(44.dp).clip(F.iconShape).background(if (pinned) F.accentTint else F.card)
+            .toggleable(pinned, role = Role.Switch, onValueChange = { onToggle() }).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Icon(Glyph.Pin, null, tint = if (pinned) F.accent else F.ink, modifier = Modifier.size(18.dp))
@@ -202,12 +208,13 @@ private fun PinButton(pinned: Boolean, onToggle: () -> Unit) {
 
 @Composable
 private fun NoteEditorButtons(isNew: Boolean, filled: Boolean, onSave: () -> Unit, onDelete: () -> Unit) {
+    val deleteLabel = tr("Delete note")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (!isNew) Box(
             Modifier.size(52.dp).clip(F.buttonShape).background(F.danger.copy(alpha = 0.12f))
-                .clickable(onClickLabel = tr("Delete note"), onClick = onDelete),
+                .clickable(role = Role.Button, onClick = onDelete).semantics { contentDescription = deleteLabel },
             contentAlignment = Alignment.Center,
-        ) { Icon(Glyph.Delete, tr("Delete note"), tint = F.danger) }
+        ) { Icon(Glyph.Delete, null, tint = F.danger) }
         PrimaryButton(
             when { isNew && !filled -> tr("Write something first"); isNew -> tr("Save note"); else -> tr("Save changes") },
             onClick = onSave, modifier = Modifier.weight(1f), enabled = filled || !isNew,
@@ -241,22 +248,27 @@ private fun NotePaper(draft: NoteDraft, original: Note?, today: LocalDate, onCha
 
 @Composable
 private fun NoteOptionsCard(draft: NoteDraft, onChange: (NoteDraft) -> Unit, onPickDate: () -> Unit) {
-    FCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    // The card's parts pad themselves, so the Day row's highlight reaches the card's edges.
+    val inset = F.cardPadding
+    FListCard {
+        Row(Modifier.padding(start = inset, end = inset, top = inset), verticalAlignment = Alignment.CenterVertically) {
             Text(tr("Colour"), Modifier.weight(1f), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 noteTints.indices.forEach { i ->
                     val on = i == draft.color
+                    val label = tr("Colour {0}", i + 1)
                     Box(
                         Modifier.size(32.dp).clip(CircleShape).background(noteColor(i))
                             .border(if (on) 2.dp else 1.dp, if (on) F.accent else F.border, CircleShape)
-                            .clickable(onClickLabel = tr("Colour {0}", i + 1)) { onChange(draft.copy(color = i)) },
+                            .selectable(on, role = Role.RadioButton) { onChange(draft.copy(color = i)) }
+                            .semantics { contentDescription = label },
                     )
                 }
             }
         }
-        Divider()
+        Divider(inset = inset)
         val d = noteDate(draft.createdAt)
-        FRow(tr("Day"), value = "${d.weekday()} ${d.dayOfMonth} ${monthShort(d.monthNumber)} ${d.year}", onClick = onPickDate)
+        FRow(tr("Day"), value = "${d.weekday()} ${d.dayOfMonth} ${monthShort(d.monthNumber)} ${d.year}", onClick = onPickDate,
+            inset = inset, extraBottom = inset)
     }
 }

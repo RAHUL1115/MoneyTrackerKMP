@@ -2,7 +2,6 @@ package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -111,23 +113,25 @@ private fun CategoriesContent(state: CategoriesState, kind: CategoryKind, onBack
 
 @Composable
 private fun CategoryListCard(state: CategoriesState, list: List<Category>, onEdit: (Category) -> Unit, onMove: (Category, Int) -> Unit) {
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-            list.forEachIndexed { i, c ->
-                if (i > 0) Divider()
-                // Reorder among siblings (main categories, or the subs of one main).
-                val siblings = state.siblingsOf(c)
-                val at = siblings.indexOf(c)
-                Row(Modifier.fillMaxWidth().padding(start = if (c.parentId != null) 28.dp else 0.dp), verticalAlignment = Alignment.CenterVertically) {
-                    CategoryLine(c, categoryMeta(c, state), Modifier.weight(1f)) { onEdit(c) }
-                    ArrowButton(Glyph.ChevronUp, tr("Move {0} up", c.name), at > 0) { onMove(c, -1) }
-                    HGap(6.dp)
-                    ArrowButton(Glyph.ChevronDown, tr("Move {0} down", c.name), at < siblings.lastIndex) { onMove(c, 1) }
-                }
+    FListCard(verticalPadding = 4.dp) {
+        list.forEachIndexed { i, c ->
+            if (i > 0) Divider(inset = ROW_INSET)
+            // Reorder among siblings (main categories, or the subs of one main).
+            val siblings = state.siblingsOf(c)
+            val at = siblings.indexOf(c)
+            val indent = if (c.parentId != null) 28.dp else 0.dp
+            Row(Modifier.fillMaxWidth().padding(start = ROW_INSET + indent, end = ROW_INSET), verticalAlignment = Alignment.CenterVertically) {
+                CategoryLine(c, categoryMeta(c, state), Modifier.weight(1f)) { onEdit(c) }
+                ArrowButton(Glyph.ChevronUp, tr("Move {0} up", c.name), at > 0) { onMove(c, -1) }
+                HGap(6.dp)
+                ArrowButton(Glyph.ChevronDown, tr("Move {0} down", c.name), at < siblings.lastIndex) { onMove(c, 1) }
             }
         }
     }
 }
+
+/** Category rows start 12dp in from their card's edge. */
+private val ROW_INSET = 12.dp
 
 /** "in Food · Usual: Cash", "3 sub-categories" or "No usual account". */
 private fun categoryMeta(c: Category, state: CategoriesState): String {
@@ -167,9 +171,10 @@ private fun SubcategoriesOffCard(onTurnOn: () -> Unit) {
 @Composable
 private fun ArrowButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(F.page).clickable(enabled = enabled, onClickLabel = label, onClick = onClick),
+        Modifier.size(34.dp).clip(F.innerShape).background(F.page).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, label, tint = if (enabled) F.ink else F.muted.copy(alpha = 0.4f), modifier = Modifier.size(18.dp)) }
+    ) { Icon(icon, null, tint = if (enabled) F.ink else F.muted.copy(alpha = 0.4f), modifier = Modifier.size(18.dp)) }
 }
 
 @Composable
@@ -197,11 +202,13 @@ private fun CategorySheet(c: Category, state: CategoriesState, onDismiss: () -> 
 
 @Composable
 private fun CategorySheetButtons(isNew: Boolean, enabled: Boolean, onDelete: () -> Unit, onSave: () -> Unit) {
+    val deleteLabel = tr("Delete category")
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         if (!isNew) Box(
-            Modifier.size(52.dp).clip(F.buttonShape).background(F.dangerTint).clickable(onClickLabel = tr("Delete category"), onClick = onDelete),
+            Modifier.size(52.dp).clip(F.buttonShape).background(F.dangerTint).clickable(role = Role.Button, onClick = onDelete)
+                .semantics { contentDescription = deleteLabel },
             contentAlignment = Alignment.Center,
-        ) { Icon(Glyph.Delete, tr("Delete category"), tint = F.danger) }
+        ) { Icon(Glyph.Delete, null, tint = F.danger) }
         PrimaryButton(if (isNew) tr("Add category") else tr("Save changes"), enabled = enabled, modifier = Modifier.weight(1f), onClick = onSave)
     }
 }

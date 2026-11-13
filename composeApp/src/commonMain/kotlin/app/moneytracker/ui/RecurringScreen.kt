@@ -100,7 +100,7 @@ private fun RecurringContent(
             IconButton(onClick = onAdd) { Icon(Icons.Outlined.Add, tr("Add")) }
         }
         HorizontalDivider(color = DividerColor)
-        ConfigRow(tr("Timing of reflection"), timing.label(state.timing)) { timingDialog = true }
+        SettingRow(tr("Timing of reflection"), timing.label(state.timing)) { timingDialog = true }
         if (state.rules.isEmpty()) EmptyState(tr("No repeating transactions. Use “Rep/Inst.” when adding one."), Icons.Outlined.Repeat)
         else RuleList(state.groups, state.lookups, deleting, onEdit = { editing = it }, onStop = onStop)
     }

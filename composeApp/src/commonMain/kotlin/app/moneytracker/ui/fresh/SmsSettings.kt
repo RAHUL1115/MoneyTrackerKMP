@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -31,6 +34,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -52,6 +56,7 @@ import app.moneytracker.ui.SmsFilters
 import app.moneytracker.ui.SmsHealth
 import app.moneytracker.ui.SmsSwitches
 import app.moneytracker.ui.backgroundSteps
+import app.moneytracker.ui.expandable
 import app.moneytracker.ui.hasAutostartManager
 import app.moneytracker.ui.rememberSmsHealth
 import app.moneytracker.ui.smsPermissionSteps
@@ -146,7 +151,7 @@ private fun ReviewLinkCard(waiting: Int, onOpen: () -> Unit) {
         Modifier.fillMaxWidth().clip(F.cardShape).background(F.card).clickable(onClick = onOpen).padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(F.accentTint), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(38.dp).clip(F.controlShape).background(F.accentTint), contentAlignment = Alignment.Center) {
             Icon(Glyph.Message, null, tint = F.accent, modifier = Modifier.size(18.dp))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -161,26 +166,25 @@ private fun ReviewLinkCard(waiting: Int, onOpen: () -> Unit) {
 private fun SwitchesCard(
     switches: SmsSwitches, health: SmsHealth, capture: Boolean, actions: SmsSettingsActions, onCapture: (Boolean) -> Unit, onKeepRunning: () -> Unit,
 ) {
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-            SwitchLine(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture, onChange = onCapture)
-            if (!health.permission) {
-                Text(smsPermissionSteps(), color = F.muted, fontSize = 12.sp, lineHeight = 17.sp, modifier = Modifier.padding(bottom = 12.dp))
-            }
-            if (capture) {
-                Divider()
-                HealthLine(tr("Keep detection running"),
-                    if (health.background.restricted) tr("This phone is limiting MoneyTracker in the background") else tr("Let MoneyTracker start when an SMS arrives"),
-                    tr("Check ›"), warn = health.background.restricted, onClick = onKeepRunning)
-            }
-            Divider()
-            SwitchLine(tr("Alert for detected messages"), tr("A notification when a bank message is detected"), switches.alert, dimmed = !capture, onChange = actions.setAlert)
-            Divider()
-            SwitchLine(tr("Save automatically"), tr("Add the entry right away when the account is recognised. A guessed usual account, or no account, waits for your review"),
-                switches.autoSave, onChange = actions.setAutoSave)
-            Divider()
-            OriginalMessageLine(switches.showOriginal, actions.setShowOriginal)
+    FListCard {
+        SwitchLine(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture, extraTop = CARD_EDGE, onChange = onCapture)
+        if (!health.permission) {
+            Text(smsPermissionSteps(), color = F.muted, fontSize = 12.sp, lineHeight = 17.sp,
+                modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 12.dp))
         }
+        if (capture) {
+            Divider(inset = ROW_INSET)
+            HealthLine(tr("Keep detection running"),
+                if (health.background.restricted) tr("This phone is limiting MoneyTracker in the background") else tr("Let MoneyTracker start when an SMS arrives"),
+                tr("Check ›"), warn = health.background.restricted, onClick = onKeepRunning)
+        }
+        Divider(inset = ROW_INSET)
+        SwitchLine(tr("Alert for detected messages"), tr("A notification when a bank message is detected"), switches.alert, dimmed = !capture, onChange = actions.setAlert)
+        Divider(inset = ROW_INSET)
+        SwitchLine(tr("Save automatically"), tr("Add the entry right away when the account is recognised. A guessed usual account, or no account, waits for your review"),
+            switches.autoSave, onChange = actions.setAutoSave)
+        Divider(inset = ROW_INSET)
+        OriginalMessageLine(switches.showOriginal, actions.setShowOriginal)
     }
 }
 
@@ -190,7 +194,7 @@ private fun OriginalMessageLine(showOriginal: SmsOriginal, onPick: (SmsOriginal)
     val origHint = when (showOriginal) {
         SmsOriginal.OFF -> tr("Not kept on entries"); SmsOriginal.WHILE_EDITING -> tr("Shown only while editing an entry"); SmsOriginal.KEEP -> tr("Always shown in entry details")
     }
-    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 12.dp),
+    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(start = ROW_INSET, end = ROW_INSET, top = 12.dp, bottom = CARD_EDGE + 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(tr("Original message on entries"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
@@ -221,24 +225,23 @@ private fun ImportCard(days: Int, onDays: (Int) -> Unit, onCustom: () -> Unit, o
 @Composable
 private fun FiltersCard(filters: SmsFilters, actions: SmsSettingsActions) {
     var editing by remember { mutableStateOf<TextSetting?>(null) }
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
-            Text(tr("Filters").uppercase(), Modifier.padding(top = 12.dp, bottom = 2.dp), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
-            listOf(
-                Triple(Prefs.SMS_BLOCKED_SENDERS, tr("Blocked numbers"), tr("Messages from these senders are ignored")) to filters.blockedSenders,
-                Triple(Prefs.SMS_BLOCKED_PHRASES, tr("Blocked words"), tr("Messages containing these are ignored")) to filters.blockedPhrases,
-                Triple(Prefs.SMS_CONTENT_FILTER, tr("Content filter"), tr("Removed from a message before it is read")) to filters.contentFilter,
-            ).forEach { (def, value) ->
-                val (key, label, hint) = def
-                FilterLine(key, label, hint, value, open = editing == key, onToggle = { editing = if (editing == key) null else key }) { text ->
-                    editing = null
-                    actions.saveFilter(key, text, label)
-                }
-                Divider()
+    FListCard {
+        Text(tr("Filters").uppercase(), Modifier.padding(start = ROW_INSET, end = ROW_INSET, top = CARD_EDGE + 12.dp, bottom = 2.dp), color = F.muted, fontSize = 12.sp,
+            fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
+        listOf(
+            Triple(Prefs.SMS_BLOCKED_SENDERS, tr("Blocked numbers"), tr("Messages from these senders are ignored")) to filters.blockedSenders,
+            Triple(Prefs.SMS_BLOCKED_PHRASES, tr("Blocked words"), tr("Messages containing these are ignored")) to filters.blockedPhrases,
+            Triple(Prefs.SMS_CONTENT_FILTER, tr("Content filter"), tr("Removed from a message before it is read")) to filters.contentFilter,
+        ).forEach { (def, value) ->
+            val (key, label, hint) = def
+            FilterLine(key, label, hint, value, open = editing == key, onToggle = { editing = if (editing == key) null else key }) { text ->
+                editing = null
+                actions.saveFilter(key, text, label)
             }
-            FRow(tr("Account matching rules"), tr("Sender and card digits, set on each account"), value = tr("Per account") + " ›", valueColor = F.accent,
-                chevron = false, onClick = { actions.open(Screen.AccountList) })
+            Divider(inset = ROW_INSET)
         }
+        FRow(tr("Account matching rules"), tr("Sender and card digits, set on each account"), value = tr("Per account") + " ›", valueColor = F.accent,
+            chevron = false, onClick = { actions.open(Screen.AccountList) }, inset = ROW_INSET, extraBottom = CARD_EDGE)
     }
 }
 
@@ -267,24 +270,35 @@ private fun CustomDaysSheet(days: Int, onDismiss: () -> Unit, onSave: (Int) -> U
         Text(tr("How far back to read the SMS inbox (1 to 365 days)."), color = F.muted, fontSize = 13.sp)
         BasicTextField(
             text, { text = it.filter(Char::isDigit).take(3) },
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, F.border, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().clip(F.controlShape).border(1.dp, F.border, F.controlShape).padding(horizontal = 12.dp, vertical = 12.dp),
             singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             textStyle = TextStyle(color = F.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium), cursorBrush = SolidColor(F.accent),
         )
     }
 }
 
+/** This screen's rows start 18dp in from their card's edge. */
+private val ROW_INSET = 18.dp
+
+/** The cards' top and bottom spacing, kept inside the first and last rows so their highlight reaches the rounded edge. */
+private val CARD_EDGE = 4.dp
+
+/**
+ * A switch row: the whole row is the switch. A [dimmed] row still takes taps (its action explains why it can't
+ * change yet). [extraTop] is the card's top spacing when this is the card's first row.
+ */
 @Composable
-private fun SwitchLine(label: String, hint: String?, checked: Boolean, dimmed: Boolean = false, onChange: (Boolean) -> Unit) {
+private fun SwitchLine(label: String, hint: String?, checked: Boolean, dimmed: Boolean = false, extraTop: Dp = 0.dp, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).alpha(if (dimmed) 0.45f else 1f).clickable { onChange(!checked) }.padding(vertical = 14.dp),
+        Modifier.fillMaxWidth().alpha(if (dimmed) 0.45f else 1f).toggleable(checked, role = Role.Switch, onValueChange = onChange)
+            .padding(top = extraTop).heightIn(min = 64.dp).padding(horizontal = ROW_INSET, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             if (hint != null) Text(hint, color = F.muted, fontSize = 12.sp)
         }
-        SmsSwitch(checked)
+        FSwitch(checked, null)
     }
 }
 
@@ -292,7 +306,7 @@ private fun SwitchLine(label: String, hint: String?, checked: Boolean, dimmed: B
 @Composable
 private fun HealthLine(label: String, hint: String, action: String, warn: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(onClick = onClick).padding(vertical = 14.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 64.dp).padding(horizontal = ROW_INSET, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -303,17 +317,11 @@ private fun HealthLine(label: String, hint: String, action: String, warn: Boolea
     }
 }
 
-/** Switch drawn in the kit's colours (the row handles the tap). */
-@Composable
-internal fun SmsSwitch(checked: Boolean) {
-    FSwitch(checked, null)
-}
-
 @Composable
 private fun FilterLine(key: TextSetting, label: String, hint: String, value: String?, open: Boolean, onToggle: () -> Unit, onSave: (String) -> Unit) {
     val items = MessageRules.lines(value)
     Column {
-        Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable(onClick = onToggle).padding(vertical = 12.dp),
+        Row(Modifier.fillMaxWidth().clickable(onClick = onToggle).expandable(open, onToggle).heightIn(min = 60.dp).padding(horizontal = ROW_INSET, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1f)) {
                 Text(label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
@@ -335,11 +343,11 @@ private fun FilterLine(key: TextSetting, label: String, hint: String, value: Str
 @Composable
 private fun FilterEditor(key: TextSetting, value: String?, onSave: (String) -> Unit) {
     var text by remember(key) { mutableStateOf(value.orEmpty()) }
-    Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SmsTextArea(text, { text = it })
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(tr("One per line."), Modifier.weight(1f), color = F.muted, fontSize = 12.sp)
-            Box(Modifier.height(44.dp).clip(RoundedCornerShape(10.dp)).background(F.accent).clickable { onSave(text) }.padding(horizontal = 18.dp),
+            Box(Modifier.height(44.dp).clip(F.innerShape).background(F.accent).clickable(role = Role.Button) { onSave(text) }.padding(horizontal = 18.dp),
                 contentAlignment = Alignment.Center) {
                 Text(tr("Save"), color = F.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
@@ -357,14 +365,15 @@ private fun SmsSegmented(
     segmentHeight: Dp, outer: Dp, inner: Dp, inset: Dp, track: Color, fill: Boolean,
 ) {
     Row(
-        modifier.then(if (fill) Modifier.fillMaxWidth() else Modifier).clip(RoundedCornerShape(outer)).background(track).padding(inset),
+        modifier.then(if (fill) Modifier.fillMaxWidth() else Modifier).clip(RoundedCornerShape(outer)).background(track).padding(inset).selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
+        // One of several, read as tabs like the kit's Segmented.
         options.forEachIndexed { i, o ->
             val on = i == selected
             Box(
                 Modifier.then(if (fill) Modifier.weight(1f) else Modifier).height(segmentHeight).clip(RoundedCornerShape(inner))
-                    .background(if (on) F.card else Color.Transparent).clickable { onSelect(i) }
+                    .background(if (on) F.card else Color.Transparent).selectable(on, role = Role.Tab) { onSelect(i) }
                     .then(if (fill) Modifier else Modifier.padding(horizontal = 10.dp)),
                 contentAlignment = Alignment.Center,
             ) { Text(o, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1) }

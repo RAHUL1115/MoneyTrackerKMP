@@ -35,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,14 +64,16 @@ private fun PinPad(title: String, subtitle: String?, error: String?, onComplete:
         keys.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth().height(76.dp)) {
                 row.forEach { k ->
+                    // The blank key under 7 only fills the grid: it takes no taps and TalkBack skips it.
+                    val tap = if (k.isEmpty()) Modifier else Modifier.clickable(role = Role.Button) {
+                        if (k == "⌫") pin = pin.dropLast(1)
+                        else if (pin.length < PIN_LENGTH) {
+                            pin += k
+                            if (pin.length == PIN_LENGTH && !onComplete(pin)) pin = ""
+                        }
+                    }
                     Box(
-                        Modifier.weight(1f).fillMaxSize().clickable(enabled = k.isNotEmpty()) {
-                            if (k == "⌫") pin = pin.dropLast(1)
-                            else if (pin.length < PIN_LENGTH) {
-                                pin += k
-                                if (pin.length == PIN_LENGTH && !onComplete(pin)) pin = ""
-                            }
-                        },
+                        Modifier.weight(1f).fillMaxSize().then(tap),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (k == "⌫") Icon(Icons.AutoMirrored.Filled.Backspace, tr("Delete digit"))
@@ -178,7 +181,7 @@ private fun BiometricSetting(setup: LockSetup, onSwitch: (Boolean) -> Unit, onOp
             Text(tr("Unlock with fingerprint / face"))
             Text(tr("No fingerprint or face is set up on this phone yet."), fontSize = 13.sp, color = SubtleText)
             Text(
-                tr("Set up in phone settings"), Modifier.padding(top = 8.dp).clickable(onClick = onOpenEnrollment),
+                tr("Set up in phone settings"), Modifier.padding(top = 8.dp).clickable(role = Role.Button, onClick = onOpenEnrollment),
                 color = Accent, fontWeight = FontWeight.Medium,
             )
         }

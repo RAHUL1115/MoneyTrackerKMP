@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -200,10 +201,10 @@ private fun MessageCard(c: Capture, d: TxnDraft?, names: MessageReviewState, onD
         SuggestedEntry(c, d, names)
         Text(c.text, color = F.muted, fontSize = 12.sp, lineHeight = 17.sp, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.height(44.dp).clip(RoundedCornerShape(14.dp)).background(F.fill).clickable(onClick = onDismiss).padding(horizontal = 18.dp),
+            Box(Modifier.height(44.dp).clip(F.iconShape).background(F.fill).clickable(role = Role.Button, onClick = onDismiss).padding(horizontal = 18.dp),
                 contentAlignment = Alignment.Center) { Text(tr("Dismiss"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
-            Box(Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(14.dp)).background(if (d != null) F.accent else F.fill)
-                .clickable(enabled = d != null, onClick = onAdd), contentAlignment = Alignment.Center) {
+            Box(Modifier.weight(1f).height(44.dp).clip(F.iconShape).background(if (d != null) F.accent else F.fill)
+                .clickable(enabled = d != null, role = Role.Button, onClick = onAdd), contentAlignment = Alignment.Center) {
                 Text(tr("Add"), color = if (d != null) F.onAccent else F.muted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             }
         }
@@ -236,7 +237,7 @@ private fun SuggestedEntry(c: Capture, d: TxnDraft?, names: MessageReviewState) 
 @Composable
 private fun SmallAction(text: String, modifier: Modifier, icon: ImageVector? = null, onClick: () -> Unit) {
     Row(
-        modifier.height(48.dp).clip(F.iconShape).background(F.card).border(1.dp, F.border, F.iconShape).clickable(onClick = onClick).padding(horizontal = 10.dp),
+        modifier.height(48.dp).clip(F.iconShape).background(F.card).border(1.dp, F.border, F.iconShape).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
     ) {
         if (icon != null) Icon(icon, null, tint = F.ink, modifier = Modifier.size(18.dp))
@@ -270,8 +271,8 @@ private fun PasteSheet(onDismiss: () -> Unit, onPaste: (String, (Capture?) -> Un
 internal fun SmsTextArea(value: String, onChange: (String) -> Unit, minHeight: Dp = 96.dp) {
     BasicTextField(
         value, onChange,
-        Modifier.fillMaxWidth().heightIn(min = minHeight).clip(RoundedCornerShape(12.dp)).background(F.card)
-            .border(1.dp, F.border, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().heightIn(min = minHeight).clip(F.controlShape).background(F.card)
+            .border(1.dp, F.border, F.controlShape).padding(horizontal = 12.dp, vertical = 10.dp),
         textStyle = TextStyle(color = F.ink, fontSize = 14.sp, lineHeight = 21.sp), cursorBrush = SolidColor(F.accent),
     )
 }

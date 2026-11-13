@@ -28,6 +28,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.collapse
+import androidx.compose.ui.semantics.expand
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -101,7 +106,7 @@ private fun CalcKeypad(press: (String) -> Unit) {
                     Box(
                         Modifier.weight(1f).padding(3.dp).fillMaxSize()
                             .background(if (k.isEmpty()) PageBackground else if (digit) SurfaceColor else AccentTint, RoundedCornerShape(12.dp))
-                            .let { if (k.isEmpty()) it else it.clickable { press(k) } },
+                            .let { if (k.isEmpty()) it else it.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button) { press(k) } },
                         contentAlignment = Alignment.Center,
                     ) { Text(k, fontSize = 22.sp, color = if (digit) Ink else Accent) }
                 }
@@ -121,7 +126,8 @@ fun HelpScreen() {
         LazyColumn(Modifier.fillMaxSize()) {
             HELP.forEachIndexed { i, (title, body) ->
                 item(key = i) {
-                    Column(Modifier.fillMaxWidth().background(SurfaceColor).clickable { if (i in open) open.remove(i) else open.add(i) }
+                    val toggle = { if (i in open) open.remove(i) else open.add(i) }
+                    Column(Modifier.fillMaxWidth().background(SurfaceColor).clickable { toggle() }.expandable(i in open) { toggle() }
                         .padding(horizontal = 24.dp, vertical = 16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(tr(title), Modifier.weight(1f), fontWeight = FontWeight.Medium, color = Ink)
@@ -135,6 +141,10 @@ fun HelpScreen() {
         }
     }
 }
+
+/** Tells TalkBack a row opens and closes the part under it, and whether that part is open now. */
+internal fun Modifier.expandable(open: Boolean, onToggle: () -> Unit): Modifier =
+    semantics { if (open) collapse { onToggle(); true } else expand { onToggle(); true } }
 
 private val HELP = listOf(
     "Adding an entry" to "Tap + on the Trans. tab. Pick Income, Expense or Transfer, then the amount, category and account. " +

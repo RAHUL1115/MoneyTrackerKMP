@@ -37,10 +37,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.data.Prefs
@@ -130,15 +134,21 @@ private fun rememberElsewhereRows(): List<Pair<String, SRow>> {
 /** Setting rows in one card; a row's hint is where it lives when that is given. */
 @Composable
 private fun RowsCard(rows: List<Pair<String?, SRow>>) {
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-            rows.forEachIndexed { i, (where, r) ->
-                if (i > 0) Divider()
-                SettingRowView(r, where)
-            }
+    FListCard {
+        rows.forEachIndexed { i, (where, r) ->
+            if (i > 0) Divider(inset = ROW_INSET)
+            SettingRowView(r, where, edgeTop = if (i == 0) CARD_EDGE else 0.dp, edgeBottom = if (i == rows.lastIndex) CARD_EDGE else 0.dp)
         }
     }
 }
+
+/** Settings rows start 14dp in from their card's edge, lined up with the tiles' content. */
+private val ROW_INSET = 14.dp
+
+/** The card's top and bottom spacing, kept inside the first and last rows so their highlight reaches the rounded edge. */
+private val CARD_EDGE = 4.dp
+
+
 
 @Composable
 private fun SearchResults(found: List<Pair<String, SRow>>, q: String) {
@@ -167,16 +177,14 @@ private fun SettingsHome(places: List<MorePlace>, groups: List<SettingGroup>, on
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(tr("Preferences").uppercase(), Modifier.padding(start = 14.dp), color = F.muted, fontSize = 12.sp,
             fontWeight = FontWeight.Medium, letterSpacing = 0.6.sp)
-        FCard(padding = 0.dp) {
-            Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-                groups.forEachIndexed { i, g ->
-                    if (i > 0) Divider()
-                    FRow(g.title, subtitle = g.summary, onClick = { onOpenGroup(g.id) }, leading = {
-                        Box(Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(F.page), contentAlignment = Alignment.Center) {
-                            Icon(groupGlyph(g.id), null, tint = F.accent, modifier = Modifier.size(18.dp))
-                        }
-                    })
-                }
+        FListCard {
+            groups.forEachIndexed { i, g ->
+                if (i > 0) Divider(inset = ROW_INSET)
+                FRow(g.title, subtitle = g.summary, onClick = { onOpenGroup(g.id) }, leading = {
+                    Box(Modifier.size(36.dp).clip(F.controlShape).background(F.page), contentAlignment = Alignment.Center) {
+                        Icon(groupGlyph(g.id), null, tint = F.accent, modifier = Modifier.size(18.dp))
+                    }
+                }, inset = ROW_INSET, extraTop = if (i == 0) CARD_EDGE else 0.dp, extraBottom = if (i == groups.lastIndex) CARD_EDGE else 0.dp)
             }
         }
     }
@@ -189,8 +197,10 @@ private fun FreshSettingDialog(d: SettingDialog, model: SettingsModel, open: (Se
     val toaster = LocalToaster.current
     when (d) {
         SettingDialog.LayoutChoice -> Sheet(tr("Layout"), close) {
-            SheetOption(tr("Classic"), selected = false, subtitle = tr("The familiar tabs: Trans., Stats, Accounts, More")) { open(SettingDialog.LayoutSwitch) }
-            SheetOption(tr("New"), selected = true, subtitle = tr("Home with today's spending and Smart add, then Activity, Insights and Accounts"), onClick = close)
+            SheetOptionGroup {
+                SheetOption(tr("Classic"), selected = false, subtitle = tr("The familiar tabs: Trans., Stats, Accounts, More")) { open(SettingDialog.LayoutSwitch) }
+                SheetOption(tr("New"), selected = true, subtitle = tr("Home with today's spending and Smart add, then Activity, Insights and Accounts"), onClick = close)
+            }
             Text(tr("MoneyTracker restarts to switch. Your entries, accounts and settings stay the same."), Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 color = F.muted, fontSize = 12.sp)
         }
@@ -215,9 +225,11 @@ private fun FreshSettingDialog(d: SettingDialog, model: SettingsModel, open: (Se
 private fun LanguageSheet(model: SettingsModel, onClose: () -> Unit) {
     val currentTag by rememberSetting(Prefs.LANGUAGE)
     Sheet(tr("Language"), onClose) {
-        I18n.LANGUAGES.forEach { (tag, name) ->
-            SheetOption(if (tag.isEmpty()) tr(name) else name, selected = tag == currentTag) {
-                onClose(); model.save(Prefs.LANGUAGE, tag)
+        SheetOptionGroup {
+            I18n.LANGUAGES.forEach { (tag, name) ->
+                SheetOption(if (tag.isEmpty()) tr(name) else name, selected = tag == currentTag) {
+                    onClose(); model.save(Prefs.LANGUAGE, tag)
+                }
             }
         }
     }
@@ -228,15 +240,17 @@ private fun LanguageSheet(model: SettingsModel, onClose: () -> Unit) {
 private fun AccentSheet(model: SettingsModel, onClose: () -> Unit) {
     val toaster = LocalToaster.current
     Sheet(tr("Accent colour"), onClose) {
-        // "Follow system" only where the OS provides wallpaper colours (Android 12+).
-        AccentChoice.entries.filter { it != AccentChoice.SYSTEM || systemAccent != null }.forEach { a ->
-            val c = a.tones().let { Color(if (darkTheme) it.dark else it.light) }
-            SheetOption(tr(a.label), selected = a == accentChoice, leading = { Box(Modifier.size(24.dp).clip(CircleShape).background(c)) }) {
-                onClose()
-                val before = accentChoice
-                if (a != before) {
-                    model.save(Prefs.ACCENT, a.name)
-                    toaster.show(tr("{0}: {1}", tr("Accent colour"), tr(a.label))) { model.save(Prefs.ACCENT, before.name) }
+        SheetOptionGroup {
+            // "Follow system" only where the OS provides wallpaper colours (Android 12+).
+            AccentChoice.entries.filter { it != AccentChoice.SYSTEM || systemAccent != null }.forEach { a ->
+                val c = a.tones().let { Color(if (darkTheme) it.dark else it.light) }
+                SheetOption(tr(a.label), selected = a == accentChoice, leading = { Box(Modifier.size(24.dp).clip(CircleShape).background(c)) }) {
+                    onClose()
+                    val before = accentChoice
+                    if (a != before) {
+                        model.save(Prefs.ACCENT, a.name)
+                        toaster.show(tr("{0}: {1}", tr("Accent colour"), tr(a.label))) { model.save(Prefs.ACCENT, before.name) }
+                    }
                 }
             }
         }
@@ -249,7 +263,7 @@ private fun <T> ChoiceSheet(spec: ChoiceSpec<T>, model: SettingsModel, onClose: 
     val toaster = LocalToaster.current
     ChoiceHost(spec, model, content = { current, options, pick ->
         Sheet(spec.title, onClose) {
-            options.forEach { (value, text) -> SheetOption(text, selected = value == current) { onClose(); pick(value, text) } }
+            SheetOptionGroup { options.forEach { (value, text) -> SheetOption(text, selected = value == current) { onClose(); pick(value, text) } } }
         }
     }) { _, text, before -> toaster.show(tr("{0}: {1}", spec.title, text)) { model.save(spec.setting, before) } }
 }
@@ -269,17 +283,16 @@ private fun EditValueSheet(key: Setting<*>, model: SettingsModel, onClose: () ->
     }
 }
 
+/** One setting: a switch row when it is on/off, otherwise a row showing its value. */
 @Composable
-private fun SettingRowView(r: SRow, where: String?) {
+private fun SettingRowView(r: SRow, where: String?, edgeTop: Dp, edgeBottom: Dp) {
     val checked = r.checked
-    FRow(
-        r.title,
-        subtitle = where ?: r.subtitle,
-        value = if (checked == null) r.value else null,
-        valueColor = F.accent,
-        onClick = r.onClick,
-        trailing = if (checked != null) { { StgSwitch(checked) { r.onClick() } } } else null,
-    )
+    if (checked != null) {
+        FSwitchRow(r.title, checked, { r.onClick() }, subtitle = where ?: r.subtitle, inset = ROW_INSET, extraTop = edgeTop, extraBottom = edgeBottom)
+    } else {
+        FRow(r.title, subtitle = where ?: r.subtitle, value = r.value, valueColor = F.accent, onClick = r.onClick,
+            inset = ROW_INSET, extraTop = edgeTop, extraBottom = edgeBottom)
+    }
 }
 
 @Composable
@@ -287,6 +300,7 @@ private fun SearchBox(value: String, onChange: (String) -> Unit) {
     // A thin accent ring while typing shows where the text goes.
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
+    val clearLabel = tr("Clear search")
     Row(
         Modifier.fillMaxWidth().height(44.dp).clip(F.iconShape).background(F.card)
             .border(2.dp, if (focused) F.accent else Color.Transparent, F.iconShape).padding(start = 14.dp, end = 6.dp),
@@ -299,9 +313,10 @@ private fun SearchBox(value: String, onChange: (String) -> Unit) {
                 textStyle = TextStyle(color = F.ink, fontSize = 14.sp), cursorBrush = SolidColor(F.accent), interactionSource = interaction)
         }
         if (value.isNotEmpty()) Box(
-            Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(F.page).clickable(onClickLabel = tr("Clear search")) { onChange("") },
+            Modifier.size(32.dp).clip(F.innerShape).background(F.page).clickable(role = Role.Button) { onChange("") }
+                .semantics { contentDescription = clearLabel },
             contentAlignment = Alignment.Center,
-        ) { Icon(Glyph.Close, tr("Clear search"), tint = F.muted, modifier = Modifier.size(18.dp)) }
+        ) { Icon(Glyph.Close, null, tint = F.muted, modifier = Modifier.size(18.dp)) }
     }
 }
 

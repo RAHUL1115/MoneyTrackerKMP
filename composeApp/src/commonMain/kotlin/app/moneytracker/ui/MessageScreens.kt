@@ -131,11 +131,11 @@ private fun SmsSection(v: SmsSwitches, capture: Boolean, health: SmsHealth, acti
         if (on) open(SmsDialog.Disclosure(apply)) else apply()
     }
     if (!health.permission) Text(smsPermissionSteps(), Modifier.padding(horizontal = 28.dp, vertical = 8.dp), fontSize = 12.sp, color = SubtleText)
-    if (capture) ConfigRow(tr("Keep detection running"), if (health.background.restricted) tr("Restricted") else tr("Check")) { open(SmsDialog.KeepRunning) }
+    if (capture) SettingRow(tr("Keep detection running"), if (health.background.restricted) tr("Restricted") else tr("Check")) { open(SmsDialog.KeepRunning) }
     ConfigToggle(tr("Alert for detected messages"), null, v.alert, actions.setAlert)
     ConfigToggle(tr("Save automatically"), tr("Add the entry right away when the account is recognised. A guessed usual account, or no account, waits for your review"), v.autoSave, actions.setAutoSave)
-    ConfigRow(tr("Original message on entries"), originalLabel) { open(SmsDialog.Original) }
-    ConfigRow(tr("Import SMS from the last {0} days", v.importDays), tr("Import")) {
+    SettingRow(tr("Original message on entries"), originalLabel) { open(SmsDialog.Original) }
+    SettingRow(tr("Import SMS from the last {0} days", v.importDays), tr("Import")) {
         val import = {
             actions.importInbox { n ->
                 open(SmsDialog.Message(when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages to Detected SMS", n) }))
@@ -143,16 +143,16 @@ private fun SmsSection(v: SmsSwitches, capture: Boolean, health: SmsHealth, acti
         }
         if (capture) import() else open(SmsDialog.Disclosure(import))
     }
-    ConfigRow(tr("Days to import"), "${v.importDays}") { open(SmsDialog.Days) }
+    SettingRow(tr("Days to import"), "${v.importDays}") { open(SmsDialog.Days) }
 }
 
 @Composable
 private fun SmsFilterRows(v: SmsFilters, open: (SmsDialog) -> Unit) {
     fun count(text: String?) = MessageRules.lines(text).size.let { if (it == 0) tr("None") else "$it" }
     ConfigSection(tr("Filters"))
-    ConfigRow(tr("Blocked numbers"), count(v.blockedSenders)) { open(SmsDialog.EditList(Prefs.SMS_BLOCKED_SENDERS, tr("Blocked numbers"))) }
-    ConfigRow(tr("Blocked words"), count(v.blockedPhrases)) { open(SmsDialog.EditList(Prefs.SMS_BLOCKED_PHRASES, tr("Blocked words"))) }
-    ConfigRow(tr("Content filter"), count(v.contentFilter)) { open(SmsDialog.EditList(Prefs.SMS_CONTENT_FILTER, tr("Content filter"))) }
+    SettingRow(tr("Blocked numbers"), count(v.blockedSenders)) { open(SmsDialog.EditList(Prefs.SMS_BLOCKED_SENDERS, tr("Blocked numbers"))) }
+    SettingRow(tr("Blocked words"), count(v.blockedPhrases)) { open(SmsDialog.EditList(Prefs.SMS_BLOCKED_PHRASES, tr("Blocked words"))) }
+    SettingRow(tr("Content filter"), count(v.contentFilter)) { open(SmsDialog.EditList(Prefs.SMS_CONTENT_FILTER, tr("Content filter"))) }
     Text(tr("Messages from blocked numbers or containing blocked words are ignored. Content-filter words are removed " +
         "before a message is read, which helps when a bank adds text that confuses the amount or shop name."),
         Modifier.padding(horizontal = 24.dp, vertical = 10.dp), fontSize = 12.sp, color = SubtleText)

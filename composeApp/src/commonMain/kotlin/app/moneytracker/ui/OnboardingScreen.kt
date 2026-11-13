@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
@@ -27,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -67,14 +71,14 @@ fun OnboardingScreen() {
             repeat(pages.size + 2) { i -> Box(Modifier.padding(4.dp).size(8.dp).background(if (i == f.page) Accent else DividerColor, CircleShape)) }
         }
         Box(
-            Modifier.fillMaxWidth().padding(top = 20.dp).height(52.dp).background(Accent, RoundedCornerShape(6.dp)).clickable {
+            Modifier.fillMaxWidth().padding(top = 20.dp).height(52.dp).background(Accent, NextShape).clip(NextShape).clickable(role = Role.Button) {
                 // The layout is chosen when the app starts, so the new one needs a quick restart.
                 if (f.page <= pages.size) f.page++ else model.finishOnboarding(f.symbol, f.decimals, f.newLayout, appInfo::restartApp)
             },
             contentAlignment = Alignment.Center,
         ) { Text(if (f.page <= pages.size) tr("Next") else tr("Start"), color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center) }
         if (f.page < pages.size) {
-            Text(tr("Skip"), Modifier.fillMaxWidth().clickable { f.page = pages.size }.padding(14.dp), textAlign = TextAlign.Center, color = SubtleText)
+            Text(tr("Skip"), Modifier.fillMaxWidth().clickable(role = Role.Button) { f.page = pages.size }.padding(14.dp), textAlign = TextAlign.Center, color = SubtleText)
         }
     }
 }
@@ -83,7 +87,7 @@ fun OnboardingScreen() {
 private fun LayoutPage(f: OnboardingForm) {
     Text(tr("Choose your layout"), fontSize = 28.sp, fontWeight = FontWeight.Bold)
     Text(tr("You can switch any time in Settings › Look › Layout."), Modifier.padding(top = 12.dp), color = SubtleText)
-    Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.padding(top = 24.dp).selectableGroup(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         LayoutChoice(tr("New (recommended)"), tr("Home with today's spending and Smart add, then Activity, Insights and Accounts. Clean, simple screens."), f.newLayout) { f.newLayout = true }
         LayoutChoice(tr("Classic"), tr("The familiar tabs: Trans., Stats, Accounts and More, with daily, calendar and monthly views."), !f.newLayout) { f.newLayout = false }
     }
@@ -93,23 +97,25 @@ private fun LayoutPage(f: OnboardingForm) {
 private fun CurrencyPage(f: OnboardingForm) {
     Text(tr("Your currency"), fontSize = 28.sp, fontWeight = FontWeight.Bold)
     Text(tr("You can add more currencies later in Configuration."), Modifier.padding(top = 12.dp), color = SubtleText)
-    Row(Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(Modifier.padding(top = 24.dp).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         listOf("₹" to 2, "$" to 2, "€" to 2, "£" to 2, "¥" to 0).forEach { (s, d) ->
+            val shape = RoundedCornerShape(8.dp)
             Box(
-                Modifier.size(52.dp).border(1.5.dp, if (f.symbol == s) Accent else BorderColor, RoundedCornerShape(8.dp))
-                    .clickable { f.symbol = s; f.decimals = d },
+                Modifier.size(52.dp).border(1.5.dp, if (f.symbol == s) Accent else BorderColor, shape).clip(shape)
+                    .selectable(f.symbol == s, role = Role.RadioButton) { f.symbol = s; f.decimals = d },
                 contentAlignment = Alignment.Center,
             ) { Text(s, fontSize = 22.sp, color = if (f.symbol == s) Accent else InkSoft) }
         }
     }
     OutlinedTextField(f.symbol, { f.symbol = it.take(4) }, Modifier.padding(top = 20.dp), label = { Text(tr("Symbol")) }, singleLine = true)
-    Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.padding(top = 12.dp).selectableGroup(), verticalAlignment = Alignment.CenterVertically) {
         Text(tr("Decimal places"), Modifier.weight(1f))
         for (d in 0..3) {
+            val shape = RoundedCornerShape(6.dp)
             Text(
                 d.toString(),
-                Modifier.padding(start = 8.dp).border(1.dp, if (f.decimals == d) Accent else BorderColor, RoundedCornerShape(6.dp))
-                    .clickable { f.decimals = d }.padding(horizontal = 14.dp, vertical = 8.dp),
+                Modifier.padding(start = 8.dp).border(1.dp, if (f.decimals == d) Accent else BorderColor, shape).clip(shape)
+                    .selectable(f.decimals == d, role = Role.RadioButton) { f.decimals = d }.padding(horizontal = 14.dp, vertical = 8.dp),
                 color = if (f.decimals == d) Accent else InkSoft,
             )
         }
@@ -121,12 +127,16 @@ private fun CurrencyPage(f: OnboardingForm) {
 private fun LayoutChoice(title: String, body: String, selected: Boolean, onClick: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().border(if (selected) 2.dp else 1.dp, if (selected) Accent else BorderColor, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(16.dp),
+            .clip(RoundedCornerShape(12.dp)).selectable(selected, role = Role.RadioButton, onClick = onClick).padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (selected) Accent else Ink)
-            if (selected) Text("✓", color = Accent, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            // The selected state is already announced; the tick is only for the eye.
+            if (selected) Text("✓", Modifier.clearAndSetSemantics {}, color = Accent, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         }
         Text(body, Modifier.padding(top = 6.dp), fontSize = 14.sp, color = InkSoft)
     }
 }
+
+/** The Next / Start button's corners. */
+private val NextShape = RoundedCornerShape(6.dp)
