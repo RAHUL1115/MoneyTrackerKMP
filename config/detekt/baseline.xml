@@ -7,11 +7,8 @@
     <ID>ComplexCondition:MoneyManagerImport.kt$MoneyManagerBackup$k == null || type == null || next == null || account !in accountById</ID>
     <ID>ComplexCondition:MoneyManagerImport.kt$MoneyManagerBackup$t.kind.isTransfer &amp;&amp; (t.transferGroupId == null || legs[t.transferGroupId]?.size != 2 || t.toAccountId == null)</ID>
     <ID>ComplexCondition:Prefs.kt$ClockTime.Companion$h != null &amp;&amp; m != null &amp;&amp; h in 0..23 &amp;&amp; m in 0..59</ID>
-    <ID>ComplexCondition:Rules.kt$Recurrence$d &lt;= range.endInclusive &amp;&amp; (rule.endDate == null || d &lt;= rule.endDate) &amp;&amp; guard++ &lt; 400</ID>
-    <ID>ComplexCondition:SmsParser.kt$SmsParser$cleaned.length &lt; 2 || cleaned.all { it.isDigit() || it == 'x' || it == 'X' || it == '*' }</ID>
     <ID>ComplexCondition:TabularImport.kt$TabularImport$v.any { it == ',' || it == '"' || it == '\n' || it == '\r' }</ID>
     <ID>ComplexCondition:WebApi.kt$WebApi.Companion$ip.isEmpty() || ip.any { !(it.isLetterOrDigit() || it == '.' || it == ':' || it == '%') }</ID>
-    <ID>CyclomaticComplexMethod:AccountPredictor.kt$AccountPredictor$fun rank(history: List&lt;Past&gt;, ask: Ask, allowed: Set&lt;String&gt;? = null): List&lt;Pair&lt;String, Double&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
     <ID>CyclomaticComplexMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:FreshApp.kt$fun freshScreen(screen: Screen): (@Composable () -&gt; Unit)?</ID>
@@ -21,8 +18,6 @@
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$private fun etcRows(s: Map&lt;String, String&gt;): List&lt;Triple&lt;Int, String, String&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
     <ID>CyclomaticComplexMethod:SmartEntry.kt$SmartEntry$suspend fun guess( parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */ learned: (suspend (List&lt;String&gt;) -&gt; Suggestion?)? = null, /** The account usually used for (kind, category id, note, amount); null to skip. */ usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -&gt; String?)? = null, ): SmartGuess</ID>
-    <ID>CyclomaticComplexMethod:SmsParser.kt$SmsParser$fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed?</ID>
-    <ID>CyclomaticComplexMethod:SmsParser.kt$SmsParser$fun vendorOf(text: String): String?</ID>
     <ID>CyclomaticComplexMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
     <ID>CyclomaticComplexMethod:WebApi.kt$WebApi$private fun draft(r: MoneyRepository, b: Map&lt;*, *&gt;, existing: Txn?): TxnDraft</ID>
     <ID>CyclomaticComplexMethod:Xlsx.kt$Xlsx$private fun readSheet(bytes: ByteArray, shared: List&lt;String&gt;): List&lt;List&lt;String&gt;&gt;</ID>
@@ -31,7 +26,6 @@
     <ID>EmptyElseBlock:AndroidPlatform.kt$AndroidPlatform$if (ok) SmsCatchUp.schedule(ctx)</ID>
     <ID>EmptyElseBlock:AndroidSpeech.kt$AndroidSpeech.FakeSession$if (done) return</ID>
     <ID>EmptyElseBlock:AndroidSpeech.kt$AndroidSpeech.RealSession$if (done) return</ID>
-    <ID>EmptyElseBlock:Calc.kt$Calc$if (rhs == 0.0) return null</ID>
     <ID>EmptyElseBlock:Json.kt$Json$if (!first) out.append(',')</ID>
     <ID>EmptyElseBlock:WebDashboardFresh.kt$if (text.isEmpty()) Text(tr("New password"), color = F.muted, fontSize = 16.sp)</ID>
     <ID>EmptyElseBlock:Xlsx.kt$Xlsx$if (!ch.isLetter()) break</ID>
@@ -48,7 +42,6 @@
     <ID>LongMethod:WebDashboardFresh.kt$@Composable internal fun FreshWebDashboard()</ID>
     <ID>LongParameterList:WebDashboardScreens.kt$WebDashboardUi$( val state: WebDashboardState, val passwordSet: Boolean, val autoStop: Int, val now: Long, val start: () -&gt; Unit, val stop: () -&gt; Unit, val copy: () -&gt; Unit, val disconnect: (String) -&gt; Unit, val setPassword: (String?) -&gt; Unit, val setAutoStop: (Int) -&gt; Unit, val openWifi: () -&gt; Unit, /** Set briefly after Copy. */ val copied: Boolean, )</ID>
     <ID>LoopWithTooManyJumpStatements:HttpServer.kt$HttpServer$while</ID>
-    <ID>LoopWithTooManyJumpStatements:SmsParser.kt$SmsParser$for</ID>
     <ID>MatchingDeclarationName:FreshApp.kt$FreshTab</ID>
     <ID>MatchingDeclarationName:Glyphs.kt$Glyph</ID>
     <ID>MatchingDeclarationName:MessageScreens.kt$SmsHealth</ID>
@@ -59,9 +52,6 @@
     <ID>NestedBlockDepth:AndroidBackupController.kt$AndroidBackupController$private fun importPhotosFrom(uri: Uri): String</ID>
     <ID>NestedBlockDepth:Xlsx.kt$Xlsx$private fun readSheet(bytes: ByteArray, shared: List&lt;String&gt;): List&lt;List&lt;String&gt;&gt;</ID>
     <ID>ReturnCount:AndroidPlatform.kt$AndroidPlatform$override fun checkPin(pin: String, stored: String): Boolean</ID>
-    <ID>ReturnCount:Calc.kt$Calc$fun evaluate(text: String, decimals: Int): String?</ID>
-    <ID>ReturnCount:MessageRules.kt$MessageRules$fun suggestAccount( accounts: List&lt;Account&gt;, groups: List&lt;AccountGroup&gt;, sender: String, text: String, parsed: SmsParser.Parsed, learnedAccountId: String?, ): String?</ID>
-    <ID>ReturnCount:SmsParser.kt$SmsParser$fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed?</ID>
     <ID>ReturnCount:TxnFilter.kt$TxnFilter$fun matches(t: Txn, catById: Map&lt;String, Category&gt;, tagged: Set&lt;String&gt; = emptySet()): Boolean</ID>
     <ID>ReturnCount:WebApi.kt$WebApi$fun handle(req: HttpRequest): HttpResponse</ID>
     <ID>ReturnCount:WebApi.kt$WebPassword$fun check(password: String, stored: String?): Boolean</ID>

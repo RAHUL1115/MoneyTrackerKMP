@@ -84,8 +84,9 @@ object Recurrence {
     fun upcoming(rule: RecurringRule, range: DateRange): List<LocalDate> {
         val out = mutableListOf<LocalDate>()
         var d = rule.nextDate
+        val last = rule.endDate?.let { minOf(it, range.endInclusive) } ?: range.endInclusive
         var guard = 0
-        while (d <= range.endInclusive && (rule.endDate == null || d <= rule.endDate) && guard++ < 400) {
+        while (d <= last && guard++ < 400) {
             if (d >= range.start) out += d
             d = next(d, rule.repeat)
         }
