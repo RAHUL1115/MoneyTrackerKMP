@@ -40,10 +40,7 @@
     <ID>CyclomaticComplexMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
     <ID>CyclomaticComplexMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backups: Backups, navigator: Navigator, platform: Platform, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
-    <ID>CyclomaticComplexMethod:BackupScreens.kt$@Composable internal fun FreshBackup()</ID>
     <ID>CyclomaticComplexMethod:BudgetScreen.kt$@Composable internal fun BudgetBody()</ID>
-    <ID>CyclomaticComplexMethod:CategoriesScreens.kt$@Composable internal fun FreshCategories(kind: CategoryKind)</ID>
-    <ID>CyclomaticComplexMethod:CategoriesScreens.kt$@Composable private fun CategorySheet( c: Category, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, accountNames: Map&lt;String, String&gt;, useSubcategories: Boolean, onDismiss: () -&gt; Unit, onDelete: () -&gt; Unit, onSave: (Category) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>CyclomaticComplexMethod:EditTxnScreen.kt$@Composable fun EditTxnScreen(screen: Screen.EditTxn)</ID>
     <ID>CyclomaticComplexMethod:EditTxnScreen.kt$@Composable private fun AmountKeypad( title: String, currency: CurrencyFormat, text: String, onChange: (String) -&gt; Unit, onClose: () -&gt; Unit, onDone: () -&gt; Unit, )</ID>
@@ -69,8 +66,6 @@
     <ID>CyclomaticComplexMethod:MoreScreen.kt$@Composable fun ConfigurationScreen()</ID>
     <ID>CyclomaticComplexMethod:MoreScreen.kt$@Composable fun RecurringScreen()</ID>
     <ID>CyclomaticComplexMethod:MoreScreen.kt$@Composable private fun RuleEditDialog( rule: RecurringRule, accounts: List&lt;Account&gt;, categories: List&lt;Category&gt;, onDismiss: () -&gt; Unit, onSave: (RecurringRule) -&gt; Unit, )</ID>
-    <ID>CyclomaticComplexMethod:NotesFresh.kt$@Composable internal fun FreshEditNote(noteId: String?)</ID>
-    <ID>CyclomaticComplexMethod:RepeatsScreens.kt$@Composable private fun RuleSheet( rule: RecurringRule, accounts: List&lt;Account&gt;, categories: List&lt;Category&gt;, accountName: Map&lt;String, String&gt;, catById: Map&lt;String, Category&gt;, onDismiss: () -&gt; Unit, onStop: () -&gt; Unit, onSave: (RecurringRule) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:SearchFresh.kt$@Composable internal fun FreshSearch()</ID>
     <ID>CyclomaticComplexMethod:SecurityScreens.kt$@Composable fun OnboardingScreen()</ID>
     <ID>CyclomaticComplexMethod:SecurityScreens.kt$@Composable fun SecurityScreen()</ID>
@@ -84,7 +79,6 @@
     <ID>CyclomaticComplexMethod:SmartText.kt$SmartText$fun translit(word: String): String</ID>
     <ID>CyclomaticComplexMethod:SmsParser.kt$SmsParser$fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed?</ID>
     <ID>CyclomaticComplexMethod:SmsParser.kt$SmsParser$fun vendorOf(text: String): String?</ID>
-    <ID>CyclomaticComplexMethod:SmsSettings.kt$@Composable internal fun SmsSettingsScreen()</ID>
     <ID>CyclomaticComplexMethod:StatsScreen.kt$@Composable fun BudgetScreen()</ID>
     <ID>CyclomaticComplexMethod:StatsScreen.kt$@Composable fun StatsTab()</ID>
     <ID>CyclomaticComplexMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
@@ -95,7 +89,6 @@
     <ID>CyclomaticComplexMethod:TxnFilter.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun FilterSheet(range: DateRange, initial: TxnFilter, onDismiss: () -&gt; Unit, onApply: (TxnFilter) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:WebApi.kt$WebApi$private fun draft(r: MoneyRepository, b: Map&lt;*, *&gt;, existing: Txn?): TxnDraft</ID>
     <ID>CyclomaticComplexMethod:Xlsx.kt$Xlsx$private fun readSheet(bytes: ByteArray, shared: List&lt;String&gt;): List&lt;List&lt;String&gt;&gt;</ID>
-    <ID>DestructuringDeclarationWithTooManyEntries:BackupScreens.kt$val (_, y, mo, d, h, mi) = m.destructured</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:MoreScreen.kt$val (kind, y, mo, d, h, mi) = m.destructured</ID>
     <ID>EmptyElseBlock:AndroidPlatform.kt$AndroidPlatform$if (ok) Notifications.showQuickAdd(ctx)</ID>
     <ID>EmptyElseBlock:AndroidPlatform.kt$AndroidPlatform$if (ok) Reminders.schedule(ctx, hour, minute)</ID>
@@ -105,7 +98,6 @@
     <ID>EmptyElseBlock:Calc.kt$Calc$if (rhs == 0.0) return null</ID>
     <ID>EmptyElseBlock:EditTxnScreen.kt$if (!sameCategories) categoryId = null</ID>
     <ID>EmptyElseBlock:Json.kt$Json$if (!first) out.append(',')</ID>
-    <ID>EmptyElseBlock:NotesFresh.kt$if (original == null) original = notes.firstOrNull { it.id == noteId }</ID>
     <ID>EmptyElseBlock:SettingsScreens.kt$if (i &gt; 0) Divider()</ID>
     <ID>EmptyElseBlock:SmartModels.kt$PieceSplitter$if (piece[j] &gt;= 0) rev.add(piece[j])</ID>
     <ID>EmptyElseBlock:SmartParser.kt$SmartParser$if (c != null) vals.add(c)</ID>
@@ -140,10 +132,7 @@
     <ID>LongMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>LongMethod:App.kt$@Composable fun App( repo: MoneyRepository?, backups: Backups, navigator: Navigator, platform: Platform, locked: Boolean, onUnlocked: () -&gt; Unit, launchAction: LaunchAction?, onLaunchHandled: () -&gt; Unit, onDarkThemeChanged: (Boolean) -&gt; Unit = {}, newLayout: Boolean = false, )</ID>
     <ID>LongMethod:App.kt$@Composable private fun Home()</ID>
-    <ID>LongMethod:BackupScreens.kt$@Composable internal fun FreshBackup()</ID>
-    <ID>LongMethod:BackupScreens.kt$@Composable private fun ImportPreview(parsed: TabularImport.Parsed, onCancel: () -&gt; Unit, onImport: (Set&lt;Int&gt;) -&gt; Unit)</ID>
     <ID>LongMethod:BudgetScreen.kt$@Composable internal fun BudgetBody()</ID>
-    <ID>LongMethod:CategoriesScreens.kt$@Composable internal fun FreshCategories(kind: CategoryKind)</ID>
     <ID>LongMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:Common.kt$@Composable fun MonthPickerDialog(selected: YearMonth, current: YearMonth, onDismiss: () -&gt; Unit, onPick: (YearMonth) -&gt; Unit)</ID>
     <ID>LongMethod:EditTxnScreen.kt$@Composable fun EditTxnScreen(screen: Screen.EditTxn)</ID>
@@ -173,9 +162,6 @@
     <ID>LongMethod:MoreScreen.kt$@Composable fun RecurringScreen()</ID>
     <ID>LongMethod:MoreScreen.kt$@Composable private fun ImportPreviewDialog(parsed: app.moneytracker.data.TabularImport.Parsed, onCancel: () -&gt; Unit, onImport: (Set&lt;Int&gt;) -&gt; Unit)</ID>
     <ID>LongMethod:MoreScreen.kt$@Composable private fun RuleEditDialog( rule: RecurringRule, accounts: List&lt;Account&gt;, categories: List&lt;Category&gt;, onDismiss: () -&gt; Unit, onSave: (RecurringRule) -&gt; Unit, )</ID>
-    <ID>LongMethod:NotesFresh.kt$@Composable internal fun FreshEditNote(noteId: String?)</ID>
-    <ID>LongMethod:RepeatsScreens.kt$@Composable internal fun FreshRepeats()</ID>
-    <ID>LongMethod:RepeatsScreens.kt$@Composable private fun RuleSheet( rule: RecurringRule, accounts: List&lt;Account&gt;, categories: List&lt;Category&gt;, accountName: Map&lt;String, String&gt;, catById: Map&lt;String, Category&gt;, onDismiss: () -&gt; Unit, onStop: () -&gt; Unit, onSave: (RecurringRule) -&gt; Unit, )</ID>
     <ID>LongMethod:SearchFresh.kt$@Composable internal fun FreshSearch()</ID>
     <ID>LongMethod:SecurityScreens.kt$@Composable fun OnboardingScreen()</ID>
     <ID>LongMethod:SecurityScreens.kt$@Composable fun SecurityScreen()</ID>
@@ -185,9 +171,6 @@
     <ID>LongMethod:SmartEntry.kt$SmartEntry$suspend fun guess( parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */ learned: (suspend (List&lt;String&gt;) -&gt; MoneyRepository.Suggestion?)? = null, /** The account usually used for (kind, category id, note, amount); null to skip. */ usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -&gt; String?)? = null, ): SmartGuess</ID>
     <ID>LongMethod:SmartParser.kt$SmartParser$fun parse(text: String, expenseCategories: List&lt;String&gt;, incomeCategories: List&lt;String&gt;, accounts: List&lt;String&gt;): Result</ID>
     <ID>LongMethod:SmartText.kt$SmartText$fun translit(word: String): String</ID>
-    <ID>LongMethod:SmsReview.kt$@Composable internal fun SmsReviewScreen()</ID>
-    <ID>LongMethod:SmsReview.kt$@Composable private fun MessageCard(c: Capture, d: TxnDraft?, onDismiss: () -&gt; Unit, onAdd: () -&gt; Unit)</ID>
-    <ID>LongMethod:SmsSettings.kt$@Composable internal fun SmsSettingsScreen()</ID>
     <ID>LongMethod:StatsScreen.kt$@Composable fun BudgetDetailScreen(initialKey: Int)</ID>
     <ID>LongMethod:StatsScreen.kt$@Composable fun BudgetScreen()</ID>
     <ID>LongMethod:StatsScreen.kt$@Composable fun StatsTab()</ID>
