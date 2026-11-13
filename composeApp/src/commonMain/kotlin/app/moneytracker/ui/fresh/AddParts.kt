@@ -44,40 +44,10 @@ import androidx.compose.ui.unit.sp
 import app.moneytracker.domain.Calc
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.ui.LocalPlatform
+import app.moneytracker.ui.pressKey
 import app.moneytracker.ui.tr
 
 // Building blocks of the entry editor (AddScreen.kt).
-
-/** The amount text after pressing [k] on the calculator keypad. */
-internal fun addPress(text: String, k: String, currency: CurrencyFormat): String {
-    val ops = Calc.OPS
-    // The number being typed is whatever follows the last operator.
-    val head = text.dropLastWhile { it !in ops }
-    val num = text.substring(head.length)
-    return when (k) {
-        "⌫" -> text.dropLast(1)
-        "C" -> ""
-        "=" -> Calc.evaluate(text, currency.decimals) ?: text
-        "+", "−", "×", "÷" -> when {
-            text.isEmpty() -> text
-            text.last() in ops -> text.dropLast(1) + k
-            text.last() == '.' -> text.dropLast(1) + k
-            else -> text + k
-        }
-        "." -> if (currency.decimals == 0 || num.contains('.')) text else text + (if (num.isEmpty()) "0." else ".")
-        else -> {
-            val candidate = if (num == "0") head + k else text + k
-            val newNum = candidate.substring(head.length)
-            val frac = newNum.substringAfter('.', "")
-            if (newNum.contains('.') && frac.length > currency.decimals) text
-            else if (newNum.substringBefore('.').length > 12) text else candidate
-        }
-    }
-}
-
-/** A half-typed calculation ("120+30") counts as its result. */
-internal fun addSettle(text: String, currency: CurrencyFormat): String =
-    if (Calc.hasOperator(text)) Calc.evaluate(text, currency.decimals) ?: text else text
 
 /** "1200+30" → "1200 + 30" for the big amount line. */
 internal fun addExprShown(text: String): String =
@@ -101,7 +71,7 @@ internal fun AddKeypad(text: String, currency: CurrencyFormat, onChange: (String
                             .combinedClickable(
                                 onClickLabel = aria[k] ?: k,
                                 onLongClick = if (k == "⌫") ({ onChange("") }) else null,
-                                onClick = { onChange(addPress(text, k, currency)) },
+                                onClick = { onChange(pressKey(text, k, currency)) },
                             ),
                         contentAlignment = Alignment.Center,
                     ) {

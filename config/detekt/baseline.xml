@@ -2,13 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ComplexCondition:AddScreen.kt$AddForm$amountText.isEmpty() &amp;&amp; m.amount &gt; 0 &amp;&amp; (m.currency == null || currencies.containsKey(m.currency))</ID>
-    <ID>ComplexCondition:AddScreen.kt$e != null &amp;&amp; e.kind == TxnKind.EXPENSE &amp;&amp; !e.isRefund &amp;&amp; e.transferGroupId == null</ID>
-    <ID>ComplexCondition:AddScreen.kt$s.txnId == null &amp;&amp; s.preset == null &amp;&amp; f.accountFirst &amp;&amp; f.accountId == null</ID>
     <ID>ComplexCondition:AndroidSpeech.kt$AndroidSpeech.RealSession$lastPartial.isNotEmpty() &amp;&amp; (stopping || error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)</ID>
-    <ID>ComplexCondition:EditTxnScreen.kt$!restoring &amp;&amp; screen.txnId == null &amp;&amp; screen.preset == null &amp;&amp; !accountFirst</ID>
-    <ID>ComplexCondition:EditTxnScreen.kt$amountText.isEmpty() &amp;&amp; m.amount &gt; 0 &amp;&amp; (m.currency == null || currencies.containsKey(m.currency))</ID>
-    <ID>ComplexCondition:EditTxnScreen.kt$panel != Panel.NONE || noteFocused || datePicker || timePicker || repeatDialog || tagDialog || dirtyState.value</ID>
     <ID>ComplexCondition:IosMoneyManagerSource.kt$IosMoneyManagerSource$type == -8540 || type == -25159 || type == 30121401 || type == 25278</ID>
     <ID>ComplexCondition:MoneyManagerImport.kt$MoneyManagerBackup$k == null || type == null || next == null || account !in accountById</ID>
     <ID>ComplexCondition:MoneyManagerImport.kt$MoneyManagerBackup$t.kind.isTransfer &amp;&amp; (t.transferGroupId == null || legs[t.transferGroupId]?.size != 2 || t.toAccountId == null)</ID>
@@ -23,11 +17,8 @@
     <ID>ComplexCondition:TabularImport.kt$TabularImport$v.any { it == ',' || it == '"' || it == '\n' || it == '\r' }</ID>
     <ID>ComplexCondition:WebApi.kt$WebApi.Companion$ip.isEmpty() || ip.any { !(it.isLetterOrDigit() || it == '.' || it == ':' || it == '%') }</ID>
     <ID>CyclomaticComplexMethod:AccountPredictor.kt$AccountPredictor$fun rank(history: List&lt;Past&gt;, ask: Ask, allowed: Set&lt;String&gt;? = null): List&lt;Pair&lt;String, Double&gt;&gt;</ID>
-    <ID>CyclomaticComplexMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
     <ID>CyclomaticComplexMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
-    <ID>CyclomaticComplexMethod:EditTxnScreen.kt$@Composable fun EditTxnScreen(screen: Screen.EditTxn)</ID>
-    <ID>CyclomaticComplexMethod:EditTxnScreen.kt$@Composable private fun AmountKeypad( title: String, currency: CurrencyFormat, text: String, onChange: (String) -&gt; Unit, onClose: () -&gt; Unit, onDone: () -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:FeatureScreens.kt$@Composable fun CurrenciesScreen()</ID>
     <ID>CyclomaticComplexMethod:FeatureScreens.kt$@Composable fun EditNoteScreen(noteId: String?)</ID>
     <ID>CyclomaticComplexMethod:FeatureScreens.kt$@Composable fun SearchScreen()</ID>
@@ -35,7 +26,6 @@
     <ID>CyclomaticComplexMethod:FreshApp.kt$fun freshScreen(screen: Screen): (@Composable () -&gt; Unit)?</ID>
     <ID>CyclomaticComplexMethod:I18n.kt$I18n$fun resolve(tag: String): String</ID>
     <ID>CyclomaticComplexMethod:IosMoneyManagerSource.kt$IosMoneyManagerSource$private fun txns()</ID>
-    <ID>CyclomaticComplexMethod:ListenSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun ListenSheetBody(onDismiss: () -&gt; Unit, startTyping: Boolean, onDone: (SmartGuess?) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:MessageScreens.kt$@Composable fun MessageSettingsScreen()</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$private fun etcRows(s: Map&lt;String, String&gt;): List&lt;Triple&lt;Int, String, String&gt;&gt;</ID>
@@ -68,7 +58,6 @@
     <ID>EmptyElseBlock:AndroidSpeech.kt$AndroidSpeech.FakeSession$if (done) return</ID>
     <ID>EmptyElseBlock:AndroidSpeech.kt$AndroidSpeech.RealSession$if (done) return</ID>
     <ID>EmptyElseBlock:Calc.kt$Calc$if (rhs == 0.0) return null</ID>
-    <ID>EmptyElseBlock:EditTxnScreen.kt$if (!sameCategories) categoryId = null</ID>
     <ID>EmptyElseBlock:Json.kt$Json$if (!first) out.append(',')</ID>
     <ID>EmptyElseBlock:SettingsScreens.kt$if (i &gt; 0) Divider()</ID>
     <ID>EmptyElseBlock:SmartModels.kt$PieceSplitter$if (piece[j] &gt;= 0) rev.add(piece[j])</ID>
@@ -80,15 +69,8 @@
     <ID>ForEachOnRange:Common.kt$(1..12).chunked(4)</ID>
     <ID>ForEachOnRange:SecurityScreens.kt$0..3</ID>
     <ID>LongMethod:AboutScreen.kt$@Composable fun AboutScreen()</ID>
-    <ID>LongMethod:AddScreen.kt$@Composable fun receiptCard()</ID>
-    <ID>LongMethod:AddScreen.kt$@Composable fun tray(modifier: Modifier)</ID>
-    <ID>LongMethod:AddScreen.kt$@Composable internal fun FreshEditTxn(s: Screen.EditTxn)</ID>
     <ID>LongMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:Common.kt$@Composable fun MonthPickerDialog(selected: YearMonth, current: YearMonth, onDismiss: () -&gt; Unit, onPick: (YearMonth) -&gt; Unit)</ID>
-    <ID>LongMethod:EditTxnScreen.kt$@Composable fun EditTxnScreen(screen: Screen.EditTxn)</ID>
-    <ID>LongMethod:EditTxnScreen.kt$@Composable private fun AccountPanel(title: String, accounts: List&lt;Account&gt;, selectedIds: Set&lt;String&gt;, onPick: (Account) -&gt; Unit, onEdit: () -&gt; Unit, onClose: () -&gt; Unit)</ID>
-    <ID>LongMethod:EditTxnScreen.kt$@Composable private fun AmountKeypad( title: String, currency: CurrencyFormat, text: String, onChange: (String) -&gt; Unit, onClose: () -&gt; Unit, onDone: () -&gt; Unit, )</ID>
-    <ID>LongMethod:EditTxnScreen.kt$@Composable private fun CategoryPanel( categories: List&lt;Category&gt;, useSubcategories: Boolean, currentId: String?, onPick: (Category) -&gt; Unit, onEdit: () -&gt; Unit, onClose: () -&gt; Unit, )</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun CurrenciesScreen()</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun EditNoteScreen(noteId: String?)</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun InboxScreen()</ID>
@@ -96,7 +78,6 @@
     <ID>LongMethod:FeatureScreens.kt$@Composable fun StatsDetailScreen(s: Screen.StatsDetail)</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun TagsScreen()</ID>
     <ID>LongMethod:FeatureScreens.kt$@Composable fun TemplatesScreen()</ID>
-    <ID>LongMethod:ListenSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun ListenSheetBody(onDismiss: () -&gt; Unit, startTyping: Boolean, onDone: (SmartGuess?) -&gt; Unit)</ID>
     <ID>LongMethod:MessageScreens.kt$@Composable fun MessageSettingsScreen()</ID>
     <ID>LongMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>LongMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
