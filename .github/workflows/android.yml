@@ -26,6 +26,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # This also draws every screenshot-test screen, so a screen that crashes fails here. Comparing against the
+      # baselines (verifyRoborazziDebug) stays a local step: they are recorded on macOS, and Robolectric's native
+      # graphics can draw text a few pixels differently on Linux.
       - name: Unit tests
         run: ./gradlew :composeApp:testDebugUnitTest --console=plain
 
