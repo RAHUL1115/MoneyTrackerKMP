@@ -28,17 +28,20 @@ data class NetWorthPoint(val month: YearMonth, val assets: Long, val liabilities
 
 /** The accounts tab of both layouts: every account's balance and card statement, net worth, and its trend. */
 class AccountsModel(
-    views: ReadModels,
+    private val views: ReadModels,
     private val accounts: AccountStore,
     private val settings: SettingsStore,
     private val currencies: CurrencyStore,
     private val txns: TxnStore,
     private val today: () -> LocalDate,
     private val io: CoroutineDispatcher,
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
 ) {
-    /** Starts from the last summary worked out, so a reopened tab draws at once; null until there is one. */
-    val summary: StateFlow<AccountSummary?> = views.accounts.stateIn(scope, SharingStarted.Eagerly, views.latestAccounts)
+    /**
+     * Starts from the last summary worked out, so a reopened tab draws at once; null until there is one.
+     * Worked out only once asked for, so the trend screen doesn't pay for it.
+     */
+    val summary: StateFlow<AccountSummary?> by lazy { views.accounts.stateIn(scope, SharingStarted.Eagerly, views.latestAccounts) }
 
     /** Net worth at the end of each of the last [months] months, worked out again when accounts, periods or currencies change. */
     fun netWorthTrend(months: Int): Flow<List<NetWorthPoint>> =
