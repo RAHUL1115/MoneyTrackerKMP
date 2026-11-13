@@ -80,7 +80,7 @@ class AccountsModel(private val accounts: AccountStore, private val scope: Corou
 
 ## Done means
 
-- `./gradlew :composeApp:testDebugUnitTest` passes, and detekt reports no new findings (the baseline only shrinks).
+- `./gradlew :composeApp:testDebugUnitTest` passes, and detekt reports no findings (there is no baseline; a deliberate exception is a local `@Suppress` with a reason).
 - Every moved function has the same behaviour, checked by the existing tests or a new one written before the move.
 - Every file you touched reads cleanly top to bottom: names say intent, each function does one thing, no dead code is left behind.
 

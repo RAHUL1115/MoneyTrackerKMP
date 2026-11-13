@@ -117,12 +117,11 @@ android {
     }
 }
 
-// Code-quality gate: the limits in .claude/skills/kotlin-readable-code. The baseline holds findings that
-// predate the gate; it only ever shrinks, and anything new fails the build.
+// Code-quality gate: the limits in .claude/skills/kotlin-readable-code. Any finding fails the build; a rare,
+// deliberate exception is a local @Suppress with a one-line reason next to it.
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
-    baseline = rootProject.file("config/detekt/baseline.xml")
     source.setFrom("src/commonMain/kotlin", "src/androidMain/kotlin")
 }
 

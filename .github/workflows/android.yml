@@ -29,7 +29,7 @@ jobs:
       - name: Unit tests
         run: ./gradlew :composeApp:testDebugUnitTest --console=plain
 
-      # Size, complexity and error-handling limits; findings older than the gate live in the baseline.
+      # Size, complexity and error-handling limits (config/detekt/detekt.yml); any finding fails the build.
       - name: Code quality (detekt)
         run: ./gradlew :composeApp:detekt --console=plain
 
