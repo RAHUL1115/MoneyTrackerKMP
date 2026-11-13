@@ -123,7 +123,6 @@
     <ID>ForEachOnRange:Common.kt$(1..12).chunked(4)</ID>
     <ID>ForEachOnRange:SecurityScreens.kt$0..3</ID>
     <ID>ForEachOnRange:TransactionsScreen.kt$(0 until 7).map { DayOfWeek.entries[(weekStart.ordinal + it) % 7] }</ID>
-    <ID>InstanceOfCheckForException:Log.kt$Log$t is kotlinx.coroutines.CancellationException</ID>
     <ID>LargeClass:MoneyRepository.kt$MoneyRepository</ID>
     <ID>LongMethod:AboutScreen.kt$@Composable fun AboutScreen()</ID>
     <ID>LongMethod:AccountDetailScreen.kt$@Composable private fun Hero(line: AccountLine, fmt: CurrencyFormat, history: List&lt;Txn&gt;, today: LocalDate)</ID>
@@ -256,7 +255,6 @@
     <ID>UnusedPrivateProperty:HomeTab.kt$val daysGone = (range.start.daysUntil(today) + 1).coerceAtLeast(1)</ID>
     <ID>UnusedPrivateProperty:SettingsScreens.kt$val backup = LocalBackup.current</ID>
     <ID>UnusedPrivateProperty:SettingsScreens.kt$val currency = LocalCurrency.current</ID>
-    <ID>UseCheckOrError:HttpServer.kt$HttpServer$throw last ?: IllegalStateException("No port")</ID>
     <ID>UseRequire:Json.kt$Json.Parser$throw IllegalArgumentException("Unexpected '$c'")</ID>
   </CurrentIssues>
 </SmellBaseline>

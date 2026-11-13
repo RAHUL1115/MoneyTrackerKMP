@@ -2,8 +2,10 @@ package app.moneytracker
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.os.Build
 import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -28,7 +30,12 @@ object AndroidLog {
         file = logFile(ctx).also { it.parentFile?.mkdirs() }
         Log.install(Log.Sink { level, tag, message, error -> write(level, tag, message, error) })
         installCrashHandler()
-        val version = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull()
+        val version = try {
+            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName
+        } catch (e: PackageManager.NameNotFoundException) {
+            Log.w("App", e) { "own package info unreadable" }
+            null
+        }
         Log.i("App") { "start v$version (${if (debuggable) "debug" else "release"}) · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · ${Build.MANUFACTURER} ${Build.MODEL}" }
     }
 
@@ -44,16 +51,21 @@ object AndroidLog {
         val now = Date()
         val thread = Thread.currentThread().name
         writer.execute {
-            runCatching {
+            try {
                 if (f.length() > MAX_BYTES) f.renameTo(File(f.path + ".1"))
                 f.appendText(buildString {
                     append(synchronized(stamp) { stamp.format(now) }).append(' ').append(level.letter).append(' ')
                         .append(tag).append(" [").append(thread).append("] ").append(message).append('\n')
                     if (error != null) append(android.util.Log.getStackTraceString(error).lineSequence().take(25).joinToString("\n")).append('\n')
                 })
+            } catch (e: IOException) {
+                fileFailed(e)
             }
         }
     }
+
+    /** Reported to Logcat only: going through [Log] would try the same failing file again. */
+    private fun fileFailed(e: IOException) = android.util.Log.w("MT.Log", "log file not written", e)
 
     /** Writes the crash to the log file synchronously, then hands it to the default handler (which ends the app). */
     private fun installCrashHandler() {
@@ -64,12 +76,15 @@ object AndroidLog {
 
     private class CrashHandler(private val previous: Thread.UncaughtExceptionHandler?) : Thread.UncaughtExceptionHandler {
         override fun uncaughtException(thread: Thread, error: Throwable) {
-            runCatching {
+            try {
                 android.util.Log.e("MT.Crash", "uncaught on ${thread.name}", error)
                 file?.appendText("${synchronized(stamp) { stamp.format(Date()) }} E Crash [${thread.name}] uncaught\n" +
                     android.util.Log.getStackTraceString(error) + "\n")
+            } catch (e: IOException) {
+                fileFailed(e)
+            } finally {
+                previous?.uncaughtException(thread, error)
             }
-            previous?.uncaughtException(thread, error)
         }
     }
 }

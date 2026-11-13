@@ -51,14 +51,27 @@ internal class AndroidSpeech(private val ctx: Context) {
                 // Let people pause to think: wait longer before deciding they've finished.
                 .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
                 .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
-            runCatching { recognizer.startListening(intent) }.onFailure { finishWithError(SpeechError.OTHER) }
+            if (!recognizerCall("start") { recognizer.startListening(intent) }) finishWithError(SpeechError.OTHER)
         }
 
-        override fun stop() { if (!done) { stopping = true; runCatching { recognizer.stopListening() } } }
-        override fun cancel() { done = true; runCatching { recognizer.cancel(); recognizer.destroy() } }
+        override fun stop() { if (!done) { stopping = true; recognizerCall("stop") { recognizer.stopListening() } } }
+        override fun cancel() { done = true; recognizerCall("cancel") { recognizer.cancel(); recognizer.destroy() } }
 
-        private fun finish(text: String) { if (done) return; done = true; runCatching { recognizer.destroy() }; l.onFinal(text) }
-        private fun finishWithError(e: SpeechError) { if (done) return; done = true; Log.w("Speech") { "listening ended: $e" }; runCatching { recognizer.destroy() }; l.onError(e) }
+        private fun finish(text: String) { if (done) return; done = true; recognizerCall("destroy") { recognizer.destroy() }; l.onFinal(text) }
+        private fun finishWithError(e: SpeechError) { if (done) return; done = true; Log.w("Speech") { "listening ended: $e" }; recognizerCall("destroy") { recognizer.destroy() }; l.onError(e) }
+
+        /**
+         * Runs a call into the phone's speech service, which belongs to the phone maker and can throw any runtime
+         * exception across the binder. A failure is logged and only ends listening; returns whether the call worked.
+         */
+        @Suppress("TooGenericExceptionCaught")
+        private inline fun recognizerCall(what: String, block: () -> Unit): Boolean = try {
+            block()
+            true
+        } catch (e: RuntimeException) {
+            Log.w("Speech", e) { "recogniser $what failed" }
+            false
+        }
 
         override fun onReadyForSpeech(params: Bundle?) {}
         override fun onBeginningOfSpeech() {}
@@ -112,7 +125,10 @@ internal class AndroidSpeech(private val ctx: Context) {
             ContextCompat.registerReceiver(ctx, receiver, IntentFilter(ctx.packageName + ".FAKE_SPEECH"), ContextCompat.RECEIVER_EXPORTED)
         }
 
-        private fun close() { done = true; runCatching { ctx.unregisterReceiver(receiver) } }
+        private fun close() {
+            done = true
+            try { ctx.unregisterReceiver(receiver) } catch (e: IllegalArgumentException) { Log.d("Speech") { "fake receiver already gone: ${e::class.simpleName}" } }
+        }
         override fun stop() { if (done) return; close(); if (text.isBlank()) l.onError(SpeechError.NO_MATCH) else l.onFinal(text) }
         override fun cancel() { if (!done) close() }
     }

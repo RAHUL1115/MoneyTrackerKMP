@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.Clock
 
 /**
@@ -36,11 +37,18 @@ object Log {
     fun w(tag: String, error: Throwable? = null, message: () -> String) = log(Level.WARN, tag, error, message)
     fun e(tag: String, error: Throwable? = null, message: () -> String) = log(Level.ERROR, tag, error, message)
 
-    /** Runs [block]; a failure is logged at WARN with [what] and returns null instead of throwing. */
+    /**
+     * Runs [block]; any failure is logged at WARN with [what] and returns null instead of throwing. For platform edges
+     * that must carry on whatever happens (a boot receiver's steps). Cancellation still propagates.
+     */
     inline fun <T> attempt(tag: String, what: String, block: () -> T): T? =
-        try { block() } catch (t: Throwable) {
-            if (t is kotlinx.coroutines.CancellationException) throw t
-            w(tag, t) { "$what failed" }; null
+        try {
+            block()
+        } catch (c: CancellationException) {
+            throw c
+        } catch (t: Throwable) {
+            w(tag, t) { "$what failed" }
+            null
         }
 
     /** Times [block] and logs how long it took at DEBUG. */
@@ -56,6 +64,10 @@ object Log {
 
     fun recent(): List<String> = synchronized(lock) { ring.toList() }
 
+    /**
+     * Logging never throws. A failing message is logged as "(log message failed)". A failing sink is skipped: it can't
+     * report through [Log] without calling itself again, and the line is still in [recent].
+     */
     fun log(level: Level, tag: String, error: Throwable?, message: () -> String) {
         if (level < minLevel) return
         val text = try { message() } catch (t: Throwable) { "(log message failed: ${t::class.simpleName})" }

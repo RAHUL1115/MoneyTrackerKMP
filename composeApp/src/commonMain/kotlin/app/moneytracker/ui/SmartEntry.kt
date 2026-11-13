@@ -37,10 +37,20 @@ object SmartEntry {
     private var failed = false
 
     suspend fun parser(models: SmartModels): SmartParser? = lock.withLock {
-        parser ?: if (failed) null else withContext(Dispatchers.Default) {
-            runCatching { app.moneytracker.Log.timed("Smart", "model load") { SmartParser.load { name -> models.readSmartModel(name) ?: error("missing $name") } } }
-                .onFailure { failed = true; app.moneytracker.Log.e("Smart", it) { "Smart entry models failed to load" } }.getOrNull()
-        }.also { parser = it }
+        parser ?: if (failed) null else withContext(Dispatchers.Default) { load(models) }.also { parser = it }
+    }
+
+    /**
+     * Reads the bundled model files. A missing, corrupt or too-large file can fail in many ways (casts, indexes,
+     * memory), so any failure turns Smart entry off for this run instead of crashing. Loading never suspends.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private fun load(models: SmartModels): SmartParser? = try {
+        app.moneytracker.Log.timed("Smart", "model load") { SmartParser.load { name -> models.readSmartModel(name) ?: error("missing $name") } }
+    } catch (t: Throwable) {
+        failed = true
+        app.moneytracker.Log.e("Smart", t) { "Smart entry models failed to load" }
+        null
     }
 
     /** Parses [text] against the person's categories and accounts; runs off the main thread. */

@@ -59,20 +59,20 @@ private fun snapshotBase(file: String) = file.removeSuffix(".mtbak").removeSuffi
 internal fun snapshotWhen(file: String, today: LocalDate): String {
     val m = SNAPSHOT_NAME.find(snapshotBase(file)) ?: return snapshotBase(file)
     val (_, y, mo, d, h, mi) = m.destructured
-    val date = runCatching { LocalDate(y.toInt(), mo.toInt(), d.toInt()) }.getOrNull()
+    val date = try { LocalDate(y.toInt(), mo.toInt(), d.toInt()) } catch (_: IllegalArgumentException) { null }
     return when (date) {
         today -> tr("Today, {0}", "$h:$mi")
         today.minus(DatePeriod(days = 1)) -> tr("Yesterday, {0}", "$h:$mi")
-        else -> "${d.toInt()} ${runCatching { monthShort(mo.toInt()) }.getOrDefault(mo)} $y, $h:$mi"
+        else -> "${d.toInt()} ${mo.toInt().takeIf { it in 1..12 }?.let(::monthShort) ?: mo} $y, $h:$mi"
     }
 }
 
 /** What made a snapshot: daily, manual, before a restore / import / reset. */
-private fun snapshotKind(file: String): String = when (SNAPSHOT_NAME.find(snapshotBase(file))?.groupValues?.get(1)) {
+private fun snapshotKind(file: String): String = when (val prefix = SNAPSHOT_NAME.find(snapshotBase(file))?.groupValues?.get(1)) {
     "auto" -> tr("Daily backup"); "manual" -> tr("Manual backup"); "pre-restore" -> tr("Before restore")
     "pre-import" -> tr("Before import"); "before-reset" -> tr("Before reset")
     null -> tr("Backup")
-    else -> SNAPSHOT_NAME.find(snapshotBase(file))!!.groupValues[1].replaceFirstChar { it.uppercase() }
+    else -> prefix.replaceFirstChar { it.uppercase() }
 }
 
 @Composable
@@ -121,12 +121,13 @@ internal fun FreshBackup() {
         // Backup folder: outside the app, picked once.
         FCard(padding = 0.dp) {
             Column(Modifier.padding(horizontal = 18.dp, vertical = 4.dp)) {
+                val path = folder
                 FRow(
                     tr("Backup folder"),
                     when {
-                        folder == null -> tr("Not set. Choose one, e.g. Documents/MoneyTracker or a Drive folder")
-                        folderProblem -> tr("Can't reach {0}. Choose again", folder!!)
-                        else -> tr("Daily and manual backups are also saved to {0}", folder!!)
+                        path == null -> tr("Not set. Choose one, e.g. Documents/MoneyTracker or a Drive folder")
+                        folderProblem -> tr("Can't reach {0}. Choose again", path)
+                        else -> tr("Daily and manual backups are also saved to {0}", path)
                     },
                     onClick = backups.folder::pickBackupFolder,
                 )

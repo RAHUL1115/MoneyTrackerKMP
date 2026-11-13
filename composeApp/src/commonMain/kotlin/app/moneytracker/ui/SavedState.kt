@@ -33,24 +33,35 @@ internal class StateWriter {
 
 internal class StateReader(private val t: String) {
     private var i = 0
+    /** Every read that doesn't fit the format throws [IllegalArgumentException], which [read] turns into null. */
     fun str(): String? {
+        require(i < t.length) { "no more values" }
         if (t[i] == '~') { i++; return null }
         val colon = t.indexOf(':', i)
+        require(colon >= 0) { "missing length" }
         val n = t.substring(i, colon).toInt()
+        require(n >= 0 && colon + 1 + n <= t.length) { "bad length" }
         return t.substring(colon + 1, colon + 1 + n).also { i = colon + 1 + n }
     }
-    fun need(): String = str() ?: error("missing value")
+    fun need(): String = requireNotNull(str()) { "missing value" }
     fun int(): Int? = str()?.toInt()
+    fun needInt(): Int = requireNotNull(int()) { "missing number" }
     fun long(): Long? = str()?.toLong()
+    fun needLong(): Long = requireNotNull(long()) { "missing number" }
     fun double(): Double? = str()?.toDouble()
     fun bool(): Boolean = need() == "1"
     fun date(): LocalDate? = str()?.let { LocalDate.parse(it) }
-    fun strings(): List<String> = List(int() ?: 0) { need() }
+    fun needDate(): LocalDate = requireNotNull(date()) { "missing date" }
+    fun strings(): List<String> {
+        val count = int() ?: 0
+        require(count in 0..t.length - i) { "bad list size" }
+        return List(count) { need() }
+    }
     fun draft(): TxnDraft? {
         str() ?: return null
         return TxnDraft(
-            type = DraftType.valueOf(need()), date = date()!!, accountId = need(), toAccountId = str(), categoryId = str(),
-            amount = long()!!, fee = long()!!, note = need(), memo = need(), installments = int()!!,
+            type = DraftType.valueOf(need()), date = needDate(), accountId = need(), toAccountId = str(), categoryId = str(),
+            amount = needLong(), fee = needLong(), note = need(), memo = need(), installments = needInt(),
             repeat = str()?.let { RepeatType.valueOf(it) }, repeatEnd = date(), currency = str(), tagIds = strings(),
             lat = double(), lng = double(), timeOfDay = int(), origin = need(), rate = double(),
         )
@@ -59,7 +70,7 @@ internal class StateReader(private val t: String) {
 
     companion object {
         /** Reads [t] with [block], or null when it doesn't parse (saved by another version). */
-        fun <T> read(t: String, block: StateReader.() -> T): T? = runCatching { StateReader(t).block() }.getOrNull()
+        fun <T> read(t: String, block: StateReader.() -> T): T? = try { StateReader(t).block() } catch (_: IllegalArgumentException) { null }
     }
 }
 
@@ -106,9 +117,9 @@ internal object ScreenCodec {
             "accountDetail" -> Screen.AccountDetail(need())
             "editAccount" -> Screen.EditAccount(str())
             "categories" -> Screen.Categories(CategoryKind.valueOf(need()))
-            "statsDetail" -> Screen.StatsDetail(need(), bool(), date()!!, date()!!, need())
+            "statsDetail" -> Screen.StatsDetail(need(), bool(), needDate(), needDate(), need())
             "editNote" -> Screen.EditNote(str())
-            "budgetDetail" -> Screen.BudgetDetail(int()!!)
+            "budgetDetail" -> Screen.BudgetDetail(needInt())
             "license" -> Screen.License(need())
             "hub" -> Screen.MoreHub(need())
             else -> objects[tag]
