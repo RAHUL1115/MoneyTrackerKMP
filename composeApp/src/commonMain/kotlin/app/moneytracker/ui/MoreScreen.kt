@@ -2,6 +2,8 @@ package app.moneytracker.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -125,12 +127,13 @@ fun MoreHubScreen(id: String) {
     }
 }
 
-/** A shared setting row drawn the classic way: label, hint, and a teal value or a switch. */
+/** A shared setting row drawn the classic way: label, hint, and a teal value or a switch (then the whole row is the switch). */
 @Composable
 internal fun SettingRowClassic(r: SettingRow, where: String?) {
     val checked = r.checked
+    val tap = if (checked != null) Modifier.toggleable(checked, role = Role.Switch) { r.onClick() } else Modifier.clickable(onClick = r.onClick)
     Row(
-        Modifier.fillMaxWidth().background(SurfaceColor).clickable(onClick = r.onClick).heightIn(min = 56.dp).padding(start = 24.dp, end = 20.dp, top = 10.dp, bottom = 10.dp),
+        Modifier.fillMaxWidth().background(SurfaceColor).then(tap).heightIn(min = 56.dp).padding(start = 24.dp, end = 20.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f)) {
@@ -138,7 +141,7 @@ internal fun SettingRowClassic(r: SettingRow, where: String?) {
             val hint = where ?: r.subtitle
             if (!hint.isNullOrEmpty()) Text(hint, fontSize = 12.sp, color = SubtleText)
         }
-        if (checked != null) AppSwitch(checked) { r.onClick() }
+        if (checked != null) AppSwitch(checked, null)
         else if (r.value != null) Text(r.value, color = Accent, maxLines = 1)
     }
 }
@@ -152,28 +155,22 @@ internal fun ConfigSection(title: String) {
     }
 }
 
+/** Classic setting with a hint and a switch; the whole row is the switch for taps and TalkBack. */
 @Composable
 internal fun ConfigToggle(label: String, hint: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().background(SurfaceColor).clickable { onChange(!checked) }.padding(start = 28.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
+        Modifier.fillMaxWidth().background(SurfaceColor).toggleable(checked, role = Role.Switch, onValueChange = onChange).padding(start = 28.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
             Text(label)
             if (hint != null) Text(hint, fontSize = 12.sp, color = SubtleText)
         }
-        AppSwitch(checked, onChange)
+        AppSwitch(checked, null)
     }
 }
 
+/** The same row as [SettingRow] (label and a teal value); new code calls [SettingRow] directly. */
 @Composable
-internal fun ConfigRow(label: String, value: String? = null, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().background(SurfaceColor).clickable(onClick = onClick).padding(horizontal = 28.dp, vertical = 18.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, Modifier.weight(1f))
-        if (value != null) Text(value, color = Accent)
-    }
-}
+internal fun ConfigRow(label: String, value: String? = null, onClick: () -> Unit) = SettingRow(label, value, onClick)
 

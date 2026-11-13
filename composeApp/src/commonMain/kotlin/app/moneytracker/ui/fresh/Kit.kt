@@ -66,6 +66,22 @@ object F {
     val heroShape = RoundedCornerShape(24.dp)
     val buttonShape = RoundedCornerShape(16.dp)
     val iconShape = RoundedCornerShape(14.dp)
+    /** Fully rounded ends: pills, chips, switches, progress bars. */
+    val pillShape = RoundedCornerShape(999.dp)
+    /** Small controls: text fields, the segmented track, stepper buttons, the tile behind a row's icon. */
+    val controlShape = RoundedCornerShape(12.dp)
+    /** A control inside a control: the selected segment, a text button inside a row. */
+    val innerShape = RoundedCornerShape(10.dp)
+    /** Small text actions and badges ("See all", Undo, "▲ 12%"), and the bars of a money chart. */
+    val tagShape = RoundedCornerShape(8.dp)
+    /** One choice in a sheet, and the toast. */
+    val optionShape = RoundedCornerShape(14.dp)
+    /** The floating "+ Add" button at the bottom right of a screen. */
+    val fabShape = RoundedCornerShape(18.dp)
+    /** Inner padding of a plain [FCard]. A card that holds rows uses [FListCard] instead, and the rows pad themselves. */
+    val cardPadding = 18.dp
+    /** The Undo action on the dark toast: a light mint in light style, the deep teal in dark style. */
+    val toastAction: Color get() = pick(0xFF8FE0C4, 0xFF0F5E4E)
     /** Side margin of every screen: small, so cards use nearly the full width. */
     val gutter = 8.dp
 

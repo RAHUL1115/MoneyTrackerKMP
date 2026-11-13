@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,6 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -81,7 +86,7 @@ internal fun MoneyBars(
                 else -> base.copy(alpha = 0.35f)
             }
             Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).then(if (onTap != null) Modifier.clickable { onTap(i) } else Modifier),
+                Modifier.weight(1f).clip(F.tagShape).then(if (onTap != null) Modifier.clickable { onTap(i) } else Modifier),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(compactAmount(b.value, decimals), color = if (on) ink else soft, fontSize = 10.sp, fontWeight = FontWeight.Medium, maxLines = 1)
@@ -103,7 +108,7 @@ internal fun ChangeBadge(current: Long, previous: Long, upIsGood: Boolean, again
         "${if (pct < 0) "▼" else if (pct > 0) "▲" else "="} ${abs(pct)}% " + tr("vs {0}", against) to (if (pct == 0) null else (pct > 0) == upIsGood)
     }
     val fg = when (good) { null -> F.muted; true -> F.income; false -> F.expense }
-    Text(text, Modifier.clip(RoundedCornerShape(8.dp)).background(if (good == null) F.fill else fg.copy(alpha = 0.12f)).padding(horizontal = 10.dp, vertical = 4.dp),
+    Text(text, Modifier.clip(F.tagShape).background(if (good == null) F.fill else fg.copy(alpha = 0.12f)).padding(horizontal = 10.dp, vertical = 4.dp),
         color = fg, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
 }
 
@@ -123,7 +128,7 @@ internal fun MoneyTextField(
             keyboardOptions = KeyboardOptions(keyboardType = keyboard),
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner ->
-                Box(Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(12.dp)).background(F.card).border(1.dp, F.border, RoundedCornerShape(12.dp))
+                Box(Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(F.controlShape).background(F.card).border(1.dp, F.border, F.controlShape)
                     .padding(horizontal = 12.dp, vertical = 11.dp),
                     contentAlignment = Alignment.CenterStart) {
                     if (value.isEmpty() && placeholder.isNotEmpty()) Text(placeholder, color = F.muted, fontSize = 15.sp)
@@ -134,10 +139,16 @@ internal fun MoneyTextField(
     }
 }
 
-/** Row with a title, hint and a switch. */
+/**
+ * Row with a title, hint and a switch; the whole row is the switch for taps and TalkBack. In a card without side
+ * padding, pass the screen's row inset as [inset] so the highlight spans the card.
+ */
 @Composable
-internal fun MoneySwitchRow(title: String, hint: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+internal fun MoneySwitchRow(title: String, hint: String?, checked: Boolean, modifier: Modifier = Modifier, inset: Dp = 0.dp, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier.fillMaxWidth().toggleable(checked, role = Role.Switch, onValueChange = onChange).padding(horizontal = inset, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             if (hint != null) Text(hint, color = F.muted, fontSize = 12.sp)
@@ -148,11 +159,11 @@ internal fun MoneySwitchRow(title: String, hint: String?, checked: Boolean, onCh
 
 /** ‹ label › row for stepping through periods; tapping the label calls [onLabel]. */
 @Composable
-internal fun PeriodStepper(label: String, onPrev: () -> Unit, onNext: () -> Unit, onLabel: (() -> Unit)? = null, sub: String? = null) {
-    Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
+internal fun PeriodStepper(label: String, onPrev: () -> Unit, onNext: () -> Unit, modifier: Modifier = Modifier, onLabel: (() -> Unit)? = null, sub: String? = null) {
+    Row(modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
         StepButton(Glyph.ChevronLeft, tr("Previous"), onPrev)
         Column(
-            Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).then(if (onLabel != null) Modifier.clickable(onClick = onLabel) else Modifier).padding(vertical = 2.dp),
+            Modifier.weight(1f).clip(F.controlShape).then(if (onLabel != null) Modifier.clickable(role = Role.Button, onClick = onLabel) else Modifier).padding(vertical = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
@@ -162,18 +173,27 @@ internal fun PeriodStepper(label: String, onPrev: () -> Unit, onNext: () -> Unit
     }
 }
 
+/** ‹ or › of a [PeriodStepper]: TalkBack reads [label] once, then "button". */
 @Composable
 private fun StepButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) =
-    Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(F.card).clickable(onClickLabel = label, onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, label, tint = F.ink, modifier = Modifier.size(22.dp))
+    Box(
+        Modifier.size(40.dp).clip(F.controlShape).background(F.card).semantics { contentDescription = label }
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, null, tint = F.ink, modifier = Modifier.size(22.dp))
     }
 
-/** Small selectable chip (dark when on), for in-sheet choices. */
+/**
+ * Small selectable chip (tinted when on), for one choice of several in a sheet. TalkBack reads it as a radio button;
+ * put the chips of one question in a `Modifier.selectableGroup()` parent.
+ */
 @Composable
-internal fun ChoiceChip(text: String, selected: Boolean, onClick: () -> Unit) {
+internal fun ChoiceChip(text: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Text(
         text,
-        Modifier.clip(RoundedCornerShape(999.dp)).background(if (selected) F.accentTint else F.fill).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
+        modifier.clip(F.pillShape).background(if (selected) F.accentTint else F.fill)
+            .selectable(selected, role = Role.RadioButton, onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
         color = if (selected) F.accent else F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1,
     )
 }
@@ -199,7 +219,7 @@ internal fun PercentRing(percent: Int, over: Boolean, size: Dp = 56.dp, textSize
 /** Text action in a screen header ("Edit", "+ Category"): the same white 44dp tile as [IconTile], with words. */
 @Composable
 internal fun HeaderTextTile(text: String, onClick: () -> Unit) {
-    Box(Modifier.height(44.dp).clip(F.iconShape).background(F.card).clickable(onClick = onClick).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.height(44.dp).clip(F.iconShape).background(F.card).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
         Text(text, color = F.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }

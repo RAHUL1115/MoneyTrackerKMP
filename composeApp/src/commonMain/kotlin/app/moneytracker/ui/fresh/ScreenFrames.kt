@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -28,6 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,11 +65,18 @@ fun PrivacyEye() {
     )
 }
 
-/** 44dp square white button holding an icon (header actions, back). */
+/**
+ * 44dp square white button holding an icon (header actions, back). [label] is what TalkBack reads, once, followed by
+ * "button"; the icon itself is decoration.
+ */
 @Composable
-fun IconTile(icon: ImageVector, label: String, onClick: () -> Unit, badge: Int = 0, tint: Color = F.ink, background: Color = F.card, modifier: Modifier = Modifier) {
-    Box(modifier.size(44.dp).clip(F.iconShape).background(background).clickable(onClickLabel = label, onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, label, tint = tint, modifier = Modifier.size(20.dp))
+fun IconTile(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier, badge: Int = 0, tint: Color = F.ink, background: Color = F.card) {
+    Box(
+        modifier.size(44.dp).clip(F.iconShape).background(background).semantics { contentDescription = label }
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
         if (badge > 0) Box(
             Modifier.align(Alignment.TopEnd).padding(5.dp).size(16.dp).clip(CircleShape).background(F.warn),
             contentAlignment = Alignment.Center,
@@ -119,8 +128,8 @@ fun SubScreen(
     }
     if (add != null) Row(
         Modifier.align(Alignment.BottomEnd).padding(end = F.gutter, bottom = 20.dp).height(56.dp)
-            .shadow(8.dp, RoundedCornerShape(18.dp)).clip(RoundedCornerShape(18.dp)).background(F.accent)
-            .clickable(onClick = add.second).padding(start = 16.dp, end = 20.dp),
+            .shadow(8.dp, F.fabShape).clip(F.fabShape).background(F.accent)
+            .clickable(role = Role.Button, onClick = add.second).padding(start = 16.dp, end = 20.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(Glyph.Add, null, tint = F.onAccent, modifier = Modifier.size(22.dp))

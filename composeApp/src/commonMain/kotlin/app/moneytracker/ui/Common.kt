@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,6 +27,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxColors
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -37,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -191,16 +198,16 @@ fun TitleTopBar(title: String, trailing: @Composable () -> Unit = {}) {
     }
 }
 
-/** Text tabs with a short rounded accent indicator under the selected label. */
+/** Text tabs with a short rounded accent indicator under the selected label; TalkBack reads them as tabs. */
 @Composable
 fun UnderlineTabs(titles: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     Column(Modifier.fillMaxWidth().background(SurfaceColor)) {
-        Row(Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 4.dp)) {
+        Row(Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 4.dp).selectableGroup()) {
             titles.forEachIndexed { i, t ->
                 val isSel = i == selected
                 // Beyond four tabs, width follows label length so every label stays fully visible on narrow phones.
                 val weight = if (titles.size > 4) t.length + 3f else 1f
-                Box(Modifier.weight(weight).fillMaxHeight().clickable { onSelect(i) }, contentAlignment = Alignment.Center) {
+                Box(Modifier.weight(weight).fillMaxHeight().selectable(isSel, role = Role.Tab) { onSelect(i) }, contentAlignment = Alignment.Center) {
                     Text(
                         t, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
                         color = if (isSel) Ink else SubtleText,
@@ -307,17 +314,32 @@ fun EmptyState(text: String = tr("No data available."), icon: ImageVector? = nul
     }
 }
 
-/** App-wide switch: coral when on, and a clearly outlined grey track when off (the default "off" is too faint on white). */
+/**
+ * App-wide switch: coral when on, and a clearly outlined grey track when off (the default "off" is too faint on white).
+ * Inside a row, pass a null [onChange] and put `Modifier.toggleable(checked, role = Role.Switch)` on the row, so the
+ * row is one target; the switch keeps its 48dp touch size either way, so nothing moves.
+ */
 @Composable
-fun AppSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
+fun AppSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier) {
     androidx.compose.material3.Switch(
         checked, onChange,
+        // Material only reserves the 48dp touch size while the switch takes taps itself; keep it when the row does.
+        modifier = if (onChange == null) modifier.minimumInteractiveComponentSize() else modifier,
         colors = androidx.compose.material3.SwitchDefaults.colors(
             checkedTrackColor = Accent, checkedThumbColor = Color.White, checkedBorderColor = Accent,
             uncheckedTrackColor = FillStrong, uncheckedBorderColor = FillStrong, uncheckedThumbColor = Color.White,
         ),
     )
 }
+
+/**
+ * A checkbox that only draws, for a row that is itself the checkbox (`Modifier.toggleable(checked, role = Role.Checkbox)`
+ * on the row). It keeps the 48dp size of an interactive [androidx.compose.material3.Checkbox], so swapping
+ * `Checkbox(checked, onCheck)` for `RowCheckbox(checked)` moves nothing.
+ */
+@Composable
+fun RowCheckbox(checked: Boolean, modifier: Modifier = Modifier, colors: CheckboxColors = CheckboxDefaults.colors()) =
+    Checkbox(checked, null, modifier.minimumInteractiveComponentSize(), colors = colors)
 
 /** Zero amounts in tables read as noise; keep them legible but quiet. */
 val ZeroColor: Color get() = pick(0xFFBDBDC2, 0xFF4A4D54)
@@ -353,12 +375,12 @@ fun PercentBadge(percent: Int, color: Color) {
     )
 }
 
-/** Pill segmented control: a soft grey track, the selected segment raised in white with its type colour. */
+/** Pill segmented control: a soft grey track, the selected segment raised in white with its type colour. Read as tabs. */
 @Composable
 fun TypeSegments(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier.fillMaxWidth().padding(horizontal = 16.dp).height(44.dp)
-            .background(FillColor, RoundedCornerShape(14.dp)).padding(4.dp),
+            .background(FillColor, RoundedCornerShape(14.dp)).padding(4.dp).selectableGroup(),
     ) {
         options.forEachIndexed { i, label ->
             val isSel = i == selected
@@ -366,7 +388,7 @@ fun TypeSegments(options: List<String>, selected: Int, onSelect: (Int) -> Unit, 
             Box(
                 Modifier.weight(1f).fillMaxHeight()
                     .then(if (isSel) Modifier.shadow(1.dp, RoundedCornerShape(10.dp)).background(SurfaceColor, RoundedCornerShape(10.dp)) else Modifier)
-                    .clip(RoundedCornerShape(10.dp)).clickable { onSelect(i) },
+                    .clip(RoundedCornerShape(10.dp)).selectable(isSel, role = Role.Tab) { onSelect(i) },
                 contentAlignment = Alignment.Center,
             ) { Text(label, color = color, fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Medium) }
         }
@@ -524,7 +546,7 @@ private fun MonthGrid(selected: Int?, onPick: (Int) -> Unit) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
             for (m in firstOfRow until firstOfRow + 4) {
                 Box(
-                    Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(10.dp)).clickable { onPick(m) },
+                    Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(10.dp)).selectable(m == selected) { onPick(m) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(monthShort(m).uppercase(), color = if (m == selected) Accent else Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
