@@ -57,7 +57,7 @@ internal fun HomeTab(onOpenTab: (FreshTab) -> Unit) {
 }
 
 @Composable
-private fun HomeContent(state: HomeState, entryData: ActEntryData, onOpenTab: (FreshTab) -> Unit) {
+private fun HomeContent(state: HomeState, entryData: app.moneytracker.ui.EntryLookups, onOpenTab: (FreshTab) -> Unit) {
     val nav = LocalNavigator.current
     val today = state.today
     val hour = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour }
@@ -184,7 +184,7 @@ private fun SmsWaiting(state: HomeState) {
 
 /** Today's or yesterday's entries under the day with its total. An empty day is just its heading with "Nothing yet"; no empty card. */
 @Composable
-private fun RecentDay(day: HomeDay, entryData: ActEntryData) {
+private fun RecentDay(day: HomeDay, entryData: app.moneytracker.ui.EntryLookups) {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val t = day.totals
