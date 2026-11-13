@@ -58,6 +58,9 @@ import app.moneytracker.ui.short
 import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
 
+/** Side padding of the entry and period rows inside their cards; the dividers between rows use the same inset. */
+private val ROW_INSET = 16.dp
+
 private enum class DetailTab(val label: String) { ENTRIES("Entries"), MONTHLY("Monthly"), YEARLY("Yearly") }
 
 private enum class AccountDetailSheet { PAY, ADJUST }
@@ -231,15 +234,15 @@ private fun EntriesTab(accountId: String, history: AccountHistory, period: Accou
         nav.push(Screen.EditTxn(preset = TxnDraft(DraftType.EXPENSE, period.today, accountId, amount = 0)))
     }
     txns.groupBy { it.date }.forEach { (date, day) ->
-        FCard(padding = 0.dp) {
-            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        FListCard {
+            Row(Modifier.fillMaxWidth().padding(start = ROW_INSET, end = ROW_INSET, top = 12.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(date.long(), Modifier.weight(1f), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 Text(fmt.format(day.sumOf { it.signedAccountValue }, showSign = true), color = F.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium, style = F.money)
             }
-            Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 4.dp)) {
-                day.forEachIndexed { i, t ->
-                    if (i > 0) Divider()
-                    AccountEntryRow(t, names.accounts, names.categories, fmt, history.running[t.id]) { nav.push(Screen.EditTxn(txnId = t.id)) }
+            day.forEachIndexed { i, t ->
+                if (i > 0) Divider(ROW_INSET)
+                AccountEntryRow(t, names.accounts, names.categories, fmt, history.running[t.id], ROW_INSET, extraBottom = if (i == day.lastIndex) 4.dp else 0.dp) {
+                    nav.push(Screen.EditTxn(txnId = t.id))
                 }
             }
         }
@@ -259,15 +262,13 @@ private fun PeriodsTab(history: AccountHistory, period: AccountPeriodChoice, yea
         PairBarChart(sums.map { it.deposit }, sums.map { it.withdrawal }, labels, colorA = F.income, colorB = F.expense)
         Gap(8.dp)
     }
-    FCard(padding = 0.dp) {
-        Column(Modifier.padding(horizontal = 16.dp)) {
-            sums.asReversed().forEachIndexed { i, p ->
-                if (i > 0) Divider()
-                PeriodRow(p, fmt) {
-                    // A month opens its entries; a year opens its months.
-                    if (p.month != null) { period.show(p.month); onTab(DetailTab.ENTRIES) }
-                    else { period.show(YearMonth(p.label.toInt(), 1)); onTab(DetailTab.MONTHLY) }
-                }
+    FListCard {
+        sums.asReversed().forEachIndexed { i, p ->
+            if (i > 0) Divider(ROW_INSET)
+            PeriodRow(p, fmt) {
+                // A month opens its entries; a year opens its months.
+                if (p.month != null) { period.show(p.month); onTab(DetailTab.ENTRIES) }
+                else { period.show(YearMonth(p.label.toInt(), 1)); onTab(DetailTab.MONTHLY) }
             }
         }
     }
@@ -275,7 +276,7 @@ private fun PeriodsTab(history: AccountHistory, period: AccountPeriodChoice, yea
 
 @Composable
 private fun PeriodRow(p: PeriodSum, fmt: CurrencyFormat, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = ROW_INSET, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(p.label, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Text(p.range.label(), color = F.muted, fontSize = 12.sp)

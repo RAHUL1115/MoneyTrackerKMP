@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.domain.AccountLine
@@ -128,7 +129,7 @@ internal fun RowScope.AccountActionTile(icon: ImageVector, label: String, primar
 }
 
 @Composable
-internal fun AccountMiniTotal(label: String, value: String, color: Color, modifier: Modifier) {
+internal fun AccountMiniTotal(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(modifier.clip(RoundedCornerShape(14.dp)).background(F.card).padding(horizontal = 12.dp, vertical = 10.dp)) {
         Text(label, color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
         Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, style = F.money, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -158,14 +159,21 @@ private fun entryMeta(t: Txn, accountName: Map<String, String>, catById: Map<Str
     if (t.recurringRuleId != null) "↻" else null,
 ).joinToString(" · ")
 
+/** An entry in a day card. The row pads itself with [inset] (and [extraBottom], the card's spacing under its last row) so its highlight spans the card. */
 @Composable
-internal fun AccountEntryRow(t: Txn, accountName: Map<String, String>, catById: Map<String, Category>, fmt: CurrencyFormat, running: Long?, onClick: () -> Unit) {
+internal fun AccountEntryRow(
+    t: Txn, accountName: Map<String, String>, catById: Map<String, Category>, fmt: CurrencyFormat, running: Long?,
+    inset: Dp, extraBottom: Dp = 0.dp, onClick: () -> Unit,
+) {
     val title = entryTitle(t, accountName, catById)
     val meta = entryMeta(t, accountName, catById)
     // Signed so a refund (negative expense) reads as money in.
     val value = t.signedAccountValue
     val incoming = value > 0
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(bottom = extraBottom).padding(horizontal = inset, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(Modifier.weight(1f)) {
             Text(title, color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (meta.isNotEmpty()) Text(meta, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
