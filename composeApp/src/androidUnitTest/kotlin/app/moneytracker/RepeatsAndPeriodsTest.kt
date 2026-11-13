@@ -27,16 +27,16 @@ class RepeatsAndPeriodsTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
     }
 
     @Test fun ruleDescriptionReachesGeneratedEntries() = runTest {
-        repo.create(TxnDraft(DraftType.EXPENSE, LocalDate.parse("2026-02-20"), "acc_bank", categoryId = "cat_ex_0", amount = 500,
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, LocalDate.parse("2026-02-20"), "acc_bank", categoryId = "cat_ex_0", amount = 500,
             note = "Rent", memo = "Flat 4B", repeat = RepeatType.MONTHLY))
-        val made = repo.accountTxns("acc_bank").filter { it.note == "Rent" }
+        val made = repo.txnStore.accountTxns("acc_bank").filter { it.note == "Rent" }
         assertEquals(3, made.size)                                        // Feb, Mar, Apr
         assertTrue(made.all { it.memo == "Flat 4B" })
-        assertEquals("Flat 4B", repo.rules.first().single().memo)
+        assertEquals("Flat 4B", repo.repeatStore.rules.first().single().memo)
     }
 
     @Test fun everyFourMonths() {

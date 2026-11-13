@@ -1,5 +1,6 @@
 package app.moneytracker.data
 
+import app.moneytracker.Log
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.Currency
@@ -49,14 +50,14 @@ object TabularImport {
         val header = rows.first().map { it.trim().lowercase() }
         fun col(key: String) = synonyms.getValue(key).firstNotNullOfOrNull { s -> header.indexOf(s).takeIf { it >= 0 } } ?: -1
         val c = synonyms.keys.associateWith { col(it) }
-        if (c["date"]!! < 0 || c["amount"]!! < 0 || c["account"]!! < 0) {
+        if (c.getValue("date") < 0 || c.getValue("amount") < 0 || c.getValue("account") < 0) {
             return Parsed(emptyList(), listOf("Missing required columns. Need at least: Date, Account, Amount (found: ${rows.first().joinToString()})"))
         }
         val out = mutableListOf<Row>()
         val errors = mutableListOf<String>()
         rows.drop(1).forEachIndexed { i, raw ->
             if (raw.all { it.isBlank() }) return@forEachIndexed
-            fun v(key: String) = c[key]!!.let { if (it >= 0) raw.getOrNull(it).orEmpty().trim() else "" }
+            fun v(key: String) = c.getValue(key).let { if (it >= 0) raw.getOrNull(it).orEmpty().trim() else "" }
             val line = i + 2
             val date = parseDate(v("date")) ?: run { errors += "Row $line: unreadable date '${v("date")}'"; return@forEachIndexed }
             val rawAmount = v("amount")
@@ -99,15 +100,22 @@ object TabularImport {
         }
         val parts = t.split('-', '/', '.').mapNotNull { it.toIntOrNull() }
         if (parts.size != 3) return null
-        return runCatching {
-            when {
-                parts[0] > 31 -> LocalDate(parts[0], parts[1], parts[2])                          // yyyy-mm-dd
-                parts[2] < 100 -> null
-                parts[1] > 12 -> LocalDate(parts[2], parts[0], parts[1])                          // mm/dd/yyyy
-                else -> LocalDate(parts[2], parts[1], parts[0])                                   // dd/mm/yyyy (default)
-            }
-        }.getOrNull()
+        return when {
+            parts[0] > 31 -> dateOrNull(parts[0], parts[1], parts[2])                          // yyyy-mm-dd
+            parts[2] < 100 -> null
+            parts[1] > 12 -> dateOrNull(parts[2], parts[0], parts[1])                          // mm/dd/yyyy
+            else -> dateOrNull(parts[2], parts[1], parts[0])                                   // dd/mm/yyyy (default)
+        }
     }
+
+    /** The date, or null when that day doesn't exist (31 April, month 13). */
+    private fun dateOrNull(year: Int, month: Int, day: Int): LocalDate? =
+        try {
+            LocalDate(year, month, day)
+        } catch (e: IllegalArgumentException) {
+            Log.d("Import") { "no such date $year-$month-$day (${e.message})" }
+            null
+        }
 
     /** "1,234.50", "₹ 1,234.50", "-12.3", "(45.00)", "1.234,50" (European) → minor units. */
     fun parseAmount(s: String, decimals: Int): Long? {

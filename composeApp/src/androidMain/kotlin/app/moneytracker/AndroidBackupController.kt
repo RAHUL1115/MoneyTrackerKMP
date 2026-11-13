@@ -64,7 +64,7 @@ class AndroidBackupController(
             val repo = db.repo ?: error(tr("Database not ready"))
             withContext(Dispatchers.IO) {
                 snapshot("pre-import")
-                val r = repo.importParsed(parsed.copy(rows = parsed.rows.filterIndexed { i, _ -> i in keep }))
+                val r = repo.sheetImport.importParsed(parsed.copy(rows = parsed.rows.filterIndexed { i, _ -> i in keep }))
                 buildString {
                     append(tr("Imported {0} transactions", r.imported))
                     if (r.createdAccounts > 0) append(tr(", {0} new accounts", r.createdAccounts))
@@ -200,7 +200,7 @@ class AndroidBackupController(
     override fun reset(everything: Boolean) = run(if (everything) tr("Everything was reset (snapshot kept in the list)") else tr("Entries cleared (snapshot kept in the list)")) {
         snapshot("before-reset")
         val repo = db.repo ?: error(tr("Database not open"))
-        repo.reset(everything)
+        repo.freshStart.reset(everything)
         // Photos belong to the deleted entries; the snapshot keeps only their names, so leave the files for re-import.
     }
 
@@ -284,7 +284,7 @@ class AndroidBackupController(
     /** Builds the .mmbak in the cache (Money Manager restores it by opening it as its database), then copies it out. */
     private fun exportMoneyManagerTo(uri: Uri) {
         val repo = db.repo ?: error(tr("Database not ready"))
-        val data = repo.moneyManagerData()
+        val data = repo.moneyManagerBridge.moneyManagerData()
         val file = File(activity.cacheDir, "export.mmbak").also { it.delete() }
         // No localized collators: android_metadata is written by the exporter, as Money Manager's own files have it.
         val out = SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.CREATE_IF_NECESSARY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
@@ -366,10 +366,10 @@ class AndroidBackupController(
         }
         if (data.txns.isEmpty() && data.accounts.isEmpty()) error(tr("The Money Manager backup is empty"))
         snapshot("pre-restore")
-        val r = repo.replaceWithMoneyManager(data)
+        val r = repo.moneyManagerBridge.replaceWithMoneyManager(data)
         // Same passcode as in Money Manager, so the lock screen keeps working after switching apps.
-        data.passcodePin?.let { repo.putSetting(Prefs.PASSCODE, hashPin(it)) }
-        repo.generateRecurring()
+        data.passcodePin?.let { repo.settingsStore.putSetting(Prefs.PASSCODE, hashPin(it)) }
+        repo.repeatStore.generateRecurring()
         Log.i("Backup") { "Money Manager restore (${if (ios) "iPhone" else "Android"}): ${r.transactions} txns, ${r.accounts} accounts (+${r.deletedAccounts} deleted), ${r.categories} categories, ${r.recurring} repeats, ${r.budgets} budgets, ${r.skipped.size} skipped" }
         return buildString {
             append(tr("Restored Money Manager backup: {0} transactions, {1} accounts", r.transactions, r.accounts))
@@ -408,7 +408,7 @@ class AndroidBackupController(
      */
     private suspend fun keepWorkingPasscode(staged: File): String? {
         val key = Prefs.PASSCODE.key
-        val current = db.repo?.setting(Prefs.PASSCODE)?.first().orEmpty()
+        val current = db.repo?.settingsStore?.setting(Prefs.PASSCODE)?.first().orEmpty()
         val out = SQLiteDatabase.openDatabase(staged.path, null, SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
         fun put(k: String, v: String) = out.execSQL("INSERT OR REPLACE INTO Setting(key, value) VALUES (?, ?)", arrayOf(k, v))
         try {
@@ -432,8 +432,8 @@ class AndroidBackupController(
     private suspend fun exportRows(): List<List<String>> {
         val repo = db.repo ?: error(tr("Database not ready"))
         return TabularImport.exportRows(
-            repo.allTxns(), repo.accounts.first() + repo.deletedAccounts.first(), repo.categories.first(),
-            repo.currency.first(), repo.currencies.first(), repo.txnTagNames.first(),
+            repo.txnStore.allTxns(), repo.accountStore.accounts.first() + repo.accountStore.deletedAccounts.first(), repo.categoryStore.categories.first(),
+            repo.settingsStore.currency.first(), repo.currencyStore.currencies.first(), repo.tagStore.txnTagNames.first(),
         )
     }
 
@@ -458,7 +458,7 @@ class AndroidBackupController(
             name.endsWith(".xls") -> error(tr("Old .xls files aren't supported. Save as .xlsx or .csv and try again."))
             else -> TabularImport.parseCsv(decodeText(bytes))
         }
-        val parsed = repo.parseRows(rows)
+        val parsed = repo.sheetImport.parseRows(rows)
         if (parsed.rows.isEmpty()) error(parsed.errors.firstOrNull() ?: tr("No transactions found in the file"))
         _pending.value = parsed
         return tr("Read {0} rows — review them to import", parsed.rows.size)

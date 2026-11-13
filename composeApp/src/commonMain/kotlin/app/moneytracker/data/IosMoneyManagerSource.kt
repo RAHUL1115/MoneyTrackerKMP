@@ -72,7 +72,7 @@ class IosMoneyManagerSource(private val ios: RowSource) : RowSource {
     private val mainIso by lazy { mainRow?.s("ZISO")?.trim().orEmpty() }
     /** Android currency uids are "<main ISO>_<ISO>" (the importer reads the code from them); iOS uids may be random. */
     private fun androidUid(iso: String?) = "${mainIso}_${iso?.trim().orEmpty()}"
-    private val currencyByUid by lazy { src("ZCURRENCY").filter { it.s("ZUID") != null }.associate { it.s("ZUID")!! to androidUid(it.s("ZISO")) } }
+    private val currencyByUid by lazy { src("ZCURRENCY").mapNotNull { r -> r.s("ZUID")?.let { uid -> uid to androidUid(r.s("ZISO")) } }.toMap() }
     private val currencyByAid by lazy { src("ZCURRENCY").mapNotNull { c -> c.long("ZAID")?.let { it to androidUid(c.s("ZISO")) } }.toMap() }
     private val mainUid get() = androidUid(mainIso)
 

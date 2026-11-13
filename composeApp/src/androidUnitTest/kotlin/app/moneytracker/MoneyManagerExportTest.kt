@@ -46,38 +46,38 @@ class MoneyManagerExportTest {
     private fun newRepo(): MoneyRepository {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
-        return MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today }).also { it.seedIfEmpty() }
+        return MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today }).also { it.freshStart.seedIfEmpty() }
     }
 
     @BeforeTest fun setUp() {
         repo = newRepo()
-        repo.saveCurrency(Currency("USD", "$", 2, 83.5, 1))
+        repo.currencyStore.saveCurrency(Currency("USD", "$", 2, 83.5, 1))
         val d = LocalDate.parse("2026-04-10")
-        repo.create(TxnDraft(DraftType.EXPENSE, d, "acc_bank", categoryId = "cat_ex_0_1", amount = 450_00, note = "Dinner", memo = "with friends", timeOfDay = 20 * 60 + 15))
-        repo.create(TxnDraft(DraftType.REFUND, d, "acc_cash", categoryId = "cat_ex_0", amount = 120_00, note = "Order refund"))
-        repo.create(TxnDraft(DraftType.INCOME, d, "acc_bank", categoryId = "cat_in_0", amount = 50_000_00, note = "Pay"))
-        repo.create(TxnDraft(DraftType.TRANSFER, d, "acc_bank", "acc_cash", amount = 2_000_00, fee = 10_00, note = "ATM"))
-        repo.create(TxnDraft(DraftType.EXPENSE, d, "acc_card", categoryId = "cat_ex_3", amount = 3_000_00, installments = 3, note = "Phone"))
-        repo.create(TxnDraft(DraftType.EXPENSE, d, "acc_bank", categoryId = "cat_ex_1", amount = 20_00, currency = "USD", note = "App"))
-        repo.create(TxnDraft(DraftType.EXPENSE, LocalDate.parse("2026-03-01"), "acc_bank", categoryId = "cat_ex_2", amount = 8_000_00,
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, d, "acc_bank", categoryId = "cat_ex_0_1", amount = 450_00, note = "Dinner", memo = "with friends", timeOfDay = 20 * 60 + 15))
+        repo.txnStore.create(TxnDraft(DraftType.REFUND, d, "acc_cash", categoryId = "cat_ex_0", amount = 120_00, note = "Order refund"))
+        repo.txnStore.create(TxnDraft(DraftType.INCOME, d, "acc_bank", categoryId = "cat_in_0", amount = 50_000_00, note = "Pay"))
+        repo.txnStore.create(TxnDraft(DraftType.TRANSFER, d, "acc_bank", "acc_cash", amount = 2_000_00, fee = 10_00, note = "ATM"))
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, d, "acc_card", categoryId = "cat_ex_3", amount = 3_000_00, installments = 3, note = "Phone"))
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, d, "acc_bank", categoryId = "cat_ex_1", amount = 20_00, currency = "USD", note = "App"))
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, LocalDate.parse("2026-03-01"), "acc_bank", categoryId = "cat_ex_2", amount = 8_000_00,
             note = "Rent", repeat = RepeatType.MONTHLY))
-        repo.create(TxnDraft(DraftType.REFUND, LocalDate.parse("2026-04-05"), "acc_bank", categoryId = "cat_ex_4", amount = 99_00,
+        repo.txnStore.create(TxnDraft(DraftType.REFUND, LocalDate.parse("2026-04-05"), "acc_bank", categoryId = "cat_ex_4", amount = 99_00,
             note = "Cashback", repeat = RepeatType.WEEKLY))
-        repo.adjustBalance("acc_savings", 10_000_00)
-        repo.setBudget("", YearMonth(2026, 1), 30_000_00)
-        repo.setBudget("cat_ex_0", YearMonth(2026, 4), 5_000_00)
-        val tag = repo.tagNamed("Trip")
-        repo.allTxns().first { it.note == "Dinner" }.let { repo.setTags(it.id, listOf(tag, TAG_PREPAYMENT)) }
-        repo.saveNote(Note("n1", "Plan", "Save more", pinned = true, createdAt = 1_776_000_000_000, updatedAt = 1_776_000_000_000))
-        repo.putSetting(Prefs.MONTH_START_DAY.key, "25"); repo.putSetting(Prefs.COLOR_SET.key, "B"); repo.putSetting(Prefs.WEEK_START.key, "MONDAY")
-        repo.putSetting(Prefs.TIME_INPUT.key, "LIST"); repo.putSetting(Prefs.TIME_SORT.key, "ASC"); repo.putSetting(Prefs.SMS_BLOCKED_SENDERS.key, "AD-PROMO\nVM-SPAM")
+        repo.txnStore.adjustBalance("acc_savings", 10_000_00)
+        repo.reportStore.setBudget("", YearMonth(2026, 1), 30_000_00)
+        repo.reportStore.setBudget("cat_ex_0", YearMonth(2026, 4), 5_000_00)
+        val tag = repo.tagStore.tagNamed("Trip")
+        repo.txnStore.allTxns().first { it.note == "Dinner" }.let { repo.tagStore.setTags(it.id, listOf(tag, TAG_PREPAYMENT)) }
+        repo.noteStore.saveNote(Note("n1", "Plan", "Save more", pinned = true, createdAt = 1_776_000_000_000, updatedAt = 1_776_000_000_000))
+        repo.settingsStore.putSetting(Prefs.MONTH_START_DAY.key, "25"); repo.settingsStore.putSetting(Prefs.COLOR_SET.key, "B"); repo.settingsStore.putSetting(Prefs.WEEK_START.key, "MONDAY")
+        repo.settingsStore.putSetting(Prefs.TIME_INPUT.key, "LIST"); repo.settingsStore.putSetting(Prefs.TIME_SORT.key, "ASC"); repo.settingsStore.putSetting(Prefs.SMS_BLOCKED_SENDERS.key, "AD-PROMO\nVM-SPAM")
     }
 
     private fun export(d: MoneyManagerBackup.Data): Connection =
         DriverManager.getConnection("jdbc:sqlite::memory:").also { MoneyManagerExport.write(JdbcRowSink(it), d, tz, 1_776_600_000_000) }
 
     @Test fun fileLooksLikeMoneyManagersOwn() {
-        val c = export(repo.moneyManagerData())
+        val c = export(repo.moneyManagerBridge.moneyManagerData())
         val tables = JdbcRowSource(c).tables()
         assertTrue(MoneyManagerBackup.isMoneyManager(tables))
         assertTrue("sqlite_sequence" in tables)                              // Money Manager's restore checks for it
@@ -92,7 +92,7 @@ class MoneyManagerExportTest {
     }
 
     @Test fun roundTripKeepsEverything() {
-        val before = repo.moneyManagerData()
+        val before = repo.moneyManagerBridge.moneyManagerData()
         val after = MoneyManagerBackup.read(JdbcRowSource(export(before)), tz)
 
         assertEquals(before.mainCode, after.mainCode); assertEquals(before.mainSymbol, after.mainSymbol)
@@ -121,11 +121,11 @@ class MoneyManagerExportTest {
 
     @Test fun reimportedBookHasTheSameTotals() {
         val other = newRepo()
-        other.replaceWithMoneyManager(MoneyManagerBackup.read(JdbcRowSource(export(repo.moneyManagerData())), tz))
+        other.moneyManagerBridge.replaceWithMoneyManager(MoneyManagerBackup.read(JdbcRowSource(export(repo.moneyManagerBridge.moneyManagerData())), tz))
         val april = DateRange(LocalDate.parse("2026-04-01"), LocalDate.parse("2026-04-30"))
-        assertEquals(repo.totalsNow(april), other.totalsNow(april))
+        assertEquals(repo.reportStore.totalsNow(april), other.reportStore.totalsNow(april))
         listOf("acc_bank", "acc_cash", "acc_card", "acc_savings").forEach { id ->
-            assertEquals(repo.accountTxns(id).sumOf { it.signedAccountValue }, other.accountTxns(id).sumOf { it.signedAccountValue }, id)
+            assertEquals(repo.txnStore.accountTxns(id).sumOf { it.signedAccountValue }, other.txnStore.accountTxns(id).sumOf { it.signedAccountValue }, id)
         }
     }
 }

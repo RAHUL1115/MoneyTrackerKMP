@@ -2,6 +2,7 @@ package app.moneytracker.data
 
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.TxnKind
+import app.moneytracker.domain.isRefund
 import kotlinx.datetime.LocalDate
 
 /** Input from the transaction editor. [amount] and [fee] are minor units of [currency] (null = main). */
@@ -39,3 +40,14 @@ internal fun DraftType.primaryKind() = when (this) {
 
 /** Stored amounts are negative for refunds; the editor always works with positive amounts. */
 val DraftType.sign: Int get() = if (this == DraftType.REFUND) -1 else 1
+
+/**
+ * The editor type a stored entry of this kind opens as: a transfer from its outgoing leg, and an expense with a
+ * negative [amount] as a refund. Kinds the editor doesn't make (incoming leg, adjustments) open as expenses.
+ */
+fun TxnKind.toDraftType(amount: Long?): DraftType = when (this) {
+    TxnKind.INCOME -> DraftType.INCOME
+    TxnKind.TRANSFER_OUT -> DraftType.TRANSFER
+    TxnKind.EXPENSE -> if (isRefund(this, amount)) DraftType.REFUND else DraftType.EXPENSE
+    TxnKind.TRANSFER_IN, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> DraftType.EXPENSE
+}

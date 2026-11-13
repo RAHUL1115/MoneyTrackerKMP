@@ -28,6 +28,7 @@ import app.moneytracker.domain.classify
 import app.moneytracker.domain.effectiveBudgets
 import app.moneytracker.domain.summarize
 import app.moneytracker.domain.totals
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
@@ -71,7 +72,23 @@ class MonthRollup(val month: YearMonth, val range: DateRange, val totals: Totals
  * a Flow for screens (re-runs when its tables change; first frame from cached data) and a `…Now()` snapshot for
  * background threads. Built on the pure rules in domain/Rules.kt.
  */
-class ReadModels internal constructor(private val repo: MoneyRepository) {
+class ReadModels internal constructor(
+    private val settingsStore: SettingsStore,
+    private val currencyStore: CurrencyStore,
+    private val accountStore: AccountStore,
+    private val categoryStore: CategoryStore,
+    private val tagStore: TagStore,
+    private val txnStore: TxnStore,
+    private val reportStore: ReportStore,
+    private val io: CoroutineDispatcher,
+    private val today: () -> LocalDate,
+) {
+    /** Temporary: keeps `ReadModels(this)` in [MoneyRepository] compiling until it passes the stores itself. */
+    internal constructor(repo: MoneyRepository) : this(
+        repo.settingsStore, repo.currencyStore, repo.accountStore, repo.categoryStore, repo.tagStore, repo.txnStore, repo.reportStore,
+        repo.io, repo.today,
+    )
+
 
     // ───────────── accounts
 
@@ -81,21 +98,21 @@ class ReadModels internal constructor(private val repo: MoneyRepository) {
 
     /** Re-runs off the main thread when accounts, groups, balances, currencies or tags change. */
     val accounts: Flow<AccountSummary> get() =
-        combine(repo.groups, repo.accounts, repo.balances, repo.currencies, repo.txnTagNames) { g, a, b, c, _ -> Inputs(g, a, b, c) }
+        combine(accountStore.groups, accountStore.accounts, accountStore.balances, currencyStore.currencies, tagStore.txnTagNames) { g, a, b, c, _ -> Inputs(g, a, b, c) }
             .map { accountSummary(it.groups, it.accounts, it.balances, it.currencies) }
-            .flowOn(repo.io)
+            .flowOn(io)
 
-    fun accountsNow(): AccountSummary = accountSummary(repo.groupsNow(), repo.accountsNow(), repo.balancesNow(), repo.currenciesNow())
+    fun accountsNow(): AccountSummary = accountSummary(accountStore.groupsNow(), accountStore.accountsNow(), accountStore.balancesNow(), currencyStore.currenciesNow())
 
     /** One card's statement status (same rules as the account summary). Blocking. */
-    fun cardStatusNow(a: Account, prepaid: Set<String> = repo.txnIdsWithTag(TAG_PREPAYMENT)): CardStatus =
-        cardStatus(repo.accountTxns(a.id), a.statementDay, repo.today(), prepaid)
+    fun cardStatusNow(a: Account, prepaid: Set<String> = tagStore.txnIdsWithTag(TAG_PREPAYMENT)): CardStatus =
+        cardStatus(txnStore.accountTxns(a.id), a.statementDay, today(), prepaid)
 
     private class Inputs(val groups: List<AccountGroup>, val accounts: List<Account>, val balances: Map<String, Long>, val currencies: List<Currency>)
 
     private fun accountSummary(groups: List<AccountGroup>, accounts: List<Account>, balances: Map<String, Long>, currencies: List<Currency>): AccountSummary {
-        val prepaid = repo.txnIdsWithTag(TAG_PREPAYMENT)
-        val main = repo.mainDecimals()
+        val prepaid = tagStore.txnIdsWithTag(TAG_PREPAYMENT)
+        val main = settingsStore.mainDecimals()
         val (lines, worth) = summarize(groups, accounts, balances,
             cardStatusOf = { a -> cardStatusNow(a, prepaid) },
             toMain = { a, v -> Fx.toMain(v, currencies.firstOrNull { it.code == a.currency }, main) },
@@ -107,24 +124,24 @@ class ReadModels internal constructor(private val repo: MoneyRepository) {
 
     /** A month's budget. Main thread (it shares the per-range caches); first frame comes from cached rows. */
     fun budget(ym: YearMonth): CachedFlow<MonthBudget> {
-        val range = repo.periodSettingsNow().month(ym)
-        val rows = repo.reportRows(range); val entries = repo.budgetEntries(ym); val cats = repo.categoryById
+        val range = settingsStore.periodSettingsNow().month(ym)
+        val rows = reportStore.reportRows(range); val entries = reportStore.budgetEntries(ym); val cats = categoryStore.categoryById
         return CachedFlow(combine(rows, entries, cats) { r, e, c -> monthBudget(ym, r, e, c) }) {
             monthBudget(ym, rows.current, entries.current, cats.current)
         }
     }
 
     fun budgetNow(ym: YearMonth): MonthBudget =
-        monthBudget(ym, repo.reportRowsNow(repo.periodSettingsNow().month(ym)), repo.budgetEntriesNow(ym), repo.categoryByIdNow())
+        monthBudget(ym, reportStore.reportRowsNow(settingsStore.periodSettingsNow().month(ym)), reportStore.budgetEntriesNow(ym), categoryStore.categoryByIdNow())
 
     // ───────────── month totals
 
     /** The Total card's figures for [ym]. Main thread, like [budget]. */
     fun month(ym: YearMonth): CachedFlow<MonthTotals> {
-        val ps = repo.periodSettingsNow()
+        val ps = settingsStore.periodSettingsNow()
         val range = ps.month(ym)
-        val rows = repo.reportRows(range); val prev = repo.reportRows(ps.month(ym.plus(-1)))
-        val txns = repo.txnsBetween(range); val cardIds = cardAccountIds()
+        val rows = reportStore.reportRows(range); val prev = reportStore.reportRows(ps.month(ym.plus(-1)))
+        val txns = txnStore.txnsBetween(range); val cardIds = cardAccountIds()
         val budget = budget(ym)
         return CachedFlow(combine(rows, prev, txns, cardIds, budget) { r, p, t, c, b -> monthTotals(r, p, t, c, b) }) {
             monthTotals(rows.current, prev.current, txns.current, cardIds.current, budget.current)
@@ -132,14 +149,14 @@ class ReadModels internal constructor(private val repo: MoneyRepository) {
     }
 
     fun monthNow(ym: YearMonth): MonthTotals {
-        val ps = repo.periodSettingsNow()
+        val ps = settingsStore.periodSettingsNow()
         val range = ps.month(ym)
-        val cards = cardIdsOf(repo.accountsNow(), repo.groupsNow())
-        return monthTotals(repo.reportRowsNow(range), repo.reportRowsNow(ps.month(ym.plus(-1))), repo.txnsNow(range), cards, budgetNow(ym))
+        val cards = cardIdsOf(accountStore.accountsNow(), accountStore.groupsNow())
+        return monthTotals(reportStore.reportRowsNow(range), reportStore.reportRowsNow(ps.month(ym.plus(-1))), txnStore.txnsNow(range), cards, budgetNow(ym))
     }
 
     private fun cardAccountIds(): CachedFlow<Set<String>> =
-        CachedFlow(combine(repo.accounts, repo.groups) { a, g -> cardIdsOf(a, g) }) { cardIdsOf(repo.accounts.current, repo.groups.current) }
+        CachedFlow(combine(accountStore.accounts, accountStore.groups) { a, g -> cardIdsOf(a, g) }) { cardIdsOf(accountStore.accounts.current, accountStore.groups.current) }
 
     companion object {
         /** Spending per main category (no category: [UNCATEGORIZED]; balance corrections keep their own key). */
@@ -157,8 +174,8 @@ class ReadModels internal constructor(private val repo: MoneyRepository) {
                 if (r.categoryId == MODIFIED_BALANCE_CATEGORY) r.categoryId
                 else r.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } ?: UNCATEGORIZED
             }.mapValues { (_, v) -> v.sumOf { it.amount } }
-            val bySub = expense.filter { r -> r.categoryId?.let { catById[it]?.parentId } != null }
-                .groupBy { it.categoryId!! }.mapValues { (_, v) -> v.sumOf { it.amount } }
+            val bySub = expense.mapNotNull { r -> r.categoryId?.takeIf { catById[it]?.parentId != null }?.let { sub -> sub to r.amount } }
+                .groupBy({ it.first }, { it.second }).mapValues { (_, amounts) -> amounts.sum() }
             val budgets = effectiveBudgets(entries, ym)
             return MonthBudget(budgets, budgetLines(budgets, byMain, bySub) { id -> catById[id]?.parentId != null }, byMain, bySub)
         }
@@ -181,7 +198,7 @@ class ReadModels internal constructor(private val repo: MoneyRepository) {
          */
         fun yearRollup(rows: List<ReportRow>, ps: PeriodSettings, year: Int, today: LocalDate): YearRollup {
             val todayLabel = ps.labelFor(today)
-            val byMonth = rows.groupBy { ps.labelFor(it.date!!).month }
+            val byMonth = rows.groupBy { ps.labelFor(it.day).month }
             val upTo = when {
                 todayLabel.year == year -> todayLabel.month
                 todayLabel.year > year -> 12
@@ -192,10 +209,13 @@ class ReadModels internal constructor(private val repo: MoneyRepository) {
                 val ym = YearMonth(year, m)
                 val range = ps.month(ym)
                 val monthRows = byMonth[m].orEmpty()
-                val weeks = Periods.weeks(range, ps.weekStart).reversed().map { w -> w to totals(monthRows.filter { it.date!! in w }) }
+                val weeks = Periods.weeks(range, ps.weekStart).reversed().map { w -> w to totals(monthRows.filter { it.day in w }) }
                 MonthRollup(ym, range, totals(monthRows), weeks)
             }
             return YearRollup(year, totals(rows), months)
         }
+
+        /** Year views go by each row's date; rows read from [ReportStore] always carry one. */
+        private val ReportRow.day: LocalDate get() = checkNotNull(date) { "report row without a date" }
     }
 }

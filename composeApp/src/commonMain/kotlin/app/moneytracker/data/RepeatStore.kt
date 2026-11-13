@@ -3,8 +3,6 @@ package app.moneytracker.data
 import app.moneytracker.Log
 import app.moneytracker.domain.Recurrence
 import app.moneytracker.domain.RecurringRule
-import app.moneytracker.domain.TxnKind
-import app.moneytracker.domain.isRefund
 import app.moneytracker.db.RecurringRule as RuleRow
 
 /** Repeats: rules that add the same entry on a schedule, and turning their due dates into real entries. */
@@ -35,12 +33,7 @@ class RepeatStore(private val db: Db, private val settings: SettingsStore, priva
             val rule = row.toDomain()
             val (dates, next) = Recurrence.due(rule, horizon)
             for (date in dates) {
-                val type = when {
-                    rule.kind == TxnKind.INCOME -> DraftType.INCOME
-                    rule.kind == TxnKind.TRANSFER_OUT -> DraftType.TRANSFER
-                    isRefund(rule.kind, rule.amount) -> DraftType.REFUND
-                    else -> DraftType.EXPENSE
-                }
+                val type = rule.kind.toDraftType(rule.amount)
                 writer.writeDraft(TxnDraft(type, date, rule.accountId, rule.toAccountId, rule.categoryId, rule.amount * type.sign, note = rule.note, memo = rule.memo, currency = rule.currency),
                     recurringRuleId = rule.id, fixedId = "${rule.id}_${date.toEpochDays()}")
                 created++

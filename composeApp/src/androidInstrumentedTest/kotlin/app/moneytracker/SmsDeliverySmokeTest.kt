@@ -44,13 +44,13 @@ class SmsDeliverySmokeTest {
         val ctx = instrumentation.targetContext
         val app = ctx.applicationContext as MoneyTrackerApp
         val repo = app.database.repo ?: app.database.open()
-        repo.seedIfEmpty()
-        repo.saveAccount(Account("smoke_hdfc_bank", "grp_bank", "HDFC Bank", smsSender = "HDFCBK"))
-        repo.saveAccount(Account("smoke_hdfc_card", "grp_credit_card", "HDFC Credit Card", cardSettlementDay = 1,
+        repo.freshStart.seedIfEmpty()
+        repo.accountStore.saveAccount(Account("smoke_hdfc_bank", "grp_bank", "HDFC Bank", smsSender = "HDFCBK"))
+        repo.accountStore.saveAccount(Account("smoke_hdfc_card", "grp_credit_card", "HDFC Credit Card", cardSettlementDay = 1,
             cardPaymentAccountId = "smoke_hdfc_bank", smsSender = "HDFCBK"))
-        repo.putSetting(Prefs.SMS_AUTO_SAVE.key, "0")
-        repo.putSetting(Prefs.SMS_ALERT.key, "1")
-        repo.putSetting(Prefs.QUICK_ADD_NOTIFICATION.key, "1")
+        repo.settingsStore.putSetting(Prefs.SMS_AUTO_SAVE.key, "0")
+        repo.settingsStore.putSetting(Prefs.SMS_ALERT.key, "1")
+        repo.settingsStore.putSetting(Prefs.QUICK_ADD_NOTIFICATION.key, "1")
         Notifications.showQuickAdd(ctx)
         val manager = ctx.getSystemService(NotificationManager::class.java)
         // Opt-in synthetic test: discard previous debug-app SMS alerts before checking grouping.
@@ -72,7 +72,7 @@ class SmsDeliverySmokeTest {
             Thread.sleep(2000)
         }
         val captures = withTimeout(20_000) {
-            repo.pendingCaptures.first { rows -> rows.count { it.text in messages } == messages.size }
+            repo.captureStore.pendingCaptures.first { rows -> rows.count { it.text in messages } == messages.size }
                 .filter { it.text in messages }
         }
         assertEquals(count, captures.size)

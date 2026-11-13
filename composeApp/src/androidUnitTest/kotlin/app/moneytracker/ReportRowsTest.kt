@@ -28,31 +28,31 @@ class ReportRowsTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
     }
 
     @Test fun cardAtPaymentMovesExpenseToBillPayment() = runTest {
-        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 3_000))
-        repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_card", amount = 3_000))
-        assertEquals(3_000, totals(repo.reportRows(march).first()).expense)
-        repo.putSetting(Prefs.CARD_AT_PAYMENT.key, "1")
-        assertEquals(3_000, totals(repo.reportRows(march).first()).expense)   // counted once, at payment
-        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 1_000))
-        assertEquals(3_000, totals(repo.reportRows(march).first()).expense)   // unpaid purchase not yet expense
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 3_000))
+        repo.txnStore.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_card", amount = 3_000))
+        assertEquals(3_000, totals(repo.reportStore.reportRows(march).first()).expense)
+        repo.settingsStore.putSetting(Prefs.CARD_AT_PAYMENT.key, "1")
+        assertEquals(3_000, totals(repo.reportStore.reportRows(march).first()).expense)   // counted once, at payment
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 1_000))
+        assertEquals(3_000, totals(repo.reportStore.reportRows(march).first()).expense)   // unpaid purchase not yet expense
     }
 
     /** Filters and search rebuild report rows from entries; those rows must follow the same rules as the unfiltered ones. */
     @Test fun rowsBuiltFromEntriesMatchRepositoryRows() = runTest {
-        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 3_000, note = "Shoes"))
-        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 1_000))
-        repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_card", amount = 3_000))
-        repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_savings", amount = 500))
-        repo.create(TxnDraft(DraftType.INCOME, today, "acc_bank", categoryId = "cat_in_0", amount = 9_000))
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 3_000, note = "Shoes"))
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 1_000))
+        repo.txnStore.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_card", amount = 3_000))
+        repo.txnStore.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_savings", amount = 500))
+        repo.txnStore.create(TxnDraft(DraftType.INCOME, today, "acc_bank", categoryId = "cat_in_0", amount = 9_000))
         for (cardAtPayment in listOf("0", "1")) {
-            repo.putSetting(Prefs.CARD_AT_PAYMENT.key, cardAtPayment)
-            val rules = repo.reportRules.first()
-            val fromEntries = repo.txnsNow(march).filter { it.kind != TxnKind.TRANSFER_IN }.map { rules.row(it) }
-            val fromRepo = repo.reportRows(march).first()
+            repo.settingsStore.putSetting(Prefs.CARD_AT_PAYMENT.key, cardAtPayment)
+            val rules = repo.reportStore.reportRules.first()
+            val fromEntries = repo.txnStore.txnsNow(march).filter { it.kind != TxnKind.TRANSFER_IN }.map { rules.row(it) }
+            val fromRepo = repo.reportStore.reportRows(march).first()
             assertEquals(fromRepo.sortedBy { it.txnId }, fromEntries.sortedBy { it.txnId }, "cardAtPayment=$cardAtPayment")
             assertEquals(totals(fromRepo), totals(fromEntries))
         }

@@ -32,7 +32,7 @@ class WebApiTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
         api = WebApi({ repo }, { name -> if (name == "index.html") "<html>".toByteArray() else null }, { host }, now = { clock })
     }
 
@@ -85,7 +85,7 @@ class WebApiTest {
     }
 
     @Test fun passwordIsCheckedAndWrongTriesLockOut() {
-        repo.putSetting(Prefs.WEB_PASSWORD.key, WebPassword.hash("secret1"))
+        repo.settingsStore.putSetting(Prefs.WEB_PASSWORD.key, WebPassword.hash("secret1"))
         val s = call("GET", "/api/session").json()
         assertEquals(false, s["signedIn"])
         assertEquals(true, s["password"])
@@ -119,9 +119,9 @@ class WebApiTest {
             "category" to "cat_ex_0", "note" to "Coffee", "tags" to listOf("goa", "#Goa", "work")), cookie)
         assertEquals(200, created.status, created.body.toString(Charsets.UTF_8))
         val id = created.json()["id"] as String
-        val t = repo.txn(id)!!
+        val t = repo.txnStore.txn(id)!!
         assertEquals(22_100L, t.amount)
-        assertEquals(2, repo.tagsOf(id).size)       // "goa" and "#Goa" are the same tag
+        assertEquals(2, repo.tagStore.tagsOf(id).size)       // "goa" and "#Goa" are the same tag
 
         val listed = call("GET", "/api/txns", cookie = cookie, query = mapOf("period" to "month", "ym" to "202611")).json()
         val row = (listed["rows"] as List<*>).map { it as Map<*, *> }.single { it["id"] == id }
@@ -132,13 +132,13 @@ class WebApiTest {
             "category" to "cat_ex_0", "note" to "Coffee x2", "tags" to listOf("goa")), cookie)
         assertEquals(200, edited.status)
         val newId = edited.json()["id"] as String
-        assertEquals(25_050L, repo.txn(newId)!!.amount)
-        assertEquals("Coffee x2", repo.txn(newId)!!.note)
+        assertEquals(25_050L, repo.txnStore.txn(newId)!!.amount)
+        assertEquals("Coffee x2", repo.txnStore.txn(newId)!!.note)
 
         val undo = call("DELETE", "/api/txns/$newId", cookie = cookie).json()["undo"] as String
-        assertNull(repo.liveTxn(newId))
+        assertNull(repo.txnStore.liveTxn(newId))
         val restored = call("POST", "/api/undo/$undo", emptyMap<String, Any>(), cookie).json()["id"] as String
-        assertEquals(25_050L, repo.txn(restored)!!.amount)
+        assertEquals(25_050L, repo.txnStore.txn(restored)!!.amount)
         assertEquals(410, call("POST", "/api/undo/$undo", emptyMap<String, Any>(), cookie).status)
     }
 
@@ -160,22 +160,22 @@ class WebApiTest {
 
     @Test fun instalmentsAndTransferFeesStayOnThePhone() {
         val cookie = signIn()
-        val plan = repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_3", amount = 30_000, installments = 3))
-        val move = repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_cash", amount = 5_000, fee = 50))
+        val plan = repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_3", amount = 30_000, installments = 3))
+        val move = repo.txnStore.create(TxnDraft(DraftType.TRANSFER, today, "acc_bank", toAccountId = "acc_cash", amount = 5_000, fee = 50))
         assertEquals(409, call("DELETE", "/api/txns/$plan", cookie = cookie).status)
-        val fee = repo.transferGroup(repo.txn(move)!!.transferGroupId!!).first { it.kind == app.moneytracker.domain.TxnKind.EXPENSE }
+        val fee = repo.txnStore.transferGroup(repo.txnStore.txn(move)!!.transferGroupId!!).first { it.kind == app.moneytracker.domain.TxnKind.EXPENSE }
         assertEquals(409, call("DELETE", "/api/txns/${fee.id}", cookie = cookie).status)
         // Editing the transfer itself keeps its fee.
         val r = call("PUT", "/api/txns/$move", mapOf("type" to "TRANSFER", "date" to today.toString(), "amount" to "60", "account" to "acc_bank", "to" to "acc_cash"), cookie)
         assertEquals(200, r.status, r.body.toString(Charsets.UTF_8))
-        val group = repo.transferGroup(repo.txn(r.json()["id"] as String)!!.transferGroupId!!)
+        val group = repo.txnStore.transferGroup(repo.txnStore.txn(r.json()["id"] as String)!!.transferGroupId!!)
         assertEquals(50L, group.first { it.kind == app.moneytracker.domain.TxnKind.EXPENSE }.amount)
     }
 
     @Test fun summaryAccountsAndExport() {
         val cookie = signIn()
-        repo.create(TxnDraft(DraftType.INCOME, today, "acc_bank", categoryId = "cat_in_0", amount = 100_000))
-        repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0", amount = 2_500, note = "=cmd"))
+        repo.txnStore.create(TxnDraft(DraftType.INCOME, today, "acc_bank", categoryId = "cat_in_0", amount = 100_000))
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0", amount = 2_500, note = "=cmd"))
         val s = call("GET", "/api/summary", cookie = cookie, query = mapOf("ym" to "202611")).json()
         val last = (s["trend"] as List<*>).last() as Map<*, *>
         assertEquals(100_000.0, last["income"])

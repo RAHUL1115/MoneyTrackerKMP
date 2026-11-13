@@ -58,13 +58,13 @@ class LogTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         val repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { LocalDate.parse("2026-04-20") })
-        repo.seedIfEmpty()
-        val bank = repo.accounts.first().first { it.id == "acc_bank" }
-        repo.saveAccount(bank.copy(name = "Secret Savings 5678"))
+        repo.freshStart.seedIfEmpty()
+        val bank = repo.accountStore.accounts.first().first { it.id == "acc_bank" }
+        repo.accountStore.saveAccount(bank.copy(name = "Secret Savings 5678"))
         val text = "Rs. 4,321.00 debited from your account xx5678 to CORNER BAKERY on 28-oct-26 (UPI ref 123456789012)."
         lines.clear()
-        repo.ingestMessage("SMS", "AD-HDFCBK", text, 1_776_600_000_000)
-        repo.ingestMessage("SMS", "+919876543210", "hi, lunch at 1?", 1_776_600_000_000)
+        repo.messageIntake.ingestMessage("SMS", "AD-HDFCBK", text, 1_776_600_000_000)
+        repo.messageIntake.ingestMessage("SMS", "+919876543210", "hi, lunch at 1?", 1_776_600_000_000)
         val all = lines.joinToString("\n")
         assertTrue(all.contains("waiting for review") || all.contains("saved automatically"), all)
         assertTrue(all.contains("not a transaction"), all)

@@ -30,7 +30,7 @@ class ForeignCurrencyTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
     }
 
     @Test fun exchangeRatesParseAndInvert() {
@@ -45,44 +45,44 @@ class ForeignCurrencyTest {
     }
 
     @Test fun updateRatesSavesNewRatesAndReportsMissing() = runTest {
-        repo.putSetting(Prefs.CURRENCY_CODE.key, "INR")
-        repo.saveCurrency(Currency("USD", "$", 2, 80.0))
-        repo.saveCurrency(Currency("AED", "د.إ", 2, 22.0))
+        repo.settingsStore.putSetting(Prefs.CURRENCY_CODE.key, "INR")
+        repo.currencyStore.saveCurrency(Currency("USD", "$", 2, 80.0))
+        repo.currencyStore.saveCurrency(Currency("AED", "د.إ", 2, 22.0))
         var asked = ""
-        val r = repo.updateRates { url -> asked = url; """{"amount":1.0,"base":"INR","date":"2026-11-03","rates":{"USD":0.0119}}""" }
+        val r = repo.currencyStore.updateRates { url -> asked = url; """{"amount":1.0,"base":"INR","date":"2026-11-03","rates":{"USD":0.0119}}""" }
         assertTrue(asked.contains("base=INR") && asked.contains("USD") && asked.contains("AED"))
         assertEquals(app.moneytracker.data.RatesUpdate.Done("2026-11-03", listOf("USD"), listOf("AED")), r)
-        assertEquals(84.0336, repo.currencies.first().first { it.code == "USD" }.rate)
-        assertEquals(22.0, repo.currencies.first().first { it.code == "AED" }.rate)                // no ECB rate: unchanged
-        assertEquals("2026-11-03", repo.settingNow(Prefs.RATES_DATE.key))
-        assertEquals(app.moneytracker.data.RatesUpdate.Failed, repo.updateRates { null })           // offline
+        assertEquals(84.0336, repo.currencyStore.currencies.first().first { it.code == "USD" }.rate)
+        assertEquals(22.0, repo.currencyStore.currencies.first().first { it.code == "AED" }.rate)                // no ECB rate: unchanged
+        assertEquals("2026-11-03", repo.settingsStore.settingNow(Prefs.RATES_DATE.key))
+        assertEquals(app.moneytracker.data.RatesUpdate.Failed, repo.currencyStore.updateRates { null })           // offline
     }
 
     @Test fun entryKeepsItsRateWhenRatesChangeAndItIsEdited() = runTest {
-        repo.saveCurrency(Currency("USD", "$", 2, 80.0))
-        val id = repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 1_000, currency = "USD", note = "Lunch"))  // $10.00
-        val made = repo.txn(id)!!
+        repo.currencyStore.saveCurrency(Currency("USD", "$", 2, 80.0))
+        val id = repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 1_000, currency = "USD", note = "Lunch"))  // $10.00
+        val made = repo.txnStore.txn(id)!!
         assertEquals(80.0, made.rate)
         assertEquals(80_000L, made.amount)                                                        // ₹800.00
-        repo.saveCurrency(Currency("USD", "$", 2, 95.0))                                          // rates update later
-        val edited = repo.txn(repo.update(made, repo.draftFrom(made).copy(note = "Team lunch")))!!
+        repo.currencyStore.saveCurrency(Currency("USD", "$", 2, 95.0))                                          // rates update later
+        val edited = repo.txnStore.txn(repo.txnStore.update(made, repo.txnStore.draftFrom(made).copy(note = "Team lunch")))!!
         assertEquals(80.0, edited.rate)                                                           // edit keeps the old rate
         assertEquals(80_000L, edited.amount)
-        val fresh = repo.txn(repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 1_000, currency = "USD")))!!
+        val fresh = repo.txnStore.txn(repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0_1", amount = 1_000, currency = "USD")))!!
         assertEquals(95.0, fresh.rate)                                                            // new entry: today's rate
         assertEquals(95_000L, fresh.amount)
         // An entry from before v7 (no stored rate) keeps the rate implied by its two amounts.
-        assertEquals(80.0, repo.rateOf(made.copy(rate = null)))
+        assertEquals(80.0, repo.entryWriter.rateOf(made.copy(rate = null)))
     }
 
     @Test fun foreignCurrencyAccountKeepsOwnBalanceAndReportsInMain() = runTest {
-        repo.saveCurrency(Currency("USD", "$", 2, 80.0))
-        repo.saveAccount(Account("acc_usd", "grp_bank", "USD Account", currency = "USD"))
-        repo.create(TxnDraft(DraftType.INCOME, today, "acc_usd", amount = 10_000, currency = "USD"))     // $100.00
-        assertEquals(10_000L, repo.balances.first()["acc_usd"])                                         // account currency
-        assertEquals(800_000L, totals(repo.reportRows(march).first()).income)                            // ₹8,000.00
-        repo.create(TxnDraft(DraftType.TRANSFER, today, "acc_usd", toAccountId = "acc_bank", amount = 5_000, currency = "USD"))
-        assertEquals(5_000L, repo.balances.first()["acc_usd"])
-        assertEquals(400_000L, repo.balances.first()["acc_bank"])                                       // ₹4,000 arrived
+        repo.currencyStore.saveCurrency(Currency("USD", "$", 2, 80.0))
+        repo.accountStore.saveAccount(Account("acc_usd", "grp_bank", "USD Account", currency = "USD"))
+        repo.txnStore.create(TxnDraft(DraftType.INCOME, today, "acc_usd", amount = 10_000, currency = "USD"))     // $100.00
+        assertEquals(10_000L, repo.accountStore.balances.first()["acc_usd"])                                         // account currency
+        assertEquals(800_000L, totals(repo.reportStore.reportRows(march).first()).income)                            // ₹8,000.00
+        repo.txnStore.create(TxnDraft(DraftType.TRANSFER, today, "acc_usd", toAccountId = "acc_bank", amount = 5_000, currency = "USD"))
+        assertEquals(5_000L, repo.accountStore.balances.first()["acc_usd"])
+        assertEquals(400_000L, repo.accountStore.balances.first()["acc_bank"])                                       // ₹4,000 arrived
     }
 }

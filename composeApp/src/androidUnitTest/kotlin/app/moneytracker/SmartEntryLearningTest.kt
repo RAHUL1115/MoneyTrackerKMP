@@ -30,24 +30,24 @@ class SmartEntryLearningTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
     }
 
     private fun guess(text: String) = runBlocking {
-        SmartEntry.guess(parser, text, today, fmt, repo.categoriesNow(), repo.accountsNow(),
-            learned = { repo.suggest(it) },
-            usualAccount = { kind, category, note, amount -> repo.habitAccount(kind, category, note = note, amount = amount.takeIf { it > 0 }) })
+        SmartEntry.guess(parser, text, today, fmt, repo.categoryStore.categoriesNow(), repo.accountStore.accountsNow(),
+            learned = { repo.learningStore.suggest(it) },
+            usualAccount = { kind, category, note, amount -> repo.learningStore.habitAccount(kind, category, note = note, amount = amount.takeIf { it > 0 }) })
     }
 
     @Test fun pastNotesSteerTheCategoryAndAccount() {
-        val expense = repo.categoriesNow().filter { it.kind == CategoryKind.EXPENSE && it.parentId == null }
+        val expense = repo.categoryStore.categoriesNow().filter { it.kind == CategoryKind.EXPENSE && it.parentId == null }
         val before = guess("zorbles 120")
         // Pick a category the model did NOT choose, and teach it the way the Add screen does on save.
         val mine = expense.first { it.id != before.draft.categoryId }
-        val account = repo.accountsNow().first { !it.hidden }
+        val account = repo.accountStore.accountsNow().first { !it.hidden }
         repeat(2) {
             val d = TxnDraft(DraftType.EXPENSE, today, account.id, categoryId = mine.id, amount = 12000, note = "zorbles")
-            repo.create(d); repo.learnFromDraft(d)
+            repo.txnStore.create(d); repo.learningStore.learnFromDraft(d)
         }
         val after = guess("zorbles 120")
         assertEquals(mine.id, after.draft.categoryId, "learned category: ${after.categoryName}")
@@ -60,10 +60,10 @@ class SmartEntryLearningTest {
     @Test fun voiceEntryGetsTheCategorysUsualAccount() {
         // "500 for burger": Food is understood, and the account is where food spending usually goes, not the overall habit.
         val food = guess("500 for burger").draft.categoryId!!
-        val foodMain = repo.categoriesNow().first { it.id == food }.let { it.parentId ?: it.id }
-        val other = repo.categoriesNow().first { it.kind == CategoryKind.EXPENSE && it.parentId == null && it.id != foodMain }
-        repeat(3) { repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = food, amount = 300_00, note = "pizza")) }
-        repeat(6) { repo.create(TxnDraft(DraftType.EXPENSE, today, "acc_bank", categoryId = other.id, amount = 900_00, note = "stuff")) }
+        val foodMain = repo.categoryStore.categoriesNow().first { it.id == food }.let { it.parentId ?: it.id }
+        val other = repo.categoryStore.categoriesNow().first { it.kind == CategoryKind.EXPENSE && it.parentId == null && it.id != foodMain }
+        repeat(3) { repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = food, amount = 300_00, note = "pizza")) }
+        repeat(6) { repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_bank", categoryId = other.id, amount = 900_00, note = "stuff")) }
         val g = guess("500 for burger")
         assertEquals(food, g.draft.categoryId)
         assertEquals("acc_card", g.draft.accountId)

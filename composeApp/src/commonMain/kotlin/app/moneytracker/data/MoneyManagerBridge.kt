@@ -7,7 +7,6 @@ import app.moneytracker.domain.RecurringRule
 import app.moneytracker.domain.SmsParser
 import app.moneytracker.domain.Tag
 import app.moneytracker.domain.Txn
-import app.moneytracker.domain.TxnKind
 import app.moneytracker.db.BudgetAmount as BudgetRow
 import app.moneytracker.db.Note as NoteRow
 
@@ -82,7 +81,7 @@ class MoneyManagerBridge(
         restoreAccountsAndCategories(d, ts)
         restoreEntries(d, ts)
         // Teach the suggestion model from history: note words → category & account.
-        d.txns.filter { (it.kind == TxnKind.INCOME || it.kind == TxnKind.EXPENSE) && it.note.isNotBlank() }
+        d.txns.filter { it.kind.isIncomeOrExpense && it.note.isNotBlank() }
             .forEach { learning.learn(SmsParser.words(it.note), it.categoryId, it.accountId) }
         LegacyResult(
             d.txns.size, d.accounts.count { !it.deleted }, d.accounts.count { it.deleted }, d.categories.count { !it.deleted },

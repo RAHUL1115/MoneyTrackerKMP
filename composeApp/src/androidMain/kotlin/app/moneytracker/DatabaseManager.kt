@@ -45,7 +45,7 @@ class DatabaseManager(private val context: Context) {
         driver = d
         stopWatching = watchAllTables(d, Prefs.bookkeeping, ::widgetsSoon)
         val r = Log.timed("Db", "open") {
-            MoneyRepository(MoneyDatabase(d), Dispatchers.IO).also { it.seedIfEmpty(); it.dropRetiredSettings(); it.generateRecurring() }
+            MoneyRepository(MoneyDatabase(d), Dispatchers.IO).also { it.freshStart.seedIfEmpty(); it.settingsStore.dropRetiredSettings(); it.repeatStore.generateRecurring() }
         }
         Log.i("Db") { "opened ${DB_NAME} (schema ${MoneyDatabase.Schema.version}, ${dbFile.length() / 1024} KB)" }
         repo = r

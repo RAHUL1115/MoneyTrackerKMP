@@ -204,7 +204,7 @@ class WebDashboardService : Service() {
     private fun autoStopMinutes(): Int {
         val repo = (application as MoneyTrackerApp).database.repo ?: return Prefs.WEB_AUTO_STOP.default
         return try {
-            repo.settingNow(Prefs.WEB_AUTO_STOP)
+            repo.settingsStore.settingNow(Prefs.WEB_AUTO_STOP)
         } catch (e: SQLiteException) {
             Log.w("Web", e) { "auto-stop setting unreadable" }
             Prefs.WEB_AUTO_STOP.default
