@@ -4,6 +4,8 @@ package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -110,17 +112,19 @@ internal fun RepeatSheet(
     Sheet(tr("Repeat / installments"), onDismiss, bottom = { PrimaryButton(tr("Done"), { onApply(r, if (r == null) null else end, inst) }) }) {
         SectionLabel(tr("Repeat"))
         if (canRepeat) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Pill(tr("Doesn't repeat"), r == null, { r = null })
-                RepeatType.entries.forEach { t -> Pill(tr(t.label), r == t, { r = t }) }
+            FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Pill(tr("Doesn't repeat"), r == null, { r = null }, role = Role.RadioButton)
+                RepeatType.entries.forEach { t -> Pill(tr(t.label), r == t, { r = t }, role = Role.RadioButton) }
             }
             if (r != null) FRow(tr("Until"), value = end?.long() ?: tr("No end date"), onClick = { endPicker = true })
             Text(tr("All rules are listed in Settings › Repeat entries."), color = F.muted, fontSize = 12.sp)
         } else Text(tr("Repeat can only be set on new transactions."), color = F.muted, fontSize = 13.sp)
         SectionLabel(tr("Installments"))
         if (canInstall) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                instChoices.forEach { n -> Pill(if (n == 1) tr("None") else tr("{0} months", n), inst == n && other.isEmpty(), { inst = n; other = "" }) }
+            FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                instChoices.forEach { n ->
+                    Pill(if (n == 1) tr("None") else tr("{0} months", n), inst == n && other.isEmpty(), { inst = n; other = "" }, role = Role.RadioButton)
+                }
             }
             AddInput(other, { v -> other = v.filter(Char::isDigit).take(2); inst = (other.toIntOrNull() ?: 1).coerceIn(1, 60) },
                 tr("Other number of months"), Modifier.fillMaxWidth().padding(top = 6.dp), number = true)

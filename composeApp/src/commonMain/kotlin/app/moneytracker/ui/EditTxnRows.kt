@@ -3,6 +3,10 @@
 package app.moneytracker.ui
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
@@ -67,7 +72,7 @@ internal fun DateFormRow(c: EditContext) {
     val ui = c.ui
     FormRow("Date", false, onClick = { ui.panel = Panel.NONE; ui.datePicker = true }, trailing = if (f.isAdjustment) null else ({
         Column(
-            Modifier.clickable { ui.panel = Panel.NONE; ui.repeatDialog = true }.padding(horizontal = 6.dp),
+            Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button) { ui.panel = Panel.NONE; ui.repeatDialog = true }.padding(horizontal = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(Icons.Outlined.Repeat, null, tint = if (f.repeat != null || f.installments > 1) Accent else SubtleText, modifier = Modifier.size(20.dp))
@@ -98,8 +103,11 @@ internal fun AmountRows(c: EditContext) {
     FormRow("Amount", ui.panel == Panel.AMOUNT, onClick = { focus.clearFocus(); ui.panel = Panel.AMOUNT }, trailing = if (f.isTransfer) ({
         Text(
             tr("Fees"),
-            Modifier.border(1.dp, if (ui.showFee) Accent else SubtleText, RoundedCornerShape(4.dp))
-                .clickable { ui.showFee = !ui.showFee; if (ui.showFee) ui.panel = Panel.FEE else c.model.edit { it.copy(feeText = "") } }
+            Modifier.border(1.dp, if (ui.showFee) Accent else SubtleText, RoundedCornerShape(4.dp)).clip(RoundedCornerShape(4.dp))
+                .toggleable(ui.showFee, role = Role.Checkbox) { on ->
+                    ui.showFee = on
+                    if (on) ui.panel = Panel.FEE else c.model.edit { it.copy(feeText = "") }
+                }
                 .padding(horizontal = 10.dp, vertical = 6.dp),
             color = if (ui.showFee) Accent else InkSoft,
         )
@@ -121,8 +129,8 @@ private fun CurrencyMenu(code: String?, onPick: (String?) -> Unit) {
     val currency = LocalCurrency.current
     var open by remember { mutableStateOf(false) }
     Box {
-        Text(code ?: tr("Main"), Modifier.border(1.dp, BorderColor, RoundedCornerShape(12.dp))
-            .clickable { open = true }.padding(horizontal = 10.dp, vertical = 4.dp), fontSize = 13.sp)
+        Text(code ?: tr("Main"), Modifier.border(1.dp, BorderColor, RoundedCornerShape(12.dp)).clip(RoundedCornerShape(12.dp))
+            .clickable(role = Role.DropdownList) { open = true }.padding(horizontal = 10.dp, vertical = 4.dp), fontSize = 13.sp)
         DropdownMenu(open, { open = false }) {
             DropdownMenuItem(text = { Text("${currency.symbol}  ${tr("Main currency")}") }, onClick = { onPick(null); open = false })
             LocalCurrencies.current.values.forEach { cur ->
@@ -154,7 +162,7 @@ internal fun CategoryAndAccountRows(c: EditContext) {
     val f = c.model.form
     val ui = c.ui
     val focus = LocalFocusManager.current
-    if (f.isAdjustment) FormRow("Category", false, onClick = {}) { Text(tr(MODIFIED_BALANCE_NAME)) }
+    if (f.isAdjustment) FormRow("Category", false, onClick = null) { Text(tr(MODIFIED_BALANCE_NAME)) }
     else FormRow("Category", ui.panel == Panel.CATEGORY, onClick = { focus.clearFocus(); ui.panel = Panel.CATEGORY },
         // Income tab only: a refund books money back against an expense category.
         trailing = if (f.type == DraftType.INCOME || f.type == DraftType.REFUND) ({ RefundBox(c) }) else null,
@@ -189,7 +197,7 @@ private fun RefundBox(c: EditContext) {
         state = rememberTooltipState(),
     ) {
         Row(
-            Modifier.clip(RoundedCornerShape(8.dp)).clickable {
+            Modifier.clip(RoundedCornerShape(8.dp)).toggleable(refund, role = Role.Checkbox) {
                 c.model.toggleRefund()
                 c.model.applyHabitAccount(null)
                 if (c.ui.panel == Panel.NONE) c.ui.panel = Panel.CATEGORY
@@ -209,26 +217,32 @@ private fun amountDisplay(text: String, editing: Boolean, currency: CurrencyForm
     else -> currency.parse(text)?.let { currency.format(it) } ?: "${currency.symbol} $text"
 }
 
-/** "Label   value" row; the value area gets a coral underline while its panel is open. */
+/**
+ * "Label   value" row; the value area gets a coral underline while its panel is open. [onClick] null: read-only.
+ * The [trailing] action sits beside the row's tap area, not inside it, and the tap area fills the row's height.
+ */
 @Composable
 internal fun FormRow(
     label: String,
     active: Boolean,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     trailing: (@Composable () -> Unit)? = null,
     value: @Composable () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 46.dp).clickable(onClick = onClick).padding(start = 20.dp, end = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(tr(label), Modifier.width(84.dp), color = SubtleText)
-        Column(Modifier.weight(1f)) {
-            Box(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)) { value() }
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.weight(1f).fillMaxHeight().heightIn(min = 46.dp).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(start = 20.dp, end = if (trailing == null) 16.dp else 0.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(tr(label), Modifier.width(84.dp), color = SubtleText)
+            Column(Modifier.weight(1f)) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)) { value() }
+                }
+                HorizontalDivider(color = if (active) Accent else Color.Transparent, thickness = 1.5.dp)
             }
-            HorizontalDivider(color = if (active) Accent else Color.Transparent, thickness = 1.5.dp)
         }
-        if (trailing != null) Box(Modifier.padding(start = 6.dp)) { trailing() }
+        if (trailing != null) Box(Modifier.padding(start = 6.dp, end = 16.dp)) { trailing() }
     }
 }

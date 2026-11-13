@@ -2,7 +2,8 @@ package app.moneytracker.ui.fresh
 
 import app.moneytracker.data.NoteSuggestion
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,24 +17,22 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -150,13 +149,16 @@ private fun TrayEffects(c: AddContext) {
     val f = c.model.form
     // A tap on the note, or the keyboard closing, keeps the tray in step with it.
     LaunchedEffect(ui.noteFocused) { if (ui.noteFocused) ui.step = Step.NOTE }
-    // The keypad hides under the phone keyboard but keeps its space, so a shorter keyboard never shows half of it.
-    val imeUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-    var imeWasUp by remember { mutableStateOf(false) }
-    LaunchedEffect(imeUp) {
-        // The note is the last step: closing its keyboard closes the tray too, as in the classic layout.
-        if (imeWasUp && !imeUp && ui.step == Step.NOTE) ui.closeTray(focus)
-        imeWasUp = imeUp
+    // The note is the last step: closing its keyboard closes the tray too, as in the classic layout. The keyboard's
+    // height is watched in a flow, so its animation doesn't redraw the screen on every frame.
+    val ime = WindowInsets.ime
+    val density = LocalDensity.current
+    LaunchedEffect(ime, density) {
+        var imeWasUp = false
+        snapshotFlow { ime.getBottom(density) > 0 }.collect { imeUp ->
+            if (imeWasUp && !imeUp && ui.step == Step.NOTE) ui.closeTray(focus)
+            imeWasUp = imeUp
+        }
     }
     LaunchedEffect(f.isTransfer) {
         if (ui.step != Step.CLOSED && ui.step !in stepOrder(c.model.form, c.model.setup.accountFirst)) ui.step = Step.AMOUNT
@@ -175,11 +177,12 @@ private fun TrayEffects(c: AddContext) {
 private fun TypeTabs(f: app.moneytracker.ui.EntryForm, modifier: Modifier, onPick: (DraftType) -> Unit) {
     val tabs = listOf(DraftType.EXPENSE to tr("Expense"), DraftType.INCOME to tr("Income"), DraftType.TRANSFER to tr("Transfer"))
     val selected = if (f.isAdjustment) null else if (f.type == DraftType.REFUND) DraftType.INCOME else f.type
-    Row(modifier.height(44.dp).clip(F.iconShape).background(F.card).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(modifier.height(44.dp).clip(F.iconShape).background(F.card).padding(4.dp).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         tabs.forEach { (t, label) ->
             val on = t == selected
             Box(
-                Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(10.dp)).background(if (on) F.page else Color.Transparent).clickable { onPick(t) },
+                Modifier.weight(1f).fillMaxSize().clip(F.innerShape).background(if (on) F.page else Color.Transparent)
+                    .selectable(on, role = Role.Tab) { onPick(t) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(label, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
