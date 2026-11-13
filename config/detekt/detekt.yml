@@ -1,0 +1,51 @@
+# Only what differs from detekt's defaults. Thresholds match .claude/skills/kotlin-readable-code.
+
+complexity:
+  LargeClass:
+    threshold: 400
+  TooManyFunctions:
+    thresholdInClasses: 25
+    thresholdInFiles: 40
+    thresholdInObjects: 25
+    thresholdInInterfaces: 12
+    ignorePrivate: true
+  LongMethod:
+    threshold: 40
+    ignoreAnnotated: ['Preview']
+  NestedBlockDepth:
+    threshold: 4
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 10
+    ignoreDefaultParameters: true
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
+    threshold: 15
+    ignoreSimpleWhenEntries: true
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+  SwallowedException:
+    active: true
+
+potential-bugs:
+  UnsafeCallOnNullableType:
+    active: true
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+
+style:
+  # Formatting noise, unrelated to the SOLID / KISS / DRY targets.
+  MaxLineLength:
+    active: false
+  MagicNumber:
+    active: false
+  WildcardImport:
+    active: false
+  ReturnCount:
+    max: 4

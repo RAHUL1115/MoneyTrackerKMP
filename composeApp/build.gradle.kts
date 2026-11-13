@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.detekt)
 }
 
 kotlin {
@@ -113,5 +114,21 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("release")
         }
+    }
+}
+
+// Code-quality gate: the limits in .claude/skills/kotlin-readable-code. The baseline holds findings that
+// predate the gate; it only ever shrinks, and anything new fails the build.
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    baseline = rootProject.file("config/detekt/baseline.xml")
+    source.setFrom("src/commonMain/kotlin", "src/androidMain/kotlin")
+}
+
+// detekt 1.23 is built against Kotlin 2.0; pin its own classpath so the app's newer Kotlin doesn't leak in.
+configurations.matching { it.name == "detekt" }.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin") useVersion("2.0.21")
     }
 }
