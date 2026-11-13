@@ -380,8 +380,9 @@ fun summarize(
 ): Pair<List<AccountLine>, NetWorth> {
     val groupById = groups.associateBy { it.id }
     val debitByBank = accounts
-        .filter { groupById[it.groupId]?.type?.isDebitCard == true && it.cardPaymentAccountId != null }
-        .groupBy({ it.cardPaymentAccountId!! }, { balances[it.id] ?: 0L })
+        .filter { groupById[it.groupId]?.type?.isDebitCard == true }
+        .mapNotNull { a -> a.cardPaymentAccountId?.let { bank -> bank to (balances[a.id] ?: 0L) } }
+        .groupBy({ it.first }, { it.second })
         .mapValues { it.value.sum() }
 
     val lines = accounts.mapNotNull { a ->

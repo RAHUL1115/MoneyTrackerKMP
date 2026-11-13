@@ -2,6 +2,7 @@ package app.moneytracker.data
 
 import app.moneytracker.Log
 import app.moneytracker.domain.Currency
+import kotlin.coroutines.cancellation.CancellationException
 import app.moneytracker.db.Currency as CurrencyRow
 
 /** The other currencies the person uses, with the rate each is converted at, and the daily online rate update. */
@@ -23,8 +24,7 @@ class CurrencyStore(private val db: Db, private val settings: SettingsStore) {
         val main = settings.settingNow(Prefs.CURRENCY_CODE).uppercase()
         val others = q.allCurrencies().executeAsList().map { it.toDomain() }.filter { it.code.uppercase() != main }
         if (others.isEmpty()) return RatesUpdate.NothingToUpdate.also { Log.d("Rates") { "no other currencies; nothing to fetch" } }
-        val quote = runCatching { get(ExchangeRates.url(main, others.map { it.code }))?.let(ExchangeRates::parse) }
-            .onFailure { Log.w("Rates", it) { "fetch failed" } }.getOrNull()
+        val quote = fetchQuote(get, main, others)
             ?: return RatesUpdate.Failed.also { Log.w("Rates") { "no usable reply for $main → ${others.joinToString(",") { it.code }}" } }
         val updated = others.filter { it.code.uppercase() in quote.perMain }
         db.transaction {
@@ -35,4 +35,13 @@ class CurrencyStore(private val db: Db, private val settings: SettingsStore) {
         Log.i("Rates") { "rates of ${quote.date}: updated ${updated.size}/${others.size}" }
         return RatesUpdate.Done(quote.date, updated.map { it.code }, (others - updated.toSet()).map { it.code })
     }
+
+    /** Today's quote through [get], or null when the fetch fails or the reply isn't one. Cancelling still cancels. */
+    private suspend fun fetchQuote(get: suspend (String) -> String?, main: String, others: List<Currency>): ExchangeRates.Quote? =
+        runCatching { get(ExchangeRates.url(main, others.map { it.code }))?.let(ExchangeRates::parse) }
+            .onFailure { e ->
+                if (e is CancellationException) throw e
+                Log.w("Rates", e) { "fetch failed" }
+            }
+            .getOrNull()
 }

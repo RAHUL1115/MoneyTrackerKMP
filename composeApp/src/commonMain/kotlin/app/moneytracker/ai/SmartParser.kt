@@ -244,9 +244,9 @@ class SmartParser private constructor(
         val lab = fixAccountPhrases(ws, label(ws))
         // Spans of equal labels.
         val spans = HashMap<String, MutableList<List<String>>>()
-        var cur: String? = null; var buf = ArrayList<String>()
+        var cur = ""; var buf = ArrayList<String>()   // no label is empty, so the first word always starts a span
         for ((w, t) in (ws + "</s>").zip(lab + "O")) {
-            if (t != cur && buf.isNotEmpty()) { spans.getOrPut(cur!!) { ArrayList() }.add(buf); buf = ArrayList() }
+            if (t != cur && buf.isNotEmpty()) { spans.getOrPut(cur) { ArrayList() }.add(buf); buf = ArrayList() }
             cur = t
             if (t != "O") buf.add(w)
         }

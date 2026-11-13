@@ -159,7 +159,7 @@ object MoneyManagerBackup {
             val k = kind(t.int("DO_TYPE")) ?: run { skipped += "transaction ${t.str("uid")}: unknown type ${t.str("DO_TYPE")}"; return@mapNotNull null }
             val account = t.str("assetUid")
             if (account !in accountById) { skipped += "transaction ${t.str("uid")}: unknown account"; return@mapNotNull null }
-            val date = runCatching { LocalDate.parse(t.str("WDATE").take(10)) }.getOrNull()
+            val date = LocalDate.Formats.ISO.parseOrNull(t.str("WDATE").take(10))
                 ?: t.s("ZDATE")?.toLongOrNull()?.let { dayOf(it, tz) }
                 ?: run { skipped += "transaction ${t.str("uid")}: no date"; return@mapNotNull null }
             val code = codeOf(t.s("currencyUid"))

@@ -174,8 +174,8 @@ class ReadModels internal constructor(
                 if (r.categoryId == MODIFIED_BALANCE_CATEGORY) r.categoryId
                 else r.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } ?: UNCATEGORIZED
             }.mapValues { (_, v) -> v.sumOf { it.amount } }
-            val bySub = expense.filter { r -> r.categoryId?.let { catById[it]?.parentId } != null }
-                .groupBy { it.categoryId!! }.mapValues { (_, v) -> v.sumOf { it.amount } }
+            val bySub = expense.mapNotNull { r -> r.categoryId?.takeIf { catById[it]?.parentId != null }?.let { sub -> sub to r.amount } }
+                .groupBy({ it.first }, { it.second }).mapValues { (_, amounts) -> amounts.sum() }
             val budgets = effectiveBudgets(entries, ym)
             return MonthBudget(budgets, budgetLines(budgets, byMain, bySub) { id -> catById[id]?.parentId != null }, byMain, bySub)
         }
@@ -198,7 +198,7 @@ class ReadModels internal constructor(
          */
         fun yearRollup(rows: List<ReportRow>, ps: PeriodSettings, year: Int, today: LocalDate): YearRollup {
             val todayLabel = ps.labelFor(today)
-            val byMonth = rows.groupBy { ps.labelFor(it.date!!).month }
+            val byMonth = rows.groupBy { ps.labelFor(it.day).month }
             val upTo = when {
                 todayLabel.year == year -> todayLabel.month
                 todayLabel.year > year -> 12
@@ -209,10 +209,13 @@ class ReadModels internal constructor(
                 val ym = YearMonth(year, m)
                 val range = ps.month(ym)
                 val monthRows = byMonth[m].orEmpty()
-                val weeks = Periods.weeks(range, ps.weekStart).reversed().map { w -> w to totals(monthRows.filter { it.date!! in w }) }
+                val weeks = Periods.weeks(range, ps.weekStart).reversed().map { w -> w to totals(monthRows.filter { it.day in w }) }
                 MonthRollup(ym, range, totals(monthRows), weeks)
             }
             return YearRollup(year, totals(rows), months)
         }
+
+        /** Year views go by each row's date; rows read from [ReportStore] always carry one. */
+        private val ReportRow.day: LocalDate get() = checkNotNull(date) { "report row without a date" }
     }
 }
