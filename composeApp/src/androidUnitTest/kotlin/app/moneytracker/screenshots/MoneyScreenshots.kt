@@ -73,7 +73,7 @@ class NewMoneyScreenshots : MoneyScreenshotTest(newLayout = true) {
     @Test fun insightsBreakdown() { show(); tap("Insights"); tapContaining("Food"); scrollTo("Top entries"); shoot("insights_breakdown") }
     @Test fun insightsTopEntries() { show(); tap("Insights"); jumpToEndPast("Top entries"); shoot("insights_top_entries") }
     @Test fun budgetTotalOpen() { show(Screen.Budget); tap(" · Edit"); shoot("budget_total_open") }
-    @Test fun budgetCategoryOpen() { show(Screen.Budget); tapContaining("Transport"); scrollTo("Month overview"); shoot("budget_category_open") }
+    @Test fun budgetCategoryOpen() { show(Screen.Budget); tapContaining("Transport"); jumpToEndPast("Month overview"); shoot("budget_category_open") }
     @Test fun budgetAddSheet() { show(Screen.Budget); tap("+ Category"); shootScreen("budget_add_sheet") }
 }
 
