@@ -65,7 +65,7 @@ import kotlinx.datetime.toLocalDateTime
 internal fun SmsReviewScreen() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
+    val messageCapture = LocalPlatform.current.messageCapture
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
     val captures by repo.pendingCaptures.collectAsState(emptyList())
@@ -80,7 +80,7 @@ internal fun SmsReviewScreen() {
             scope.launch { withContext(repo.io) { repo.setCaptureStatus(c.id, CaptureStatus.PENDING) } }
         }
     }
-    fun import() = platform.importInboxMessages(days) { n ->
+    fun import() = messageCapture.importInboxMessages(days) { n ->
         toaster.show(when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages from the last {1} days", n, days) })
     }
 

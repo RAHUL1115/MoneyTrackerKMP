@@ -121,7 +121,8 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     var toAccountId by rememberSaveable { mutableStateOf(screen.preset?.toAccountId) }
     var categoryId by rememberSaveable { mutableStateOf(screen.preset?.categoryId) }
     val currencies = LocalCurrencies.current
-    val platform = LocalPlatform.current
+    val receiptPhotos = LocalPlatform.current.photos
+    val location = LocalPlatform.current.location
     var currencyCode by rememberSaveable { mutableStateOf(screen.preset?.currency) }
     val enteredFmt = currencyCode?.let { currencies[it]?.format } ?: currency
     var amountText by rememberSaveable { mutableStateOf(screen.preset?.amount?.takeIf { it > 0 }?.let { enteredFmt.toInput(it) }.orEmpty()) }
@@ -209,7 +210,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
     LaunchedEffect(existing?.id) { existing?.let { t -> repo.photos(t.id).collect { list -> existingPhotos = list.filter { it.id !in removedPhotoIds } } } }
     // New entries: capture location once if the user enabled it.
     LaunchedEffect(locationOn) {
-        if (locationOn && screen.txnId == null && lat == null) platform.currentLocation({ a, b -> lat = a; lng = b }, {})
+        if (locationOn && screen.txnId == null && lat == null) location.currentLocation({ a, b -> lat = a; lng = b }, {})
     }
     // A fixed field clears the message that asked for it.
     LaunchedEffect(amountText, accountId, toAccountId, categoryId, type) { error = null }
@@ -491,7 +492,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                 Text(names.ifEmpty { "" }, color = IncomeColor)
             }
             if (lat != null && lng != null) {
-                FormRow("Place", false, onClick = { platform.openMap(lat!!, lng!!) }, trailing = {
+                FormRow("Place", false, onClick = { location.openMap(lat!!, lng!!) }, trailing = {
                     IconButton(onClick = { lat = null; lng = null }) { Icon(Icons.Filled.Close, tr("Remove location"), tint = SubtleText) }
                 }) { Text("📍 ${((lat!! * 10000).toLong() / 10000.0)}, ${((lng!! * 10000).toLong() / 10000.0)}", color = SubtleText) }
             }
@@ -516,8 +517,8 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                             Icon(Icons.Outlined.PhotoCamera, tr("Add photo"), tint = SubtleText)
                         }
                         androidx.compose.material3.DropdownMenu(photoMenu, { photoMenu = false }) {
-                            androidx.compose.material3.DropdownMenuItem(text = { Text(tr("Take photo")) }, onClick = { photoMenu = false; platform.takePhoto { newPhotos = newPhotos + it } })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text(tr("Choose from gallery")) }, onClick = { photoMenu = false; platform.pickPhoto { newPhotos = newPhotos + it } })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text(tr("Take photo")) }, onClick = { photoMenu = false; receiptPhotos.takePhoto { newPhotos = newPhotos + it } })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text(tr("Choose from gallery")) }, onClick = { photoMenu = false; receiptPhotos.pickPhoto { newPhotos = newPhotos + it } })
                         }
                     }
                 }
@@ -536,12 +537,12 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
                     @Composable
                     fun PhotoCard(i: Int, key: String, file: String, modifier: Modifier) {
                         Box(modifier.height(180.dp).background(PageBackground, RoundedCornerShape(10.dp)).clickable { fullScreen = i }) {
-                            platform.PhotoImage(file, Modifier.fillMaxSize())
+                            receiptPhotos.PhotoImage(file, Modifier.fillMaxSize())
                             Box(
                                 Modifier.align(Alignment.TopEnd).minimumInteractiveComponentSize().clickable {
                                     val p = existingPhotos.firstOrNull { it.id == key }
                                     if (p != null) { existingPhotos = existingPhotos - p; removedPhotoIds = removedPhotoIds + p.id }
-                                    else { newPhotos = newPhotos - file; platform.deletePhotoFile(file) }
+                                    else { newPhotos = newPhotos - file; receiptPhotos.deletePhotoFile(file) }
                                 },
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -1110,12 +1111,12 @@ private fun TimePickerDialog(initial: Int, onDismiss: () -> Unit, onClear: () ->
 /** Full-screen receipt photos, swipe between them. */
 @Composable
 private fun PhotoViewer(files: List<String>, start: Int, onDismiss: () -> Unit) {
-    val platform = LocalPlatform.current
+    val receiptPhotos = LocalPlatform.current.photos
     androidx.compose.ui.window.Dialog(onDismiss, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         val pager = androidx.compose.foundation.pager.rememberPagerState(start) { files.size }
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             androidx.compose.foundation.pager.HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
-                platform.PhotoFull(files[page], Modifier.fillMaxSize())
+                receiptPhotos.PhotoFull(files[page], Modifier.fillMaxSize())
             }
             Row(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, tr("Close"), tint = Color.White) }

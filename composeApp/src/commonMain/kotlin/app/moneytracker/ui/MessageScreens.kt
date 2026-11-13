@@ -42,13 +42,14 @@ internal data class SmsHealth(val permission: Boolean, val background: Backgroun
 
 @Composable
 internal fun rememberSmsHealth(): SmsHealth {
-    val platform = LocalPlatform.current
-    var health by remember { mutableStateOf(SmsHealth(platform.messagePermissionGranted(), platform.backgroundState())) }
+    val backgroundJobs = LocalPlatform.current.backgroundJobs
+    val messageCapture = LocalPlatform.current.messageCapture
+    var health by remember { mutableStateOf(SmsHealth(messageCapture.messagePermissionGranted(), backgroundJobs.backgroundState())) }
     // No lifecycle hook in common code: a cheap re-check picks up changes made in the phone's settings.
-    LaunchedEffect(platform) {
+    LaunchedEffect(messageCapture, backgroundJobs) {
         while (true) {
             kotlinx.coroutines.delay(1500)
-            health = SmsHealth(platform.messagePermissionGranted(), platform.backgroundState())
+            health = SmsHealth(messageCapture.messagePermissionGranted(), backgroundJobs.backgroundState())
         }
     }
     return health
@@ -76,7 +77,7 @@ internal fun backgroundSteps(maker: String): String = when {
 /** Explains why detection can be late and opens the right settings page. Shared by both layouts. */
 @Composable
 internal fun KeepRunningDialog(health: SmsHealth, onDismiss: () -> Unit) {
-    val platform = LocalPlatform.current
+    val backgroundJobs = LocalPlatform.current.backgroundJobs
     val autostart = hasAutostartManager(health.background.maker)
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -89,11 +90,11 @@ internal fun KeepRunningDialog(health: SmsHealth, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = { platform.openBackgroundSettings(autostart = false); onDismiss() }) { Text(tr("App settings")) }
+            TextButton(onClick = { backgroundJobs.openBackgroundSettings(autostart = false); onDismiss() }) { Text(tr("App settings")) }
         },
         dismissButton = {
             Row {
-                if (autostart) TextButton(onClick = { platform.openBackgroundSettings(autostart = true); onDismiss() }) { Text(tr("Autostart")) }
+                if (autostart) TextButton(onClick = { backgroundJobs.openBackgroundSettings(autostart = true); onDismiss() }) { Text(tr("Autostart")) }
                 TextButton(onClick = onDismiss) { Text(tr("Close")) }
             }
         },
@@ -105,7 +106,7 @@ internal fun KeepRunningDialog(health: SmsHealth, onDismiss: () -> Unit) {
 fun MessageSettingsScreen() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
+    val messageCapture = LocalPlatform.current.messageCapture
     val scope = rememberCoroutineScope()
     val captureSetting by rememberSetting(Prefs.CAPTURE_ENABLED)
     val alert by rememberSetting(Prefs.SMS_ALERT)
@@ -134,7 +135,7 @@ fun MessageSettingsScreen() {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             ConfigSection(tr("SMS"))
             ConfigToggle(tr("Detect bank SMS"), tr("Suggest entries from bank messages. Read on this phone only."), capture) { on ->
-                val apply = { platform.setMessageCapture(on) { active -> put(Prefs.CAPTURE_ENABLED, active) } }
+                val apply = { messageCapture.setMessageCapture(on) { active -> put(Prefs.CAPTURE_ENABLED, active) } }
                 if (on) disclosure = apply else apply()
             }
             if (!health.permission) Text(smsPermissionSteps(), Modifier.padding(horizontal = 28.dp, vertical = 8.dp), fontSize = 12.sp, color = SubtleText)
@@ -146,7 +147,7 @@ fun MessageSettingsScreen() {
             ConfigRow(tr("Original message on entries"), originalLabel) { choosingOriginal = true }
             ConfigRow(tr("Import SMS from the last {0} days", days), tr("Import")) {
                 val import = {
-                    platform.importInboxMessages(days) { n ->
+                    messageCapture.importInboxMessages(days) { n ->
                         message = when (n) { null -> tr("SMS permission was not granted"); 0 -> tr("No new bank messages found"); else -> tr("Added {0} messages to Detected SMS", n) }
                     }
                 }

@@ -421,7 +421,7 @@ fun CurrenciesScreen() {
     val scope = rememberCoroutineScope()
     val currencies by repo.currencies.collectAsState(emptyList())
     var editing by remember { mutableStateOf<Currency?>(null) }
-    val platform = LocalPlatform.current
+    val network = LocalPlatform.current.network
     val auto by rememberSetting(Prefs.RATES_AUTO)
     val ratesDate = rememberSetting(Prefs.RATES_DATE).value.ifEmpty { null }
     val mainCode by rememberSetting(Prefs.CURRENCY_CODE)
@@ -430,7 +430,7 @@ fun CurrenciesScreen() {
     fun update() {
         updating = true; status = null
         scope.launch {
-            val r = withContext(repo.io) { repo.updateRates(platform::httpGet) }
+            val r = withContext(repo.io) { repo.updateRates(network::httpGet) }
             updating = false
             status = when (r) {
                 is app.moneytracker.data.RatesUpdate.Done -> listOfNotNull(

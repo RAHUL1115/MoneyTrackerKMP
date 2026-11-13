@@ -111,7 +111,7 @@ internal fun HomeTab(onOpenTab: (FreshTab) -> Unit) {
 @Composable
 private fun SmartAddBar() {
     val nav = LocalNavigator.current
-    val platform = app.moneytracker.ui.LocalPlatform.current
+    val voice = app.moneytracker.ui.LocalPlatform.current.voice
     var open by remember { mutableStateOf<Boolean?>(null) }   // true: typing, false: speaking
     Row(
         Modifier.fillMaxWidth().height(56.dp).clip(F.cardShape).background(F.card)
@@ -120,7 +120,7 @@ private fun SmartAddBar() {
     ) {
         Text(tr("Type or say it: “1,200 for new shoes”"), Modifier.weight(1f), color = F.muted, fontSize = 15.sp, maxLines = 1,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        if (platform.speechAvailable) {
+        if (voice.speechAvailable) {
             Box(
                 Modifier.size(44.dp).clip(F.iconShape).background(F.accent).clickable(onClickLabel = tr("Say an entry")) { open = false },
                 contentAlignment = Alignment.Center,

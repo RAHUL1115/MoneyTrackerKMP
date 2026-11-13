@@ -248,13 +248,13 @@ private fun ActFilterBar(filter: TxnFilter, catById: Map<String, Category>, acco
 private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit)?, onVoice: () -> Unit) {
     val nav = LocalNavigator.current
     val repo = LocalRepo.current
-    val platform = LocalPlatform.current
+    val voice = LocalPlatform.current.voice
     val currency = LocalCurrency.current
     val backup = LocalBackup.current
     Sheet(tr("Activity"), onDismiss) {
         if (onSelect != null) SheetOption(tr("Select entries"), subtitle = tr("Change or delete several at once"), onClick = onSelect)
         SheetOption(tr("Detected transactions"), subtitle = if (pending > 0) tr("{0} to review", pending) else null) { onDismiss(); nav.push(Screen.Inbox) }
-        if (platform.speechAvailable) SheetOption(tr("Smart add"), subtitle = tr("Say or type it, e.g. “1,200 for new shoes”")) { onDismiss(); onVoice() }
+        if (voice.speechAvailable) SheetOption(tr("Smart add"), subtitle = tr("Say or type it, e.g. “1,200 for new shoes”")) { onDismiss(); onVoice() }
         // Bookmarks are saved entries: pick one to open it filled in, then check and save.
         SheetOption(tr("Bookmarks"), subtitle = tr("Saved entries you add again and again")) { onDismiss(); nav.push(Screen.Templates) }
         SheetOption(tr("Add note")) { onDismiss(); nav.push(Screen.EditNote()) }
@@ -576,7 +576,6 @@ internal fun ActEntryRow(
 private fun SelectionPanel(selected: List<Txn>, onDone: () -> Unit, modifier: Modifier) {
     val repo = LocalRepo.current
     val currency = LocalCurrency.current
-    val platform = LocalPlatform.current
     val toaster = LocalToaster.current
     val categories by repo.categories.collectAsState(emptyList())
     val accounts by repo.accounts.collectAsState(emptyList())

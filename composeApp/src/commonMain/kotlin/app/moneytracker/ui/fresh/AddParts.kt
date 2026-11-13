@@ -243,12 +243,12 @@ internal fun AddTimePicker(initial: Int, onDismiss: () -> Unit, onClear: () -> U
 /** Full-screen receipt photos: swipe between them, remove one. */
 @Composable
 internal fun AddPhotoViewer(files: List<String>, start: Int, onRemove: (Int) -> Unit, onDismiss: () -> Unit) {
-    val platform = LocalPlatform.current
+    val photos = LocalPlatform.current.photos
     androidx.compose.ui.window.Dialog(onDismiss, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         val pager = androidx.compose.foundation.pager.rememberPagerState(start.coerceIn(0, (files.size - 1).coerceAtLeast(0))) { files.size }
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             androidx.compose.foundation.pager.HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
-                platform.PhotoFull(files[page], Modifier.fillMaxSize())
+                photos.PhotoFull(files[page], Modifier.fillMaxSize())
             }
             Row(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(44.dp).clip(F.iconShape).clickable(onClickLabel = tr("Close photo"), onClick = onDismiss), contentAlignment = Alignment.Center) {

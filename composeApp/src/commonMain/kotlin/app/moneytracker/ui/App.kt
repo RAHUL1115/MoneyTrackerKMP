@@ -100,7 +100,7 @@ fun App(
     repo: MoneyRepository?,
     backup: BackupController,
     navigator: Navigator,
-    platform: PlatformServices,
+    platform: Platform,
     locked: Boolean,
     onUnlocked: () -> Unit,
     launchAction: LaunchAction?,
@@ -118,13 +118,13 @@ fun App(
     val wantAccent = AccentChoice.entries.firstOrNull { it.name == accentSetting } ?: AccentChoice.TEAL
     if (accentChoice != wantAccent) accentChoice = wantAccent
     // Language: Configuration › Language, or the phone's language.
-    val platformForLanguage = platform
+    val languages = platform.languages
     val languageSetting by remember(repo) { repo?.setting(Prefs.LANGUAGE) ?: kotlinx.coroutines.flow.flowOf(null) }
         .collectAsState(repo?.settingNow(Prefs.LANGUAGE))
     LaunchedEffect(languageSetting) {
-        val tag = languageSetting?.takeIf { it.isNotEmpty() } ?: I18n.resolve(platformForLanguage.systemLanguage())
+        val tag = languageSetting?.takeIf { it.isNotEmpty() } ?: I18n.resolve(languages.systemLanguage())
         I18n.rtl = tag.substringBefore('-') in I18n.RTL
-        I18n.table = if (tag == "en") emptyMap() else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { platformForLanguage.translations(tag) }
+        I18n.table = if (tag == "en") emptyMap() else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { languages.translations(tag) }
     }
     LaunchedEffect(wantDark) { onDarkThemeChanged(wantDark) }
     androidx.compose.runtime.CompositionLocalProvider(
@@ -156,7 +156,7 @@ fun App(
             LaunchedEffect(repo) {
                 kotlinx.coroutines.withContext(repo.io) {
                     val due = repo.settingNow(Prefs.RATES_CHECKED) < kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - 20 * 3_600_000L
-                    if (repo.settingNow(Prefs.RATES_AUTO) && due) repo.updateRates(platform::httpGet)
+                    if (repo.settingNow(Prefs.RATES_AUTO) && due) repo.updateRates(platform.network::httpGet)
                 }
             }
             val masked = Privacy.masked

@@ -41,7 +41,18 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.FragmentActivity
 import app.moneytracker.ui.BiometricStatus
 import app.moneytracker.ui.BackgroundState
-import app.moneytracker.ui.PlatformServices
+import app.moneytracker.ui.AppInfo
+import app.moneytracker.ui.BackgroundJobs
+import app.moneytracker.ui.Languages
+import app.moneytracker.ui.Location
+import app.moneytracker.ui.MessageCapture
+import app.moneytracker.ui.Network
+import app.moneytracker.ui.PinSecurity
+import app.moneytracker.ui.Platform
+import app.moneytracker.ui.Photos
+import app.moneytracker.ui.SmartModels
+import app.moneytracker.ui.Voice
+import app.moneytracker.ui.WebDashboardControl
 import app.moneytracker.ui.tr
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,9 +66,11 @@ import javax.crypto.spec.PBEKeySpec
  * Android implementation of the device features used by the shared UI.
  * Must be created in Activity.onCreate (registers activity-result launchers).
  */
-class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices {
+class AndroidPlatform(private val activity: FragmentActivity) :
+    PinSecurity, Photos, Voice, Location, BackgroundJobs, MessageCapture, WebDashboardControl, Languages, AppInfo,
+    Network, SmartModels {
     private val ctx: Context get() = activity.applicationContext
-    private val photoDir get() = Photos.dir(ctx)
+    private val photoDir get() = PhotoFiles.dir(ctx)
 
     // ───────────────────────── launchers
 
@@ -313,7 +326,7 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
 
     // ───────────────────────── web dashboard
 
-    override val webDashboard: StateFlow<app.moneytracker.ui.WebDashboardState> = app.moneytracker.web.WebDashboard.state
+    override val state: StateFlow<app.moneytracker.ui.WebDashboardState> = app.moneytracker.web.WebDashboard.state
 
     override fun refreshWebDashboard() = app.moneytracker.web.WebDashboard.refresh()
 
@@ -415,6 +428,12 @@ class AndroidPlatform(private val activity: FragmentActivity) : PlatformServices
     override fun translations(tag: String): Map<String, String> = Translations.load(ctx, tag)
 }
 
+/** The shared UI's view of this class: every capability is this one object, but each screen sees only its slice. */
+fun AndroidPlatform.capabilities() = Platform(
+    pinSecurity = this, photos = this, voice = this, location = this, backgroundJobs = this, messageCapture = this,
+    webDashboard = this, languages = this, appInfo = this, network = this, smartModels = this,
+)
+
 /** Class 2 ("weak") includes most face unlock; fine for an app lock that always has a PIN fallback. */
 private const val MAX_PICK = 5
 
@@ -433,7 +452,7 @@ private val AUTOSTART = listOf(
 
 private const val AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_WEAK
 
-object Photos {
+object PhotoFiles {
     fun dir(ctx: Context) = File(ctx.filesDir, "photos").apply { mkdirs() }
 }
 

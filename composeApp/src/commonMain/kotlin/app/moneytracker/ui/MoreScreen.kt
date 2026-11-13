@@ -90,10 +90,10 @@ import kotlinx.coroutines.withContext
 @Composable
 fun MoreTab() {
     val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
+    val appInfo = LocalPlatform.current.appInfo
     val places = rememberMorePlaces(newLayout = false)
     Column(Modifier.fillMaxSize().background(PageBackground).verticalScroll(rememberScrollState())) {
-        TitleTopBar(tr("Settings")) { Text(platform.appVersion.ifEmpty { "" }.let { if (it.isEmpty()) "" else "v$it" }, Modifier.padding(end = 12.dp), color = SubtleText, fontSize = 13.sp) }
+        TitleTopBar(tr("Settings")) { Text(appInfo.appVersion.ifEmpty { "" }.let { if (it.isEmpty()) "" else "v$it" }, Modifier.padding(end = 12.dp), color = SubtleText, fontSize = 13.sp) }
         HorizontalDivider(color = DividerColor)
         Spacer(Modifier.height(12.dp))
         Column(Modifier.card().padding(vertical = 8.dp)) {
@@ -192,7 +192,6 @@ fun ConfigurationScreen() {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val scope = rememberCoroutineScope()
-    val platform = LocalPlatform.current
     var editing by remember { mutableStateOf<app.moneytracker.data.Setting<*>?>(null) }
     var choice by remember { mutableStateOf<ChoiceSpec<*>?>(null) }   // a multiple-choice setting being edited
     var accentDialog by remember { mutableStateOf(false) }
@@ -383,7 +382,7 @@ private fun <T> ClassicChoiceDialog(spec: ChoiceSpec<T>, scope: kotlinx.coroutin
 @Composable
 private fun ClassicEditDialog(key: app.moneytracker.data.Setting<*>, scope: kotlinx.coroutines.CoroutineScope, onClose: () -> Unit) {
     val repo = LocalRepo.current
-    val platform = LocalPlatform.current
+    val backgroundJobs = LocalPlatform.current.backgroundJobs
     val edit = rememberTextEdit(key)
     var text by remember(key) { mutableStateOf(edit.initial) }
     val valid = edit.valid(text)
@@ -398,7 +397,7 @@ private fun ClassicEditDialog(key: app.moneytracker.data.Setting<*>, scope: kotl
             TextButton(enabled = valid, onClick = {
                 scope.launch {
                     withContext(repo.io) { edit.save(repo, text) }
-                    if (key == Prefs.REMINDER_TIME) app.moneytracker.data.ClockTime.parse(text)?.let { platform.setReminder(true, it.hour, it.minute) {} }
+                    if (key == Prefs.REMINDER_TIME) app.moneytracker.data.ClockTime.parse(text)?.let { backgroundJobs.setReminder(true, it.hour, it.minute) {} }
                 }
                 onClose()
             }) { Text(tr("Save"), color = Accent) }

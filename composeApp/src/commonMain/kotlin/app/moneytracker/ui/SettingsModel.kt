@@ -106,7 +106,7 @@ fun rememberSettingGroups(newLayout: Boolean, a: SettingActions): List<SettingGr
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    val platform = LocalPlatform.current
+    val backgroundJobs = LocalPlatform.current.backgroundJobs
     val scope = rememberCoroutineScope()
     val currencies by repo.currencies.collectAsState(emptyList())
     val specs = choiceSpecs(newLayout)
@@ -201,11 +201,11 @@ fun rememberSettingGroups(newLayout: Boolean, a: SettingActions): List<SettingGr
                 if (quickAdd) tr("quick add on") else tr("quick add off")).joinToString(" · "),
             listOfNotNull(
                 toggle(tr("Daily reminder"), reminder, tr("A nudge to record the day's spending"), "notification alert") { turnOn ->
-                    platform.setReminder(turnOn, reminderTime.hour, reminderTime.minute) { active -> setFlag(Prefs.REMINDER, active) }
+                    backgroundJobs.setReminder(turnOn, reminderTime.hour, reminderTime.minute) { active -> setFlag(Prefs.REMINDER, active) }
                 },
                 if (reminder) link(tr("Reminder time"), reminderTime.toString(), "notification clock hour") { a.edit(Prefs.REMINDER_TIME) } else null,
                 toggle(tr("Quick add in notification bar"), quickAdd, tr("Expense / Income / Transfer buttons"), "notification shortcut") { turnOn ->
-                    platform.setQuickAddNotification(turnOn) { active -> setFlag(Prefs.QUICK_ADD_NOTIFICATION, active) }
+                    backgroundJobs.setQuickAddNotification(turnOn) { active -> setFlag(Prefs.QUICK_ADD_NOTIFICATION, active) }
                 },
             )),
     )
@@ -280,7 +280,7 @@ fun <T> ChoiceHost(
 fun rememberSettingHubs(): List<SettingHub> {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val platform = LocalPlatform.current
+    val appInfo = LocalPlatform.current.appInfo
     val scope = rememberCoroutineScope()
     val categories by repo.categories.collectAsState(emptyList())
     val tags by repo.tags.collectAsState(emptyList())
@@ -330,7 +330,7 @@ fun rememberSettingHubs(): List<SettingHub> {
         )),
         SettingHub("help", tr("Help & about"), tr("How things work, and who made this."), listOf(
             SettingRow(tr("Help"), null, null, "guide how faq") { nav.push(Screen.Help) },
-            SettingRow(tr("About MoneyTracker"), platform.appVersion.ifEmpty { null }, null, "version privacy source github feedback") { nav.push(Screen.About) },
+            SettingRow(tr("About MoneyTracker"), appInfo.appVersion.ifEmpty { null }, null, "version privacy source github feedback") { nav.push(Screen.About) },
             SettingRow(tr("Open-source licences"), "GPL-3.0", null, "license licence legal libraries") { nav.push(Screen.License("GPL-3.0")) },
         )),
     )

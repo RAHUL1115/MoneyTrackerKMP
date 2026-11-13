@@ -291,7 +291,9 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
     val currencies = LocalCurrencies.current
-    val platform = LocalPlatform.current
+    val photos = LocalPlatform.current.photos
+    val voice = LocalPlatform.current.voice
+    val location = LocalPlatform.current.location
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
     val focus = LocalFocusManager.current
@@ -333,7 +335,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
     // Keep the photo strip current; capture location once for new entries if the user enabled it.
     LaunchedEffect(f.existing?.id) { f.existing?.let { t -> repo.photos(t.id).collect { list -> f.existingPhotos = list.filter { it.id !in f.removedPhotoIds } } } }
     LaunchedEffect(locationOn) {
-        if (locationOn && s.txnId == null && f.lat == null) platform.currentLocation({ a, b -> f.lat = a; f.lng = b }, {})
+        if (locationOn && s.txnId == null && f.lat == null) location.currentLocation({ a, b -> f.lat = a; f.lng = b }, {})
     }
     LaunchedEffect(f.amountText, f.accountId, f.toAccountId, f.categoryId, f.type) { f.error = null }
 
@@ -447,7 +449,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
         AddInput(
             f.note, { f.note = it }, tr("Note"), modifier, background = background,
             fieldModifier = Modifier.focusRequester(noteFocus).onFocusChanged { noteFocused = it.isFocused },
-            trailing = if (platform.speechAvailable) ({
+            trailing = if (voice.speechAvailable) ({
                 Box(
                     Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(if (listening) F.accent else F.fill)
                         .clickable(onClickLabel = tr("Say the entry, e.g. 200 fuel")) { focus.clearFocus(); listen() },
@@ -879,14 +881,14 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             if (allPhotos.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 allPhotos.forEachIndexed { i, file ->
                     Box(Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)).background(F.fill).clickable(onClickLabel = tr("View receipt photo {0}", i + 1)) { viewer = i }) {
-                        platform.PhotoImage(file, Modifier.fillMaxSize())
+                        photos.PhotoImage(file, Modifier.fillMaxSize())
                     }
                 }
             }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SecondaryButton(tr("Take photo"), { platform.takePhoto { f.newPhotos = f.newPhotos + it } }, Modifier.weight(1f))
-                SecondaryButton(tr("From gallery"), { platform.pickPhoto { f.newPhotos = f.newPhotos + it } }, Modifier.weight(1f))
+                SecondaryButton(tr("Take photo"), { photos.takePhoto { f.newPhotos = f.newPhotos + it } }, Modifier.weight(1f))
+                SecondaryButton(tr("From gallery"), { photos.pickPhoto { f.newPhotos = f.newPhotos + it } }, Modifier.weight(1f))
             }
             Text(tr("Photos stay private on this phone."), Modifier.padding(top = 8.dp), color = F.muted, fontSize = 12.sp)
         }
@@ -895,7 +897,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             Spacer(Modifier.height(8.dp))
             val la = f.lat; val ln = f.lng
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (la != null && ln != null) SecondaryButton(tr("Open in maps"), { platform.openMap(la, ln) }, Modifier.weight(1f))
+                if (la != null && ln != null) SecondaryButton(tr("Open in maps"), { location.openMap(la, ln) }, Modifier.weight(1f))
                 SecondaryButton(tr("Remove location"), {
                     f.lat = null; f.lng = null; sheet = AddSheet.NONE; toaster.show(tr("Location removed from this entry"))
                 }, Modifier.weight(1f), danger = true)
@@ -978,7 +980,7 @@ internal fun FreshEditTxn(s: Screen.EditTxn) {
             val file = allPhotos[i]
             val p = f.existingPhotos.firstOrNull { it.fileName == file }
             if (p != null) { f.existingPhotos = f.existingPhotos - p; f.removedPhotoIds = f.removedPhotoIds + p.id }
-            else { f.newPhotos = f.newPhotos - file; platform.deletePhotoFile(file) }
+            else { f.newPhotos = f.newPhotos - file; photos.deletePhotoFile(file) }
             viewer = null
             toaster.show(if (p != null) tr("Photo removed. Save to keep the change") else tr("Photo removed"))
         }, onDismiss = { viewer = null })

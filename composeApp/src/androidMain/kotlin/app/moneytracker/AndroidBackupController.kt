@@ -296,7 +296,7 @@ class AndroidBackupController(
     }
 
     private fun exportPhotosTo(uri: Uri): String {
-        val files = Photos.dir(activity).listFiles()?.filter { it.isFile }.orEmpty()
+        val files = PhotoFiles.dir(activity).listFiles()?.filter { it.isFile }.orEmpty()
         if (files.isEmpty()) return tr("No photos to export")
         activity.contentResolver.openOutputStream(uri, "wt")?.use { out ->
             java.util.zip.ZipOutputStream(out).use { zip ->
@@ -311,7 +311,7 @@ class AndroidBackupController(
     }
 
     private fun importPhotosFrom(uri: Uri): String {
-        val dir = Photos.dir(activity)
+        val dir = PhotoFiles.dir(activity)
         var added = 0
         activity.contentResolver.openInputStream(uri)?.use { input ->
             java.util.zip.ZipInputStream(input).use { zip ->

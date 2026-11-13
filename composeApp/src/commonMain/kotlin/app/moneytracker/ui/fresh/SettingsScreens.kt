@@ -79,7 +79,6 @@ internal fun FreshSettings() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    val platform = LocalPlatform.current
     val backup = LocalBackup.current
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
@@ -265,7 +264,7 @@ private fun <T> ChoiceSheet(spec: app.moneytracker.ui.ChoiceSpec<T>, scope: kotl
 @Composable
 private fun EditValueSheet(key: Setting<*>, scope: kotlinx.coroutines.CoroutineScope, onDismiss: () -> Unit, onSaved: () -> Unit) {
     val repo = LocalRepo.current
-    val platform = LocalPlatform.current
+    val backgroundJobs = LocalPlatform.current.backgroundJobs
     val edit = app.moneytracker.ui.rememberTextEdit(key)
     var text by remember(key) { mutableStateOf(edit.initial) }
     val valid = edit.valid(text)
@@ -274,7 +273,7 @@ private fun EditValueSheet(key: Setting<*>, scope: kotlinx.coroutines.CoroutineS
             onSaved()
             scope.launch {
                 withContext(repo.io) { edit.save(repo, text) }
-                if (key == Prefs.REMINDER_TIME) ClockTime.parse(text)?.let { platform.setReminder(true, it.hour, it.minute) {} }
+                if (key == Prefs.REMINDER_TIME) ClockTime.parse(text)?.let { backgroundJobs.setReminder(true, it.hour, it.minute) {} }
             }
         })
     }) {
