@@ -2,6 +2,7 @@ package app.moneytracker.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -169,7 +170,7 @@ private fun RowScope.KeypadKey(k: String, onClick: () -> Unit) {
     Box(
         Modifier.weight(1f).fillMaxSize().padding(3.dp).clip(RoundedCornerShape(12.dp))
             .background(when { isDone -> Accent; isOp -> AccentTint; isFn -> FillStrong; else -> SurfaceColor })
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         when (k) {

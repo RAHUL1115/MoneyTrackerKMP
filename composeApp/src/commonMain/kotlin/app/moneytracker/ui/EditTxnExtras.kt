@@ -37,6 +37,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clip
@@ -184,18 +190,23 @@ private fun ReceiptPhotos(c: EditContext) {
     }
 }
 
+private val PhotoCardShape = RoundedCornerShape(10.dp)
+
 @Composable
 private fun PhotoCard(c: EditContext, i: Int, file: String, modifier: Modifier, onOpen: () -> Unit) {
     val photos = LocalPlatform.current.photos
-    Box(modifier.height(180.dp).background(PageBackground, RoundedCornerShape(10.dp)).clickable(onClick = onOpen)) {
+    val press = remember { MutableInteractionSource() }
+    Box(modifier.height(180.dp).background(PageBackground, PhotoCardShape).clickable(press, indication = null, onClick = onOpen)) {
         photos.PhotoImage(file, Modifier.fillMaxSize())
+        // The tap highlight follows the card's rounded corners; clipping the card itself would also cut the photo's.
+        Box(Modifier.matchParentSize().clip(PhotoCardShape).indication(press, LocalIndication.current))
         Box(
-            Modifier.align(Alignment.TopEnd).minimumInteractiveComponentSize().clickable {
-                if (!c.model.removePhoto(file)) photos.deletePhotoFile(file)
-            },
+            Modifier.align(Alignment.TopEnd).minimumInteractiveComponentSize().clip(CircleShape)
+                .clickable(role = Role.Button) { if (!c.model.removePhoto(file)) photos.deletePhotoFile(file) }
+                .semantics { contentDescription = tr("Remove photo {0}", i + 1) },
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Filled.Close, tr("Remove photo {0}", i + 1), Modifier.size(28.dp).background(Color(0x99000000), CircleShape).padding(5.dp), tint = Color.White)
+            Icon(Icons.Filled.Close, null, Modifier.size(28.dp).background(Color(0x99000000), CircleShape).padding(5.dp), tint = Color.White)
         }
     }
 }
@@ -215,7 +226,7 @@ internal fun ViewingButtons(c: EditContext) {
             Triple("Bookmark", Ink) { ui.bookmarkDialog = true },
         ).filter { !f.isAdjustment || it.first == "Delete" }.forEach { (label, color, action) ->
             Box(
-                Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(14.dp)).background(FillColor).clickable(onClick = action),
+                Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(14.dp)).background(FillColor).clickable(role = Role.Button, onClick = action),
                 contentAlignment = Alignment.Center,
             ) { Text(tr(label), fontSize = 15.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium, color = color) }
         }
@@ -234,12 +245,12 @@ internal fun SaveButtons(c: EditContext) {
     }
     Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(
-            Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(14.dp)).background(color).clickable { c.save(false, nav) },
+            Modifier.weight(1f).height(52.dp).clip(RoundedCornerShape(14.dp)).background(color).clickable(role = Role.Button) { c.save(false, nav) },
             contentAlignment = Alignment.Center,
         ) { Text(tr("Save"), color = Color.White, fontSize = 16.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) }
         if (f.existing == null) {
             Box(
-                Modifier.width(120.dp).height(52.dp).clip(RoundedCornerShape(14.dp)).background(FillColor).clickable { c.save(true, nav) },
+                Modifier.width(120.dp).height(52.dp).clip(RoundedCornerShape(14.dp)).background(FillColor).clickable(role = Role.Button) { c.save(true, nav) },
                 contentAlignment = Alignment.Center,
             ) { Text(tr("Continue"), fontSize = 16.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium, color = Ink) }
         }

@@ -71,6 +71,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -303,7 +304,9 @@ private fun MainButton(state: ListenState, onClick: () -> Unit) {
             Box(Modifier.size(72.dp).graphicsLayer { scaleX = 1f + 0.8f * t; scaleY = 1f + 0.8f * t; alpha = 0.45f * (1f - t) }
                 .background(L.accent, CircleShape))
         }
-        Surface(onClick = onClick, enabled = state != ListenState.DONE, modifier = Modifier.size(72.dp), shape = CircleShape, color = L.accent) {
+        // The stop square is drawn, not an icon, so the button carries its own name.
+        val stopLabel = if (state == ListenState.ERROR) Modifier else Modifier.semantics { contentDescription = tr("Stop") }
+        Surface(onClick = onClick, enabled = state != ListenState.DONE, modifier = Modifier.size(72.dp).then(stopLabel), shape = CircleShape, color = L.accent) {
             Box(contentAlignment = Alignment.Center) {
                 when (state) {
                     ListenState.ERROR -> Icon(Icons.Filled.Mic, tr("Try again"), Modifier.size(28.dp), tint = L.onAccent)
