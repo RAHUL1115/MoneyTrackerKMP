@@ -74,13 +74,6 @@ internal class StateReader(private val t: String) {
     }
 }
 
-/** For rememberSaveable: dates as ISO text. */
-internal val DateSaver = androidx.compose.runtime.saveable.Saver<LocalDate, String>(save = { it.toString() }, restore = { LocalDate.parse(it) })
-/** The same for an optional date (a cleared one comes back as its starting value). */
-internal val OptionalDateSaver = androidx.compose.runtime.saveable.Saver<LocalDate?, String>(save = { it?.toString() }, restore = { LocalDate.parse(it) })
-/** For rememberSaveable: any list of strings as a bundle-safe ArrayList. */
-internal val StringListSaver = androidx.compose.runtime.saveable.Saver<List<String>, ArrayList<String>>(save = { ArrayList(it) }, restore = { it })
-
 /** Back-stack entries as strings: [encode] is the inverse of [decode] for every [Screen]. */
 internal object ScreenCodec {
     private val objects: Map<String, Screen> = mapOf(
