@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -115,8 +116,11 @@ fun BarChart(
 ) {
     if (values.isEmpty()) return
     Column(modifier) {
+        // The tap handler outlives recompositions (it restarts only when the bar count changes), so it reads the
+        // latest callback: after switching period, a tap opens the month now shown, not the one shown before.
+        val currentOnBarClick by rememberUpdatedState(onBarClick)
         val tap = if (onBarClick == null) Modifier else Modifier.pointerInput(values.size) {
-            detectTapGestures { o -> onBarClick((o.x / (size.width.toFloat() / values.size)).toInt().coerceIn(0, values.lastIndex)) }
+            detectTapGestures { o -> currentOnBarClick?.invoke(barIndexAt(o.x, size.width.toFloat(), values.size)) }
         }
         val grow = rememberGrowIn(values to highlight, durationMs = 650 + values.size * 12, id = id)
         Canvas(Modifier.fillMaxWidth().height(120.dp).padding(horizontal = 6.dp, vertical = 8.dp).then(tap)) {
@@ -140,6 +144,9 @@ fun BarChart(
     }
 }
 
+/** Which of [count] equal-width bars across [width] a tap at [x] lands on; taps past either end go to the nearest bar. */
+internal fun barIndexAt(x: Float, width: Float, count: Int): Int = (x / (width / count)).toInt().coerceIn(0, count - 1)
+
 /**
  * Ring of slices (chart palette order) with small gaps that sweeps round when the data changes; [center] is drawn in the hole.
  * With [onSelect], tapping a slice selects it (it thickens and the others fade); tapping it again or the hole clears it.
@@ -152,10 +159,11 @@ fun DonutChart(
     val total = values.sum().toFloat()
     val sweepIn = rememberGrowIn(values, durationMs = 900, id = id)
     val focus by androidx.compose.animation.core.animateFloatAsState(if (selected != null) 1f else 0f, tween(250), label = "focus")
+    val currentOnSelect by rememberUpdatedState(onSelect)
     val tap = if (onSelect == null || total <= 0f) Modifier else Modifier.pointerInput(values, selected) {
         detectTapGestures { o ->
             val hit = donutSliceAt(o.x - size.width / 2f, o.y - size.height / 2f, minOf(size.width, size.height) / 2f, values)
-            onSelect(if (hit == selected) null else hit)
+            currentOnSelect?.invoke(if (hit == selected) null else hit)
         }
     }
     Box(modifier, contentAlignment = Alignment.Center) {
