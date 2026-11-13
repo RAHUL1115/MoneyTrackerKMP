@@ -555,7 +555,7 @@ private val MonthAmountStyle = TextStyle(fontSize = 13.sp, lineHeight = 18.sp, f
 private fun TotalView(ym: YearMonth, range: DateRange, ps: PeriodSettings) {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
-    val backup = LocalBackup.current
+    val fileTransfer = LocalBackups.current.files
     val currency = LocalCurrency.current
     // One read model for the Total card (same numbers as the new layout's Months view).
     val m by remember(ym, range) { repo.views.month(ym) }.collectAsState()
@@ -619,7 +619,7 @@ private fun TotalView(ym: YearMonth, range: DateRange, ps: PeriodSettings) {
             }
             Row(
                 Modifier.fillMaxWidth().padding(top = 16.dp).border(1.dp, DividerColor, RoundedCornerShape(6.dp))
-                    .clickable { backup.exportExcel() }.padding(14.dp),
+                    .clickable { fileTransfer.exportExcel() }.padding(14.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Description, null, tint = Color(0xFF1E8E3E))

@@ -46,7 +46,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.BackupController
+import app.moneytracker.data.Backups
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.ColorSet
@@ -59,7 +59,7 @@ import app.moneytracker.domain.CurrencyFormat
 val LocalRepo = compositionLocalOf<MoneyRepository> { error("No repository") }
 val LocalCurrency = compositionLocalOf { CurrencyFormat() }
 val LocalNavigator = compositionLocalOf<Navigator> { error("No navigator") }
-val LocalBackup = compositionLocalOf<BackupController> { error("No backup controller") }
+val LocalBackups = compositionLocalOf<Backups> { error("No backups") }
 /** Non-main currencies by ISO code, for rendering foreign amounts. */
 val LocalCurrencies = compositionLocalOf<Map<String, app.moneytracker.domain.Currency>> { emptyMap() }
 
@@ -98,7 +98,7 @@ enum class Tab(val title: String) { TRANS("Trans."), STATS("Stats"), ACCOUNTS("A
 @Composable
 fun App(
     repo: MoneyRepository?,
-    backup: BackupController,
+    backups: Backups,
     navigator: Navigator,
     platform: Platform,
     locked: Boolean,
@@ -164,7 +164,7 @@ fun App(
                 LocalRepo provides repo,
                 LocalCurrency provides currency.copy(masked = masked),
                 LocalNavigator provides navigator,
-                LocalBackup provides backup,
+                LocalBackups provides backups,
                 LocalPlatform provides platform,
                 LocalCurrencies provides currencies.associate { it.code to it.copy(masked = masked) },
                 LocalListPrefs provides ListPrefs(showTime = timeInput == TimeInput.LIST, showDescription = showDescription),

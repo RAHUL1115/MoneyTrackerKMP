@@ -46,7 +46,7 @@ import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.classify
 import app.moneytracker.domain.totals
 import app.moneytracker.ui.DatePickerHost
-import app.moneytracker.ui.LocalBackup
+import app.moneytracker.ui.LocalBackups
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalRepo
@@ -100,7 +100,7 @@ internal fun InsightsTab() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    val backup = LocalBackup.current
+    val fileTransfer = LocalBackups.current.files
     val ps by repo.periodSettings.collectAsState(repo.periodSettingsNow())
     val today = repo.today()
     var periodKey by rememberPeriod()
@@ -180,7 +180,7 @@ internal fun InsightsTab() {
 
     Column(Modifier.fillMaxSize()) {
         TabHeader(tr("Insights")) {
-            IconTile(Glyph.Download, tr("Export to Excel"), { backup.exportExcel() })
+            IconTile(Glyph.Download, tr("Export to Excel"), { fileTransfer.exportExcel() })
             // Just the calendar icon; its label says which period is showing.
             IconTile(Glyph.Calendar, tr("Period: {0}", when (span) {
                 Span.WEEK -> tr("Week")

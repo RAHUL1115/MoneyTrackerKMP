@@ -286,7 +286,7 @@ fun rememberSettingHubs(): List<SettingHub> {
     val tags by repo.tags.collectAsState(emptyList())
     val rules by repo.rules.collectAsState(emptyList())
     val templates by repo.templates.collectAsState(emptyList())
-    val snapshots by LocalBackup.current.localBackups.collectAsState()
+    val snapshots by LocalBackups.current.saved.localBackups.collectAsState()
     val pending by repo.pendingCaptures.collectAsState(emptyList())
     val mains = { k: CategoryKind -> categories.count { it.kind == k && it.parentId == null } }
     val subs by rememberSetting(Prefs.USE_SUBCATEGORIES)
@@ -350,7 +350,7 @@ fun rememberMorePlaces(newLayout: Boolean): List<MorePlace> {
     val rules by repo.rules.collectAsState(emptyList())
     val templates by repo.templates.collectAsState(emptyList())
     val pending by repo.pendingCaptures.collectAsState(emptyList())
-    val snapshots by LocalBackup.current.localBackups.collectAsState()
+    val snapshots by LocalBackups.current.saved.localBackups.collectAsState()
     val month = ps.labelFor(repo.today())
     val budgets by remember(repo, month) { repo.budgetEntries(month) }.collectAsState(emptyList())
     val budgeted = budgets.groupBy { it.categoryId }.count { (_, e) -> (e.maxByOrNull { it.period }?.amount ?: 0L) > 0L }

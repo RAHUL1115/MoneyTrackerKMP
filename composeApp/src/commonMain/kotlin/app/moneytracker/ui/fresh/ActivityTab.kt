@@ -64,7 +64,7 @@ import app.moneytracker.domain.classify
 import app.moneytracker.domain.totals
 import app.moneytracker.ui.DatePickerHost
 import app.moneytracker.ui.FilterSheet
-import app.moneytracker.ui.LocalBackup
+import app.moneytracker.ui.LocalBackups
 import app.moneytracker.ui.LocalCurrencies
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalListPrefs
@@ -250,7 +250,7 @@ private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit
     val repo = LocalRepo.current
     val voice = LocalPlatform.current.voice
     val currency = LocalCurrency.current
-    val backup = LocalBackup.current
+    val fileTransfer = LocalBackups.current.files
     Sheet(tr("Activity"), onDismiss) {
         if (onSelect != null) SheetOption(tr("Select entries"), subtitle = tr("Change or delete several at once"), onClick = onSelect)
         SheetOption(tr("Detected transactions"), subtitle = if (pending > 0) tr("{0} to review", pending) else null) { onDismiss(); nav.push(Screen.Inbox) }
@@ -259,7 +259,7 @@ private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit
         SheetOption(tr("Bookmarks"), subtitle = tr("Saved entries you add again and again")) { onDismiss(); nav.push(Screen.Templates) }
         SheetOption(tr("Add note")) { onDismiss(); nav.push(Screen.EditNote()) }
         SheetOption(tr("Repeat entries")) { onDismiss(); nav.push(Screen.Recurring) }
-        SheetOption(tr("Export data to Excel")) { onDismiss(); backup.exportExcel() }
+        SheetOption(tr("Export data to Excel")) { onDismiss(); fileTransfer.exportExcel() }
     }
 }
 

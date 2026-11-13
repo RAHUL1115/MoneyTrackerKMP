@@ -659,17 +659,17 @@ fun RecurringScreen() {
 @Composable
 fun BackupScreen() {
     val nav = LocalNavigator.current
-    val backup = LocalBackup.current
-    val local by backup.localBackups.collectAsState()
-    val status by backup.status.collectAsState()
-    val pendingImport by backup.pendingImport.collectAsState()
-    val folder by backup.backupFolder.collectAsState()
-    val folderProblem by backup.backupFolderProblem.collectAsState()
+    val backups = LocalBackups.current
+    val local by backups.saved.localBackups.collectAsState()
+    val status by backups.status.message.collectAsState()
+    val pendingImport by backups.spreadsheet.pendingImport.collectAsState()
+    val folder by backups.folder.backupFolder.collectAsState()
+    val folderProblem by backups.folder.backupFolderProblem.collectAsState()
     var restoring by remember { mutableStateOf<LocalBackup?>(null) }
     var confirmImport by remember { mutableStateOf(false) }
     var resetting by remember { mutableStateOf<Boolean?>(null) }   // true = everything, false = entries only
 
-    pendingImport?.let { ImportPreviewDialog(it, onCancel = backup::cancelImport, onImport = backup::confirmImport) }
+    pendingImport?.let { ImportPreviewDialog(it, onCancel = backups.spreadsheet::cancelImport, onImport = backups.spreadsheet::confirmImport) }
 
     Column(Modifier.fillMaxSize()) {
         BackTopBar(tr("Backup"), nav::pop)
@@ -682,7 +682,7 @@ fun BackupScreen() {
                         fontSize = 13.sp, color = SubtleText)
                     // Backup folder: outside the app, picked once.
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(PageBackground).clickable(onClick = backup::pickBackupFolder)
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(PageBackground).clickable(onClick = backups.folder::pickBackupFolder)
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -697,25 +697,25 @@ fun BackupScreen() {
                                 fontSize = 12.sp, color = if (folderProblem) DangerColor else if (folder == null) SubtleText else Accent,
                             )
                         }
-                        if (folder != null) TextButton(onClick = backup::clearBackupFolder) { Text(tr("Stop"), color = SubtleText) }
+                        if (folder != null) TextButton(onClick = backups.folder::clearBackupFolder) { Text(tr("Stop"), color = SubtleText) }
                         else Text(tr("Choose"), color = Accent, fontSize = 14.sp)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        BackupButton(tr("Back up now"), Modifier.weight(1f), filled = true, onClick = backup::backupNow)
-                        BackupButton(tr("Export file"), Modifier.weight(1f), onClick = backup::exportToFile)
+                        BackupButton(tr("Back up now"), Modifier.weight(1f), filled = true, onClick = backups.saved::backupNow)
+                        BackupButton(tr("Export file"), Modifier.weight(1f), onClick = backups.files::exportToFile)
                     }
-                    BackupButton(tr("Share backup (e-mail, chat…)"), Modifier.fillMaxWidth(), onClick = backup::shareBackup)
+                    BackupButton(tr("Share backup (e-mail, chat…)"), Modifier.fillMaxWidth(), onClick = backups.files::shareBackup)
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         BackupButton(tr("Restore file"), Modifier.weight(1f)) { confirmImport = true }
-                        BackupButton(tr("Export CSV"), Modifier.weight(1f), onClick = backup::exportCsv)
+                        BackupButton(tr("Export CSV"), Modifier.weight(1f), onClick = backups.files::exportCsv)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        BackupButton(tr("Export Excel"), Modifier.weight(1f), onClick = backup::exportExcel)
-                        BackupButton(tr("Import CSV / Excel"), Modifier.weight(1f), onClick = backup::importSpreadsheet)
+                        BackupButton(tr("Export Excel"), Modifier.weight(1f), onClick = backups.files::exportExcel)
+                        BackupButton(tr("Import CSV / Excel"), Modifier.weight(1f), onClick = backups.spreadsheet::importSpreadsheet)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        BackupButton(tr("Export photos"), Modifier.weight(1f), onClick = backup::exportPhotos)
-                        BackupButton(tr("Import photos"), Modifier.weight(1f), onClick = backup::importPhotos)
+                        BackupButton(tr("Export photos"), Modifier.weight(1f), onClick = backups.photos::exportPhotos)
+                        BackupButton(tr("Import photos"), Modifier.weight(1f), onClick = backups.photos::importPhotos)
                     }
                     Text(tr("Import adds transactions (columns: Date, Type, Account, Category, Subcategory, Amount, Note…). " +
                         "Missing accounts and categories are created. A snapshot is taken first. " +
@@ -724,13 +724,13 @@ fun BackupScreen() {
                     status?.let {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(it, Modifier.weight(1f), color = if (it.startsWith("Failed")) DangerColor else IncomeColor)
-                            TextButton(onClick = backup::clearStatus) { Text(tr("OK")) }
+                            TextButton(onClick = backups.status::clearStatus) { Text(tr("OK")) }
                         }
                     }
                 }
                 ConfigSection(tr("Money Manager"))
                 Column(Modifier.fillMaxWidth().background(SurfaceColor).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    BackupButton(tr("Export for Money Manager (.mmbak)"), Modifier.fillMaxWidth(), onClick = backup::exportMoneyManager)
+                    BackupButton(tr("Export for Money Manager (.mmbak)"), Modifier.fillMaxWidth(), onClick = backups.files::exportMoneyManager)
                     Text(tr("Restore the file in Money Manager under Backup › Data Recovery. It replaces the data there. " +
                         "Accounts, entries (refunds as negative expenses), categories, budgets, repeats, tags and notes are included; " +
                         "photos, bookmarks and detected SMS are not. MoneyTracker is not affiliated with Realbyte."),
@@ -757,7 +757,7 @@ fun BackupScreen() {
                         Text(tr("{0} KB", b.sizeBytes / 1024), fontSize = 12.sp, color = SubtleText)
                     }
                     TextButton(onClick = { restoring = b }) { Text(tr("Restore"), color = Accent) }
-                    IconButton(onClick = { backup.deleteLocal(b.name) }) { Icon(Icons.Outlined.Delete, tr("Delete snapshot"), tint = SubtleText) }
+                    IconButton(onClick = { backups.saved.deleteLocal(b.name) }) { Icon(Icons.Outlined.Delete, tr("Delete snapshot"), tint = SubtleText) }
                 }
                 HorizontalDivider(color = DividerColor)
             }
@@ -766,7 +766,7 @@ fun BackupScreen() {
 
     restoring?.let { b ->
         RestoreConfirm(tr("Restore “{0}”?", backupLabel(b.name)), onDismiss = { restoring = null }) {
-            restoring = null; backup.restoreLocal(b.name)
+            restoring = null; backups.saved.restoreLocal(b.name)
         }
     }
     resetting?.let { everything ->
@@ -777,13 +777,13 @@ fun BackupScreen() {
                 Text(if (everything) tr("Deletes all entries, accounts, categories, budgets, repeats, bookmarks and tags, and returns to the starting setup. Passcode and settings stay.")
                 else tr("Deletes all entries, budgets, repeats, bookmarks and detected SMS. Accounts and categories stay."))
             },
-            confirmButton = { TextButton(onClick = { resetting = null; backup.reset(everything) }) { Text(if (everything) tr("Reset") else tr("Clear"), color = DangerColor) } },
+            confirmButton = { TextButton(onClick = { resetting = null; backups.saved.reset(everything) }) { Text(if (everything) tr("Reset") else tr("Clear"), color = DangerColor) } },
             dismissButton = { TextButton(onClick = { resetting = null }) { Text(tr("Cancel")) } },
         )
     }
     if (confirmImport) {
         RestoreConfirm(tr("Restore from a file?"), onDismiss = { confirmImport = false }) {
-            confirmImport = false; backup.importFromFile()
+            confirmImport = false; backups.files.importFromFile()
         }
     }
 }

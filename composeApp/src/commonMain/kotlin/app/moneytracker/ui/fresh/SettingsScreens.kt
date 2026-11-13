@@ -58,7 +58,6 @@ import app.moneytracker.domain.CategoryKind
 import app.moneytracker.ui.AccentChoice
 import app.moneytracker.ui.DisclosureDialog
 import app.moneytracker.ui.I18n
-import app.moneytracker.ui.LocalBackup
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalPlatform
@@ -79,7 +78,6 @@ internal fun FreshSettings() {
     val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val currency = LocalCurrency.current
-    val backup = LocalBackup.current
     val toaster = LocalToaster.current
     val scope = rememberCoroutineScope()
 
