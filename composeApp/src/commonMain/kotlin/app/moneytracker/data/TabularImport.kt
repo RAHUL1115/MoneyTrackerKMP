@@ -139,7 +139,7 @@ object TabularImport {
         val accountName = accounts.associate { it.id to it.name }
         val byId = categories.associateBy { it.id }
         val curByCode = currencies.associateBy { it.code }
-        return listOf(exportHeader) + txns.filter { it.kind != TxnKind.TRANSFER_IN }.map { t ->
+        return listOf(exportHeader) + txns.filter { it.kind.isListed }.map { t ->
             val cat = t.categoryId?.let { byId[it] }
             val mainCat = cat?.parentId?.let { byId[it] } ?: cat
             val sub = if (cat?.parentId != null) cat else null

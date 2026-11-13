@@ -257,7 +257,7 @@ fun EditTxnScreen(screen: Screen.EditTxn) {
         if (panel != Panel.NONE || noteFocused || datePicker || timePicker || repeatDialog || tagDialog || dirtyState.value) viewing = false
     }
 
-    val isAdjustment = (existing?.kind == TxnKind.ADJUST_UP || existing?.kind == TxnKind.ADJUST_DOWN) && !convertedFromAdjustment
+    val isAdjustment = existing?.kind?.isAdjustment == true && !convertedFromAdjustment
     val groupById = groups.associateBy { it.id }
     val accountById = accounts.associateBy { it.id }
     val isCreditCard = accountId?.let { accountById[it] }?.let { groupById[it.groupId]?.type?.isCreditCard } == true

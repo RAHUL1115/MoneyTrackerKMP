@@ -609,7 +609,8 @@ fun RecurringScreen() {
                         Text(title, Modifier.weight(1f), color = SubtleText)
                         val kind = list.first().kind
                         Text(currency.format(list.sumOf { main(it) }), color = when (kind) {
-                            TxnKind.INCOME -> IncomeColor; TxnKind.EXPENSE -> ExpenseColor; else -> Ink
+                            TxnKind.INCOME -> IncomeColor; TxnKind.EXPENSE -> ExpenseColor
+                            TxnKind.TRANSFER_OUT, TxnKind.TRANSFER_IN, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> Ink
                         })
                     }
                     HorizontalDivider(color = DividerColor)
@@ -636,7 +637,8 @@ fun RecurringScreen() {
                             }
                             Text(when (r.kind) {
                                 TxnKind.TRANSFER_OUT -> "${accountName[r.accountId]} → ${accountName[r.toAccountId]}"
-                                else -> "${accountName[r.accountId].orEmpty()}  ${categoryPath(r.categoryId, catById)}"
+                                TxnKind.INCOME, TxnKind.EXPENSE, TxnKind.TRANSFER_IN, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN ->
+                                    "${accountName[r.accountId].orEmpty()}  ${categoryPath(r.categoryId, catById)}"
                             }, fontSize = 13.sp, color = SubtleText, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             r.endDate?.let { Text(tr("Until: {0}", "${it.monthNumber}/${it.dayOfMonth}/${it.year % 100}"), fontSize = 12.sp, color = SubtleText) }
                         }

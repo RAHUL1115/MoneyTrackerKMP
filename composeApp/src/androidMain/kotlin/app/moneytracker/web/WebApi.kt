@@ -306,13 +306,13 @@ class WebApi(
         val tagIds = HashMap<String, List<String>>()
         val tagByName = r.tagsNow().associate { it.name to it.id }
         r.txnTagNamesNow().forEach { (id, names) -> tagIds[id] = names.mapNotNull { tagByName[it] } }
-        val rows = r.txnsNow(range).filter { it.kind != TxnKind.TRANSFER_IN }.map { t -> row(t, flows[t.id], tagIds[t.id].orEmpty()) }
+        val rows = r.txnsNow(range).filter { it.kind.isListed }.map { t -> row(t, flows[t.id], tagIds[t.id].orEmpty()) }
         return mapOf("from" to range.start.toString(), "to" to range.endInclusive.toString(), "period" to period, "rows" to rows)
     }
 
     private fun row(t: Txn, flow: MoneyFlow?, tags: List<String>): Map<String, Any?> {
         val lock = when {
-            t.kind == TxnKind.ADJUST_UP || t.kind == TxnKind.ADJUST_DOWN -> "Balance adjustments are edited on the phone."
+            t.kind.isAdjustment -> "Balance adjustments are edited on the phone."
             t.installmentGroupId != null -> "Instalment plans are edited on the phone."
             t.transferGroupId != null && t.kind == TxnKind.EXPENSE -> "This is a transfer fee: edit the transfer instead."
             else -> null

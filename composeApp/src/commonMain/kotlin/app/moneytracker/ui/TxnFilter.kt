@@ -48,7 +48,6 @@ import app.moneytracker.domain.CategoryKind
 import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.ReportRow
 import app.moneytracker.domain.Txn
-import app.moneytracker.domain.TxnKind
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
@@ -92,7 +91,7 @@ fun rememberFilteredTxns(range: DateRange): State<List<Txn>> {
         repo.txnsBetween(range).map { list ->
             // Looked up on every change, so entries tagged later still match.
             val tagged = filter.tagIds.flatMapTo(mutableSetOf()) { repo.txnIdsWithTag(it) }
-            list.filter { it.kind != TxnKind.ADJUST_UP && it.kind != TxnKind.ADJUST_DOWN && (!filter.isActive || filter.matches(it, catById, tagged)) }
+            list.filter { !it.kind.isAdjustment && (!filter.isActive || filter.matches(it, catById, tagged)) }
         }.flowOn(repo.io)
     }.collectAsState(emptyList())
 }
@@ -106,7 +105,7 @@ fun rememberFilteredRows(range: DateRange): State<List<ReportRow>> {
     val rules by repo.reportRules.collectAsState(ReportRules.Empty)
     val txns by rememberFilteredTxns(range)
     // TRANSFER_IN mirrors TRANSFER_OUT; report rows count each transfer once.
-    return androidx.compose.runtime.rememberUpdatedState(txns.filter { it.kind != TxnKind.TRANSFER_IN }.map { rules.row(it) })
+    return androidx.compose.runtime.rememberUpdatedState(txns.filter { it.kind.isListed }.map { rules.row(it) })
 }
 
 /** What the filter bar lists: categories, accounts, then tags as #name. */
@@ -150,7 +149,7 @@ fun FilterSheet(range: DateRange, initial: TxnFilter, onDismiss: () -> Unit, onA
     var tags by remember { mutableStateOf(initial.tagIds) }   // not editable here; kept unless cleared
     var tab by remember { mutableStateOf(1) }
     val mainOf = { t: Txn -> t.categoryId?.let { catById[it] }?.let { it.parentId ?: it.id } }
-    val perCategory = txns.filter { it.kind == TxnKind.INCOME || it.kind == TxnKind.EXPENSE }.groupBy { mainOf(it) }.mapValues { (_, v) -> v.sumOf { it.amount } }
+    val perCategory = txns.filter { it.kind.isIncomeOrExpense }.groupBy { mainOf(it) }.mapValues { (_, v) -> v.sumOf { it.amount } }
     val perAccount = txns.groupBy { it.accountId }.mapValues { (_, v) -> v.sumOf { it.signedAccountValue } }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = SurfaceColor) {

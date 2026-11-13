@@ -3,7 +3,6 @@ package app.moneytracker.data
 import app.moneytracker.domain.Capture
 import app.moneytracker.domain.Photo
 import app.moneytracker.domain.Txn
-import app.moneytracker.domain.TxnKind
 
 /** Why an entry can't be saved yet. Each screen words it its own way (toast, inline text, web error). */
 enum class EntryProblem { NO_AMOUNT, BAD_FEE, NO_ACCOUNT, NO_CATEGORY, NO_DESTINATION, SAME_ACCOUNT }
@@ -21,7 +20,7 @@ class EntryEditor(private val repo: MoneyRepository) {
 
     /** An entry opened for editing, with what [MoneyRepository.draftFrom] leaves out (location, photos). */
     class Opened(val txn: Txn, val draft: TxnDraft, val photos: List<Photo>) {
-        val isAdjustment get() = txn.kind == TxnKind.ADJUST_UP || txn.kind == TxnKind.ADJUST_DOWN
+        val isAdjustment get() = txn.kind.isAdjustment
     }
 
     /** What a delete took away, so it can be put back (same photos, location and exchange rate). */
@@ -67,7 +66,7 @@ class EntryEditor(private val repo: MoneyRepository) {
      * to put it back, or null for a balance correction, which isn't an entry to recreate.
      */
     fun delete(t: Txn): Deleted? {
-        val adjustment = t.kind == TxnKind.ADJUST_UP || t.kind == TxnKind.ADJUST_DOWN
+        val adjustment = t.kind.isAdjustment
         val gone = if (adjustment) null else
             Deleted(repo.draftFrom(t).copy(lat = t.lat, lng = t.lng, rate = repo.rateOf(t)), repo.photosNow(t.id).map { it.fileName })
         repo.delete(t, wholeInstallmentPlan = true)

@@ -45,7 +45,6 @@ import app.moneytracker.domain.Flow
 import app.moneytracker.domain.Recurrence
 import app.moneytracker.domain.TOTAL_BUDGET
 import app.moneytracker.domain.Txn
-import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.budgetLines
 import app.moneytracker.domain.classify
 import app.moneytracker.domain.effectiveBudgets
@@ -155,7 +154,7 @@ private fun SpendingHero(onOpenTab: (FreshTab) -> Unit) {
     val daysGone = (range.start.daysUntil(today) + 1).coerceAtLeast(1)
 
     // Entry counts skip the second half of a transfer and balance corrections, like the lists do.
-    fun dayRows(d: kotlinx.datetime.LocalDate) = recentRows.filter { it.date == d && it.kind != TxnKind.TRANSFER_IN && !it.kind.isAdjustment() }
+    fun dayRows(d: kotlinx.datetime.LocalDate) = recentRows.filter { it.date == d && it.kind.isListed && !it.kind.isAdjustment }
     val todayRows = dayRows(today)
     val yesterdayRows = dayRows(yesterday)
     val monthSpent = totals(rows).expense
@@ -237,7 +236,7 @@ private fun RecentDays() {
     val rows by remember(range) { repo.reportRows(range) }.collectAsState(emptyList())
     val data = rememberActEntryData()
     // Like Activity: each transfer once, and balance corrections only on their account's page.
-    val shown = txns.filter { it.kind != TxnKind.TRANSFER_IN && !it.kind.isAdjustment() }
+    val shown = txns.filter { it.kind.isListed && !it.kind.isAdjustment }
     listOf(today to tr("Today"), yesterday to tr("Yesterday")).forEach { (day, title) ->
         val dayTxns = shown.filter { it.date == day }.sortedWith(compareByDescending<Txn> { it.timeOfDay ?: -1 }.thenByDescending { it.createdAt })
         if (dayTxns.isEmpty() && day != today) return@forEach
@@ -267,5 +266,3 @@ private fun RecentDays() {
 
 @Composable internal fun FreshInbox() = SmsReviewScreen()
 @Composable internal fun FreshMessageSettings() = SmsSettingsScreen()
-
-private fun TxnKind.isAdjustment() = this == TxnKind.ADJUST_UP || this == TxnKind.ADJUST_DOWN

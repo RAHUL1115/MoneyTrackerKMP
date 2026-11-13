@@ -31,7 +31,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.domain.DateRange
-import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.totals
 import app.moneytracker.ui.LocalCurrency
@@ -157,7 +156,7 @@ private fun DayCard(day: LocalDate, today: LocalDate, onAdd: () -> Unit) {
     val nav = LocalNavigator.current
     val txns by rememberFilteredTxns(DateRange(day, day))
     val data = rememberActEntryData()
-    val visible = txns.filter { it.kind != TxnKind.TRANSFER_IN }
+    val visible = txns.filter { it.kind.isListed }
     FCard(padding = 0.dp) {
         Column(Modifier.padding(top = 6.dp, bottom = 10.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(42.dp), verticalAlignment = Alignment.CenterVertically) {

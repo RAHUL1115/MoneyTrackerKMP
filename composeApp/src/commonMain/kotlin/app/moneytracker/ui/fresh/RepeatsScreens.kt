@@ -156,7 +156,8 @@ private fun Stat(label: String, value: String, modifier: Modifier) = Column(modi
 
 private fun routeOf(r: RecurringRule, accountName: Map<String, String>, catById: Map<String, Category>): String = when (r.kind) {
     TxnKind.TRANSFER_OUT -> "${accountName[r.accountId].orEmpty()} → ${accountName[r.toAccountId].orEmpty()}"
-    else -> "${categoryPath(r.categoryId, catById)} · ${accountName[r.accountId].orEmpty()}"
+    TxnKind.INCOME, TxnKind.EXPENSE, TxnKind.TRANSFER_IN, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN ->
+        "${categoryPath(r.categoryId, catById)} · ${accountName[r.accountId].orEmpty()}"
 }
 
 @Composable
@@ -215,7 +216,10 @@ private fun RuleSheet(
     val visible = accounts.filter { !it.hidden || it.id == accountId || it.id == toAccountId }
     val parsed = fmt.parse(amount)
     val ok = parsed != null && parsed > 0 && (!transfer || toAccountId != null)
-    val kindLabel = when (rule.kind) { TxnKind.INCOME -> tr("Income"); TxnKind.EXPENSE -> tr("Expense"); else -> tr("Transfer") }
+    val kindLabel = when (rule.kind) {
+        TxnKind.INCOME -> tr("Income"); TxnKind.EXPENSE -> tr("Expense")
+        TxnKind.TRANSFER_OUT, TxnKind.TRANSFER_IN, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> tr("Transfer")
+    }
 
     Sheet(ruleName(rule, catById), onDismiss, bottom = {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

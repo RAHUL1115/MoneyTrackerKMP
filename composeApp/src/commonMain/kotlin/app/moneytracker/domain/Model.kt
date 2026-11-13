@@ -7,10 +7,30 @@ enum class AccountType(val isLiability: Boolean, val isCreditCard: Boolean = fal
     CREDIT_CARD(true, isCreditCard = true), DEBIT_CARD(false, isDebitCard = true), LOAN(true), OVERDRAFT(true),
 }
 
+/** What an entry does to its account. [sign] is +1 when the entry raises the balance and -1 when it lowers it. */
 enum class TxnKind(val sign: Int) {
     INCOME(+1), EXPENSE(-1), TRANSFER_OUT(-1), TRANSFER_IN(+1), ADJUST_UP(+1), ADJUST_DOWN(-1);
 
+    /** One of the two linked legs of a transfer (ADR 0005); a transfer fee is an expense, not a leg. */
     val isTransfer get() = this == TRANSFER_OUT || this == TRANSFER_IN
+
+    /** A balance adjustment: it corrects the balance without counting as income or expense. */
+    val isAdjustment get() = this == ADJUST_UP || this == ADJUST_DOWN
+
+    /** An everyday entry filed under a category: income, or an expense (refunds included). */
+    val isIncomeOrExpense get() = this == INCOME || this == EXPENSE
+
+    /**
+     * Whether the entry gets its own row in lists, exports and totals. A transfer shows once, through its
+     * outgoing leg, so the incoming leg is left out and the transfer is never counted twice (ADR 0005).
+     */
+    val isListed get() = this != TRANSFER_IN
+
+    /** Money into the account: the balance goes up. */
+    val raisesBalance get() = sign > 0
+
+    /** Money out of the account: the balance goes down. */
+    val lowersBalance get() = sign < 0
 }
 
 /**

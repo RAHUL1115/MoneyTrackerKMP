@@ -276,8 +276,8 @@ fun AccountDetailScreen(accountId: String) {
                 )
             }
         }
-        val deposit = txns.filter { it.kind.sign > 0 }.sumOf { it.accountValue }
-        val withdrawal = txns.filter { it.kind.sign < 0 }.sumOf { it.accountValue }
+        val deposit = txns.filter { it.kind.raisesBalance }.sumOf { it.accountValue }
+        val withdrawal = txns.filter { it.kind.lowersBalance }.sumOf { it.accountValue }
         val balance = line?.balance ?: 0
         SummaryStrip(
             listOf(
@@ -298,7 +298,7 @@ fun AccountDetailScreen(accountId: String) {
         }
         val summaries = periods.map { (label, r) ->
             val inRange = history.filter { it.date >= r.start && it.date <= r.endInclusive }
-            PeriodSummary(label, r, inRange.filter { it.kind.sign > 0 }.sumOf { it.accountValue }, inRange.filter { it.kind.sign < 0 }.sumOf { it.accountValue },
+            PeriodSummary(label, r, inRange.filter { it.kind.raisesBalance }.sumOf { it.accountValue }, inRange.filter { it.kind.lowersBalance }.sumOf { it.accountValue },
                 history.filter { it.date <= r.endInclusive }.sumOf { it.signedAccountValue })
         }
         if (showChart) {
@@ -345,9 +345,9 @@ fun AccountDetailScreen(accountId: String) {
             txns.groupBy { it.date }.forEach { (date, dayTxns) ->
                 item(key = "h$date") {
                     Column(Modifier.padding(top = 6.dp).card(ListCardMargin).padding(bottom = 4.dp)) {
-                        DayHeader(date, dayTxns.filter { it.kind.sign > 0 }.sumOf { it.accountValue }, dayTxns.filter { it.kind.sign < 0 }.sumOf { it.accountValue }, currency, inset = ListRowInset)
+                        DayHeader(date, dayTxns.filter { it.kind.raisesBalance }.sumOf { it.accountValue }, dayTxns.filter { it.kind.lowersBalance }.sumOf { it.accountValue }, currency, inset = ListRowInset)
                         dayTxns.forEach { t ->
-                            val flow = if (t.kind.sign > 0) Flow.INCOME else Flow.EXPENSE
+                            val flow = if (t.kind.raisesBalance) Flow.INCOME else Flow.EXPENSE
                             TxnLine(t, accountName, catById, flow, running[t.id], inset = ListRowInset) { nav.push(Screen.EditTxn(txnId = t.id)) }
                         }
                     }
