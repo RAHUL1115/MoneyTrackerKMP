@@ -12,6 +12,8 @@ Thanks for helping. Bug reports, translations and pull requests are all welcome.
 ```
 ./gradlew :composeApp:installDebug          # debug build on a connected device or emulator
 ./gradlew :composeApp:testDebugUnitTest     # unit tests
+./gradlew :composeApp:verifyRoborazziDebug  # screenshots match composeApp/src/androidUnitTest/screenshots
+./gradlew :composeApp:recordRoborazziDebug  # re-record them after an intended visual change
 ```
 Debug builds install as a separate app (`in.amrahul.moneytracker.debug`), next to a release install. See [README.md](README.md) for the layout and core rules.
 

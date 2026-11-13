@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.roborazzi)
 }
 
 kotlin {
@@ -47,6 +48,11 @@ kotlin {
         val androidUnitTest by getting {
             dependencies {
                 implementation(libs.sqldelight.sqlite.driver)
+                // Screenshot tests (ScreenshotTest.kt): Compose drawn by Robolectric's native graphics, compared by Roborazzi.
+                implementation(libs.compose.ui.test.junit4)
+                implementation(libs.robolectric)
+                implementation(libs.roborazzi)
+                implementation(libs.roborazzi.compose)
             }
         }
     }
@@ -80,6 +86,8 @@ android {
         includeInApk = false
         includeInBundle = false
     }
+    // Robolectric reads the merged resources and manifest (screenshot tests need the theme and fonts).
+    testOptions.unitTests.isIncludeAndroidResources = true
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -115,6 +123,17 @@ android {
             signingConfig = signingConfigs.findByName("release")
         }
     }
+}
+
+// The empty activity the screenshot tests draw into.
+dependencies {
+    debugImplementation(libs.compose.ui.test.manifest)
+}
+
+// Screenshot baselines live next to the tests and are committed: record with recordRoborazziDebug, check with
+// verifyRoborazziDebug.
+roborazzi {
+    outputDir.set(file("src/androidUnitTest/screenshots"))
 }
 
 // Code-quality gate: the limits in .claude/skills/kotlin-readable-code. Any finding fails the build; a rare,
