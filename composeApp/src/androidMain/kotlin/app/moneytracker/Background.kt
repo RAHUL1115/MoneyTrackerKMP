@@ -20,6 +20,8 @@ import androidx.core.app.NotificationManagerCompat
 import app.moneytracker.data.Prefs
 import app.moneytracker.ui.LaunchAction
 import app.moneytracker.ui.tr
+import org.json.JSONException
+import java.io.IOException
 import java.util.Calendar
 
 /** Intent extra / action names shared by shortcuts, widgets and notifications. */
@@ -44,11 +46,24 @@ object Translations {
     fun load(ctx: Context, tag: String): Map<String, String> = synchronized(cache) {
         if (tag == "en") return emptyMap() // the app's own text is English: no table to load
         cache.getOrPut(tag) {
-            runCatching {
-                val o = org.json.JSONObject(ctx.assets.open("i18n/$tag.json").bufferedReader().use { it.readText() })
-                o.keys().asSequence().associateWith { o.getString(it) }
-            }.onFailure { Log.w("I18n", it) { "translations '$tag' failed to load" } }.getOrDefault(emptyMap())
+            try {
+                read(ctx, tag)
+            } catch (e: IOException) {
+                failed(tag, e)
+            } catch (e: JSONException) {
+                failed(tag, e)
+            }
         }
+    }
+
+    private fun read(ctx: Context, tag: String): Map<String, String> {
+        val o = org.json.JSONObject(ctx.assets.open("i18n/$tag.json").bufferedReader().use { it.readText() })
+        return o.keys().asSequence().associateWith { o.getString(it) }
+    }
+
+    private fun failed(tag: String, e: Exception): Map<String, String> {
+        Log.w("I18n", e) { "translations '$tag' failed to load" }
+        return emptyMap()
     }
 
     /** For notifications and widgets (no Compose): the table the user picked, or the phone's language. */
@@ -216,6 +231,7 @@ class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pending = goAsync()
         Log.i("Reminder") { "reminder fired" }
+        // A crash on this background thread would end the whole app, so any failure is logged instead.
         Thread {
             try { ensureTranslations(ctx); Notifications.showReminder(ctx); Reminders.rearm(ctx) }
             catch (e: Exception) { Log.e("Reminder", e) { "showing the reminder failed" } }
@@ -258,6 +274,7 @@ class SmsReceiver : BroadcastReceiver() {
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
         val pending = goAsync()
         Log.d("Sms") { "received ${messages.size} part(s)" }
+        // A crash on this background thread would end the whole app, so any failure is logged instead.
         Thread {
             try {
                 val r = repo(ctx)
@@ -451,7 +468,10 @@ private class WidgetStyle(ctx: Context, r: app.moneytracker.data.MoneyRepository
 internal class WidgetSize(val widthDp: Int)
 internal fun sizeOf(manager: AppWidgetManager, id: Int) = WidgetSize(manager.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH))
 
-/** Base for the home-screen widgets: renders off the main thread with the user's data. */
+/**
+ * Base for the home-screen widgets: renders off the main thread with the user's data. A crash on that thread would
+ * end the whole app, so any failure is logged instead.
+ */
 abstract class MoneyWidget : AppWidgetProvider() {
     override fun onUpdate(ctx: Context, manager: AppWidgetManager, ids: IntArray) {
         val pending = goAsync()
