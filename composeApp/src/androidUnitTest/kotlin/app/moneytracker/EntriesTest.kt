@@ -7,18 +7,17 @@ import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.DateRange
-import app.moneytracker.domain.Recurrence
-import app.moneytracker.domain.RepeatType
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 
-class V4FeaturesTest {
+/** The entry list: ordering within a day, note suggestions, bulk edits and resetting entries. */
+class EntriesTest {
     private val today = LocalDate.parse("2026-03-15")
     private lateinit var repo: MoneyRepository
     private val all = DateRange(LocalDate.parse("2000-01-01"), LocalDate.parse("2100-01-01"))
@@ -78,13 +77,6 @@ class V4FeaturesTest {
         assertEquals(listOf("b"), repo.txnsBetween(all).first().map { it.note })
     }
 
-    @Test fun hiddenAccountsAndOrdering() = runTest {
-        repo.setAccountHidden("acc_cash", true)
-        assertTrue(repo.accounts.first().first { it.id == "acc_cash" }.hidden)
-        repo.reorderAccounts(listOf("acc_savings", "acc_card", "acc_bank", "acc_cash"))
-        assertEquals("acc_savings", repo.accounts.first().first().id)
-    }
-
     @Test fun resetEntriesOnlyKeepsAccounts() = runTest {
         expense("x")
         repo.reset(everything = false)
@@ -93,45 +85,5 @@ class V4FeaturesTest {
         repo.saveAccount(repo.accounts.first().first().copy(id = "extra", name = "Extra"))
         repo.reset(everything = true)
         assertEquals(4, repo.accounts.first().size)   // back to the starting set
-    }
-
-    @Test fun everyFourMonths() {
-        assertEquals(LocalDate.parse("2026-05-31"), Recurrence.nthOccurrence(LocalDate.parse("2026-01-31"), RepeatType.FOUR_MONTHLY, 1))
-    }
-}
-
-class AdjustmentTest {
-    private val today = LocalDate.parse("2026-03-15")
-    private lateinit var repo: MoneyRepository
-
-    @BeforeTest fun setUp() {
-        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        MoneyDatabase.Schema.create(driver)
-        repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
-    }
-
-    @Test fun adjustmentIsNeutralByDefaultAndEditable() = runTest {
-        repo.adjustBalance("acc_cash", 5_000)
-        val adj = repo.allTxns().single()
-        assertEquals(app.moneytracker.domain.TxnKind.ADJUST_UP, adj.kind)
-        assertEquals(app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY, adj.categoryId)
-        // Neutral: no income or expense in reports.
-        assertEquals(0L, app.moneytracker.domain.totals(repo.reportRows(DateRange(today, today)).first()).income)
-        assertEquals(5_000L, repo.balances.first()["acc_cash"])
-        // Edit: smaller, decrease, other account.
-        repo.updateAdjustment(adj, today, 1_200, "acc_bank", up = false, note = "fix")
-        val edited = repo.allTxns().single()
-        assertEquals(app.moneytracker.domain.TxnKind.ADJUST_DOWN, edited.kind)
-        assertEquals(-1_200L, repo.balances.first()["acc_bank"])
-        assertEquals(null, repo.balances.first()["acc_cash"])
-    }
-
-    @Test fun adjustmentCanBeIncomeOrExpense() = runTest {
-        repo.adjustBalance("acc_cash", -300, asIncomeExpense = true)
-        val t = repo.allTxns().single()
-        assertEquals(app.moneytracker.domain.TxnKind.EXPENSE, t.kind)
-        assertEquals("Difference", t.note)
-        assertEquals(app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY, t.categoryId)
     }
 }
