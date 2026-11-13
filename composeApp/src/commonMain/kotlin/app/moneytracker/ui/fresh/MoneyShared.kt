@@ -1,7 +1,6 @@
 package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.border
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,14 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,15 +31,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.domain.AccountLine
-import app.moneytracker.domain.AccountType
-import app.moneytracker.domain.Fx
-import app.moneytracker.domain.NetWorth
-import app.moneytracker.domain.TAG_PREPAYMENT
-import app.moneytracker.domain.cardStatus
-import app.moneytracker.domain.summarize
-import app.moneytracker.ui.LocalCurrency
-import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.tr
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,15 +38,6 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 // Pieces shared by the Insights, Budget and Money screens of the new layout.
-
-
-internal val AccountType.moneyLabel: String get() = when (this) {
-    AccountType.CREDIT_CARD -> tr("Credit card")
-    AccountType.DEBIT_CARD -> tr("Debit card")
-    AccountType.OVERDRAFT -> tr("Overdraft")
-    AccountType.PREPAID -> tr("Top-up / prepaid")
-    else -> tr(name.lowercase().replaceFirstChar { it.uppercase() })
-}
 
 /** Compact label for bar tops: thousands as k, millions as M. */
 internal fun compactAmount(minor: Long, decimals: Int): String {

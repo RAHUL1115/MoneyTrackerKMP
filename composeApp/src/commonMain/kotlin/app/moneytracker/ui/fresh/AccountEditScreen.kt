@@ -3,228 +3,214 @@ package app.moneytracker.ui.fresh
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.data.newId
 import app.moneytracker.domain.Account
+import app.moneytracker.domain.AccountGroup
+import app.moneytracker.domain.Currency
+import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.Screen
+import app.moneytracker.ui.accounts.AccountForm
+import app.moneytracker.ui.accounts.rememberAccountEditModel
 import app.moneytracker.ui.tr
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+
+/** The form's pick-one sheets. */
+private enum class AccountEditSheet { CURRENCY, PAY_FROM, BASIS }
 
 /** Add or edit an account: name, group, currency, card billing, totals, bank-message matching; delete with confirm. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun AccountEditBody(accountId: String?) {
-    val repo = LocalRepo.current
     val nav = LocalNavigator.current
     val toaster = LocalToaster.current
-    val scope = rememberCoroutineScope()
-    val groups by repo.groups.collectAsState(emptyList())
-    val accounts by repo.accounts.collectAsState(emptyList())
-    val currencies by repo.currencies.collectAsState(emptyList())
     val mainFmt = LocalCurrency.current
-
-    var loaded by rememberSaveable { mutableStateOf(accountId == null) }
-    var name by rememberSaveable { mutableStateOf("") }
-    var groupId by rememberSaveable { mutableStateOf<String?>(null) }
-    var includeInTotals by rememberSaveable { mutableStateOf(true) }
-    var transferAsExpense by rememberSaveable { mutableStateOf(false) }
-    var hidden by rememberSaveable { mutableStateOf(false) }
-    var settlementDay by rememberSaveable { mutableStateOf("1") }
-    var paymentAccountId by rememberSaveable { mutableStateOf<String?>(null) }
-    var sortOrder by rememberSaveable { mutableStateOf(accounts.size) }
-    var accountCurrency by rememberSaveable { mutableStateOf<String?>(null) }
-    var limitText by rememberSaveable { mutableStateOf("") }
-    var paymentDay by rememberSaveable { mutableStateOf("1") }      // both days start on the 1st
-    var autoPay by rememberSaveable { mutableStateOf(false) }
-    var targetText by rememberSaveable { mutableStateOf("") }
-    var targetType by rememberSaveable { mutableStateOf(1) }
-    var memo by rememberSaveable { mutableStateOf("") }
-    var smsSender by rememberSaveable { mutableStateOf("") }
-    var smsMatch by rememberSaveable { mutableStateOf("") }
+    val model = rememberAccountEditModel(accountId)
+    val groups by model.groups.collectAsState()
+    val accounts by model.accounts.collectAsState()
+    val currencies by model.currencies.collectAsState()
+    var form by rememberSaveable(stateSaver = AccountForm.Saver) { mutableStateOf(model.blankForm()) }
     var error by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
-    var sheet by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(accounts, accountId) {
-        if (loaded) return@LaunchedEffect
-        val a = accounts.firstOrNull { it.id == accountId } ?: return@LaunchedEffect
-        name = a.name; groupId = a.groupId; includeInTotals = a.includeInTotals; transferAsExpense = a.transferAsExpense; hidden = a.hidden
-        settlementDay = a.statementDay.toString(); paymentAccountId = a.cardPaymentAccountId; sortOrder = a.sortOrder
-        accountCurrency = a.currency
-        val fmt = a.currency?.let { c -> currencies.firstOrNull { it.code == c }?.format } ?: mainFmt
-        limitText = a.cardLimit?.let { fmt.toInput(it) }.orEmpty()
-        paymentDay = a.dueDay.toString(); autoPay = a.cardAutoPay
-        targetText = a.usageTarget?.let { fmt.toInput(it) }.orEmpty(); targetType = a.usageTargetType
-        memo = a.memo; smsSender = a.smsSender; smsMatch = a.smsMatch
-        loaded = true
-    }
-    val group = groups.firstOrNull { it.id == groupId }
-    val credit = group?.type?.isCreditCard == true
-    val debit = group?.type?.isDebitCard == true
-    val others = accounts.filter { it.id != accountId }
-    fun currencyLabel(code: String?) = code?.let { c -> currencies.firstOrNull { it.code == c }?.let { "${it.code} ${it.symbol}" } ?: c }
-        ?: tr("Main currency ({0})", mainFmt.symbol)
+    LaunchedEffect(accounts, accountId) { model.filled(form, mainFmt)?.let { form = it } }
 
     fun save() {
-        val day = settlementDay.toIntOrNull()
-        val payDay = paymentDay.toIntOrNull()
-        error = when {
-            groupId == null -> tr("Choose a group")
-            name.isBlank() -> tr("Enter a name")
-            credit && (day == null || day !in 1..31) -> tr("Billing day must be 1–31")
-            credit && (payDay == null || payDay !in 1..31) -> tr("Payment day must be 1–31")       // every card has a bill day and a due day
-            else -> null
-        }
-        if (error != null) return
-        val fmt = accountCurrency?.let { c -> currencies.firstOrNull { it.code == c }?.format } ?: mainFmt
-        // Start from the stored account so fields this form doesn't show are kept.
-        val base = accounts.firstOrNull { it.id == accountId } ?: Account(newId(), groupId!!, "", sortOrder = sortOrder)
-        val account = base.copy(
-            groupId = groupId!!, name = name.trim(), includeInTotals = includeInTotals, transferAsExpense = transferAsExpense, hidden = hidden,
-            cardSettlementDay = if (credit) day else null, cardPaymentAccountId = if (credit || debit) paymentAccountId else null,
-            currency = accountCurrency,
-            cardLimit = if (credit) fmt.parse(limitText)?.takeIf { it > 0 } else null,
-            memo = memo.trim(),
-            cardPaymentDay = if (credit) payDay else null, cardAutoPay = credit && autoPay,
-            usageTarget = if (credit) fmt.parse(targetText)?.takeIf { it > 0 } else null, usageTargetType = targetType,
-            smsSender = smsSender.trim(), smsMatch = smsMatch.trim(),
-        )
-        scope.launch {
-            withContext(repo.io) { repo.saveAccount(account) }
+        error = model.save(form, mainFmt) { account ->
             nav.pop()
             toaster.show(if (accountId == null) tr("{0} added", account.name) else tr("{0} saved", account.name))
         }
     }
-
-    SubScreen(if (accountId == null) tr("Add account") else tr("Edit account"), nav::pop, bottom = {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            error?.let { Text(it, color = F.danger, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
-            PrimaryButton(if (accountId == null) tr("Add account") else tr("Save account"), ::save)
-        }
-    }) {
-        FCard {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                MoneyTextField(tr("Name"), name, { name = it; error = null })
-                Column {
-                    Text(tr("Group").uppercase(), Modifier.padding(start = 4.dp, bottom = 8.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        groups.forEach { g -> Pill(g.name, g.id == groupId, { groupId = g.id; error = null }) }
-                    }
-                }
-                if (currencies.isNotEmpty()) FRow(tr("Currency"), value = currencyLabel(accountCurrency), onClick = { sheet = "currency" })
-                MoneyTextField(tr("Memo (optional)"), memo, { memo = it }, placeholder = tr("e.g. Lifetime free, 5% on food"), singleLine = false)
-            }
-        }
-        if (credit) FCard {
-            SectionLabel(tr("Card billing"), Modifier.padding(bottom = 8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MoneyTextField(tr("Statement day"), settlementDay, { settlementDay = it.filter(Char::isDigit).take(2) }, Modifier.weight(1f), keyboard = KeyboardType.Number)
-                    MoneyTextField(tr("Payment day"), paymentDay, { paymentDay = it.filter(Char::isDigit).take(2) }, Modifier.weight(1f),
-                        keyboard = KeyboardType.Number)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MoneyTextField(tr("Monthly limit"), limitText, { limitText = it }, Modifier.weight(1f), placeholder = tr("Optional"), keyboard = KeyboardType.Decimal)
-                    MoneyTextField(tr("Usage target"), targetText, { targetText = it }, Modifier.weight(1f), placeholder = tr("Optional"), keyboard = KeyboardType.Decimal)
-                }
-            }
-            Gap(4.dp)
-            FRow(tr("Bill paid from"), value = others.firstOrNull { it.id == paymentAccountId }?.name ?: tr("Choose"), valueColor = F.accent, onClick = { sheet = "payFrom" })
-            if (targetText.isNotBlank()) FRow(tr("Target compared with"), value = if (targetType == 2) tr("3 months average") else tr("Previous month"),
-                valueColor = F.accent, onClick = { sheet = "basis" })
-        }
-        if (debit) FCard(padding = 4.dp) {
-            Column(Modifier.padding(horizontal = 12.dp)) {
-                FRow(tr("Linked bank account"), tr("Card spends come out of this account"), value = others.firstOrNull { it.id == paymentAccountId }?.name ?: tr("Choose"),
-                    valueColor = F.accent, onClick = { sheet = "payFrom" })
-            }
-        }
-        // Switches as a list: at least 58 tall each, a line between them.
-        FCard(padding = 4.dp) {
-            Column(Modifier.padding(horizontal = 12.dp)) {
-                SwitchSlot { MoneySwitchRow(tr("Include in totals"), tr("Counts toward net worth"), includeInTotals) { includeInTotals = it } }
-                Divider()
-                SwitchSlot {
-                    MoneySwitchRow(tr("Transfers in count as expense"),
-                        tr("Turn this on for savings, investments or loans so money moved there shows in your spending."), transferAsExpense) { transferAsExpense = it }
-                }
-                Divider()
-                SwitchSlot { MoneySwitchRow(tr("Hide from lists"), tr("History and balance stay"), hidden) { hidden = it } }
-                if (credit) {
-                    Divider()
-                    SwitchSlot { MoneySwitchRow(tr("Bill is auto-paid"), null, autoPay) { autoPay = it } }
-                }
-            }
-        }
-        FCard {
-            SectionLabel(tr("Bank messages · helps SMS detection pick this account"), Modifier.padding(bottom = 8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                MoneyTextField(tr("Text in message"), smsMatch, { smsMatch = it }, placeholder = tr("e.g. card digits x1234"))
-                MoneyTextField(tr("Sender ID"), smsSender, { smsSender = it }, placeholder = tr("Optional"))
-            }
-        }
-        // Destructive, so red text alone rather than a button.
-        if (accountId != null) Box(
-            Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(F.iconShape).clickable { confirmDelete = true },
-            contentAlignment = Alignment.Center,
-        ) { Text(tr("Delete account"), color = F.danger, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
-    }
-
-    when (sheet) {
-        "currency" -> Sheet(tr("Currency"), { sheet = null }) {
-            SheetOption(tr("Main currency ({0})", mainFmt.symbol), accountCurrency == null) { accountCurrency = null; sheet = null }
-            currencies.forEach { c -> SheetOption("${c.code} ${c.symbol}", accountCurrency == c.code) { accountCurrency = c.code; sheet = null } }
-        }
-        "payFrom" -> Sheet(if (credit) tr("Bill paid from") else tr("Linked bank account"), { sheet = null }) {
-            SheetOption(tr("None"), paymentAccountId == null) { paymentAccountId = null; sheet = null }
-            others.filter { !it.hidden || it.id == paymentAccountId }.forEach { a ->
-                SheetOption(a.name, a.id == paymentAccountId, subtitle = groups.firstOrNull { it.id == a.groupId }?.name) { paymentAccountId = a.id; sheet = null }
-            }
-        }
-        "basis" -> Sheet(tr("Target compared with"), { sheet = null }) {
-            SheetOption(tr("Previous month"), targetType == 1, subtitle = tr("Last billing cycle's spending")) { targetType = 1; sheet = null }
-            SheetOption(tr("3 months average"), targetType == 2, subtitle = tr("Average of the last three cycles")) { targetType = 2; sheet = null }
-        }
-    }
+    val choices = AccountFormChoices(groups, accounts.filter { it.id != accountId }, currencies, mainFmt)
+    AccountEditContent(accountId == null, form, { form = it }, choices, error, { error = null }, ::save) { confirmDelete = true }
 
     if (confirmDelete && accountId != null) Confirm(
-        tr("Delete {0}?", name.ifBlank { tr("account") }),
+        tr("Delete {0}?", form.name.ifBlank { tr("account") }),
         tr("The account is hidden. Its transactions stay in your history and reports. You can restore it from Money › Manage accounts › Deleted accounts."),
         tr("Delete"), { confirmDelete = false },
     ) {
-        scope.launch {
-            withContext(repo.io) { repo.deleteAccount(accountId) }
+        val name = form.name
+        model.delete {
             nav.pop()
             if (nav.stack.lastOrNull() == Screen.AccountDetail(accountId)) nav.pop()
-            toaster.show(tr("{0} deleted", name)) { repo.moneyIo { repo.restoreAccount(accountId) } }
+            toaster.show(tr("{0} deleted", name)) { model.restore() }
+        }
+    }
+}
+
+/** What the form's pickers offer: groups, other accounts (to pay a card from) and currencies. */
+private class AccountFormChoices(val groups: List<AccountGroup>, val others: List<Account>, val currencies: List<Currency>, val mainFmt: CurrencyFormat) {
+    fun currencyLabel(code: String?) = code?.let { c -> currencies.firstOrNull { it.code == c }?.let { "${it.code} ${it.symbol}" } ?: c }
+        ?: tr("Main currency ({0})", mainFmt.symbol)
+
+    fun accountName(id: String?): String = others.firstOrNull { it.id == id }?.name ?: tr("Choose")
+}
+
+@Composable
+private fun AccountEditContent(
+    isNew: Boolean, form: AccountForm, onChange: (AccountForm) -> Unit, choices: AccountFormChoices, error: String?, clearError: () -> Unit,
+    onSave: () -> Unit, onDelete: () -> Unit,
+) {
+    val nav = LocalNavigator.current
+    var sheet by remember { mutableStateOf<AccountEditSheet?>(null) }
+    val type = choices.groups.firstOrNull { it.id == form.groupId }?.type
+    val credit = type?.isCreditCard == true
+    SubScreen(if (isNew) tr("Add account") else tr("Edit account"), nav::pop, bottom = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            error?.let { Text(it, color = F.danger, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
+            PrimaryButton(if (isNew) tr("Add account") else tr("Save account"), onSave)
+        }
+    }) {
+        BasicsCard(form, onChange, choices, clearError) { sheet = AccountEditSheet.CURRENCY }
+        if (credit) CardBillingCard(form, onChange, choices) { sheet = it }
+        if (type?.isDebitCard == true) FCard(padding = 4.dp) {
+            Column(Modifier.padding(horizontal = 12.dp)) {
+                FRow(tr("Linked bank account"), tr("Card spends come out of this account"), value = choices.accountName(form.paymentAccountId),
+                    valueColor = F.accent, onClick = { sheet = AccountEditSheet.PAY_FROM })
+            }
+        }
+        SwitchesCard(form, onChange, credit)
+        FCard {
+            SectionLabel(tr("Bank messages · helps SMS detection pick this account"), Modifier.padding(bottom = 8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                MoneyTextField(tr("Text in message"), form.smsMatch, { onChange(form.copy(smsMatch = it)) }, placeholder = tr("e.g. card digits x1234"))
+                MoneyTextField(tr("Sender ID"), form.smsSender, { onChange(form.copy(smsSender = it)) }, placeholder = tr("Optional"))
+            }
+        }
+        // Destructive, so red text alone rather than a button.
+        if (!isNew) Box(
+            Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(F.iconShape).clickable(onClick = onDelete),
+            contentAlignment = Alignment.Center,
+        ) { Text(tr("Delete account"), color = F.danger, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
+    }
+    sheet?.let { s -> EditSheetFor(s, form, onChange, choices, credit) { sheet = null } }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BasicsCard(form: AccountForm, onChange: (AccountForm) -> Unit, choices: AccountFormChoices, clearError: () -> Unit, onCurrency: () -> Unit) {
+    FCard {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            MoneyTextField(tr("Name"), form.name, { onChange(form.copy(name = it)); clearError() })
+            Column {
+                Text(tr("Group").uppercase(), Modifier.padding(start = 4.dp, bottom = 8.dp), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    choices.groups.forEach { g -> Pill(g.name, g.id == form.groupId, { onChange(form.copy(groupId = g.id)); clearError() }) }
+                }
+            }
+            if (choices.currencies.isNotEmpty()) FRow(tr("Currency"), value = choices.currencyLabel(form.currency), onClick = onCurrency)
+            MoneyTextField(tr("Memo (optional)"), form.memo, { onChange(form.copy(memo = it)) }, placeholder = tr("e.g. Lifetime free, 5% on food"), singleLine = false)
+        }
+    }
+}
+
+@Composable
+private fun CardBillingCard(form: AccountForm, onChange: (AccountForm) -> Unit, choices: AccountFormChoices, onSheet: (AccountEditSheet) -> Unit) {
+    FCard {
+        SectionLabel(tr("Card billing"), Modifier.padding(bottom = 8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MoneyTextField(tr("Statement day"), form.settlementDay, { onChange(form.copy(settlementDay = it.filter(Char::isDigit).take(2))) },
+                    Modifier.weight(1f), keyboard = KeyboardType.Number)
+                MoneyTextField(tr("Payment day"), form.paymentDay, { onChange(form.copy(paymentDay = it.filter(Char::isDigit).take(2))) }, Modifier.weight(1f),
+                    keyboard = KeyboardType.Number)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MoneyTextField(tr("Monthly limit"), form.limitText, { onChange(form.copy(limitText = it)) }, Modifier.weight(1f),
+                    placeholder = tr("Optional"), keyboard = KeyboardType.Decimal)
+                MoneyTextField(tr("Usage target"), form.targetText, { onChange(form.copy(targetText = it)) }, Modifier.weight(1f),
+                    placeholder = tr("Optional"), keyboard = KeyboardType.Decimal)
+            }
+        }
+        Gap(4.dp)
+        FRow(tr("Bill paid from"), value = choices.accountName(form.paymentAccountId), valueColor = F.accent, onClick = { onSheet(AccountEditSheet.PAY_FROM) })
+        if (form.targetText.isNotBlank()) FRow(tr("Target compared with"), value = if (form.targetType == 2) tr("3 months average") else tr("Previous month"),
+            valueColor = F.accent, onClick = { onSheet(AccountEditSheet.BASIS) })
+    }
+}
+
+/** Switches as a list: at least 58 tall each, a line between them. */
+@Composable
+private fun SwitchesCard(form: AccountForm, onChange: (AccountForm) -> Unit, credit: Boolean) {
+    FCard(padding = 4.dp) {
+        Column(Modifier.padding(horizontal = 12.dp)) {
+            SwitchSlot { MoneySwitchRow(tr("Include in totals"), tr("Counts toward net worth"), form.includeInTotals) { onChange(form.copy(includeInTotals = it)) } }
+            Divider()
+            SwitchSlot {
+                MoneySwitchRow(tr("Transfers in count as expense"),
+                    tr("Turn this on for savings, investments or loans so money moved there shows in your spending."), form.transferAsExpense) {
+                    onChange(form.copy(transferAsExpense = it))
+                }
+            }
+            Divider()
+            SwitchSlot { MoneySwitchRow(tr("Hide from lists"), tr("History and balance stay"), form.hidden) { onChange(form.copy(hidden = it)) } }
+            if (credit) {
+                Divider()
+                SwitchSlot { MoneySwitchRow(tr("Bill is auto-paid"), null, form.autoPay) { onChange(form.copy(autoPay = it)) } }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditSheetFor(sheet: AccountEditSheet, form: AccountForm, onChange: (AccountForm) -> Unit, choices: AccountFormChoices, credit: Boolean, onClose: () -> Unit) {
+    fun pick(f: AccountForm) { onChange(f); onClose() }
+    when (sheet) {
+        AccountEditSheet.CURRENCY -> Sheet(tr("Currency"), onClose) {
+            SheetOption(tr("Main currency ({0})", choices.mainFmt.symbol), form.currency == null) { pick(form.copy(currency = null)) }
+            choices.currencies.forEach { c -> SheetOption("${c.code} ${c.symbol}", form.currency == c.code) { pick(form.copy(currency = c.code)) } }
+        }
+        AccountEditSheet.PAY_FROM -> Sheet(if (credit) tr("Bill paid from") else tr("Linked bank account"), onClose) {
+            SheetOption(tr("None"), form.paymentAccountId == null) { pick(form.copy(paymentAccountId = null)) }
+            choices.others.filter { !it.hidden || it.id == form.paymentAccountId }.forEach { a ->
+                SheetOption(a.name, a.id == form.paymentAccountId, subtitle = choices.groups.firstOrNull { it.id == a.groupId }?.name) {
+                    pick(form.copy(paymentAccountId = a.id))
+                }
+            }
+        }
+        AccountEditSheet.BASIS -> Sheet(tr("Target compared with"), onClose) {
+            SheetOption(tr("Previous month"), form.targetType == 1, subtitle = tr("Last billing cycle's spending")) { pick(form.copy(targetType = 1)) }
+            SheetOption(tr("3 months average"), form.targetType == 2, subtitle = tr("Average of the last three cycles")) { pick(form.copy(targetType = 2)) }
         }
     }
 }
