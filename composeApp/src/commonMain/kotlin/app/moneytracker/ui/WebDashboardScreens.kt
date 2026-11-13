@@ -40,8 +40,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -240,7 +242,8 @@ private fun StartCard(s: WebDashboardState, start: () -> Unit) {
         Text(tr("The page comes from this phone. Nothing is sent to the internet."), fontSize = 13.sp, color = SubtleText)
         (s.stopReason ?: s.error)?.let { Text(it, fontSize = 13.sp, color = ExpenseColor) }
         Box(
-            Modifier.fillMaxWidth().height(48.dp).background(Accent, RoundedCornerShape(24.dp)).clickable(onClick = start),
+            Modifier.fillMaxWidth().height(48.dp).background(Accent, RoundedCornerShape(24.dp)).clip(RoundedCornerShape(24.dp))
+                .clickable(role = Role.Button, onClick = start),
             contentAlignment = Alignment.Center,
         ) { Text(tr("Start"), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
     }
@@ -335,7 +338,7 @@ private fun OutlineButton(text: String, onClick: () -> Unit, danger: Boolean = f
     val shape = RoundedCornerShape(23.dp)
     Box(
         (if (fill) Modifier.fillMaxWidth() else Modifier).height(46.dp).border(1.dp, if (danger) DividerColor else Accent, shape)
-            .background(SurfaceColor, shape).clickable(onClick = onClick).padding(horizontal = 20.dp),
+            .background(SurfaceColor, shape).clip(shape).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = if (danger) ExpenseColor else Accent, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
     Spacer(Modifier.height(0.dp))

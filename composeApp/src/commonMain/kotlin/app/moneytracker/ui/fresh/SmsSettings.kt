@@ -35,9 +35,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.collapse
-import androidx.compose.ui.semantics.expand
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,6 +56,7 @@ import app.moneytracker.ui.SmsFilters
 import app.moneytracker.ui.SmsHealth
 import app.moneytracker.ui.SmsSwitches
 import app.moneytracker.ui.backgroundSteps
+import app.moneytracker.ui.expandable
 import app.moneytracker.ui.hasAutostartManager
 import app.moneytracker.ui.rememberSmsHealth
 import app.moneytracker.ui.smsPermissionSteps
@@ -340,10 +338,6 @@ private fun FilterLine(key: TextSetting, label: String, hint: String, value: Str
         if (open) FilterEditor(key, value, onSave)
     }
 }
-
-/** Tells TalkBack a row opens and closes the part under it, and whether that part is open now. */
-private fun Modifier.expandable(open: Boolean, onToggle: () -> Unit): Modifier =
-    semantics { if (open) collapse { onToggle(); true } else expand { onToggle(); true } }
 
 /** The open filter: one entry per line, saved with its own button. */
 @Composable

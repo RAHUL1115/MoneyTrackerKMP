@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
@@ -33,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -226,7 +228,7 @@ private fun BackupButton(label: String, modifier: Modifier, filled: Boolean = fa
     Box(
         modifier.height(46.dp)
             .then(if (filled) Modifier.background(Accent, shape) else Modifier.border(1.dp, BorderColor, shape))
-            .clickable(onClick = onClick),
+            .clip(shape).clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Text(label, color = if (filled) Color.White else Ink) }
 }
@@ -274,9 +276,9 @@ private fun ImportPreviewDialog(parsed: TabularImport.Parsed, onCancel: () -> Un
 @Composable
 private fun ImportRowLine(r: TabularImport.Row, kept: Boolean, onKeep: (Boolean) -> Unit) {
     val currency = LocalCurrency.current
-    Row(Modifier.fillMaxWidth().clickable { onKeep(!kept) }.padding(horizontal = 8.dp, vertical = 4.dp),
+    Row(Modifier.fillMaxWidth().toggleable(kept, role = Role.Checkbox, onValueChange = onKeep).padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(kept, onKeep)
+        RowCheckbox(kept)
         Column(Modifier.weight(1f)) {
             Text("${r.date.short()} ${r.date.year} · " + when (r.type) {
                 DraftType.TRANSFER -> "${r.account} → ${r.toAccount}"

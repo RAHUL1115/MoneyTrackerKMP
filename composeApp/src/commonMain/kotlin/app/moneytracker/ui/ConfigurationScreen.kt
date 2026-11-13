@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -39,6 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -167,13 +172,14 @@ private fun ClassicLayoutDialog(onDismiss: () -> Unit, onSwitch: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text(tr("Layout")) },
         text = {
-            Column {
+            Column(Modifier.selectableGroup()) {
                 listOf(
                     Triple(tr("Classic"), tr("The familiar tabs: Trans., Stats, Accounts, More"), true),
                     Triple(tr("New"), tr("Home with today's spending and Smart add, then Activity, Insights and Accounts"), false),
                 ).forEach { (label, hint, current) ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { if (current) onDismiss() else onSwitch() }.padding(vertical = 12.dp),
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).selectable(current, role = Role.RadioButton) { if (current) onDismiss() else onSwitch() }
+                            .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -197,14 +203,17 @@ private fun ClassicAccentDialog(model: SettingsModel, onClose: () -> Unit) {
         onDismissRequest = onClose,
         title = { Text(tr("Accent colour")) },
         text = {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.SpaceBetween) {
                 // "Follow system" only where the OS provides wallpaper colours (Android 12+).
                 AccentChoice.entries.filter { it != AccentChoice.SYSTEM || systemAccent != null }.forEach { a ->
                     val c = a.tones().let { Color(if (darkTheme) it.dark else it.light) }
+                    val label = tr(a.label)
                     Box(
-                        Modifier.size(36.dp).clip(CircleShape).background(c).clickable { model.save(Prefs.ACCENT, a.name); onClose() },
+                        Modifier.size(36.dp).clip(CircleShape).background(c)
+                            .selectable(a == accentChoice, role = Role.RadioButton) { model.save(Prefs.ACCENT, a.name); onClose() }
+                            .semantics { contentDescription = label },
                         contentAlignment = Alignment.Center,
-                    ) { if (a == accentChoice) Icon(Icons.Filled.Check, tr(a.label), tint = Color.White) }
+                    ) { if (a == accentChoice) Icon(Icons.Filled.Check, null, tint = Color.White) }
                 }
             }
         },
@@ -214,14 +223,15 @@ private fun ClassicAccentDialog(model: SettingsModel, onClose: () -> Unit) {
 
 @Composable
 private fun <T> ClassicChoiceDialog(spec: ChoiceSpec<T>, model: SettingsModel, onClose: () -> Unit) {
-    ChoiceHost(spec, model, content = { _, options, pick ->
+    ChoiceHost(spec, model, content = { current, options, pick ->
         AlertDialog(
             onDismissRequest = onClose,
             title = { Text(spec.title) },
             text = {
-                Column {
+                Column(Modifier.selectableGroup()) {
                     options.forEach { (value, label) ->
-                        Text(label, Modifier.fillMaxWidth().clickable { pick(value, label); onClose() }.padding(vertical = 12.dp))
+                        Text(label, Modifier.fillMaxWidth().selectable(value == current, role = Role.RadioButton) { pick(value, label); onClose() }
+                            .padding(vertical = 12.dp))
                     }
                 }
             },
