@@ -30,6 +30,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import java.net.InetAddress
+import java.net.UnknownHostException
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.SecretKeyFactory
@@ -62,7 +63,11 @@ object WebPassword {
         SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(PBEKeySpec(password.toCharArray(), salt, 20_000, 256)).encoded
 
     private fun hex(b: ByteArray) = b.joinToString("") { "%02x".format(it) }
-    private fun unhex(s: String): ByteArray? = if (s.length % 2 != 0) null else runCatching { ByteArray(s.length / 2) { s.substring(it * 2, it * 2 + 2).toInt(16).toByte() } }.getOrNull()
+    private fun unhex(s: String): ByteArray? {
+        if (s.length % 2 != 0) return null
+        val bytes = s.chunked(2).map { it.toIntOrNull(16) ?: return null }
+        return ByteArray(bytes.size) { bytes[it].toByte() }
+    }
 }
 
 /**
@@ -192,7 +197,7 @@ class WebApi(
     private fun login(req: HttpRequest, r: MoneyRepository): HttpResponse {
         val wait = waitSeconds(req.remote)
         if (wait > 0) return HttpResponse.json(mapOf("error" to "Too many tries. Wait a minute, then try again.", "wait" to wait), 429)
-        val body = runCatching { Json.parse(req.bodyText) as? Map<*, *> }.getOrNull()
+        val body = jsonObject(req)
         val password = body?.get("password") as? String ?: return HttpResponse.error(400, "Enter the password")
         val stored = r.settingNow(Prefs.WEB_PASSWORD)
         if (stored.isNullOrEmpty() || WebPassword.check(password, stored)) {
@@ -256,8 +261,11 @@ class WebApi(
         }
     }
 
-    private fun body(req: HttpRequest): Map<*, *> =
-        runCatching { Json.parse(req.bodyText) as? Map<*, *> }.getOrNull() ?: throw ApiError(400, "Bad request body")
+    private fun body(req: HttpRequest): Map<*, *> = jsonObject(req) ?: throw ApiError(400, "Bad request body")
+
+    /** The request body as a JSON object, or null when it isn't one. */
+    private fun jsonObject(req: HttpRequest): Map<*, *>? =
+        try { Json.parse(req.bodyText) as? Map<*, *> } catch (_: IllegalArgumentException) { null }
 
     private fun meta(r: MoneyRepository): Map<String, Any?> {
         val fmt = r.currencyFormatNow()
@@ -290,8 +298,8 @@ class WebApi(
             "3m" -> DateRange(ps.month(ym.plus(-2)).start, ps.month(ym).endInclusive) to "3m"
             "year" -> ps.year(ym.year) to "year"
             "custom" -> {
-                val from = req.query["from"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: throw ApiError(400, "Pick a start date")
-                val to = req.query["to"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: throw ApiError(400, "Pick an end date")
+                val from = req.query["from"]?.let(LocalDate.Formats.ISO::parseOrNull) ?: throw ApiError(400, "Pick a start date")
+                val to = req.query["to"]?.let(LocalDate.Formats.ISO::parseOrNull) ?: throw ApiError(400, "Pick an end date")
                 if (to < from) throw ApiError(400, "The end date is before the start date")
                 if (from.plus(DatePeriod(years = 10)) < to) throw ApiError(400, "Pick 10 years or less")
                 DateRange(from, to) to "custom"
@@ -333,8 +341,8 @@ class WebApi(
     private fun str(b: Map<*, *>, key: String) = (b[key] as? String)?.trim().orEmpty()
 
     private fun draft(r: MoneyRepository, b: Map<*, *>, existing: Txn?): TxnDraft {
-        val type = runCatching { DraftType.valueOf(str(b, "type")) }.getOrNull() ?: throw ApiError(400, "Pick income, expense or transfer")
-        val date = runCatching { LocalDate.parse(str(b, "date")) }.getOrNull() ?: throw ApiError(400, "Pick a date")
+        val type = DraftType.entries.firstOrNull { it.name == str(b, "type") } ?: throw ApiError(400, "Pick income, expense or transfer")
+        val date = LocalDate.Formats.ISO.parseOrNull(str(b, "date")) ?: throw ApiError(400, "Pick a date")
         val accounts = r.accountsNow().associateBy { it.id }
         val account = accounts[str(b, "account")] ?: throw ApiError(400, if (type == DraftType.TRANSFER) "Pick the account to move from" else "Pick an account")
         val base = existing?.let { EntryEditor(r).open(it.id)?.draft }
@@ -493,7 +501,7 @@ class WebApi(
         fun isLocal(ip: String): Boolean {
             if (ip.isEmpty() || ip.any { !(it.isLetterOrDigit() || it == '.' || it == ':' || it == '%') }) return false
             // Link-local IPv6 comes with its interface ("fe80::1%wlan0"); the scope doesn't matter here.
-            val a = runCatching { InetAddress.getByName(ip.substringBefore('%')) }.getOrNull() ?: return false
+            val a = try { InetAddress.getByName(ip.substringBefore('%')) } catch (_: UnknownHostException) { return false }
             if (a.isLoopbackAddress || a.isSiteLocalAddress || a.isLinkLocalAddress) return true
             val b = a.address
             // IPv6 unique-local (fc00::/7).

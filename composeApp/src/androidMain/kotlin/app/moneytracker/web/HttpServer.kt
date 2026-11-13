@@ -3,6 +3,8 @@ package app.moneytracker.web
 import app.moneytracker.Log
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
+import java.io.Closeable
+import java.io.IOException
 import java.io.InputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -12,6 +14,7 @@ import java.net.SocketException
 import java.net.URLDecoder
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 /** [headers] keys are lower-case. [remote] is the client's IP address. */
 class HttpRequest(
@@ -52,14 +55,14 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
     /** Listens on [address] at the first free port of [ports]; returns that port. Throws when none is free. */
     fun start(address: InetAddress, ports: IntRange): Int {
         stop()
-        var last: Exception? = null
+        var last: IOException? = null
         for (port in ports) {
             val s = ServerSocket()
             try {
                 s.reuseAddress = true
                 s.bind(InetSocketAddress(address, port), 16)
-            } catch (e: Exception) {
-                runCatching { s.close() }
+            } catch (e: IOException) {
+                s.closeLogged("unbound socket")
                 last = e
                 continue
             }
@@ -69,11 +72,11 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
             Thread({ accept(s, p) }, "web-dashboard-accept").apply { isDaemon = true }.start()
             return port
         }
-        throw last ?: IllegalStateException("No port")
+        throw checkNotNull(last) { "No port" }
     }
 
     fun stop() {
-        runCatching { socket?.close() }
+        socket?.closeLogged("server socket")
         socket = null
         pool?.shutdownNow()
         pool = null
@@ -81,8 +84,19 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
 
     private fun accept(s: ServerSocket, p: ExecutorService) {
         while (!s.isClosed) {
-            val client = try { s.accept() } catch (_: SocketException) { break } catch (_: Exception) { continue }
-            runCatching { p.execute { serve(client) } }.onFailure { runCatching { client.close() } }
+            val client = try {
+                s.accept()
+            } catch (_: SocketException) {
+                break // stop() closed the socket
+            } catch (e: IOException) {
+                Log.d("Web") { "accept failed: ${e::class.simpleName}" }
+                continue
+            }
+            try {
+                p.execute { serve(client) }
+            } catch (_: RejectedExecutionException) {
+                client.closeLogged("rejected connection") // stop() shut the pool down
+            }
         }
     }
 
@@ -91,16 +105,21 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
         val input = BufferedInputStream(c.getInputStream())
         val res = try {
             val req = read(input, c.inetAddress?.hostAddress.orEmpty()) ?: return@use
+            // The handler is the whole app behind the page: whatever it throws, answer 500 and keep the server up.
             try { handler(req).also { r -> Log.d("Web") { "${req.method} ${req.path} → ${r.status}" } } }
             catch (e: Exception) { Log.e("Web", e) { "${req.method} ${req.path} crashed" }; HttpResponse.error(500, "Something went wrong on the phone.") }
         } catch (e: BadRequest) {
             Log.w("Web") { "bad request: ${e.status}" }
             HttpResponse.error(e.status, e.message ?: "Bad request")
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             Log.d("Web") { "connection dropped: ${e::class.simpleName}" }
             return@use
         }
-        runCatching { write(c, res) }.onFailure { Log.d("Web") { "reply not sent: ${it::class.simpleName}" } }
+        try { write(c, res) } catch (e: IOException) { Log.d("Web") { "reply not sent: ${e::class.simpleName}" } }
+    }
+
+    private fun Closeable.closeLogged(what: String) {
+        try { close() } catch (e: IOException) { Log.d("Web") { "closing the $what failed: ${e::class.simpleName}" } }
     }
 
     private class BadRequest(val status: Int, message: String) : Exception(message)
@@ -151,7 +170,8 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
         return buf.toString(Charsets.ISO_8859_1.name()).removeSuffix("\r\n\r\n")
     }
 
-    private fun decode(s: String) = runCatching { URLDecoder.decode(s.replace("+", "%2B"), "UTF-8") }.getOrDefault(s)
+    /** Percent-decodes [s]; a malformed escape leaves it as it came. */
+    private fun decode(s: String) = try { URLDecoder.decode(s.replace("+", "%2B"), "UTF-8") } catch (_: IllegalArgumentException) { s }
 
     private fun write(c: Socket, r: HttpResponse) {
         val out = c.getOutputStream()

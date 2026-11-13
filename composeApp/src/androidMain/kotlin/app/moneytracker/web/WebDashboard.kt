@@ -12,6 +12,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.database.sqlite.SQLiteException
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Handler
@@ -32,8 +33,10 @@ import app.moneytracker.ui.WebVisitor
 import app.moneytracker.ui.tr
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.io.IOException
 import java.net.Inet4Address
 import java.net.NetworkInterface
+import java.net.SocketException
 
 /**
  * The web dashboard's server, owned by [WebDashboardService] while it runs. It listens only on the phone's
@@ -52,7 +55,7 @@ object WebDashboard {
     private val assets = HashMap<String, ByteArray>()
 
     /** The phone's address on the local network: Wi-Fi first, then its own hotspot. Null on mobile data only. */
-    fun localAddress(): Inet4Address? = runCatching {
+    fun localAddress(): Inet4Address? = try {
         val all = NetworkInterface.getNetworkInterfaces()?.toList().orEmpty().filter { it.isUp && !it.isLoopback && !it.isVirtual }
         fun rank(name: String) = when {
             name.startsWith("wlan") -> 0
@@ -63,7 +66,10 @@ object WebDashboard {
         all.filter { rank(it.name) < 9 }.sortedBy { rank(it.name) }.firstNotNullOfOrNull { ni ->
             ni.inetAddresses.toList().filterIsInstance<Inet4Address>().firstOrNull { it.isSiteLocalAddress }
         }
-    }.getOrNull()
+    } catch (e: SocketException) {
+        Log.w("Web", e) { "network interfaces unreadable" }
+        null
+    }
 
     fun refresh() {
         val ip = localAddress()
@@ -88,12 +94,15 @@ object WebDashboard {
         val app = ctx.applicationContext
         val a = WebApi(
             repo = { (app as MoneyTrackerApp).database.repo },
-            asset = { name -> synchronized(assets) { assets.getOrPut(name) { runCatching { app.assets.open("web/$name").use { it.readBytes() } }.getOrNull() ?: return@synchronized null } } },
+            asset = { name -> pageFile(app, name) },
             host = { host },
             onVisit = { publish() },
         )
         val s = HttpServer(a::handle)
-        val port = runCatching { s.start(ip, PORT_FIRST..PORT_LAST) }.onFailure { Log.e("Web", it) { "server failed to start" } }.getOrNull() ?: run {
+        val port = try {
+            s.start(ip, PORT_FIRST..PORT_LAST)
+        } catch (e: IOException) {
+            Log.e("Web", e) { "server failed to start" }
             mutable.value = WebDashboardState(wifi = true, error = tr("Couldn't start: ports {0}–{1} are in use on this phone.", PORT_FIRST, PORT_LAST))
             return null
         }
@@ -103,6 +112,16 @@ object WebDashboard {
         mutable.value = WebDashboardState(running = true, wifi = true, address = host)
         Log.i("Web") { "dashboard started on port $port" }
         return host
+    }
+
+    /** A file of the browser page from assets/web, cached once read; null when there's no such file. */
+    private fun pageFile(app: Context, name: String): ByteArray? = synchronized(assets) {
+        assets[name] ?: try {
+            app.assets.open("web/$name").use { it.readBytes() }.also { assets[name] = it }
+        } catch (e: IOException) {
+            Log.d("Web") { "no page file: ${e::class.simpleName}" }
+            null
+        }
     }
 
     fun stopServer(reason: String?) {
@@ -174,11 +193,25 @@ class WebDashboardService : Service() {
     private fun check() {
         if (!WebDashboard.state.value.running) return shutdown(null)
         if (!WebDashboard.stillOnNetwork()) return shutdown(tr("Stopped because the phone left the Wi-Fi network."))
-        val minutes = runCatching { (application as MoneyTrackerApp).database.repo?.settingNow(Prefs.WEB_AUTO_STOP) }.getOrNull() ?: Prefs.WEB_AUTO_STOP.default
+        val minutes = autoStopMinutes()
         if (minutes > 0 && System.currentTimeMillis() - WebDashboard.lastVisit() > minutes * 60_000L) {
             return shutdown(tr("Stopped after {0} minutes with no visits.", minutes))
         }
         WebDashboard.publish()
+    }
+
+    /** The chosen idle time; the default while the database is closed or being swapped by a restore. */
+    private fun autoStopMinutes(): Int {
+        val repo = (application as MoneyTrackerApp).database.repo ?: return Prefs.WEB_AUTO_STOP.default
+        return try {
+            repo.settingNow(Prefs.WEB_AUTO_STOP)
+        } catch (e: SQLiteException) {
+            Log.w("Web", e) { "auto-stop setting unreadable" }
+            Prefs.WEB_AUTO_STOP.default
+        } catch (e: IllegalStateException) {
+            Log.w("Web", e) { "auto-stop setting unreadable: database closed" }
+            Prefs.WEB_AUTO_STOP.default
+        }
     }
 
     private fun shutdown(reason: String?, keepError: Boolean = false) {
@@ -203,17 +236,26 @@ class WebDashboardService : Service() {
     private fun acquireLocks() {
         if (wakeLock == null) wakeLock = getSystemService(PowerManager::class.java)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MoneyTracker:webDashboard").apply { setReferenceCounted(false); acquire() }
-        if (wifiLock == null) wifiLock = runCatching {
-            val wm = applicationContext.getSystemService(WifiManager::class.java)
-            @Suppress("DEPRECATION")
-            val mode = if (Build.VERSION.SDK_INT >= 29) WifiManager.WIFI_MODE_FULL_LOW_LATENCY else WifiManager.WIFI_MODE_FULL_HIGH_PERF
+        if (wifiLock == null) wifiLock = newWifiLock()
+    }
+
+    /** Keeps Wi-Fi awake for the page; the dashboard still runs, just slower, without it. */
+    private fun newWifiLock(): WifiManager.WifiLock? {
+        val wm = applicationContext.getSystemService(WifiManager::class.java) ?: return null
+        @Suppress("DEPRECATION")
+        val mode = if (Build.VERSION.SDK_INT >= 29) WifiManager.WIFI_MODE_FULL_LOW_LATENCY else WifiManager.WIFI_MODE_FULL_HIGH_PERF
+        return try {
             wm.createWifiLock(mode, "MoneyTracker:webDashboard").apply { setReferenceCounted(false); acquire() }
-        }.getOrNull()
+        } catch (e: SecurityException) {
+            Log.w("Web", e) { "no Wi-Fi lock" }
+            null
+        }
     }
 
     private fun releaseLocks() {
-        runCatching { wakeLock?.takeIf { it.isHeld }?.release() }
-        runCatching { wifiLock?.takeIf { it.isHeld }?.release() }
+        // Both locks are not reference-counted, so releasing a held one can't under-lock.
+        wakeLock?.takeIf { it.isHeld }?.release()
+        wifiLock?.takeIf { it.isHeld }?.release()
         wakeLock = null
         wifiLock = null
     }

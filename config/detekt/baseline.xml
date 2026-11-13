@@ -259,7 +259,6 @@
     <ID>UnusedPrivateProperty:HomeTab.kt$val daysGone = (range.start.daysUntil(today) + 1).coerceAtLeast(1)</ID>
     <ID>UnusedPrivateProperty:SettingsScreens.kt$val backup = LocalBackup.current</ID>
     <ID>UnusedPrivateProperty:SettingsScreens.kt$val currency = LocalCurrency.current</ID>
-    <ID>UseCheckOrError:HttpServer.kt$HttpServer$throw last ?: IllegalStateException("No port")</ID>
     <ID>UseRequire:Json.kt$Json.Parser$throw IllegalArgumentException("Unexpected '$c'")</ID>
   </CurrentIssues>
 </SmellBaseline>
