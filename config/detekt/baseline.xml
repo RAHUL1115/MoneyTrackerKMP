@@ -15,7 +15,6 @@
     <ID>ComplexCondition:SmartText.kt$SmartText$ch.isLetterOrDigit() || ch == '_' || ch.isWhitespace() || ch == '&amp;'</ID>
     <ID>ComplexCondition:SmsParser.kt$SmsParser$cleaned.length &lt; 2 || cleaned.all { it.isDigit() || it == 'x' || it == 'X' || it == '*' }</ID>
     <ID>ComplexCondition:TabularImport.kt$TabularImport$v.any { it == ',' || it == '"' || it == '\n' || it == '\r' }</ID>
-    <ID>ComplexCondition:WebApi.kt$WebApi.Companion$ip.isEmpty() || ip.any { !(it.isLetterOrDigit() || it == '.' || it == ':' || it == '%') }</ID>
     <ID>CyclomaticComplexMethod:AccountPredictor.kt$AccountPredictor$fun rank(history: List&lt;Past&gt;, ask: Ask, allowed: Set&lt;String&gt;? = null): List&lt;Pair&lt;String, Double&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:AndroidBackupController.kt$AndroidBackupController$private fun copyToFolder(file: File, kind: String)</ID>
     <ID>CyclomaticComplexMethod:Charts.kt$@Composable fun DonutChart( values: List&lt;Long&gt;, modifier: Modifier = Modifier, id: String? = null, selected: Int? = null, onSelect: ((Int?) -&gt; Unit)? = null, center: @Composable () -&gt; Unit = {}, )</ID>
@@ -34,7 +33,6 @@
     <ID>CyclomaticComplexMethod:SmsParser.kt$SmsParser$fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed?</ID>
     <ID>CyclomaticComplexMethod:SmsParser.kt$SmsParser$fun vendorOf(text: String): String?</ID>
     <ID>CyclomaticComplexMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
-    <ID>CyclomaticComplexMethod:WebApi.kt$WebApi$private fun draft(r: MoneyRepository, b: Map&lt;*, *&gt;, existing: Txn?): TxnDraft</ID>
     <ID>CyclomaticComplexMethod:Xlsx.kt$Xlsx$private fun readSheet(bytes: ByteArray, shared: List&lt;String&gt;): List&lt;List&lt;String&gt;&gt;</ID>
     <ID>EmptyElseBlock:AndroidPlatform.kt$AndroidPlatform$if (ok) Notifications.showQuickAdd(ctx)</ID>
     <ID>EmptyElseBlock:AndroidPlatform.kt$AndroidPlatform$if (ok) Reminders.schedule(ctx, hour, minute)</ID>
@@ -42,7 +40,6 @@
     <ID>EmptyElseBlock:AndroidSpeech.kt$AndroidSpeech.FakeSession$if (done) return</ID>
     <ID>EmptyElseBlock:AndroidSpeech.kt$AndroidSpeech.RealSession$if (done) return</ID>
     <ID>EmptyElseBlock:Calc.kt$Calc$if (rhs == 0.0) return null</ID>
-    <ID>EmptyElseBlock:Json.kt$Json$if (!first) out.append(',')</ID>
     <ID>EmptyElseBlock:SmartModels.kt$PieceSplitter$if (piece[j] &gt;= 0) rev.add(piece[j])</ID>
     <ID>EmptyElseBlock:SmartParser.kt$SmartParser$if (c != null) vals.add(c)</ID>
     <ID>EmptyElseBlock:WebDashboardFresh.kt$if (text.isEmpty()) Text(tr("New password"), color = F.muted, fontSize = 16.sp)</ID>
@@ -61,7 +58,6 @@
     <ID>LongMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
     <ID>LongMethod:WebDashboardFresh.kt$@Composable internal fun FreshWebDashboard()</ID>
     <ID>LongParameterList:WebDashboardScreens.kt$WebDashboardUi$( val state: WebDashboardState, val passwordSet: Boolean, val autoStop: Int, val now: Long, val start: () -&gt; Unit, val stop: () -&gt; Unit, val copy: () -&gt; Unit, val disconnect: (String) -&gt; Unit, val setPassword: (String?) -&gt; Unit, val setAutoStop: (Int) -&gt; Unit, val openWifi: () -&gt; Unit, /** Set briefly after Copy. */ val copied: Boolean, )</ID>
-    <ID>LoopWithTooManyJumpStatements:HttpServer.kt$HttpServer$while</ID>
     <ID>LoopWithTooManyJumpStatements:SmartParser.kt$SmartParser$for</ID>
     <ID>LoopWithTooManyJumpStatements:SmsParser.kt$SmsParser$for</ID>
     <ID>MatchingDeclarationName:FreshApp.kt$FreshTab</ID>
@@ -80,21 +76,12 @@
     <ID>ReturnCount:MessageRules.kt$MessageRules$fun suggestAccount( accounts: List&lt;Account&gt;, groups: List&lt;AccountGroup&gt;, sender: String, text: String, parsed: SmsParser.Parsed, learnedAccountId: String?, ): String?</ID>
     <ID>ReturnCount:SmsParser.kt$SmsParser$fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed?</ID>
     <ID>ReturnCount:TxnFilter.kt$TxnFilter$fun matches(t: Txn, catById: Map&lt;String, Category&gt;, tagged: Set&lt;String&gt; = emptySet()): Boolean</ID>
-    <ID>ReturnCount:WebApi.kt$WebApi$fun handle(req: HttpRequest): HttpResponse</ID>
-    <ID>ReturnCount:WebApi.kt$WebPassword$fun check(password: String, stored: String?): Boolean</ID>
     <ID>SpreadOperator:DataChanges.kt$(*others, listener = listener)</ID>
-    <ID>ThrowsCount:HttpServer.kt$HttpServer$private fun read(input: InputStream, remote: String): HttpRequest?</ID>
-    <ID>ThrowsCount:WebApi.kt$WebApi$private fun draft(r: MoneyRepository, b: Map&lt;*, *&gt;, existing: Txn?): TxnDraft</ID>
-    <ID>ThrowsCount:WebApi.kt$WebApi$private fun range(req: HttpRequest, r: MoneyRepository): Pair&lt;DateRange, String&gt;</ID>
     <ID>TooGenericExceptionCaught:AndroidBackupController.kt$AndroidBackupController$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Background.kt$MoneyWidget$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Background.kt$ReminderReceiver$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Background.kt$SmsReceiver$e: Exception</ID>
     <ID>TooGenericExceptionCaught:DatabaseManager.kt$DatabaseManager.Companion$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:HttpServer.kt$HttpServer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Log.kt$Log$t: Throwable</ID>
-    <ID>UnusedParameter:WebApi.kt$WebApi$r: MoneyRepository</ID>
-    <ID>UnusedParameter:WebApi.kt$WebApi$s: Session</ID>
-    <ID>UseRequire:Json.kt$Json.Parser$throw IllegalArgumentException("Unexpected '$c'")</ID>
   </CurrentIssues>
 </SmellBaseline>
