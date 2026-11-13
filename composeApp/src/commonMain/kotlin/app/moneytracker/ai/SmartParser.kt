@@ -74,28 +74,28 @@ class SmartParser private constructor(
 
     /** ["two","fifty"] → 250, ["1.5k"] → 1500, ["dedh","sau"] → 150, ["sadhe","tin","sau"] → 350. */
     internal fun parseAmount(words: List<String>): Double? {
-        val vals = ArrayList<Double>(); var cur: Double? = null; var h = 0.0
+        val tally = AmountTally()
         for (w in words) {
-            if (w in currency) continue
-            if (w in half) { h = half.getValue(w); continue }
-            val m = numRe.matchEntire(w)
-            val v: Double = when {
-                m != null -> m.groupValues[1].toDouble() * (if (m.groupValues[2].isNotEmpty()) 1000 else 1)
-                w in en && w != "a" -> en.getValue(w)
-                w in hi -> hi.getValue(w)
-                w in scaleWords -> { cur = ((cur ?: 1.0) + h) * scaleWords.getValue(w); h = 0.0; continue }
-                else -> continue
-            }
-            val c = cur
-            cur = when {
-                c != null && c >= 100 && v < c -> c + v
-                c != null && c < 10 && v >= 10 && v < 100 -> c * 100 + v
-                c != null && c >= 20 && c % 10 == 0.0 && v < 10 -> c + v
-                else -> { if (c != null) vals.add(c); v }
+            val number = numberValue(w)
+            val scale = scaleWords[w]
+            when {
+                w in currency -> Unit
+                w in half -> tally.half = half.getValue(w)
+                number != null -> tally.add(number)
+                scale != null -> tally.scale(scale)
             }
         }
-        cur?.let { vals.add(if (h != 0.0 && it < 100) it + h else it) }
-        return vals.firstOrNull()
+        return tally.first()
+    }
+
+    /** A number written in digits ("250", "1.5k") or as an English or Hindi number word; null for anything else. */
+    private fun numberValue(w: String): Double? {
+        val m = numRe.matchEntire(w)
+        return when {
+            m != null -> m.groupValues[1].toDouble() * (if (m.groupValues[2].isNotEmpty()) 1000 else 1)
+            w in en && w != "a" -> en.getValue(w)
+            else -> hi[w]
+        }
     }
 
     private val parsoRe = Regex("\\bparso")
@@ -104,7 +104,7 @@ class SmartParser private constructor(
     internal fun daysAgo(words: List<String>): Int {
         val s = words.joinToString(" ")
         if ("day before yesterday" in s || parsoRe.containsMatchIn(s)) return 2
-        if ("yesterday" in s || "yestarday" in s || kalRe.containsMatchIn(s) || "last night" in s) return 1
+        if (YESTERDAY.any { it in s } || kalRe.containsMatchIn(s)) return 1
         return 0
     }
 
@@ -242,48 +242,56 @@ class SmartParser private constructor(
         val raw = SmartText.norm(text).split(' ').filter { it.isNotEmpty() }
         val ws = toks(text)
         val lab = fixAccountPhrases(ws, label(ws))
-        // Spans of equal labels.
-        val spans = HashMap<String, MutableList<List<String>>>()
-        var cur = ""; var buf = ArrayList<String>()   // no label is empty, so the first word always starts a span
-        for ((w, t) in (ws + "</s>").zip(lab + "O")) {
-            if (t != cur && buf.isNotEmpty()) { spans.getOrPut(cur) { ArrayList() }.add(buf); buf = ArrayList() }
-            cur = t
-            if (t != "O") buf.add(w)
-        }
-        // Amounts; "200 no sorry 250": a correction word between two amounts drops the earlier one.
-        val amtSpans = ArrayList<List<String>>(); val pos = ArrayList<IntArray>(); var i = 0
-        while (i < ws.size) {
-            if (lab[i] == "AMT") { var j = i; while (j < ws.size && lab[j] == "AMT") j++; amtSpans.add(ws.subList(i, j)); pos.add(intArrayOf(i, j)); i = j } else i++
-        }
-        val keep = ArrayList<Int>()
-        for (k in amtSpans.indices) {
-            if (keep.isNotEmpty() && ws.subList(pos[keep.last()][1], pos[k][0]).any { it in correction }) keep[keep.size - 1] = k else keep.add(k)
-        }
-        val amounts = keep.mapNotNull { parseAmount(amtSpans[it]) }
-        val items = (spans["ITEM"] ?: emptyList()).map { sp ->
-            sp.filterIndexed { k, w -> !(w in lead && sp.subList(0, k + 1).all { it in lead }) }.joinToString(" ")
-        }.filter { it.isNotEmpty() && it !in lead }
-        val heard = ArrayList<String>(); var start = -1
-        for (k in 0..ws.size) {
-            val isItem = k < ws.size && lab[k] == "ITEM"
-            if (isItem && start < 0) start = k
-            if (!isItem && start >= 0) {
-                var a = start
-                while (a < k && (ws[a] in lead || ws[a] in OWNER)) a++
-                if (a < k) heard.add((a until k).joinToString(" ") { SmartText.translit(raw.getOrElse(it) { ws[it] }) })
-                start = -1
-            }
-        }
-        // "my credit card … from SBI": the phrase that names something specific wins over a generic one.
-        val accSpan = (spans["ACC"]?.firstOrNull { sp -> sp.any { it !in genericAcc && it !in OWNER } } ?: spans["ACC"]?.firstOrNull())?.joinToString(" ") ?: (if ("cash" in ws) "cash" else "")
-        val tp = typeProbs(ws); var kind = types[argmax(tp)]
-        // Spending is far more common than income: a hesitant "income" with no income word ("got", "received", "salary"…) is spending.
-        if (kind == "income" && tp.max() < 0.75f && ws.none { it in INCOME_CUES }) kind = "expense"
-        val itemFolded = items.joinToString(" ").ifEmpty { ws.filterIndexed { k, _ -> lab[k] == "O" }.joinToString(" ") }
-        val itemRaw = raw.filterIndexed { k, _ -> lab[k] == "ITEM" }.joinToString(" ").ifEmpty { raw.filterIndexed { k, _ -> lab[k] == "O" }.joinToString(" ") }
+        val runs = labelRuns(lab)
+        val items = itemsSaid(ws, runs)
+        val heard = itemsHeard(ws, raw, runs)
+        val amounts = amountsSaid(ws, runs)
+        val tp = typeProbs(ws)
+        val kind = kindOf(ws, tp)
+        val itemFolded = items.joinToString(" ").ifEmpty { wordsLabelled(ws, lab, "O") }
+        val itemRaw = wordsLabelled(raw, lab, "ITEM").ifEmpty { wordsLabelled(raw, lab, "O") }
         val cats = if (kind == "transfer") emptyList() else categorise(itemFolded, itemRaw, if (kind == "income") incomeCategories else expenseCategories)
-        return Result(kind, tp.max(), if (amounts.isEmpty()) null else amounts.sum(), items, resolveAccount(accSpan, accounts), daysAgo(ws), cats, ws.zip(lab), heard.takeIf { it.size == items.size } ?: items)
+        return Result(kind, tp.max(), if (amounts.isEmpty()) null else amounts.sum(), items, resolveAccount(accountSpan(ws, runs), accounts), daysAgo(ws), cats, ws.zip(lab), heard.takeIf { it.size == items.size } ?: items)
     }
+
+    /** Amounts said; "200 no sorry 250": a correction word between two amounts drops the earlier one. */
+    private fun amountsSaid(ws: List<String>, runs: List<LabelRun>): List<Double> {
+        val kept = ArrayList<IntRange>()
+        for (run in runs.filter { it.label == "AMT" }) {
+            val corrected = kept.isNotEmpty() && ws.subList(kept.last().last + 1, run.words.first).any { it in correction }
+            if (corrected) kept[kept.lastIndex] = run.words else kept.add(run.words)
+        }
+        return kept.mapNotNull { parseAmount(ws.slice(it)) }
+    }
+
+    /** What was bought, one entry per item phrase, without leading filler words. */
+    private fun itemsSaid(ws: List<String>, runs: List<LabelRun>): List<String> =
+        runs.filter { it.label == "ITEM" }.map { run -> ws.slice(run.words).dropWhile { it in lead }.joinToString(" ") }
+            .filter { it.isNotEmpty() && it !in lead }
+
+    /** The item phrases in the words as heard (Hindi script in Latin letters), without leading filler or "my". */
+    private fun itemsHeard(ws: List<String>, raw: List<String>, runs: List<LabelRun>): List<String> =
+        runs.filter { it.label == "ITEM" }.mapNotNull { run ->
+            val words = run.words.dropWhile { ws[it] in lead || ws[it] in OWNER }
+            if (words.isEmpty()) null else words.joinToString(" ") { SmartText.translit(raw.getOrElse(it) { ws[it] }) }
+        }
+
+    /** "my credit card … from SBI": the phrase that names something specific wins over a generic one. */
+    private fun accountSpan(ws: List<String>, runs: List<LabelRun>): String {
+        val phrases = runs.filter { it.label == "ACC" }.map { ws.slice(it.words) }
+        val named = phrases.firstOrNull { sp -> sp.any { it !in genericAcc && it !in OWNER } } ?: phrases.firstOrNull()
+        return named?.joinToString(" ") ?: (if ("cash" in ws) "cash" else "")
+    }
+
+    /** Spending is far more common than income: a hesitant "income" with no income word ("got", "received", "salary"…) is spending. */
+    private fun kindOf(ws: List<String>, tp: FloatArray): String {
+        val kind = types[argmax(tp)]
+        val hesitantIncome = kind == "income" && tp.max() < 0.75f && ws.none { it in INCOME_CUES }
+        return if (hesitantIncome) "expense" else kind
+    }
+
+    private fun wordsLabelled(words: List<String>, lab: List<String>, label: String) =
+        words.filterIndexed { k, _ -> lab[k] == label }.joinToString(" ")
 
     /**
      * "on my credit card", "from my account", "with my HDFC card": the card or account word and the generic words before it
@@ -292,21 +300,80 @@ class SmartParser private constructor(
     private fun fixAccountPhrases(ws: List<String>, tagged: List<String>): List<String> {
         val lab = tagged.toMutableList()
         for (k in ws.indices) {
-            if (ws[k] !in ACC_HEADS) continue
-            if (k > 0 && lab[k - 1] == "ITEM" && ws[k - 1] !in genericAcc && ws[k - 1] !in OWNER) continue
-            // "credit card bill", "card cashback", "card late fee": the card is what the money is about, not how it was paid.
-            if (k + 1 < ws.size && (tagged[k + 1] == "ITEM" || ws[k + 1] in CARD_THINGS)) continue
+            if (!namesPaymentAccount(ws, lab, tagged, k)) continue
             var a = k
-            while (a > 0 && lab[a - 1] != "AMT" && lab[a - 1] != "DATE" && (ws[a - 1] in genericAcc || ws[a - 1] in OWNER || lab[a - 1] == "ACC")) a--
+            while (a > 0 && extendsAccountPhrase(ws[a - 1], lab[a - 1])) a--
             for (j in a..k) lab[j] = "ACC"
         }
         return lab
     }
 
+    private fun namesPaymentAccount(ws: List<String>, lab: List<String>, tagged: List<String>, k: Int): Boolean {
+        if (ws[k] !in ACC_HEADS) return false
+        val itemBefore = k > 0 && lab[k - 1] == "ITEM" && !isGenericAccountWord(ws[k - 1])
+        // "credit card bill", "card cashback", "card late fee": the card is what the money is about, not how it was paid.
+        val aboutTheCard = k + 1 < ws.size && (tagged[k + 1] == "ITEM" || ws[k + 1] in CARD_THINGS)
+        return !itemBefore && !aboutTheCard
+    }
+
+    /** "my", "credit" and earlier account words before "card" belong to the account phrase; an amount or a date ends it. */
+    private fun extendsAccountPhrase(word: String, label: String) =
+        label != "AMT" && label != "DATE" && (isGenericAccountWord(word) || label == "ACC")
+
+    private fun isGenericAccountWord(w: String) = w in genericAcc || w in OWNER
 
     private fun argmax(a: FloatArray): Int { var b = 0; for (i in 1 until a.size) if (a[i] > a[b]) b = i; return b }
 }
 
+/** A run of consecutive words sharing one label; [words] are their positions. */
+internal data class LabelRun(val label: String, val words: IntRange)
+
+/** ["ITEM","ITEM","O","ACC"] → ITEM 0..1, O 2..2, ACC 3..3. */
+internal fun labelRuns(labels: List<String>): List<LabelRun> {
+    val runs = ArrayList<LabelRun>()
+    var start = 0
+    for (k in 1..labels.size) {
+        if (k == labels.size || labels[k] != labels[start]) {
+            runs.add(LabelRun(labels[start], start until k))
+            start = k
+        }
+    }
+    return runs
+}
+
+/** Running total while number words are read left to right ("two thousand five hundred", "dedh sau"). */
+private class AmountTally {
+    private val values = ArrayList<Double>()
+    private var current: Double? = null
+    /** A pending "dedh"/"sadhe" (one and a half, and a half) for the next scale word. */
+    var half = 0.0
+
+    /** "two" then "fifty" → 250; "hundred" then "five" → 105; otherwise the earlier number is finished. */
+    fun add(v: Double) {
+        val c = current
+        current = when {
+            c == null -> v
+            c >= 100 && v < c -> c + v
+            c < 10 && v >= 10 && v < 100 -> c * 100 + v
+            c >= 20 && c % 10 == 0.0 && v < 10 -> c + v
+            else -> { values.add(c); v }
+        }
+    }
+
+    /** "thousand", "sau": multiplies what came before (1 when nothing did). */
+    fun scale(by: Double) {
+        current = ((current ?: 1.0) + half) * by
+        half = 0.0
+    }
+
+    /** The first number said. */
+    fun first(): Double? {
+        current?.let { values.add(if (half != 0.0 && it < 100) it + half else it) }
+        return values.firstOrNull()
+    }
+}
+
+private val YESTERDAY = listOf("yesterday", "yestarday", "last night")
 private val ACC_HEADS = setOf("card", "acount", "account")
 private val OWNER = setOf("my", "mera", "meri", "mere", "the", "our")
 /** Folded spellings of words that mark money coming in. */

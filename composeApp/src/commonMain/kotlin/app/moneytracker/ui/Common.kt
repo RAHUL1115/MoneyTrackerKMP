@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -472,11 +471,6 @@ fun subCategoryName(id: String?, byId: Map<String, Category>): String? {
     return if (c.parentId != null) c.name else null
 }
 
-@Composable
-fun FullScreen(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().background(PageBackground)) { content() }
-}
-
 /**
  * Month picker: drops down under the top bar (no dimming), dark header with "Date",
  * THIS MONTH and close, the year with ‹ ›, then the twelve months as plain text; the shown month is in the accent colour.
@@ -497,28 +491,43 @@ fun MonthPickerDialog(selected: YearMonth, current: YearMonth, onDismiss: () -> 
             Modifier.padding(horizontal = 12.dp).fillMaxWidth().shadow(10.dp, RoundedCornerShape(12.dp))
                 .clip(RoundedCornerShape(12.dp)).background(SurfaceColor).padding(bottom = 8.dp),
         ) {
-            Row(Modifier.fillMaxWidth().background(PickerHeader).height(52.dp).padding(start = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Date"), Modifier.weight(1f), color = Color.White, fontSize = 15.sp)
-                Text(tr("THIS MONTH"), Modifier.clip(RoundedCornerShape(8.dp)).clickable { onPick(current) }.padding(horizontal = 10.dp, vertical = 8.dp),
-                    color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                IconButton(onClick = onDismiss) { Icon(androidx.compose.material.icons.Icons.Filled.Close, tr("Close"), tint = Color.White) }
-            }
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { year-- }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, tr("Previous year"), tint = InkSoft) }
-                Text(year.toString(), Modifier.weight(1f), textAlign = TextAlign.Center, color = InkSoft, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                IconButton(onClick = { year++ }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, tr("Next year"), tint = InkSoft) }
-            }
-            (1..12).chunked(4).forEach { row ->
-                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-                    row.forEach { m ->
-                        val isSel = year == selected.year && m == selected.month
-                        Box(
-                            Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(10.dp)).clickable { onPick(YearMonth(year, m)) },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(monthShort(m).uppercase(), color = if (isSel) Accent else Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
+            MonthPickerHeader(onThisMonth = { onPick(current) }, onDismiss = onDismiss)
+            YearStepper(year, onChange = { year = it })
+            MonthGrid(selected = selected.takeIf { it.year == year }?.month, onPick = { m -> onPick(YearMonth(year, m)) })
+        }
+    }
+}
+
+@Composable
+private fun MonthPickerHeader(onThisMonth: () -> Unit, onDismiss: () -> Unit) {
+    Row(Modifier.fillMaxWidth().background(PickerHeader).height(52.dp).padding(start = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(tr("Date"), Modifier.weight(1f), color = Color.White, fontSize = 15.sp)
+        Text(tr("THIS MONTH"), Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onThisMonth).padding(horizontal = 10.dp, vertical = 8.dp),
+            color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        IconButton(onClick = onDismiss) { Icon(androidx.compose.material.icons.Icons.Filled.Close, tr("Close"), tint = Color.White) }
+    }
+}
+
+@Composable
+private fun YearStepper(year: Int, onChange: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { onChange(year - 1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, tr("Previous year"), tint = InkSoft) }
+        Text(year.toString(), Modifier.weight(1f), textAlign = TextAlign.Center, color = InkSoft, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        IconButton(onClick = { onChange(year + 1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, tr("Next year"), tint = InkSoft) }
+    }
+}
+
+/** The twelve months, four to a row; [selected] (a month number, or null) is in the accent colour. */
+@Composable
+private fun MonthGrid(selected: Int?, onPick: (Int) -> Unit) {
+    for (firstOfRow in 1..12 step 4) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+            for (m in firstOfRow until firstOfRow + 4) {
+                Box(
+                    Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(10.dp)).clickable { onPick(m) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(monthShort(m).uppercase(), color = if (m == selected) Accent else Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }

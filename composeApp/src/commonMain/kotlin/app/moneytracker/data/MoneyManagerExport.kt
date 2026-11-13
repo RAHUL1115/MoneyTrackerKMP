@@ -30,166 +30,141 @@ object MoneyManagerExport {
         MoneyManagerSchema.statements.forEach(sink::exec)
         sink.exec("PRAGMA user_version = ${MoneyManagerSchema.VERSION}")
         sink.insert("android_metadata", mapOf("locale" to "en_US"))
+        Writer(sink, d, tz, now).writeAll()
+    }
 
-        val main = d.mainCode
-        val decimalsOf = d.currencies.associate { it.code to it.decimals }
-        fun currencyUid(code: String?) = "${main}_${code ?: main}"
-        fun dec(code: String?) = code?.let { decimalsOf[it] } ?: d.mainDecimals
-        fun real(minor: Long, decimals: Int) = minor / CurrencyFormat.pow10(decimals).toDouble()
-        fun text(minor: Long, decimals: Int) = real(minor, decimals).toString()
+    /** Writes every table's rows for one export; [now] is the modification time stamped on each row. */
+    private class Writer(private val sink: RowSink, private val d: MoneyManagerBackup.Data, private val tz: TimeZone, private val now: Long) {
+        private val main = d.mainCode
+        private val decimalsOf = d.currencies.associate { it.code to it.decimals }
+        private val synced = mapOf("isSynced" to 0)
+
+        private fun insert(table: String, values: Map<String, Any?>) = sink.insert(table, synced + values)
+        private fun currencyUid(code: String?) = "${main}_${code ?: main}"
+        private fun dec(code: String?) = code?.let { decimalsOf[it] } ?: d.mainDecimals
+        private fun real(minor: Long, decimals: Int) = minor / CurrencyFormat.pow10(decimals).toDouble()
+        private fun text(minor: Long, decimals: Int) = real(minor, decimals).toString()
         // Dates are stored as epoch ms; noon keeps the day stable whatever the reader's time zone is.
-        fun noon(date: LocalDate) = LocalDateTime(date, LocalTime(12, 0)).toInstant(tz).toEpochMilliseconds()
-        val synced = mapOf("isSynced" to 0)
+        private fun noon(date: LocalDate) = LocalDateTime(date, LocalTime(12, 0)).toInstant(tz).toEpochMilliseconds()
 
-        // Currencies: the main one, then the others ("INR_USD" = USD in an INR book).
-        sink.insert("CURRENCY", synced + mapOf(
-            "uid" to currencyUid(null), "NAME" to main, "ISO" to main, "MAIN_ISO" to main, "IS_DEL" to 0, "ORDER_SEQ" to 100, "RATE" to 1.0,
-            "SYMBOL" to d.mainSymbol, "INSERT_TYPE" to "I", "SYMBOL_POSITION" to if (d.settings[Prefs.SYMBOL_AFTER.key] == "1") "S" else "P",
-            "IS_MAIN_CURRENCY" to 1, "IS_SHOW" to 1, "MODIFY_DATE" to now, "DECIMAL_POINT" to d.mainDecimals,
-        ))
-        d.currencies.forEachIndexed { i, c ->
-            sink.insert("CURRENCY", synced + mapOf(
-                "uid" to currencyUid(c.code), "NAME" to c.code, "ISO" to c.code, "MAIN_ISO" to main, "IS_DEL" to 0, "ORDER_SEQ" to 101 + i,
-                "RATE" to c.rate, "SYMBOL" to c.symbol, "INSERT_TYPE" to "I", "SYMBOL_POSITION" to "P", "IS_MAIN_CURRENCY" to 0, "IS_SHOW" to 1,
-                "MODIFY_DATE" to now, "DECIMAL_POINT" to c.decimals,
-            ))
-        }
-
-        d.groups.forEach { g ->
-            sink.insert("ASSETGROUP", synced + mapOf(
-                "uid" to g.id, "IS_DEL" to if (g.deleted) 1 else 0, "USETIME" to now, "ACC_GROUP_NAME" to g.name,
-                "TYPE" to groupCode(g.type), "ORDERSEQ" to g.sortOrder,
-            ))
-        }
-        d.accounts.forEach { a ->
-            sink.insert("ASSETS", synced + mapOf(
-                "uid" to a.id, "groupUid" to a.groupId, "NIC_NAME" to a.name, "ORDERSEQ" to a.sortOrder,
-                // 0 = normal, 1 = deleted, 3 = hidden; ZDATA2 1 = left out of totals.
-                "ZDATA" to when { a.deleted -> "1"; a.hidden -> "3"; else -> "0" }, "ZDATA1" to a.memo, "ZDATA2" to if (a.includeInTotals) "0" else "1",
-                "IS_TRANS_EXPENSE" to if (a.transferAsExpense) 1 else 0,
-                "CARD_DAY_FIN" to (a.cardSettlementDay ?: 1).toString(), "CARD_DAY_PAY" to (a.cardPaymentDay ?: 1).toString(),
-                "IS_CARD_AUTO_PAY" to if (a.cardAutoPay) 1 else 0, "cardAssetUid" to a.cardPaymentAccountId.orEmpty(),
-                "CARD_USAGE_HURDLE_TYPE" to if (a.usageTarget == null) 0 else a.usageTargetType,
-                "CARD_USAGE_HURDLE_AMOUNT" to real(a.usageTarget ?: 0, dec(a.currency)),
-                "SMS_TEL" to a.smsSender, "SMS_STRING" to a.smsMatch, "A_UTIME" to now, "currencyUid" to currencyUid(a.currency),
-            ))
-        }
-        d.categories.forEach { c ->
-            sink.insert("ZCATEGORY", synced + mapOf(
-                "uid" to c.id, "NAME" to c.name, "TYPE" to if (c.income) 0 else 1, "ORDERSEQ" to c.sortOrder,
-                // STATUS 2 = sub-category of pUid; active rows leave C_IS_DEL empty, as Money Manager does.
-                "STATUS" to if (c.parentId != null) 2 else 0, "pUid" to (c.parentId ?: "0"),
-                "C_IS_DEL" to if (c.deleted) 1 else null, "C_UTIME" to now, "syncVersion" to 0,
-            ))
+        fun writeAll() {
+            currencies()
+            d.groups.forEach(::group)
+            d.accounts.forEach(::account)
+            d.categories.forEach(::category)
+            txns()
+            d.rules.forEach(::rule)
+            budgets()
+            d.tags.forEach { g -> insert("TAG", mapOf("uid" to g.id, "name" to g.name, "orderSeq" to g.sortOrder, "isDel" to 0, "utime" to now)) }
+            d.txnTags.forEach { (txn, tag) ->
+                insert("TX_TAG", mapOf("uid" to "${txn}_$tag", "txUid" to txn, "tagUid" to tag, "orderSeq" to 0, "isDel" to 0, "utime" to now))
+            }
+            d.memos.forEachIndexed(::memo)
+            MoneyManagerSettings.rows(d.settings).forEachIndexed { i, (type, key, value) ->
+                insert("ZETC", mapOf("uid" to "etc_${type}_$i", "E_UTIME" to now, "ZDATATYPE" to type, "ZDATA" to value, "dataTypeKey" to key, "isDel" to 0))
+            }
         }
 
-        // Entries. A transfer's fee row and its out-leg share a txUidFee key.
-        val feeKey = d.txns.filter { isTransferFee(it.kind, it.transferGroupId) }.mapNotNull { it.transferGroupId }.associateWith { "fee_$it" }
-        val repeatOfRule = d.rules.associate { it.id to repeatCode(it.repeat) }
-        val accountCurrency = d.accounts.associate { it.id to it.currency }
-        d.txns.forEach { t ->
-            val isFee = isTransferFee(t.kind, t.transferGroupId)
-            // The time of day lives in ZDATE; without one, when the entry was made.
-            val at = t.timeOfDay?.let { LocalDateTime(t.date, LocalTime(it / 60, it % 60)).toInstant(tz).toEpochMilliseconds() }
-                ?: t.createdAt.takeIf { it > 0 } ?: t.date.atStartOfDayIn(tz).toEpochMilliseconds()
-            sink.insert("INOUTCOME", synced + mapOf(
-                "uid" to t.id, "assetUid" to t.accountId, "toAssetUid" to t.toAccountId.orEmpty(),
-                "ctgUid" to when (t.categoryId) { null -> ""; MODIFIED_BALANCE_CATEGORY -> "-4"; else -> t.categoryId },
-                "ZCONTENT" to t.note, "ZDATA" to t.memo, "ZDATE" to at.toString(), "WDATE" to t.date.toString(),
-                "DO_TYPE" to kindCode(t.kind).toString(),
-                "ZMONEY" to text(t.amountMain, d.mainDecimals),
-                "IN_ZMONEY" to text(t.originalAmount ?: t.amountMain, dec(t.currency)), "currencyUid" to currencyUid(t.currency),
-                "AMOUNT_ACCOUNT" to (t.accountAmount?.let { real(it, dec(accountCurrency[t.accountId])) }
-                    ?: real(t.amountMain, d.mainDecimals)),
-                "txUidTrans" to if (t.kind.isTransfer) t.transferGroupId.orEmpty() else "",
-                "txUidFee" to when {
-                    isFee -> feeKey[t.transferGroupId]
-                    t.kind == TxnKind.TRANSFER_OUT -> feeKey[t.transferGroupId]
-                    else -> null
-                }.orEmpty(),
-                "cardDivideUid" to t.installmentGroupId.orEmpty(), "CARD_DIVIDE_MONTH_STR" to t.installmentLabel.orEmpty(),
-                // The repeat type of the rule that made the entry; Money Manager shows it as "(Every Month)".
-                "CARDDIVIDMONTH" to (t.recurringRuleId?.let { repeatOfRule[it] } ?: 0).toString(),
-                "SMS_ORIGIN" to t.origin, "MARK" to 0, "IS_DEL" to 0, "UTIME" to now,
-                "lat" to t.lat?.toString(), "lng" to t.lng?.toString(), "ASSET_NIC" to "", "CATEGORY_NAME" to "",
+        /** The main currency, then the others ("INR_USD" = USD in an INR book). */
+        private fun currencies() {
+            insert("CURRENCY", mapOf(
+                "uid" to currencyUid(null), "NAME" to main, "ISO" to main, "MAIN_ISO" to main, "IS_DEL" to 0, "ORDER_SEQ" to 100, "RATE" to 1.0,
+                "SYMBOL" to d.mainSymbol, "INSERT_TYPE" to "I", "SYMBOL_POSITION" to if (d.settings[Prefs.SYMBOL_AFTER.key] == "1") "S" else "P",
+                "IS_MAIN_CURRENCY" to 1, "IS_SHOW" to 1, "MODIFY_DATE" to now, "DECIMAL_POINT" to d.mainDecimals,
             ))
-        }
-
-        d.rules.forEach { r ->
-            sink.insert("REPEATTRANSACTION", synced + mapOf(
-                "uid" to r.id, "IS_DEL" to 0, "USETIME" to now, "MARK" to 0, "DO_TYPE" to kindCode(r.kind), "REPEAT_TYPE" to repeatCode(r.repeat),
-                "NEXT_DATE" to noon(r.nextDate), "END_DATE" to (r.endDate?.let(::noon) ?: 0L),
-                "assetUid" to r.accountId, "toAssetUid" to r.toAccountId.orEmpty(), "ctgUid" to r.categoryId.orEmpty(),
-                "currencyUid" to currencyUid(r.currency), "AMOUNT_SUB" to real(r.amount, dec(r.currency)), "PAYEE" to r.note, "MEMO" to r.memo,
-            ))
-        }
-
-        // Budgets: one BUDGET per target ('' = total), one BUDGET_AMOUNT per month it changes.
-        d.budgets.groupBy { it.categoryId }.entries.forEachIndexed { i, (target, amounts) ->
-            val total = target.isEmpty()
-            val budgetUid = "${target}_1_${if (total) 1 else 0}_0_6"
-            sink.insert("BUDGET", synced + mapOf(
-                "uid" to budgetUid, "targetUid" to target, "DO_TYPE" to 1, "PERIOD_TYPE" to 6, "IS_TOTAL" to if (total) 1 else 0,
-                "IS_DEL" to 0, "TRANSFER_TYPE" to 0, "ORDER_SEQ" to 100 + i, "MODIFY_DATE" to now,
-            ))
-            amounts.forEach { b ->
-                sink.insert("BUDGET_AMOUNT", synced + mapOf(
-                    "uid" to "${budgetUid}_${b.period}", "budgetUid" to budgetUid, "IS_DEL" to 0, "AMOUNT" to real(b.amount, d.mainDecimals),
-                    "BUDGET_PERIOD" to b.period, "MODIFY_DATE" to now,
+            d.currencies.forEachIndexed { i, c ->
+                insert("CURRENCY", mapOf(
+                    "uid" to currencyUid(c.code), "NAME" to c.code, "ISO" to c.code, "MAIN_ISO" to main, "IS_DEL" to 0, "ORDER_SEQ" to 101 + i,
+                    "RATE" to c.rate, "SYMBOL" to c.symbol, "INSERT_TYPE" to "I", "SYMBOL_POSITION" to "P", "IS_MAIN_CURRENCY" to 0, "IS_SHOW" to 1,
+                    "MODIFY_DATE" to now, "DECIMAL_POINT" to c.decimals,
                 ))
             }
         }
 
-        d.tags.forEach { g -> sink.insert("TAG", synced + mapOf("uid" to g.id, "name" to g.name, "orderSeq" to g.sortOrder, "isDel" to 0, "utime" to now)) }
-        d.txnTags.forEach { (txn, tag) ->
-            sink.insert("TX_TAG", synced + mapOf("uid" to "${txn}_$tag", "txUid" to txn, "tagUid" to tag, "orderSeq" to 0, "isDel" to 0, "utime" to now))
-        }
-        d.memos.forEachIndexed { i, m ->
-            sink.insert("MEMO", synced + mapOf(
-                "uid" to m.id, "title" to m.title, "content" to m.content, "memoTime" to m.time, "pinned" to if (m.pinned) 1 else 0,
-                "pinnedTime" to if (m.pinned) m.time else 0, "orderSeq" to i, "color" to 0, "isDel" to 0, "utime" to now,
-            ))
+        private fun group(g: MoneyManagerBackup.Group) = insert("ASSETGROUP", mapOf(
+            "uid" to g.id, "IS_DEL" to if (g.deleted) 1 else 0, "USETIME" to now, "ACC_GROUP_NAME" to g.name,
+            "TYPE" to groupCode(g.type), "ORDERSEQ" to g.sortOrder,
+        ))
+
+        private fun account(a: MoneyManagerBackup.Account) = insert("ASSETS", mapOf(
+            "uid" to a.id, "groupUid" to a.groupId, "NIC_NAME" to a.name, "ORDERSEQ" to a.sortOrder,
+            // 0 = normal, 1 = deleted, 3 = hidden; ZDATA2 1 = left out of totals.
+            "ZDATA" to when { a.deleted -> "1"; a.hidden -> "3"; else -> "0" }, "ZDATA1" to a.memo, "ZDATA2" to if (a.includeInTotals) "0" else "1",
+            "IS_TRANS_EXPENSE" to if (a.transferAsExpense) 1 else 0,
+            "CARD_DAY_FIN" to (a.cardSettlementDay ?: 1).toString(), "CARD_DAY_PAY" to (a.cardPaymentDay ?: 1).toString(),
+            "IS_CARD_AUTO_PAY" to if (a.cardAutoPay) 1 else 0, "cardAssetUid" to a.cardPaymentAccountId.orEmpty(),
+            "CARD_USAGE_HURDLE_TYPE" to if (a.usageTarget == null) 0 else a.usageTargetType,
+            "CARD_USAGE_HURDLE_AMOUNT" to real(a.usageTarget ?: 0, dec(a.currency)),
+            "SMS_TEL" to a.smsSender, "SMS_STRING" to a.smsMatch, "A_UTIME" to now, "currencyUid" to currencyUid(a.currency),
+        ))
+
+        private fun category(c: MoneyManagerBackup.Category) = insert("ZCATEGORY", mapOf(
+            "uid" to c.id, "NAME" to c.name, "TYPE" to if (c.income) 0 else 1, "ORDERSEQ" to c.sortOrder,
+            // STATUS 2 = sub-category of pUid; active rows leave C_IS_DEL empty, as Money Manager does.
+            "STATUS" to if (c.parentId != null) 2 else 0, "pUid" to (c.parentId ?: "0"),
+            "C_IS_DEL" to if (c.deleted) 1 else null, "C_UTIME" to now, "syncVersion" to 0,
+        ))
+
+        /** Entries. A transfer's fee row and its out-leg share a txUidFee key. */
+        private fun txns() {
+            val feeKey = d.txns.filter { isTransferFee(it.kind, it.transferGroupId) }.mapNotNull { it.transferGroupId }.associateWith { "fee_$it" }
+            val repeatOfRule = d.rules.associate { it.id to repeatCode(it.repeat) }
+            val accountCurrency = d.accounts.associate { it.id to it.currency }
+            d.txns.forEach { t ->
+                val sharesFee = isTransferFee(t.kind, t.transferGroupId) || t.kind == TxnKind.TRANSFER_OUT
+                insert("INOUTCOME", mapOf(
+                    "uid" to t.id, "assetUid" to t.accountId, "toAssetUid" to t.toAccountId.orEmpty(),
+                    "ctgUid" to when (t.categoryId) { null -> ""; MODIFIED_BALANCE_CATEGORY -> "-4"; else -> t.categoryId },
+                    "ZCONTENT" to t.note, "ZDATA" to t.memo, "ZDATE" to entryTime(t).toString(), "WDATE" to t.date.toString(),
+                    "DO_TYPE" to kindCode(t.kind).toString(),
+                    "ZMONEY" to text(t.amountMain, d.mainDecimals),
+                    "IN_ZMONEY" to text(t.originalAmount ?: t.amountMain, dec(t.currency)), "currencyUid" to currencyUid(t.currency),
+                    "AMOUNT_ACCOUNT" to (t.accountAmount?.let { real(it, dec(accountCurrency[t.accountId])) } ?: real(t.amountMain, d.mainDecimals)),
+                    "txUidTrans" to if (t.kind.isTransfer) t.transferGroupId.orEmpty() else "",
+                    "txUidFee" to (if (sharesFee) feeKey[t.transferGroupId] else null).orEmpty(),
+                    "cardDivideUid" to t.installmentGroupId.orEmpty(), "CARD_DIVIDE_MONTH_STR" to t.installmentLabel.orEmpty(),
+                    // The repeat type of the rule that made the entry; Money Manager shows it as "(Every Month)".
+                    "CARDDIVIDMONTH" to (t.recurringRuleId?.let { repeatOfRule[it] } ?: 0).toString(),
+                    "SMS_ORIGIN" to t.origin, "MARK" to 0, "IS_DEL" to 0, "UTIME" to now,
+                    "lat" to t.lat?.toString(), "lng" to t.lng?.toString(), "ASSET_NIC" to "", "CATEGORY_NAME" to "",
+                ))
+            }
         }
 
-        etcRows(d.settings).forEachIndexed { i, (type, key, value) ->
-            sink.insert("ZETC", synced + mapOf("uid" to "etc_${type}_$i", "E_UTIME" to now, "ZDATATYPE" to type, "ZDATA" to value,
-                "dataTypeKey" to key, "isDel" to 0))
-        }
-    }
+        /** The time of day lives in ZDATE; without one, when the entry was made. */
+        private fun entryTime(t: MoneyManagerBackup.Txn): Long =
+            t.timeOfDay?.let { LocalDateTime(t.date, LocalTime(it / 60, it % 60)).toInstant(tz).toEpochMilliseconds() }
+                ?: t.createdAt.takeIf { it > 0 } ?: t.date.atStartOfDayIn(tz).toEpochMilliseconds()
 
-    /** Our settings as Money Manager ZETC rows (type, key, value); the inverse of what [MoneyManagerBackup.read] carries over. */
-    private fun etcRows(s: Map<String, String>): List<Triple<Int, String, String>> = buildList {
-        fun add(type: Int, key: String, value: String?) { if (value != null) add(Triple(type, key, value)) }
-        fun flag(setting: String, default: String) = when (s[setting]) { "1" -> "1"; "0" -> "0"; else -> default }
-        add(-23459, "start_day", s[Prefs.MONTH_START_DAY.key] ?: "1")
-        // Written even when unset: without it Money Manager falls back to swapped income/expense colours.
-        add(-6179, "money_color", if (s[Prefs.COLOR_SET.key] == "B") "1" else "0")
-        add(-5457, "carry_over", flag(Prefs.CARRY_OVER.key, "0"))
-        add(-30009, "card_accounting_type", flag(Prefs.CARD_AT_PAYMENT.key, "0"))
-        add(19810, "use_sub_category", flag(Prefs.USE_SUBCATEGORIES.key, "0"))
-        add(10002, "week_start_day", when (s[Prefs.WEEK_START.key]) { "SUNDAY" -> "0"; "MONDAY" -> "1"; "SATURDAY" -> "6"; else -> null })
-        add(10008, "month_start_weekend_type", when (s[Prefs.WEEKEND_SHIFT.key]) { "BEFORE" -> "1"; "AFTER" -> "2"; else -> "0" })
-        add(10003, "main_tab_first_view", if (s[Prefs.START_SCREEN.key] == "CALENDAR") "1" else "0")
-        add(10014, "main_tab_scroll_type", when (s[Prefs.SWIPE.key]) { "TAB" -> "0"; "DATE" -> "1"; "NONE" -> "2"; else -> null })
-        val asc = s[Prefs.TIME_SORT.key] == "ASC"
-        add(10004, "time_display_order", when (s[Prefs.TIME_INPUT.key]) {
-            "LIST" -> if (asc) "3" else "1"; "INPUT" -> if (asc) "4" else "2"; "NONE" -> if (asc) "0" else "5"; else -> null
-        })
-        add(10011, "show_tx_memo_on_day_list", s[Prefs.SHOW_DESCRIPTION.key]?.takeIf { it == "0" || it == "1" })
-        add(23274, "use_auto_complete", s[Prefs.AUTOCOMPLETE.key]?.takeIf { it == "0" || it == "1" })
-        add(10016, "memo_btn_on_daily", s[Prefs.NOTE_BUTTON.key]?.takeIf { it == "0" || it == "1" })
-        add(10017, "input_form_order", when (s[Prefs.INPUT_ORDER.key]) { "AMOUNT" -> "1"; "ACCOUNT" -> "2"; else -> null })
-        add(10009, "repeat_reflect_type", when (s[Prefs.REPEAT_TIMING.key]) { "ON_DATE" -> "0"; "MONTH_START" -> "1"; else -> null })
-        add(10006, "sms_auto_save_to_tx", s[Prefs.SMS_AUTO_SAVE.key]?.takeIf { it == "0" || it == "1" })
-        add(1078, "sms_show_noti", s[Prefs.SMS_ALERT.key]?.takeIf { it == "0" || it == "1" })
-        add(-12649, "sms_show_org_on_tx", s[Prefs.SMS_SHOW_ORIGINAL.key]?.takeIf { it in setOf("0", "1", "2") })
-        add(1077, "sms_search_day", s[Prefs.SMS_IMPORT_DAYS.key])
-        add(10000, "use_quick_add_noti", flag(Prefs.QUICK_ADD_NOTIFICATION.key, "0"))
-        // List settings: one row per line.
-        fun lines(setting: String) = s[setting].orEmpty().lines().map { it.trim() }.filter { it.isNotEmpty() }
-        lines(Prefs.SMS_BLOCKED_SENDERS.key).forEach { add(4838, "sms_reject_call_number", it) }
-        lines(Prefs.SMS_BLOCKED_PHRASES.key).forEach { add(4839, "sms_reject_str", it) }
-        lines(Prefs.SMS_CONTENT_FILTER.key).forEach { add(100, "sms_content_auto_del", it) }
+        private fun rule(r: MoneyManagerBackup.Rule) = insert("REPEATTRANSACTION", mapOf(
+            "uid" to r.id, "IS_DEL" to 0, "USETIME" to now, "MARK" to 0, "DO_TYPE" to kindCode(r.kind), "REPEAT_TYPE" to repeatCode(r.repeat),
+            "NEXT_DATE" to noon(r.nextDate), "END_DATE" to (r.endDate?.let(::noon) ?: 0L),
+            "assetUid" to r.accountId, "toAssetUid" to r.toAccountId.orEmpty(), "ctgUid" to r.categoryId.orEmpty(),
+            "currencyUid" to currencyUid(r.currency), "AMOUNT_SUB" to real(r.amount, dec(r.currency)), "PAYEE" to r.note, "MEMO" to r.memo,
+        ))
+
+        /** One BUDGET per target ('' = total), one BUDGET_AMOUNT per month it changes. */
+        private fun budgets() {
+            d.budgets.groupBy { it.categoryId }.entries.forEachIndexed { i, (target, amounts) ->
+                val total = target.isEmpty()
+                val budgetUid = "${target}_1_${if (total) 1 else 0}_0_6"
+                insert("BUDGET", mapOf(
+                    "uid" to budgetUid, "targetUid" to target, "DO_TYPE" to 1, "PERIOD_TYPE" to 6, "IS_TOTAL" to if (total) 1 else 0,
+                    "IS_DEL" to 0, "TRANSFER_TYPE" to 0, "ORDER_SEQ" to 100 + i, "MODIFY_DATE" to now,
+                ))
+                amounts.forEach { b ->
+                    insert("BUDGET_AMOUNT", mapOf(
+                        "uid" to "${budgetUid}_${b.period}", "budgetUid" to budgetUid, "IS_DEL" to 0, "AMOUNT" to real(b.amount, d.mainDecimals),
+                        "BUDGET_PERIOD" to b.period, "MODIFY_DATE" to now,
+                    ))
+                }
+            }
+        }
+
+        private fun memo(i: Int, m: MoneyManagerBackup.Memo) = insert("MEMO", mapOf(
+            "uid" to m.id, "title" to m.title, "content" to m.content, "memoTime" to m.time, "pinned" to if (m.pinned) 1 else 0,
+            "pinnedTime" to if (m.pinned) m.time else 0, "orderSeq" to i, "color" to 0, "isDel" to 0, "utime" to now,
+        ))
     }
 
     private fun kindCode(k: TxnKind) = when (k) {

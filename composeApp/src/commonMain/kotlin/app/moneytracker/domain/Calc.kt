@@ -15,33 +15,53 @@ object Calc {
     fun hasOperator(text: String) = text.drop(1).any { it in OPS }
 
     fun evaluate(text: String, decimals: Int): String? {
+        val sums = multiplyOut(terms(text) ?: return null) ?: return null
+        val result = addUp(sums)
+        if (result < 0 || result.isNaN() || result.isInfinite()) return null
+        return format(result, decimals)
+    }
+
+    /** Numbers with the operators between them: [operators] has one fewer entry than [numbers]. */
+    private class Expression(val numbers: List<Double>, val operators: List<Char>)
+
+    /** "12+3×4" → 12, 3, 4 with +, ×; a leading − is a minus sign. Null when empty or a number is incomplete. */
+    private fun terms(text: String): Expression? {
         if (text.isEmpty()) return null
-        val nums = mutableListOf<Double>()
+        val parts = mutableListOf<String>()
         val ops = mutableListOf<Char>()
         var cur = StringBuilder()
         text.forEachIndexed { i, c ->
             if (c in OPS && !(i == 0 && c == '−')) {
-                nums += cur.toString().replace('−', '-').toDoubleOrNull() ?: return null
+                parts += cur.toString()
                 ops += c; cur = StringBuilder()
             } else cur.append(c)
         }
-        nums += cur.toString().replace('−', '-').toDoubleOrNull() ?: return null
+        parts += cur.toString()
+        return Expression(parts.map { it.replace('−', '-').toDoubleOrNull() ?: return null }, ops)
+    }
 
-        // × ÷ first, folding into the left operand.
-        val n2 = mutableListOf(nums[0])
+    /** × ÷ first, folding into the left operand; null on division by zero. */
+    private fun multiplyOut(e: Expression): Expression? {
+        val n2 = mutableListOf(e.numbers[0])
         val o2 = mutableListOf<Char>()
-        ops.forEachIndexed { i, op ->
-            val rhs = nums[i + 1]
+        e.operators.forEachIndexed { i, op ->
+            val rhs = e.numbers[i + 1]
             when (op) {
                 '×' -> n2[n2.lastIndex] = n2.last() * rhs
-                '÷' -> { if (rhs == 0.0) return null; n2[n2.lastIndex] = n2.last() / rhs }
+                '÷' -> {
+                    if (rhs == 0.0) return null
+                    n2[n2.lastIndex] = n2.last() / rhs
+                }
                 else -> { o2 += op; n2 += rhs }
             }
         }
-        var result = n2[0]
-        o2.forEachIndexed { i, op -> result = if (op == '+') result + n2[i + 1] else result - n2[i + 1] }
-        if (result < 0 || result.isNaN() || result.isInfinite()) return null
-        return format(result, decimals)
+        return Expression(n2, o2)
+    }
+
+    private fun addUp(e: Expression): Double {
+        var result = e.numbers[0]
+        e.operators.forEachIndexed { i, op -> result = if (op == '+') result + e.numbers[i + 1] else result - e.numbers[i + 1] }
+        return result
     }
 
     private fun format(v: Double, decimals: Int): String {

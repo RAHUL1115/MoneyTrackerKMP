@@ -10,7 +10,6 @@ import app.moneytracker.data.MoneyRepository
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -36,7 +35,7 @@ object Privacy {
     fun toggle(repo: MoneyRepository) {
         hidden = !hidden
         peekJob?.cancel(); peeking = false
-        MainScope().launch(repo.io) { repo.settingsStore.putSetting(Prefs.HIDE_AMOUNTS, hidden) }
+        outlivingScope().launch(repo.io) { repo.settingsStore.putSetting(Prefs.HIDE_AMOUNTS, hidden) }
     }
 
     /** Shows the amounts for a few seconds without turning privacy off. */
@@ -44,7 +43,7 @@ object Privacy {
         if (!hidden) return
         peeking = true
         peekJob?.cancel()
-        peekJob = MainScope().launch { delay(5_000); peeking = false }
+        peekJob = outlivingScope().launch { delay(5_000); peeking = false }
     }
 
     /** A tap on a total: peeks while amounts are hidden, otherwise does [action]. */

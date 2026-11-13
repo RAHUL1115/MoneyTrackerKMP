@@ -33,9 +33,6 @@ import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.tr
 
-/** Main tabs of the new layout. The + in the middle of the bar is not a tab: it opens Add. */
-enum class FreshTab(val title: String) { HOME("Home"), ACTIVITY("Activity"), INSIGHTS("Insights"), MONEY("Accounts") }
-
 /** Home of the new layout: the selected tab above the bottom bar. */
 @Composable
 fun FreshHome() {
@@ -90,20 +87,23 @@ private fun NavItem(tab: FreshTab, icon: ImageVector, selected: FreshTab, onSele
  * (help, licences and other plain screens are shared by both layouts).
  */
 fun freshScreen(screen: Screen): (@Composable () -> Unit)? = when (screen) {
-    is Screen.EditTxn -> { { app.moneytracker.ui.Unmasked { FreshEditTxn(screen) } } }
-    Screen.Inbox -> { { FreshInbox() } }
-    Screen.MessageSettings -> { { FreshMessageSettings() } }
-    Screen.WebDashboard -> { { FreshWebDashboard() } }
-    Screen.Search -> { { FreshSearch() } }
-    is Screen.EditNote -> { { FreshEditNote(screen.noteId) } }
-    Screen.Budget -> { { FreshBudget() } }
-    is Screen.AccountDetail -> { { FreshAccountDetail(screen.accountId) } }
-    is Screen.EditAccount -> { { FreshEditAccount(screen.accountId) } }
-    Screen.Configuration -> { { FreshSettings() } }
-    is Screen.Categories -> { { FreshCategories(screen.kind) } }
-    Screen.Recurring -> { { FreshRepeats() } }
-    Screen.Backup -> { { FreshBackup() } }
-    is Screen.MoreHub -> { { FreshHub(screen.id) } }
+    is Screen.EditTxn -> show { app.moneytracker.ui.Unmasked { FreshEditTxn(screen) } }
+    Screen.Inbox -> show { FreshInbox() }
+    Screen.MessageSettings -> show { FreshMessageSettings() }
+    Screen.WebDashboard -> show { FreshWebDashboard() }
+    Screen.Search -> show { FreshSearch() }
+    is Screen.EditNote -> show { FreshEditNote(screen.noteId) }
+    Screen.Budget -> show { FreshBudget() }
+    is Screen.AccountDetail -> show { FreshAccountDetail(screen.accountId) }
+    is Screen.EditAccount -> show { FreshEditAccount(screen.accountId) }
+    Screen.Configuration -> show { FreshSettings() }
+    is Screen.Categories -> show { FreshCategories(screen.kind) }
+    Screen.Recurring -> show { FreshRepeats() }
+    Screen.Backup -> show { FreshBackup() }
+    is Screen.MoreHub -> show { FreshHub(screen.id) }
     else -> null
 }
+
+/** Lets each row of [freshScreen] read "screen → show this". */
+private fun show(content: @Composable () -> Unit): @Composable () -> Unit = content
 

@@ -24,9 +24,14 @@ object MessageRules {
     ): String? {
         // A configured content rule is deliberate; a shared bank sender alone is not enough
         // to override an explicit credit-card/account reference in the message.
-        matchAccount(accounts.filter { it.smsMatch.isNotEmpty() }, sender, text)?.let { return it }
         val candidates = candidates(accounts, groups, parsed)
-        matchAccount(candidates, sender, text)?.let { return it }
+        return matchAccount(accounts.filter { it.smsMatch.isNotEmpty() }, sender, text)
+            ?: matchAccount(candidates, sender, text)
+            ?: accountFromDetails(candidates, parsed, learnedAccountId)
+    }
+
+    /** Card or account digits first (learning breaks a tie between same-digit accounts), then learning, then a unique bank name. */
+    private fun accountFromDetails(candidates: List<Account>, parsed: SmsParser.Parsed, learnedAccountId: String?): String? {
         val digitMatches = parsed.accountDigits?.let { digits ->
             val pattern = Regex("""(?<!\d)$digits(?!\d)""")
             candidates.filter { pattern.containsMatchIn(it.name) }
@@ -34,10 +39,8 @@ object MessageRules {
         if (digitMatches.isNotEmpty()) {
             return digitMatches.singleOrNull()?.id ?: learnedAccountId?.takeIf { id -> digitMatches.any { it.id == id } }
         }
-        learnedAccountId?.takeIf { id -> candidates.any { it.id == id } }?.let { return it }
-        return parsed.bank?.let { bank ->
-            candidates.filter { it.name.contains(bank.substringBefore(' '), ignoreCase = true) }.singleOrNull()?.id
-        }
+        return learnedAccountId?.takeIf { id -> candidates.any { it.id == id } }
+            ?: parsed.bank?.let { bank -> candidates.filter { it.name.contains(bank.substringBefore(' '), ignoreCase = true) }.singleOrNull()?.id }
     }
 
     /**

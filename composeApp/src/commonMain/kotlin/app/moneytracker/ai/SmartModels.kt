@@ -68,24 +68,50 @@ internal class PieceSplitter(pieces: List<Pair<String, Float>>) {
 
     fun split(text: String): IntArray {
         val out = ArrayList<Int>()
-        for (word in nfkc(text.lowercase()).split(' ', '\t', '\n', '\r').filter { it.isNotEmpty() }) {
-            val s = "▁$word"; val n = s.length
-            val best = DoubleArray(n + 1) { -1e18 }; val from = IntArray(n + 1) { -1 }; val piece = IntArray(n + 1) { -1 }
-            best[0] = 0.0
-            for (i in 0 until n) {
-                if (best[i] <= -1e17) continue
-                for (j in i + 1..minOf(n, i + maxLen)) {
-                    val id = ids[s.substring(i, j)] ?: continue
-                    val v = best[i] + scores[id]
-                    if (v > best[j]) { best[j] = v; from[j] = i; piece[j] = id }
-                }
-                if (best[i + 1] <= -1e17) { best[i + 1] = best[i] - 20.0; from[i + 1] = i; piece[i + 1] = -1 }
-            }
-            val rev = ArrayList<Int>()
-            var j = n
-            while (j > 0) { if (piece[j] >= 0) rev.add(piece[j]); j = from[j] }
-            for (k in rev.indices.reversed()) out.add(rev[k])
-        }
+        for (word in nfkc(text.lowercase()).split(' ', '\t', '\n', '\r').filter { it.isNotEmpty() }) out.addAll(splitWord(word))
         return out.toIntArray()
+    }
+
+    private fun splitWord(word: String): List<Int> {
+        val s = "▁$word"
+        val lattice = Lattice(s.length)
+        for (i in s.indices) {
+            if (!lattice.reached(i)) continue
+            for (j in i + 1..minOf(s.length, i + maxLen)) {
+                val id = ids[s.substring(i, j)] ?: continue
+                lattice.offer(from = i, to = j, piece = id, score = lattice.best[i] + scores[id])
+            }
+            if (!lattice.reached(i + 1)) lattice.skip(i)
+        }
+        return lattice.path()
+    }
+
+    /** The best split found so far for every prefix of one word. */
+    private class Lattice(n: Int) {
+        val best = DoubleArray(n + 1) { -1e18 }.also { it[0] = 0.0 }
+        private val from = IntArray(n + 1) { -1 }
+        private val piece = IntArray(n + 1) { -1 }
+
+        fun reached(i: Int) = best[i] > -1e17
+
+        fun offer(from: Int, to: Int, piece: Int, score: Double) {
+            if (score > best[to]) { best[to] = score; this.from[to] = from; this.piece[to] = piece }
+        }
+
+        /** Skips the character at [i] with a penalty, so a word with an unknown character still splits. */
+        fun skip(i: Int) {
+            best[i + 1] = best[i] - 20.0; from[i + 1] = i; piece[i + 1] = -1
+        }
+
+        /** Piece ids along the best path, in reading order; skipped characters left out. */
+        fun path(): List<Int> {
+            val reversed = ArrayList<Int>()
+            var j = piece.size - 1
+            while (j > 0) {
+                if (piece[j] >= 0) reversed.add(piece[j])
+                j = from[j]
+            }
+            return reversed.asReversed()
+        }
     }
 }

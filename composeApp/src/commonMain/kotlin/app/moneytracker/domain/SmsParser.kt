@@ -82,28 +82,41 @@ object SmsParser {
 
     fun parse(sender: String, text: String, mainDecimals: Int = 2): Parsed? {
         val lower = text.lowercase()
-        if (noise.any { it in lower } || noiseRes.any { it.containsMatchIn(text) } || cardPaymentRe.containsMatchIn(text)) return null
-        if (promo.any { it in lower } && !looksLikeAlert(text, lower)) return null
-        val isDebit = debitWords.any { it in lower }
-        val isCredit = creditWords.any { it in lower }
-        if (!isDebit && !isCredit) return null
-
-        // Skip "Avl Bal INR 24.42"-style amounts; fall back to "debited with 265.44" when only the balance has a currency.
-        val (rawAmount, code) = amountRe.findAll(text).firstOrNull { m -> !balanceRe.containsMatchIn(text.substring(maxOf(0, m.range.first - 25), m.range.first)) }
-            ?.let { m -> m.groupValues[2] to currencyTokens[m.groupValues[1].lowercase()] }
-            ?: amountAfterRe.find(text)?.let { it.groupValues[1] to null } ?: return null
-        val major = rawAmount.replace(",", "").toDoubleOrNull() ?: return null
-        if (major <= 0) return null
-        val amount = kotlin.math.round(major * CurrencyFormat.pow10(mainDecimals)).toLong()
-
+        if (!isMoneyMovement(text, lower)) return null
+        val (rawAmount, code) = amountText(text) ?: return null
+        val amount = minorUnits(rawAmount, mainDecimals) ?: return null
         // "credited … refund" or "debited" + "credited to beneficiary": the earliest keyword decides.
-        val firstDebit = debitWords.mapNotNull { w -> lower.indexOf(w).takeIf { it >= 0 } }.minOrNull() ?: Int.MAX_VALUE
-        val firstCredit = creditWords.mapNotNull { w -> lower.indexOf(w).takeIf { it >= 0 } }.minOrNull() ?: Int.MAX_VALUE
-        val credit = firstCredit < firstDebit
+        val credit = firstIndexOf(creditWords, lower) < firstIndexOf(debitWords, lower)
 
         return Parsed(bankOf(sender, text), amount, code, credit, digitsRe.find(text)?.groupValues?.get(1), vendorOf(text),
             isRefund = credit && refundWords.any { it in lower }, instrument = instrumentOf(text))
     }
+
+    /** Not noise, not an advert, and it says money went out or came in. */
+    private fun isMoneyMovement(text: String, lower: String): Boolean {
+        if (noise.any { it in lower } || noiseRes.any { it.containsMatchIn(text) } || cardPaymentRe.containsMatchIn(text)) return false
+        if (promo.any { it in lower } && !looksLikeAlert(text, lower)) return false
+        return debitWords.any { it in lower } || creditWords.any { it in lower }
+    }
+
+    /**
+     * The amount as written and its currency code (null for the main currency). Skips "Avl Bal INR 24.42"-style amounts;
+     * falls back to "debited with 265.44" when only the balance has a currency.
+     */
+    private fun amountText(text: String): Pair<String, String?>? =
+        amountRe.findAll(text).firstOrNull { m -> !balanceRe.containsMatchIn(text.substring(maxOf(0, m.range.first - 25), m.range.first)) }
+            ?.let { m -> m.groupValues[2] to currencyTokens[m.groupValues[1].lowercase()] }
+            ?: amountAfterRe.find(text)?.let { it.groupValues[1] to null }
+
+    /** "1,250.50" → 125050 with 2 decimals; null when it isn't a positive number. */
+    private fun minorUnits(rawAmount: String, decimals: Int): Long? {
+        val major = rawAmount.replace(",", "").toDoubleOrNull() ?: return null
+        if (major <= 0) return null
+        return kotlin.math.round(major * CurrencyFormat.pow10(decimals)).toLong()
+    }
+
+    private fun firstIndexOf(words: List<String>, lower: String): Int =
+        words.mapNotNull { w -> lower.indexOf(w).takeIf { it >= 0 } }.minOrNull() ?: Int.MAX_VALUE
 
     private val instrumentRe = Regex("""(?i)\b(?:credit[\s-]*card|debit[\s-]*card|card|a/c|acct|account|ac)\b""")
 
@@ -132,17 +145,29 @@ object SmsParser {
         return banks.firstOrNull { (k, _) -> k.length >= 3 && Regex("""\b$k""").containsMatchIn(upper) }?.second
     }
 
-    fun vendorOf(text: String): String? {
-        for (re in vendorRes) {
-            val v = re.find(text)?.groupValues?.get(1)?.trim()?.trimEnd('.', '-', '_') ?: continue
-            val cleaned = v.replace(Regex("""\s+"""), " ")
-            if (cleaned.length < 2 || cleaned.all { it.isDigit() || it == 'x' || it == 'X' || it == '*' }) continue
-            val low = cleaned.lowercase()
-            if (low in setOf("your", "your a/c", "a/c", "account", "card", "you", "bank", "vpa", "rs", "inr")) continue
-            if (low.startsWith("your ") || Regex("""^\d{5,}\b""").containsMatchIn(low) || listOf("dispute", "if not you", "credit card account").any { it in low }) continue
-            return cleaned.split(' ').joinToString(" ") { w -> if (w.length > 3 && w.all { it.isUpperCase() || !it.isLetter() }) w.lowercase().replaceFirstChar { it.uppercase() } else w }
+    /** The merchant or person named by the first vendor pattern that finds a real name. */
+    fun vendorOf(text: String): String? = vendorRes.firstNotNullOfOrNull { re ->
+        re.find(text)?.groupValues?.get(1)?.let { v ->
+            val cleaned = v.trim().trimEnd('.', '-', '_').replace(spacesRe, " ")
+            if (isPlaceholder(cleaned)) null else softenCapitals(cleaned)
         }
-        return null
+    }
+
+    private val spacesRe = Regex("""\s+""")
+    private val longNumberRe = Regex("""^\d{5,}\b""")
+    private val notVendors = setOf("your", "your a/c", "a/c", "account", "card", "you", "bank", "vpa", "rs", "inr")
+    private val notVendorPhrases = listOf("dispute", "if not you", "credit card account")
+
+    /** Masked digits, "your a/c", a long number or a disclaimer phrase caught by a vendor pattern. */
+    private fun isPlaceholder(cleaned: String): Boolean {
+        val low = cleaned.lowercase()
+        return cleaned.length < 2 || cleaned.all { it.isDigit() || it in "xX*" } ||
+            low in notVendors || low.startsWith("your ") || longNumberRe.containsMatchIn(low) || notVendorPhrases.any { it in low }
+    }
+
+    /** "AMAZON PAY" → "Amazon Pay": words over three letters written all in capitals. */
+    private fun softenCapitals(name: String) = name.split(' ').joinToString(" ") { w ->
+        if (w.length > 3 && w.all { it.isUpperCase() || !it.isLetter() }) w.lowercase().replaceFirstChar { it.uppercase() } else w
     }
 
     /** Words used for learning: vendor + bank + card digits. */

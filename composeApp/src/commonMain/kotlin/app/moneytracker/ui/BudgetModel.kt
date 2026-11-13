@@ -18,7 +18,6 @@ import app.moneytracker.domain.YearMonth
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,7 +62,7 @@ class BudgetModel(
 
     /** Puts the amount back as it was. Runs apart from the screen, so Undo still works after it closed. */
     fun undo(change: BudgetChange) {
-        CoroutineScope(SupervisorJob() + io).launch { reports.setBudget(change.key, change.month, change.previous) }
+        outlivingScope(io).launch { reports.setBudget(change.key, change.month, change.previous) }
     }
 
     /** The new month right away from the cached rows (no empty frame), then kept up to date. */

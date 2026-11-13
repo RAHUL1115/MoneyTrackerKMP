@@ -1,5 +1,6 @@
 package app.moneytracker.ui.accounts
 
+import app.moneytracker.ui.outlivingScope
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.data.TxnStore
@@ -20,7 +21,7 @@ class AccountActionsModel(
     private val io: CoroutineDispatcher,
     scope: CoroutineScope,
 ) {
-    private val outliving = scope.outliving()
+    private val outliving = outlivingScope(scope.coroutineContext)
 
     /** Sets the balance to [target], recording the difference as income or expense when [asIncomeExpense]; [onDone] gets the entries added. */
     fun adjustBalance(target: Long, asIncomeExpense: Boolean, onDone: (List<Txn>) -> Unit = {}) {

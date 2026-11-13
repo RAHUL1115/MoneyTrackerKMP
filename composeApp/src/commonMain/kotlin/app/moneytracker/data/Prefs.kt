@@ -46,7 +46,8 @@ data class ClockTime(val hour: Int, val minute: Int) {
         fun parse(text: String): ClockTime? {
             val parts = text.trim().split(":").map { it.trim().toIntOrNull() }
             val (h, m) = parts.takeIf { it.size == 2 } ?: return null
-            return if (h != null && m != null && h in 0..23 && m in 0..59) ClockTime(h, m) else null
+            if (h == null || m == null) return null
+            return if (h in 0..23 && m in 0..59) ClockTime(h, m) else null
         }
     }
 }

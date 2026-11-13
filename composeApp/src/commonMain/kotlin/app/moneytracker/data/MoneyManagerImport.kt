@@ -100,30 +100,58 @@ object MoneyManagerBackup {
         else -> null
     }
 
-    fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data {
-        val tables = src.tables()
-        fun rows(t: String) = if (t in tables) src.rows(t) else emptyList()
-        val skipped = mutableListOf<String>()
+    fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data = Reader(src, tz).read()
+
+    /**
+     * One pass over a backup's tables. [skipped] collects what couldn't be carried over, in reading order:
+     * entries, then recurring rules, then photos.
+     */
+    private class Reader(private val src: RowSource, private val tz: TimeZone) {
+        private val tables = src.tables()
+        private val skipped = mutableListOf<String>()
+        private fun rows(t: String) = if (t in tables) src.rows(t) else emptyList()
 
         // Currencies: "INR_USD" style uids = <main ISO>_<ISO>.
-        val curRows = rows("CURRENCY").filterNot { it.isDeleted("IS_DEL") }
-        val main = curRows.firstOrNull { it.int("IS_MAIN_CURRENCY") == 1 }
-        val mainCode = main?.str("ISO")?.ifEmpty { null } ?: "INR"
-        val mainDecimals = main?.int("DECIMAL_POINT") ?: 2
-        val mainSymbol = main?.str("SYMBOL")?.ifEmpty { null } ?: "₹"
-        val currencies = curRows.filter { it.int("IS_MAIN_CURRENCY") != 1 && it.str("ISO").isNotEmpty() && it.str("ISO") != mainCode }
+        private val curRows = rows("CURRENCY").filterNot { it.isDeleted("IS_DEL") }
+        private val main = curRows.firstOrNull { it.int("IS_MAIN_CURRENCY") == 1 }
+        private val mainCode = main?.str("ISO")?.ifEmpty { null } ?: "INR"
+        private val mainDecimals = main?.int("DECIMAL_POINT") ?: 2
+        private val mainSymbol = main?.str("SYMBOL")?.ifEmpty { null } ?: "₹"
+        private val currencies = curRows.filter { it.int("IS_MAIN_CURRENCY") != 1 && it.str("ISO").isNotEmpty() && it.str("ISO") != mainCode }
             .map { Currency(it.str("ISO"), it.str("SYMBOL").ifEmpty { it.str("ISO") }, it.int("DECIMAL_POINT") ?: 2, it.s("RATE")?.toDoubleOrNull() ?: 1.0) }
             .distinctBy { it.code }
-        val decimalsOf = currencies.associate { it.code to it.decimals }
-        fun codeOf(currencyUid: String?): String? = currencyUid?.substringAfter('_', currencyUid)?.trim()
+        private val decimalsOf = currencies.associate { it.code to it.decimals }
+        private fun codeOf(currencyUid: String?): String? = currencyUid?.substringAfter('_', currencyUid)?.trim()
             ?.takeUnless { it.isEmpty() || it == mainCode || it !in decimalsOf }
-        fun decimals(code: String?) = code?.let { decimalsOf[it] } ?: mainDecimals
+        private fun decimals(code: String?) = code?.let { decimalsOf[it] } ?: mainDecimals
+
+        private val accounts = rows("ASSETS").map(::account).filter { it.id.isNotEmpty() }
+        private val accountById = accounts.associateBy { it.id }
+        private val categoryRows = rows("ZCATEGORY")
+        private val categoryIds = categoryRows.map { it.str("uid") }.toSet()
+
+        fun read(): Data {
+            val groups = groups()
+            val txns = withLoneLegsPlain(txns())
+            val categories = categories()
+            val rules = rules(categories.map { it.id }.toSet())
+            val budgets = budgets(categories.filterNot { it.deleted }.map { it.id }.toSet())
+            val tags = tags()
+            val memos = memos()
+            // Settings worth carrying over (ZETC key → value; lists are one row per entry).
+            val etcRows = rows("ZETC").filterNot { it.isDeleted("isDel") }
+            val etc = etcRows.associate { it.str("dataTypeKey").ifEmpty { it.str("ZDATATYPE") } to it.str("ZDATA") }
+            val settings = MoneyManagerSettings.read(etc, etcRows.map { it.str("ZDATATYPE") to it.str("ZDATA") }, main?.str("SYMBOL_POSITION"))
+            if (rows("PHOTO").any { !it.isDeleted("IS_DEL") }) skipped += "receipt photos are not inside .mmbak files and were not imported"
+            return Data(mainCode, mainSymbol, mainDecimals, currencies, groups, cardSettingsOnCards(groups), categories, txns, rules, budgets,
+                tags, txnTags(tags, txns), memos, settings, skipped,
+                passcodePin = etc["-8457"]?.trim()?.takeIf { it.length == 4 && it.all(Char::isDigit) })
+        }
 
         // Accounts: ZDATA '0' = normal; '1' = deleted (trash), '2' = purged → kept as deleted so history keeps names; '3' = hidden.
-        val accountRows = rows("ASSETS")
-        val accounts = accountRows.map { a ->
+        private fun account(a: Map<String, String?>): Account {
             val status = a.str("ZDATA")
-            Account(
+            return Account(
                 id = a.str("uid"), groupId = a.str("groupUid"), name = a.str("NIC_NAME").ifEmpty { "Account" },
                 includeInTotals = a.str("ZDATA2") != "1", transferAsExpense = a.int("IS_TRANS_EXPENSE") == 1,
                 cardSettlementDay = a.int("CARD_DAY_FIN")?.takeIf { it in 1..31 }, cardPaymentAccountId = idOrNull(a.s("cardAssetUid")),
@@ -135,169 +163,162 @@ object MoneyManagerBackup {
                 usageTargetType = if (a.int("CARD_USAGE_HURDLE_TYPE") == 2) 2 else 1,
                 smsSender = a.str("SMS_TEL").trim(), smsMatch = a.str("SMS_STRING").trim(),
             )
-        }.filter { it.id.isNotEmpty() }
-        val accountById = accounts.associateBy { it.id }
+        }
 
-        // Groups: keep any group that holds accounts, even if the group itself was deleted.
-        val usedGroups = accounts.map { it.groupId }.toSet()
-        val groups = rows("ASSETGROUP").map { g ->
-            Group(g.str("uid"), g.str("ACC_GROUP_NAME").ifEmpty { "Accounts" }, groupType(g.int("TYPE")), g.int("ORDERSEQ") ?: 0,
-                deleted = g.isDeleted("IS_DEL") && g.str("uid") !in usedGroups)
-        }.filter { it.id.isNotEmpty() }
-        // Card settlement day only matters for credit cards.
-        val groupTypeById = groups.associate { it.id to it.type }
-        val fixedAccounts = accounts.map { if (groupTypeById[it.groupId] == AccountType.CREDIT_CARD) it else it.copy(cardSettlementDay = null, cardPaymentDay = null, cardAutoPay = false, usageTarget = null) }
+        /** Keeps any group that holds accounts, even if the group itself was deleted. */
+        private fun groups(): List<Group> {
+            val usedGroups = accounts.map { it.groupId }.toSet()
+            return rows("ASSETGROUP").map { g ->
+                Group(g.str("uid"), g.str("ACC_GROUP_NAME").ifEmpty { "Accounts" }, groupType(g.int("TYPE")), g.int("ORDERSEQ") ?: 0,
+                    deleted = g.isDeleted("IS_DEL") && g.str("uid") !in usedGroups)
+            }.filter { it.id.isNotEmpty() }
+        }
 
-        // Transactions.
-        val txRows = rows("INOUTCOME").filterNot { it.isDeleted("IS_DEL") }
-        val feeToTransfer = txRows.filter { it.int("DO_TYPE") == 3 && idOrNull(it.s("txUidFee")) != null && idOrNull(it.s("txUidTrans")) != null }
-            .associate { it.str("txUidFee") to it.str("txUidTrans") }
-        val categoryRows = rows("ZCATEGORY")
-        val categoryIds = categoryRows.map { it.str("uid") }.toSet()
-        val ruleUids = rows("REPEATTRANSACTION").filterNot { it.isDeleted("IS_DEL") }.map { it.str("uid") }.filter { it.isNotEmpty() }
-        val txns = txRows.mapNotNull { t ->
-            val k = kind(t.int("DO_TYPE")) ?: run { skipped += "transaction ${t.str("uid")}: unknown type ${t.str("DO_TYPE")}"; return@mapNotNull null }
+        /** Card settlement day only matters for credit cards. */
+        private fun cardSettingsOnCards(groups: List<Group>): List<Account> {
+            val groupTypeById = groups.associate { it.id to it.type }
+            return accounts.map {
+                if (groupTypeById[it.groupId] == AccountType.CREDIT_CARD) it
+                else it.copy(cardSettlementDay = null, cardPaymentDay = null, cardAutoPay = false, usageTarget = null)
+            }
+        }
+
+        private fun txns(): List<Txn> {
+            val txRows = rows("INOUTCOME").filterNot { it.isDeleted("IS_DEL") }
+            val feeToTransfer = txRows.filter { it.int("DO_TYPE") == 3 && idOrNull(it.s("txUidFee")) != null && idOrNull(it.s("txUidTrans")) != null }
+                .associate { it.str("txUidFee") to it.str("txUidTrans") }
+            val ruleUids = rows("REPEATTRANSACTION").filterNot { it.isDeleted("IS_DEL") }.map { it.str("uid") }.filter { it.isNotEmpty() }
+            return txRows.mapNotNull { t ->
+                fun skip(reason: String): Txn? {
+                    skipped += "transaction ${t.str("uid")}: $reason"
+                    return null
+                }
+                val k = kind(t.int("DO_TYPE")) ?: return@mapNotNull skip("unknown type ${t.str("DO_TYPE")}")
+                if (t.str("assetUid") !in accountById) return@mapNotNull skip("unknown account")
+                val date = entryDate(t) ?: return@mapNotNull skip("no date")
+                val amountMain = minor(t.s("ZMONEY"), mainDecimals, signed = k == TxnKind.EXPENSE) ?: return@mapNotNull skip("no amount")
+                txn(t, k, date, amountMain, feeToTransfer, ruleUids)
+            }
+        }
+
+        private fun entryDate(t: Map<String, String?>): LocalDate? =
+            LocalDate.Formats.ISO.parseOrNull(t.str("WDATE").take(10)) ?: t.s("ZDATE")?.toLongOrNull()?.let { dayOf(it, tz) }
+
+        private fun txn(
+            t: Map<String, String?>, k: TxnKind, date: LocalDate, amountMain: Long, feeToTransfer: Map<String, String>, ruleUids: List<String>,
+        ): Txn {
             val account = t.str("assetUid")
-            if (account !in accountById) { skipped += "transaction ${t.str("uid")}: unknown account"; return@mapNotNull null }
-            val date = LocalDate.Formats.ISO.parseOrNull(t.str("WDATE").take(10))
-                ?: t.s("ZDATE")?.toLongOrNull()?.let { dayOf(it, tz) }
-                ?: run { skipped += "transaction ${t.str("uid")}: no date"; return@mapNotNull null }
             val code = codeOf(t.s("currencyUid"))
             val accountCode = accountById[account]?.currency
             val signed = k == TxnKind.EXPENSE
-            val amountMain = minor(t.s("ZMONEY"), mainDecimals, signed) ?: run { skipped += "transaction ${t.str("uid")}: no amount"; return@mapNotNull null }
-            val transferId = idOrNull(t.s("txUidTrans"))
             val feeGroup = if (k == TxnKind.EXPENSE) idOrNull(t.s("txUidFee"))?.let { feeToTransfer[it] } else null
             val installment = idOrNull(t.s("cardDivideUid"))
-            Txn(
+            return Txn(
                 id = t.str("uid").ifEmpty { newId() }, kind = k, date = date,
                 createdAt = t.s("ZDATE")?.toLongOrNull() ?: t.s("UTIME")?.toLongOrNull() ?: 0L,
                 accountId = account,
                 toAccountId = if (k.isTransfer) idOrNull(t.s("toAssetUid"))?.takeIf { it in accountById } else null,
-                // "-4" is Money Manager's built-in "Modified Bal." (balance changes, with or without income/expense).
-                categoryId = when {
-                    t.s("ctgUid")?.trim() == "-4" && !k.isTransfer -> app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
-                    k.isIncomeOrExpense -> idOrNull(t.s("ctgUid"))?.takeIf { it in categoryIds }
-                    else -> null
-                },
+                categoryId = categoryOf(t, k),
                 amountMain = amountMain,
                 currency = code,
                 originalAmount = code?.let { minor(t.s("IN_ZMONEY"), decimals(it), signed) },
                 accountAmount = accountCode?.let { minor(t.s("AMOUNT_ACCOUNT"), decimals(it), signed) },
                 note = t.str("ZCONTENT"), memo = t.str("ZDATA"),
-                transferGroupId = if (k.isTransfer) transferId else feeGroup,
+                transferGroupId = if (k.isTransfer) idOrNull(t.s("txUidTrans")) else feeGroup,
                 installmentGroupId = installment, installmentLabel = installment?.let { t.str("CARD_DIVIDE_MONTH_STR").ifEmpty { null } },
                 lat = t.s("lat")?.toDoubleOrNull()?.takeIf { it != 0.0 }, lng = t.s("lng")?.toDoubleOrNull()?.takeIf { it != 0.0 },
-                // Time of day: from WDATE when it carries one ("yyyy-MM-dd HH:mm"), else from ZDATE (epoch ms) on the same day.
-                timeOfDay = t.str("WDATE").takeIf { it.length >= 16 && it[13] == ':' }
-                    ?.let { w -> w.substring(11, 13).toIntOrNull()?.let { h -> w.substring(14, 16).toIntOrNull()?.let { m -> h * 60 + m } } }
-                    ?: t.s("ZDATE")?.toLongOrNull()?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(tz) }
-                        ?.takeIf { it.date == date }?.let { it.hour * 60 + it.minute },
+                timeOfDay = timeOfDay(t, date),
                 origin = t.str("SMS_ORIGIN").trim(),
                 recurringRuleId = t.str("uid").let { uid -> ruleUids.firstOrNull { uid.startsWith(it + "_") } },
             )
         }
-        // A transfer needs both legs; a lone leg would double-count, so keep it as plain in/out.
-        val legs = txns.filter { it.kind.isTransfer }.groupBy { it.transferGroupId }
-        val cleanTxns = txns.map { t ->
-            if (t.kind.isTransfer && (t.transferGroupId == null || legs[t.transferGroupId]?.size != 2 || t.toAccountId == null)) {
-                t.copy(kind = if (t.kind == TxnKind.TRANSFER_OUT) TxnKind.EXPENSE else TxnKind.INCOME, toAccountId = null, transferGroupId = null)
-            } else t
+
+        /** "-4" is Money Manager's built-in "Modified Bal." (balance changes, with or without income/expense). */
+        private fun categoryOf(t: Map<String, String?>, k: TxnKind): String? = when {
+            t.s("ctgUid")?.trim() == "-4" && !k.isTransfer -> app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
+            k.isIncomeOrExpense -> idOrNull(t.s("ctgUid"))?.takeIf { it in categoryIds }
+            else -> null
         }
 
-        // Categories: deleted ones stay deleted (out of the pickers) but are kept, so past entries still show their names.
-        val parentOf = categoryRows.associate { it.str("uid") to (if (it.int("STATUS") == 2) idOrNull(it.s("pUid")) else null) }
-        val categories = categoryRows.map { c ->
-            val id = c.str("uid")
-            Category(id, c.str("NAME").ifEmpty { "Category" }, c.int("TYPE") == 0, parentOf[id]?.takeIf { it in categoryIds },
-                c.int("ORDERSEQ") ?: 0, deleted = c.isDeleted("C_IS_DEL"))
-        }.filter { it.id.isNotEmpty() }
-        val catIds = categories.filterNot { it.deleted }.map { it.id }.toSet()
-        val allCatIds = categories.map { it.id }.toSet()
+        /** Time of day: from WDATE when it carries one ("yyyy-MM-dd HH:mm"), else from ZDATE (epoch ms) on the same day. */
+        private fun timeOfDay(t: Map<String, String?>, date: LocalDate): Int? =
+            t.str("WDATE").takeIf { it.length >= 16 && it[13] == ':' }
+                ?.let { w -> w.substring(11, 13).toIntOrNull()?.let { h -> w.substring(14, 16).toIntOrNull()?.let { m -> h * 60 + m } } }
+                ?: t.s("ZDATE")?.toLongOrNull()?.let { Instant.fromEpochMilliseconds(it).toLocalDateTime(tz) }
+                    ?.takeIf { it.date == date }?.let { it.hour * 60 + it.minute }
 
-        // Recurring rules.
-        val rules = rows("REPEATTRANSACTION").filterNot { it.isDeleted("IS_DEL") }.mapNotNull { r ->
-            val k = kind(r.int("DO_TYPE"))?.takeIf { it == TxnKind.INCOME || it == TxnKind.EXPENSE || it == TxnKind.TRANSFER_OUT }
-            val type = repeatType(r.int("REPEAT_TYPE"))
-            val next = r.s("NEXT_DATE")?.toLongOrNull()?.takeIf { it > 0 }?.let { dayOf(it, tz) }
-            val account = r.str("assetUid")
-            if (k == null || type == null || next == null || account !in accountById) {
-                skipped += "recurring ${r.str("uid")}: unsupported (type ${r.str("REPEAT_TYPE")})"; return@mapNotNull null
+        /** A transfer needs both legs; a lone leg would double-count, so keep it as plain in/out. */
+        private fun withLoneLegsPlain(txns: List<Txn>): List<Txn> {
+            val legs = txns.filter { it.kind.isTransfer }.groupBy { it.transferGroupId }
+            fun isPaired(t: Txn) = t.transferGroupId != null && legs[t.transferGroupId]?.size == 2 && t.toAccountId != null
+            return txns.map { t ->
+                if (t.kind.isTransfer && !isPaired(t)) {
+                    t.copy(kind = if (t.kind == TxnKind.TRANSFER_OUT) TxnKind.EXPENSE else TxnKind.INCOME, toAccountId = null, transferGroupId = null)
+                } else t
             }
+        }
+
+        /** Deleted categories stay deleted (out of the pickers) but are kept, so past entries still show their names. */
+        private fun categories(): List<Category> {
+            val parentOf = categoryRows.associate { it.str("uid") to (if (it.int("STATUS") == 2) idOrNull(it.s("pUid")) else null) }
+            return categoryRows.map { c ->
+                val id = c.str("uid")
+                Category(id, c.str("NAME").ifEmpty { "Category" }, c.int("TYPE") == 0, parentOf[id]?.takeIf { it in categoryIds },
+                    c.int("ORDERSEQ") ?: 0, deleted = c.isDeleted("C_IS_DEL"))
+            }.filter { it.id.isNotEmpty() }
+        }
+
+        private fun rules(allCatIds: Set<String>): List<Rule> =
+            rows("REPEATTRANSACTION").filterNot { it.isDeleted("IS_DEL") }.mapNotNull { r ->
+                fun unsupported(): Rule? {
+                    skipped += "recurring ${r.str("uid")}: unsupported (type ${r.str("REPEAT_TYPE")})"
+                    return null
+                }
+                val k = kind(r.int("DO_TYPE"))?.takeIf { it == TxnKind.INCOME || it == TxnKind.EXPENSE || it == TxnKind.TRANSFER_OUT }
+                    ?: return@mapNotNull unsupported()
+                val type = repeatType(r.int("REPEAT_TYPE")) ?: return@mapNotNull unsupported()
+                val next = r.s("NEXT_DATE")?.toLongOrNull()?.takeIf { it > 0 }?.let { dayOf(it, tz) } ?: return@mapNotNull unsupported()
+                if (r.str("assetUid") !in accountById) return@mapNotNull unsupported()
+                rule(r, k, type, next, allCatIds)
+            }.filter { it.kind != TxnKind.TRANSFER_OUT || it.toAccountId != null }
+
+        private fun rule(r: Map<String, String?>, k: TxnKind, type: RepeatType, next: LocalDate, allCatIds: Set<String>): Rule {
             val code = codeOf(r.s("currencyUid"))
-            Rule(
-                r.str("uid").ifEmpty { newId() }, k, account,
+            return Rule(
+                r.str("uid").ifEmpty { newId() }, k, r.str("assetUid"),
                 if (k == TxnKind.TRANSFER_OUT) idOrNull(r.s("toAssetUid"))?.takeIf { it in accountById } else null,
                 idOrNull(r.s("ctgUid"))?.takeIf { it in allCatIds && k != TxnKind.TRANSFER_OUT },
                 minor(r.s("AMOUNT_SUB"), decimals(code), signed = k == TxnKind.EXPENSE) ?: 0, r.str("PAYEE").trim(), type, next,
                 r.s("END_DATE")?.toLongOrNull()?.takeIf { it > 0 }?.let { dayOf(it, tz) }, code,
                 memo = r.str("MEMO").trim(),   // generated entries get PAYEE as the note and MEMO as the description
             )
-        }.filter { it.kind != TxnKind.TRANSFER_OUT || it.toAccountId != null }
-
-        // Budgets (monthly expense budgets only).
-        val budgetRows = rows("BUDGET").filter { !it.isDeleted("IS_DEL") && it.int("DO_TYPE") == 1 && (it.int("PERIOD_TYPE") ?: 6) == 6 }
-        val budgetTarget = budgetRows.associate { b -> b.str("uid") to (if (b.int("IS_TOTAL") == 1) "" else b.str("targetUid")) }
-        val budgets = rows("BUDGET_AMOUNT").filter { !it.isDeleted("IS_DEL") && it.str("budgetUid") in budgetTarget }.mapNotNull { a ->
-            val target = budgetTarget.getValue(a.str("budgetUid"))
-            if (target.isNotEmpty() && target !in catIds) return@mapNotNull null
-            Budget(target, a.int("BUDGET_PERIOD") ?: 0, minor(a.s("AMOUNT"), mainDecimals) ?: return@mapNotNull null)
         }
 
-        val tags = rows("TAG").filterNot { it.isDeleted("isDel") }
+        /** Monthly expense budgets only. */
+        private fun budgets(catIds: Set<String>): List<Budget> {
+            val budgetRows = rows("BUDGET").filter { !it.isDeleted("IS_DEL") && it.int("DO_TYPE") == 1 && (it.int("PERIOD_TYPE") ?: 6) == 6 }
+            val budgetTarget = budgetRows.associate { b -> b.str("uid") to (if (b.int("IS_TOTAL") == 1) "" else b.str("targetUid")) }
+            return rows("BUDGET_AMOUNT").filter { !it.isDeleted("IS_DEL") && it.str("budgetUid") in budgetTarget }.mapNotNull { a ->
+                val target = budgetTarget.getValue(a.str("budgetUid"))
+                if (target.isNotEmpty() && target !in catIds) return@mapNotNull null
+                Budget(target, a.int("BUDGET_PERIOD") ?: 0, minor(a.s("AMOUNT"), mainDecimals) ?: return@mapNotNull null)
+            }
+        }
+
+        private fun tags(): List<Tag> = rows("TAG").filterNot { it.isDeleted("isDel") }
             .filterNot { it.str("uid").startsWith("system_") }
             .map { Tag(it.str("uid"), it.str("name"), it.int("orderSeq") ?: 0) }.filter { it.id.isNotEmpty() && it.name.isNotEmpty() }
-        val tagIds = tags.map { it.id }.toSet()
-        val txnIds = cleanTxns.map { it.id }.toSet()
-        val txnTags = rows("TX_TAG").filterNot { it.isDeleted("isDel") }.map { it.str("txUid") to it.str("tagUid") }
-            .filter { (t, g) -> t in txnIds && g in tagIds }
 
-        val memos = rows("MEMO").filterNot { it.isDeleted("isDel") }.map {
+        private fun txnTags(tags: List<Tag>, txns: List<Txn>): List<Pair<String, String>> {
+            val tagIds = tags.map { it.id }.toSet()
+            val txnIds = txns.map { it.id }.toSet()
+            return rows("TX_TAG").filterNot { it.isDeleted("isDel") }.map { it.str("txUid") to it.str("tagUid") }
+                .filter { (t, g) -> t in txnIds && g in tagIds }
+        }
+
+        private fun memos(): List<Memo> = rows("MEMO").filterNot { it.isDeleted("isDel") }.map {
             Memo(it.str("uid").ifEmpty { newId() }, it.str("title"), it.str("content"), it.int("pinned") == 1,
                 it.s("memoTime")?.toDoubleOrNull()?.toLong() ?: it.s("utime")?.toDoubleOrNull()?.toLong() ?: 0L)
         }
-
-        // Settings worth carrying over (ZETC key → value).
-        val etc = rows("ZETC").filterNot { it.isDeleted("isDel") }.associate { it.str("dataTypeKey").ifEmpty { it.str("ZDATATYPE") } to it.str("ZDATA") }
-        val settings = buildMap {
-            etc["start_day"]?.toIntOrNull()?.takeIf { it in 1..31 }?.let { put(Prefs.MONTH_START_DAY.key, it.toString()) }
-            when (etc["month_start_weekend_type"]) { "1" -> put(Prefs.WEEKEND_SHIFT.key, "BEFORE"); "2" -> put(Prefs.WEEKEND_SHIFT.key, "AFTER") }
-            when (etc["week_start_day"]) { "0" -> put(Prefs.WEEK_START.key, "SUNDAY"); "1" -> put(Prefs.WEEK_START.key, "MONDAY"); "6" -> put(Prefs.WEEK_START.key, "SATURDAY") }
-            if (etc["carry_over"] == "1") put(Prefs.CARRY_OVER.key, "1")
-            if (etc["card_accounting_type"] == "1") put(Prefs.CARD_AT_PAYMENT.key, "1")
-            // Money Manager's own "Subcategory" switch (off unless the user enabled it there).
-            put(Prefs.USE_SUBCATEGORIES.key, if (etc["use_sub_category"] == "1") "1" else "0")
-            // Configuration screen choices.
-            etc["main_tab_first_view"]?.toIntOrNull()?.let { put(Prefs.START_SCREEN.key, if (it > 0) "CALENDAR" else "DAILY") }
-            when (etc["main_tab_scroll_type"]) { "0" -> put(Prefs.SWIPE.key, "TAB"); "1" -> put(Prefs.SWIPE.key, "DATE"); "2" -> put(Prefs.SWIPE.key, "NONE") }
-            when (etc["money_color"]) { "0" -> put(Prefs.COLOR_SET.key, "A"); "1" -> put(Prefs.COLOR_SET.key, "B") }
-            // Time: 5/0 = not asked (desc/asc), 1/3 = asked and shown in lists, 2/4 = asked only.
-            etc["time_display_order"]?.let { t ->
-                when (t) { "1", "3" -> "LIST"; "2", "4" -> "INPUT"; "0", "5" -> "NONE"; else -> null }?.let { put(Prefs.TIME_INPUT.key, it) }
-                when (t) { "0", "3", "4" -> "ASC"; "1", "2", "5" -> "DESC"; else -> null }?.let { put(Prefs.TIME_SORT.key, it) }
-            }
-            when (etc["show_tx_memo_on_day_list"]) { "0" -> put(Prefs.SHOW_DESCRIPTION.key, "0"); "1" -> put(Prefs.SHOW_DESCRIPTION.key, "1") }
-            when (etc["use_auto_complete"]) { "0" -> put(Prefs.AUTOCOMPLETE.key, "0"); "1" -> put(Prefs.AUTOCOMPLETE.key, "1") }
-            when (etc["memo_btn_on_daily"]) { "0" -> put(Prefs.NOTE_BUTTON.key, "0"); "1" -> put(Prefs.NOTE_BUTTON.key, "1") }
-            when (etc["input_form_order"]) { "1" -> put(Prefs.INPUT_ORDER.key, "AMOUNT"); "2" -> put(Prefs.INPUT_ORDER.key, "ACCOUNT") }
-            when (etc["repeat_reflect_type"]) { "0" -> put(Prefs.REPEAT_TIMING.key, "ON_DATE"); "1" -> put(Prefs.REPEAT_TIMING.key, "MONTH_START") }
-            // Messages: lists are one ZETC row per entry; switches by name.
-            val etcRows = rows("ZETC").filterNot { it.isDeleted("isDel") }
-            fun etcList(type: String) = etcRows.filter { it.str("ZDATATYPE") == type }.map { it.str("ZDATA").trim() }.filter { it.isNotEmpty() }
-                .distinct().joinToString("\n").takeIf { it.isNotEmpty() }
-            etcList("4838")?.let { put(Prefs.SMS_BLOCKED_SENDERS.key, it) }
-            etcList("4839")?.let { put(Prefs.SMS_BLOCKED_PHRASES.key, it) }
-            etcList("100")?.let { put(Prefs.SMS_CONTENT_FILTER.key, it) }
-            when (etc["sms_auto_save_to_tx"]) { "0" -> put(Prefs.SMS_AUTO_SAVE.key, "0"); "1" -> put(Prefs.SMS_AUTO_SAVE.key, "1") }
-            when (etc["sms_show_noti"]) { "0" -> put(Prefs.SMS_ALERT.key, "0"); "1" -> put(Prefs.SMS_ALERT.key, "1") }
-            (etc["sms_show_org_on_tx"] ?: etc["-12649"])?.takeIf { it in setOf("0", "1", "2") }?.let { put(Prefs.SMS_SHOW_ORIGINAL.key, it) }
-            etc["sms_search_day"]?.toIntOrNull()?.takeIf { it > 0 }?.let { put(Prefs.SMS_IMPORT_DAYS.key, it.toString()) }
-            when (main?.str("SYMBOL_POSITION")) { "P" -> put(Prefs.SYMBOL_AFTER.key, "0"); "S" -> put(Prefs.SYMBOL_AFTER.key, "1") }
-        }
-
-        if (rows("PHOTO").any { !it.isDeleted("IS_DEL") }) skipped += "receipt photos are not inside .mmbak files and were not imported"
-        return Data(mainCode, mainSymbol, mainDecimals, currencies, groups, fixedAccounts, categories, cleanTxns, rules, budgets,
-            tags, txnTags, memos, settings, skipped,
-            passcodePin = etc["-8457"]?.trim()?.takeIf { it.length == 4 && it.all(Char::isDigit) })
     }
 }

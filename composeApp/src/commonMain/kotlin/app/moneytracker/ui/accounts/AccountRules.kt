@@ -8,9 +8,6 @@ import app.moneytracker.domain.Fx
 import app.moneytracker.domain.Periods
 import app.moneytracker.domain.YearMonth
 import app.moneytracker.ui.tr
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
@@ -59,9 +56,3 @@ internal val AccountType.displayName: String get() = when (this) {
     AccountType.PREPAID -> tr("Top-up / prepaid")
     else -> tr(name.lowercase().replaceFirstChar { it.uppercase() })
 }
-
-/**
- * A scope on the same thread as this one that isn't cancelled with it: writes offering Undo run here, so the Undo
- * still works after the screen that started them has closed.
- */
-internal fun CoroutineScope.outliving(): CoroutineScope = CoroutineScope(coroutineContext.minusKey(Job) + SupervisorJob())

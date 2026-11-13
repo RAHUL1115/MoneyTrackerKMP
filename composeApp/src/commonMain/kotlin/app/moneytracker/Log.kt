@@ -32,15 +32,16 @@ object Log {
 
     fun install(vararg sink: Sink) { sinks = sink.toList() }
 
-    fun d(tag: String, message: () -> String) = log(Level.DEBUG, tag, null, message)
-    fun i(tag: String, message: () -> String) = log(Level.INFO, tag, null, message)
-    fun w(tag: String, error: Throwable? = null, message: () -> String) = log(Level.WARN, tag, error, message)
-    fun e(tag: String, error: Throwable? = null, message: () -> String) = log(Level.ERROR, tag, error, message)
+    fun d(tag: String, message: () -> String) = record(Level.DEBUG, tag, null, message)
+    fun i(tag: String, message: () -> String) = record(Level.INFO, tag, null, message)
+    fun w(tag: String, error: Throwable? = null, message: () -> String) = record(Level.WARN, tag, error, message)
+    fun e(tag: String, error: Throwable? = null, message: () -> String) = record(Level.ERROR, tag, error, message)
 
     /**
      * Runs [block]; any failure is logged at WARN with [what] and returns null instead of throwing. For platform edges
      * that must carry on whatever happens (a boot receiver's steps). Cancellation still propagates.
      */
+    @Suppress("TooGenericExceptionCaught") // the platform edge's last guard: any failure must be logged, not crash the receiver
     inline fun <T> attempt(tag: String, what: String, block: () -> T): T? =
         try {
             block()
@@ -68,7 +69,8 @@ object Log {
      * Logging never throws. A failing message is logged as "(log message failed)". A failing sink is skipped: it can't
      * report through [Log] without calling itself again, and the line is still in [recent].
      */
-    fun log(level: Level, tag: String, error: Throwable?, message: () -> String) {
+    @Suppress("TooGenericExceptionCaught") // logging must never throw, whatever the message lambda does
+    private fun record(level: Level, tag: String, error: Throwable?, message: () -> String) {
         if (level < minLevel) return
         val text = try { message() } catch (t: Throwable) { "(log message failed: ${t::class.simpleName})" }
         val line = buildString {

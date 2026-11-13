@@ -1,5 +1,6 @@
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.ui.outlivingScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,9 +60,6 @@ import app.moneytracker.ui.noteDate
 import app.moneytracker.ui.noteDay
 import app.moneytracker.ui.tr
 import app.moneytracker.ui.weekday
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.LocalDate
 
 /** Note colours by index (0 = plain card), stored with the note; soft tints that keep text readable in both themes. */
@@ -135,7 +133,7 @@ internal fun FreshEditNote(noteId: String?) {
     val nav = LocalNavigator.current
     val toaster = LocalToaster.current
     // Saving and Undo run after the editor has closed, so they need a scope that outlives it.
-    val model = remember(repo) { NoteEditorModel(repo.noteStore, repo.io, CoroutineScope(SupervisorJob() + Dispatchers.Main)) }
+    val model = remember(repo) { NoteEditorModel(repo.noteStore, repo.io, outlivingScope()) }
     val notes by model.notes.collectAsState()
     var loaded by rememberSaveable { mutableStateOf(noteId == null) }
     var original by remember { mutableStateOf<Note?>(null) }

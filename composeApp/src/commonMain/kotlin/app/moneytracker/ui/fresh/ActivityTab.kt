@@ -52,10 +52,6 @@ import app.moneytracker.ui.rememberSetting
 import app.moneytracker.ui.swipeSteps
 import app.moneytracker.ui.tr
 import app.moneytracker.ui.weekday
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
 // Activity tab: every entry by day, as a calendar, by month, and the notes. Replaces the classic Trans. tab.
@@ -64,12 +60,6 @@ internal enum class ActView(val title: String) { LIST("List"), CALENDAR("Calenda
 
 /** Search › "Apply filter to Activity" leaves its filter for the tab under this navigator result key. */
 internal const val ACTIVITY_FILTER = "activityFilter"
-
-/** A scope for work that must outlive the screen that started it (Undo after the screen closed). */
-internal fun outlivingScope() = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-
-/** Work that must outlive the screen that started it (Undo after the screen closed). */
-internal fun activityLaunch(block: suspend () -> Unit) = outlivingScope().launch { block() }
 
 internal val actMonthNames = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
 internal fun YearMonth.actLongLabel() = "${tr(actMonthNames[month - 1])} $year"
