@@ -67,9 +67,9 @@ fun MoreTab() {
         }
         Spacer(Modifier.height(12.dp))
         Column(Modifier.card()) {
-            ConfigRow(tr("Help")) { nav.push(Screen.Help) }
+            SettingRow(tr("Help")) { nav.push(Screen.Help) }
             HorizontalDivider(color = DividerColor)
-            ConfigRow(tr("About MoneyTracker")) { nav.push(Screen.About) }
+            SettingRow(tr("About MoneyTracker")) { nav.push(Screen.About) }
         }
         Spacer(Modifier.height(24.dp))
     }
