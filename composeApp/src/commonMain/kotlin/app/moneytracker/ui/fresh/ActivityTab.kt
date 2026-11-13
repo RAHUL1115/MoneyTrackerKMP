@@ -509,7 +509,7 @@ internal fun ActEntryRow(
     val account = when (txn.kind) {
         TxnKind.TRANSFER_OUT -> "${data.accountName[txn.accountId].orEmpty()} → ${data.accountName[txn.toAccountId].orEmpty()}"
         TxnKind.TRANSFER_IN -> "${data.accountName[txn.toAccountId].orEmpty()} → ${data.accountName[txn.accountId].orEmpty()}"
-        else -> data.accountName[txn.accountId].orEmpty()
+        TxnKind.INCOME, TxnKind.EXPENSE, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> data.accountName[txn.accountId].orEmpty()
     }
     val meta = listOfNotNull(
         if (showDate) "${txn.date.dayOfMonth} ${monthShort(txn.date.monthNumber)} ${txn.date.year}" else null,

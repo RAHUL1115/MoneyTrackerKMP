@@ -233,7 +233,7 @@ fun classify(row: ReportRow): Flow = when (row.kind) {
         row.srcTransferExpense && !row.dstTransferExpense -> Flow.INCOME
         else -> Flow.NONE
     }
-    else -> Flow.NONE
+    TxnKind.TRANSFER_IN, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> Flow.NONE
 }
 
 data class Totals(val income: Long, val expense: Long) {

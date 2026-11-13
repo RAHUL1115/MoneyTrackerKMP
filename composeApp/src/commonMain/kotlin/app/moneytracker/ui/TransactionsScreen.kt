@@ -334,7 +334,7 @@ fun TxnLine(
             val (main, sub) = when (txn.kind) {
                 TxnKind.TRANSFER_OUT, TxnKind.TRANSFER_IN -> tr("Transfer") to null
                 TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> tr(app.moneytracker.domain.MODIFIED_BALANCE_NAME) to null
-                else -> mainCategoryName(txn.categoryId, catById) to subCategoryName(txn.categoryId, catById)
+                TxnKind.INCOME, TxnKind.EXPENSE -> mainCategoryName(txn.categoryId, catById) to subCategoryName(txn.categoryId, catById)
             }
             Text(main, color = SubtleText, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (sub != null) Text(sub, color = SubtleText, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -343,7 +343,7 @@ fun TxnLine(
             val account = when (txn.kind) {
                 TxnKind.TRANSFER_OUT -> "${accountName[txn.accountId].orEmpty()} → ${accountName[txn.toAccountId].orEmpty()}"
                 TxnKind.TRANSFER_IN -> "${accountName[txn.toAccountId].orEmpty()} → ${accountName[txn.accountId].orEmpty()}"
-                else -> accountName[txn.accountId].orEmpty()
+                TxnKind.INCOME, TxnKind.EXPENSE, TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> accountName[txn.accountId].orEmpty()
             }
             val title = listOfNotNull(txn.note.ifBlank { null }, txn.installmentLabel).joinToString(" ")
             // The note line is always there, even empty, so every entry has the same shape and the account sits on line two.

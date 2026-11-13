@@ -115,7 +115,7 @@ internal fun FreshSearch() {
                 TxnKind.INCOME -> SearchType.INCOME.name
                 TxnKind.EXPENSE -> SearchType.EXPENSES.name
                 TxnKind.TRANSFER_OUT, TxnKind.TRANSFER_IN -> SearchType.TRANSFERS.name
-                else -> null
+                TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> null
             }
             (types.isEmpty() || type in types) && (accts.isEmpty() || t.accountId in accts || t.toAccountId in accts)
         }

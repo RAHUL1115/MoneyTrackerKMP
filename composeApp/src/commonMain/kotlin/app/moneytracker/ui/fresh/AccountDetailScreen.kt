@@ -373,7 +373,7 @@ private fun EntryRow(t: Txn, accountName: Map<String, String>, catById: Map<Stri
             TxnKind.TRANSFER_OUT -> tr("To {0}", accountName[t.toAccountId].orEmpty())
             TxnKind.TRANSFER_IN -> tr("From {0}", accountName[t.toAccountId].orEmpty())
             TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> tr(MODIFIED_BALANCE_NAME)
-            else -> categoryPath(t.categoryId, catById)
+            TxnKind.INCOME, TxnKind.EXPENSE -> categoryPath(t.categoryId, catById)
         }
     }
     val meta = listOfNotNull(
@@ -381,7 +381,7 @@ private fun EntryRow(t: Txn, accountName: Map<String, String>, catById: Map<Stri
             TxnKind.TRANSFER_OUT -> tr("Transfer to {0}", accountName[t.toAccountId].orEmpty())
             TxnKind.TRANSFER_IN -> tr("Transfer from {0}", accountName[t.toAccountId].orEmpty())
             TxnKind.ADJUST_UP, TxnKind.ADJUST_DOWN -> tr("Not counted")
-            else -> if (t.note.isNotBlank()) categoryPath(t.categoryId, catById) else null
+            TxnKind.INCOME, TxnKind.EXPENSE -> if (t.note.isNotBlank()) categoryPath(t.categoryId, catById) else null
         },
         t.installmentLabel,
         if (t.isRefund) tr("Refund") else null,
