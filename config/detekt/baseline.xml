@@ -25,7 +25,7 @@
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerExport.kt$MoneyManagerExport$private fun etcRows(s: Map&lt;String, String&gt;): List&lt;Triple&lt;Int, String, String&gt;&gt;</ID>
     <ID>CyclomaticComplexMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
-    <ID>CyclomaticComplexMethod:SmartEntry.kt$SmartEntry$suspend fun guess( parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */ learned: (suspend (List&lt;String&gt;) -&gt; MoneyRepository.Suggestion?)? = null, /** The account usually used for (kind, category id, note, amount); null to skip. */ usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -&gt; String?)? = null, ): SmartGuess</ID>
+    <ID>CyclomaticComplexMethod:SmartEntry.kt$SmartEntry$suspend fun guess( parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */ learned: (suspend (List&lt;String&gt;) -&gt; Suggestion?)? = null, /** The account usually used for (kind, category id, note, amount); null to skip. */ usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -&gt; String?)? = null, ): SmartGuess</ID>
     <ID>CyclomaticComplexMethod:SmartParser.kt$SmartParser$fun parse(text: String, expenseCategories: List&lt;String&gt;, incomeCategories: List&lt;String&gt;, accounts: List&lt;String&gt;): Result</ID>
     <ID>CyclomaticComplexMethod:SmartParser.kt$SmartParser$internal fun parseAmount(words: List&lt;String&gt;): Double?</ID>
     <ID>CyclomaticComplexMethod:SmartParser.kt$SmartParser$private fun fixAccountPhrases(ws: List&lt;String&gt;, tagged: List&lt;String&gt;): List&lt;String&gt;</ID>
@@ -55,7 +55,7 @@
     <ID>LongMethod:Common.kt$@Composable fun MonthPickerDialog(selected: YearMonth, current: YearMonth, onDismiss: () -&gt; Unit, onPick: (YearMonth) -&gt; Unit)</ID>
     <ID>LongMethod:MoneyManagerExport.kt$MoneyManagerExport$fun write(sink: RowSink, d: MoneyManagerBackup.Data, tz: TimeZone, now: Long)</ID>
     <ID>LongMethod:MoneyManagerImport.kt$MoneyManagerBackup$fun read(src: RowSource, tz: TimeZone = TimeZone.currentSystemDefault()): Data</ID>
-    <ID>LongMethod:SmartEntry.kt$SmartEntry$suspend fun guess( parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */ learned: (suspend (List&lt;String&gt;) -&gt; MoneyRepository.Suggestion?)? = null, /** The account usually used for (kind, category id, note, amount); null to skip. */ usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -&gt; String?)? = null, ): SmartGuess</ID>
+    <ID>LongMethod:SmartEntry.kt$SmartEntry$suspend fun guess( parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat, categories: List&lt;Category&gt;, accounts: List&lt;Account&gt;, /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */ learned: (suspend (List&lt;String&gt;) -&gt; Suggestion?)? = null, /** The account usually used for (kind, category id, note, amount); null to skip. */ usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -&gt; String?)? = null, ): SmartGuess</ID>
     <ID>LongMethod:SmartParser.kt$SmartParser$fun parse(text: String, expenseCategories: List&lt;String&gt;, incomeCategories: List&lt;String&gt;, accounts: List&lt;String&gt;): Result</ID>
     <ID>LongMethod:SmartText.kt$SmartText$fun translit(word: String): String</ID>
     <ID>LongMethod:TabularImport.kt$TabularImport$fun parse(rows: List&lt;List&lt;String&gt;&gt;, mainDecimals: Int, currencies: List&lt;Currency&gt;): Parsed</ID>
@@ -93,7 +93,6 @@
     <ID>TooGenericExceptionCaught:DatabaseManager.kt$DatabaseManager.Companion$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HttpServer.kt$HttpServer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:Log.kt$Log$t: Throwable</ID>
-    <ID>TooManyFunctions:MoneyRepository.kt$MoneyRepository</ID>
     <ID>UnusedParameter:WebApi.kt$WebApi$r: MoneyRepository</ID>
     <ID>UnusedParameter:WebApi.kt$WebApi$s: Session</ID>
     <ID>UseRequire:Json.kt$Json.Parser$throw IllegalArgumentException("Unexpected '$c'")</ID>

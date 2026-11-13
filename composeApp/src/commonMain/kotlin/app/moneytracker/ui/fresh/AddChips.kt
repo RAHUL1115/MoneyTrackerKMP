@@ -1,5 +1,6 @@
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.data.NoteSuggestion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -112,7 +113,7 @@ private fun ExtraChip(text: String, set: Boolean, onClick: () -> Unit) {
 
 /** Past notes matching what is typed, and the learned category, as chips over the keyboard. */
 @Composable
-internal fun NoteSuggestions(c: AddContext, noteMatches: List<MoneyRepository.NoteSuggestion>, suggestedCat: String?) {
+internal fun NoteSuggestions(c: AddContext, noteMatches: List<NoteSuggestion>, suggestedCat: String?) {
     val focus = LocalFocusManager.current
     val currencies = LocalCurrencies.current
     val currency = LocalCurrency.current

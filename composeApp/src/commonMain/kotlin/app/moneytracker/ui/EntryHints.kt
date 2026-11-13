@@ -1,5 +1,6 @@
 package app.moneytracker.ui
 
+import app.moneytracker.data.NoteSuggestion
 import app.moneytracker.data.CachedFlow
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.LearningStore
@@ -39,7 +40,7 @@ class EntryHints(
         else withContext(io) { learning.suggest(SmsParser.words(note)) }.categoryId
 
     /** Up to [limit] past notes starting like [note], from entries of the same kind. */
-    suspend fun noteMatches(note: String, type: DraftType, limit: Int): List<MoneyRepository.NoteSuggestion> =
+    suspend fun noteMatches(note: String, type: DraftType, limit: Int): List<NoteSuggestion> =
         if (note.isBlank()) emptyList()
         else withContext(io) { learning.noteSuggestions(note) }.filter { it.kind == type.primaryKind() }.take(limit)
 

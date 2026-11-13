@@ -72,7 +72,7 @@ class MonthRollup(val month: YearMonth, val range: DateRange, val totals: Totals
  * a Flow for screens (re-runs when its tables change; first frame from cached data) and a `…Now()` snapshot for
  * background threads. Built on the pure rules in domain/Rules.kt.
  */
-class ReadModels internal constructor(
+class ReadModels(
     private val settingsStore: SettingsStore,
     private val currencyStore: CurrencyStore,
     private val accountStore: AccountStore,
@@ -83,12 +83,6 @@ class ReadModels internal constructor(
     private val io: CoroutineDispatcher,
     private val today: () -> LocalDate,
 ) {
-    /** Temporary: keeps `ReadModels(this)` in [MoneyRepository] compiling until it passes the stores itself. */
-    internal constructor(repo: MoneyRepository) : this(
-        repo.settingsStore, repo.currencyStore, repo.accountStore, repo.categoryStore, repo.tagStore, repo.txnStore, repo.reportStore,
-        repo.io, repo.today,
-    )
-
 
     // ───────────── accounts
 

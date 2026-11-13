@@ -1,11 +1,15 @@
 package app.moneytracker.data
 
-import app.moneytracker.data.MoneyRepository.NoteSuggestion
-import app.moneytracker.data.MoneyRepository.Suggestion
 import app.moneytracker.domain.AccountPredictor
 import app.moneytracker.domain.SmsParser
 import app.moneytracker.domain.TinyBayes
 import app.moneytracker.domain.TxnKind
+
+/** A past note offered while typing. [amount] is in minor units of [currency] (null = main), as it was entered. */
+data class NoteSuggestion(val note: String, val categoryId: String?, val accountId: String?, val kind: TxnKind, val amount: Long, val currency: String?)
+
+/** What the learned model guesses for an entry's note words, with how sure it is of each. */
+data class Suggestion(val categoryId: String?, val accountId: String?, val categoryConfidence: Double, val accountConfidence: Double)
 
 /**
  * What the app learns from the person's own entries: note words → category and account (a tiny Naive Bayes),

@@ -38,7 +38,7 @@ fun rememberAccountDetailModel(accountId: String): AccountDetailModel {
 fun rememberAccountActionsModel(accountId: String): AccountActionsModel {
     val repo = LocalRepo.current
     val scope = rememberCoroutineScope()
-    return remember(repo, accountId) { AccountActionsModel(accountId, repo.txnStore, EntryEditor(repo), repo.io, scope) }
+    return remember(repo, accountId) { AccountActionsModel(accountId, repo.txnStore, repo.entryEditor, repo.io, scope) }
 }
 
 @Composable

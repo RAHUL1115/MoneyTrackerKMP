@@ -1,5 +1,6 @@
 package app.moneytracker.ui.fresh
 
+import app.moneytracker.data.NoteSuggestion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -113,7 +114,7 @@ private fun AddScreen(c: AddContext) {
     val learned by produceState<String?>(null, f.note, f.type) { value = c.hints.learnedCategory(f.note, f.type) }
     val suggestedCat = f.suggestedCategory(learned, c.choices.catById)?.takeIf { !f.isAdjustment }
     // Past notes matching what is typed (only while the note field has focus).
-    val noteMatches by produceState(emptyList<MoneyRepository.NoteSuggestion>(), f.note, c.ui.noteFocused, f.type) {
+    val noteMatches by produceState(emptyList<NoteSuggestion>(), f.note, c.ui.noteFocused, f.type) {
         value = if (!c.ui.noteFocused) emptyList() else c.hints.noteMatches(f.note, f.type, 3)
     }
     TrayEffects(c)

@@ -24,10 +24,6 @@ class EntryEditor(
     private val intake: MessageIntake,
     private val writer: EntryWriter,
 ) {
-    /** Temporary: keeps `EntryEditor(repo)` compiling until every caller passes the stores itself. */
-    constructor(repo: MoneyRepository) :
-        this(repo.txnStore, repo.photoStore, repo.accountStore, repo.learningStore, repo.messageIntake, repo.entryWriter)
-
     /** An entry opened for editing, with what [TxnStore.draftFrom] leaves out (location, photos). */
     class Opened(val txn: Txn, val draft: TxnDraft, val photos: List<Photo>) {
         val isAdjustment get() = txn.kind.isAdjustment

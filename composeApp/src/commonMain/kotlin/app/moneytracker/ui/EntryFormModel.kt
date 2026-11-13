@@ -1,5 +1,6 @@
 package app.moneytracker.ui
 
+import app.moneytracker.data.NoteSuggestion
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
@@ -161,7 +162,7 @@ class EntryFormModel(
     fun swapAccounts() = set(form.copy(accountId = form.toAccountId, toAccountId = form.accountId))
 
     /** Picking a past note also brings back its category, account and amount (unless already set). */
-    fun pickNote(m: MoneyRepository.NoteSuggestion) {
+    fun pickNote(m: NoteSuggestion) {
         var f = form.copy(note = m.note)
         val categoryId = m.categoryId
         if (!f.isTransfer && categoryId != null && categories.categoryById.current[categoryId]?.kind == f.catKind) f = f.copy(categoryId = categoryId)
@@ -171,7 +172,7 @@ class EntryFormModel(
     }
 
     // The amount used last time, in its currency, unless one is already typed.
-    private fun canTakeAmount(f: EntryForm, m: MoneyRepository.NoteSuggestion) =
+    private fun canTakeAmount(f: EntryForm, m: NoteSuggestion) =
         f.amountText.isEmpty() && m.amount > 0 && (m.currency == null || setup.currencies.containsKey(m.currency))
 
     /** Fills in what Smart entry understood from speech or typing; a guessed account stays a default. */

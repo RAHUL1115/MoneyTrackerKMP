@@ -39,7 +39,7 @@ class SearchModelTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         MoneyDatabase.Schema.create(driver)
         repo = MoneyRepository(MoneyDatabase(driver), Dispatchers.Unconfined, today = { today })
-        repo.seedIfEmpty()
+        repo.freshStart.seedIfEmpty()
         repo.txnStore.create(TxnDraft(DraftType.EXPENSE, LocalDate.parse("2026-03-02"), "acc_cash", categoryId = "cat_ex_0", amount = 2_500, note = "Pizza night"))
         repo.txnStore.create(TxnDraft(DraftType.INCOME, LocalDate.parse("2026-02-20"), "acc_bank", categoryId = "cat_in_0", amount = 90_000, note = "Pizza refund prize"))
         repo.txnStore.create(TxnDraft(DraftType.TRANSFER, LocalDate.parse("2026-03-05"), "acc_bank", toAccountId = "acc_cash", amount = 1_000, note = "Pizza cash"))

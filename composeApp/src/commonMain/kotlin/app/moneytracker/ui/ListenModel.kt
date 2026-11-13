@@ -1,5 +1,6 @@
 package app.moneytracker.ui
 
+import app.moneytracker.data.Suggestion
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -53,7 +54,7 @@ internal class ListenModel(
     private var parser: SmartParser? = null
     private var parseJob: Job? = null
 
-    private val learned: suspend (List<String>) -> MoneyRepository.Suggestion? = { words -> withContext(io) { learning.suggest(words) } }
+    private val learned: suspend (List<String>) -> Suggestion? = { words -> withContext(io) { learning.suggest(words) } }
     private val usual: suspend (TxnKind, String?, String, Long) -> String? =
         { kind, category, note, amount -> withContext(io) { learning.habitAccount(kind, category, note = note, amount = amount.takeIf { it > 0 }) } }
 

@@ -1,5 +1,6 @@
 package app.moneytracker
 
+import app.moneytracker.data.NoteSuggestion
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.EntryEditor
@@ -58,7 +59,7 @@ class EntryFormModelTest {
     }
 
     private fun model(screen: Screen.EditTxn = Screen.EditTxn()) = EntryFormModel(
-        EntryEditor(repo), AccountGuess(repo.accountStore, repo.categoryStore, repo.learningStore), repo.categoryStore,
+        repo.entryEditor, AccountGuess(repo.accountStore, repo.categoryStore, repo.learningStore), repo.categoryStore,
         repo.photoStore, repo.captureStore, repo.bookmarkStore,
         EntrySetup.read(screen, repo.settingsStore, CurrencyFormat(), emptyMap(), repo.today), Dispatchers.Unconfined, scope,
     )
@@ -226,12 +227,12 @@ class EntryFormModelTest {
 
     @Test fun pastNoteBringsBackCategoryAccountAndAmount() {
         val m = model()
-        m.pickNote(MoneyRepository.NoteSuggestion("Fuel", "cat_ex_1", "acc_card", TxnKind.EXPENSE, 4_000, null))
+        m.pickNote(NoteSuggestion("Fuel", "cat_ex_1", "acc_card", TxnKind.EXPENSE, 4_000, null))
         assertEquals("Fuel", m.form.note)
         assertEquals("cat_ex_1", m.form.categoryId)
         assertEquals("acc_card", m.form.accountId)
         assertEquals("40", m.form.amountText)
-        m.pickNote(MoneyRepository.NoteSuggestion("Salary", "cat_in_0", "acc_bank", TxnKind.INCOME, 9_000, null))
+        m.pickNote(NoteSuggestion("Salary", "cat_in_0", "acc_bank", TxnKind.INCOME, 9_000, null))
         assertEquals("cat_ex_1", m.form.categoryId)                   // an income category doesn't fit an expense
         assertEquals("acc_card", m.form.accountId)                   // nor does it replace a chosen account
         assertEquals("40", m.form.amountText)
@@ -249,7 +250,7 @@ class EntryFormModelTest {
     }
 
     @Test fun savedPhotosLeaveOnlyOnSaveAndNewOnesGoAtOnce() {
-        val id = EntryEditor(repo).save(expense(), photos = listOf("a.jpg"))
+        val id = repo.entryEditor.save(expense(), photos = listOf("a.jpg"))
         val m = model(Screen.EditTxn(txnId = id))
         assertEquals(listOf("a.jpg"), m.form.photoFiles)
         m.edit { it.copy(newPhotos = it.newPhotos + "b.jpg") }

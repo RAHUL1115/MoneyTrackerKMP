@@ -1,5 +1,6 @@
 package app.moneytracker.ui
 
+import app.moneytracker.data.Suggestion
 import app.moneytracker.ai.SmartParser
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
@@ -58,7 +59,7 @@ object SmartEntry {
         parser: SmartParser, text: String, today: LocalDate, currency: CurrencyFormat,
         categories: List<Category>, accounts: List<Account>,
         /** What the person's own saved entries say about these note words (the app's learned suggestions); null to skip. */
-        learned: (suspend (List<String>) -> MoneyRepository.Suggestion?)? = null,
+        learned: (suspend (List<String>) -> Suggestion?)? = null,
         /** The account usually used for (kind, category id, note, amount); null to skip. */
         usualAccount: (suspend (app.moneytracker.domain.TxnKind, String?, String, Long) -> String?)? = null,
     ): SmartGuess = withContext(Dispatchers.Default) {

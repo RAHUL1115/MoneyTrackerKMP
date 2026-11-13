@@ -1,5 +1,6 @@
 package app.moneytracker.ui
 
+import app.moneytracker.data.NoteSuggestion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -66,7 +67,7 @@ internal fun NoteRows(c: EditContext) {
         )
     }
     // Past notes matching what is typed (only while the note field has focus).
-    val noteMatches by produceState(emptyList<MoneyRepository.NoteSuggestion>(), f.note, ui.noteFocused, f.type) {
+    val noteMatches by produceState(emptyList<NoteSuggestion>(), f.note, ui.noteFocused, f.type) {
         value = if (!ui.noteFocused) emptyList() else c.hints.noteMatches(f.note, f.type, 4)
     }
     if (noteMatches.isNotEmpty()) NoteMatches(c, noteMatches)
@@ -74,7 +75,7 @@ internal fun NoteRows(c: EditContext) {
 
 /** Autocomplete: picking a past note also brings back its category and (unless already chosen) account. */
 @Composable
-private fun NoteMatches(c: EditContext, noteMatches: List<MoneyRepository.NoteSuggestion>) {
+private fun NoteMatches(c: EditContext, noteMatches: List<NoteSuggestion>) {
     val focus = LocalFocusManager.current
     val currencies = LocalCurrencies.current
     val currency = LocalCurrency.current

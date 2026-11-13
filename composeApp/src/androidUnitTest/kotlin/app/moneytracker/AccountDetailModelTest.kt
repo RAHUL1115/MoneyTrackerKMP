@@ -56,7 +56,7 @@ class AccountDetailModelTest {
 
     private fun detail(id: String) =
         AccountDetailModel(id, repo.views, repo.accountStore, repo.categoryStore, repo.settingsStore, repo.txnStore, repo.tagStore, repo.io, scope)
-    private fun actions(id: String) = AccountActionsModel(id, repo.txnStore, EntryEditor(repo), repo.io, scope)
+    private fun actions(id: String) = AccountActionsModel(id, repo.txnStore, repo.entryEditor, repo.io, scope)
     private fun add(type: DraftType, date: LocalDate, account: String, amount: Long, to: String? = null) =
         repo.txnStore.create(TxnDraft(type, date, account, toAccountId = to, categoryId = if (type == DraftType.EXPENSE) "cat_ex_0" else "cat_in_0", amount = amount))
     private fun balance(id: String) = repo.accountStore.balancesNow()[id] ?: 0L

@@ -18,7 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 @Composable
 internal fun rememberEntryEditor(): EntryEditor {
     val repo = LocalRepo.current
-    return remember(repo) { EntryEditor(repo) }
+    return remember(repo) { repo.entryEditor }
 }
 
 /** The entry form for [screen], as both layouts use it. What was typed survives the app closing in the background. */
@@ -27,7 +27,7 @@ internal fun rememberEntryForm(repo: MoneyRepository, screen: Screen.EditTxn, sc
     val main = LocalCurrency.current
     val currencies = LocalCurrencies.current
     fun make() = EntryFormModel(
-        EntryEditor(repo), AccountGuess(repo.accountStore, repo.categoryStore, repo.learningStore), repo.categoryStore,
+        repo.entryEditor, AccountGuess(repo.accountStore, repo.categoryStore, repo.learningStore), repo.categoryStore,
         repo.photoStore, repo.captureStore, repo.bookmarkStore,
         EntrySetup.read(screen, repo.settingsStore, main, currencies, repo.today), repo.io, scope,
     )
