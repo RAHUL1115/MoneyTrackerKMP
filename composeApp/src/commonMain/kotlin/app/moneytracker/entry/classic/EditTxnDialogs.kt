@@ -51,7 +51,7 @@ import app.moneytracker.designsystem.classic.Picker
 import app.moneytracker.designsystem.classic.SubtleText
 import app.moneytracker.designsystem.classic.categoryPath
 import app.moneytracker.domain.RepeatType
-import app.moneytracker.ui.TagPickerDialog
+import app.moneytracker.lists.classic.TagPickerDialog
 import kotlinx.datetime.LocalDate
 
 // The dialogs of the classic editor (EditTxnScreen.kt).

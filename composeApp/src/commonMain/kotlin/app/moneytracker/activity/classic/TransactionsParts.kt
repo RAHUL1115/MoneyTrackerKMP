@@ -91,8 +91,8 @@ import app.moneytracker.domain.MODIFIED_BALANCE_NAME
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.isRefund
-import app.moneytracker.ui.DetectedCard
-import app.moneytracker.ui.DetectedCardModel
+import app.moneytracker.messages.DetectedCard
+import app.moneytracker.messages.DetectedCardModel
 import kotlin.math.abs
 
 /** One transaction: category (left, grey) · note + account (middle) · amount (right). */

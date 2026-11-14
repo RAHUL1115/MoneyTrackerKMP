@@ -34,6 +34,7 @@ import app.moneytracker.accounts.fresh.FreshEditAccount
 import app.moneytracker.accounts.fresh.MoneyTab
 import app.moneytracker.activity.fresh.ActivityTab
 import app.moneytracker.activity.fresh.FreshSearch
+import app.moneytracker.backup.fresh.FreshBackup
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.fresh.F
 import app.moneytracker.designsystem.fresh.Glyph
@@ -43,13 +44,12 @@ import app.moneytracker.home.fresh.FreshMessageSettings
 import app.moneytracker.home.fresh.HomeTab
 import app.moneytracker.insights.fresh.FreshBudget
 import app.moneytracker.insights.fresh.InsightsTab
-import app.moneytracker.ui.fresh.FreshBackup
-import app.moneytracker.ui.fresh.FreshCategories
-import app.moneytracker.ui.fresh.FreshEditNote
-import app.moneytracker.ui.fresh.FreshHub
-import app.moneytracker.ui.fresh.FreshRepeats
-import app.moneytracker.ui.fresh.FreshSettings
-import app.moneytracker.ui.fresh.FreshWebDashboard
+import app.moneytracker.lists.fresh.FreshCategories
+import app.moneytracker.lists.fresh.FreshEditNote
+import app.moneytracker.lists.fresh.FreshRepeats
+import app.moneytracker.settings.fresh.FreshHub
+import app.moneytracker.settings.fresh.FreshSettings
+import app.moneytracker.webdashboard.fresh.FreshWebDashboard
 
 /** Home of the new layout: the selected tab above the bottom bar. */
 @Composable

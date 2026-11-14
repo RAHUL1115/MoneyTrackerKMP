@@ -12,11 +12,11 @@ import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.Currency
 import app.moneytracker.domain.Tag
 import app.moneytracker.insights.classic.StatsDetailModel
-import app.moneytracker.ui.BookmarksModel
-import app.moneytracker.ui.CurrenciesModel
-import app.moneytracker.ui.TagsModel
-import app.moneytracker.ui.currencyInputValid
-import app.moneytracker.ui.pressCalcKey
+import app.moneytracker.lists.TagsModel
+import app.moneytracker.lists.classic.BookmarksModel
+import app.moneytracker.settings.CurrenciesModel
+import app.moneytracker.settings.classic.pressCalcKey
+import app.moneytracker.settings.currencyInputValid
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

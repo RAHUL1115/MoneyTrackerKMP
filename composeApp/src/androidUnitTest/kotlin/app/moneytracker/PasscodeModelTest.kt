@@ -6,10 +6,10 @@ import app.moneytracker.core.PinSecurity
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
 import app.moneytracker.db.MoneyDatabase
-import app.moneytracker.ui.LockModel
-import app.moneytracker.ui.LockSetup
-import app.moneytracker.ui.PasscodeModel
-import app.moneytracker.ui.PinStep
+import app.moneytracker.settings.LockModel
+import app.moneytracker.settings.LockSetup
+import app.moneytracker.settings.PasscodeModel
+import app.moneytracker.settings.PinStep
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

@@ -56,8 +56,8 @@ import app.moneytracker.domain.BudgetLine
 import app.moneytracker.home.HomeDay
 import app.moneytracker.home.HomeState
 import app.moneytracker.home.rememberHomeModel
-import app.moneytracker.ui.fresh.SmsReviewScreen
-import app.moneytracker.ui.fresh.SmsSettingsScreen
+import app.moneytracker.messages.fresh.SmsReviewScreen
+import app.moneytracker.messages.fresh.SmsSettingsScreen
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

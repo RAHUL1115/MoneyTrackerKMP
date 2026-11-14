@@ -63,7 +63,7 @@ import app.moneytracker.designsystem.fresh.TabHeader
 import app.moneytracker.designsystem.fresh.newListenLook
 import app.moneytracker.domain.YearMonth
 import app.moneytracker.entry.classic.ListenSheet
-import app.moneytracker.ui.fresh.ActivityNotesView
+import app.moneytracker.lists.fresh.ActivityNotesView
 import kotlinx.datetime.LocalDate
 
 // Activity tab: every entry by day, as a calendar, by month, and the notes. Replaces the classic Trans. tab.

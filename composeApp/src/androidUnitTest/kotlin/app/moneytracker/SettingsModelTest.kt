@@ -11,11 +11,11 @@ import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.BudgetEntry
 import app.moneytracker.domain.Tag
 import app.moneytracker.domain.YearMonth
-import app.moneytracker.ui.SettingRow
-import app.moneytracker.ui.SettingsModel
-import app.moneytracker.ui.SettingsOverviewModel
-import app.moneytracker.ui.budgetedCount
-import app.moneytracker.ui.searchRows
+import app.moneytracker.settings.SettingsModel
+import app.moneytracker.settings.SettingsOverviewModel
+import app.moneytracker.settings.budgetedCount
+import app.moneytracker.settings.classic.SettingRow
+import app.moneytracker.settings.classic.searchRows
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

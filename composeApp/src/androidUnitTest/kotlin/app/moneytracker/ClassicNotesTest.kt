@@ -4,11 +4,11 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.Note
-import app.moneytracker.ui.NoteDraft
-import app.moneytracker.ui.NoteEditorModel
-import app.moneytracker.ui.NoteOrder
-import app.moneytracker.ui.NotesModel
-import app.moneytracker.ui.noteDay
+import app.moneytracker.lists.NoteDraft
+import app.moneytracker.lists.NoteEditorModel
+import app.moneytracker.lists.NoteOrder
+import app.moneytracker.lists.NotesModel
+import app.moneytracker.lists.noteDay
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

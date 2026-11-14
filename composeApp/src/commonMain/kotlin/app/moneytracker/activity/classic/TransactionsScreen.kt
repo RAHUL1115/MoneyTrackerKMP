@@ -90,7 +90,7 @@ import app.moneytracker.designsystem.classic.UnderlineTabs
 import app.moneytracker.designsystem.classic.label
 import app.moneytracker.domain.classify
 import app.moneytracker.entry.classic.ListenSheet
-import app.moneytracker.ui.NotesView
+import app.moneytracker.lists.classic.NotesView
 
 /** Remembers the selected report month (per tab). */
 @Composable

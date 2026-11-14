@@ -9,7 +9,7 @@ import androidx.compose.ui.text.font.FontWeight
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.classic.Accent
-import app.moneytracker.ui.rememberSettingsModel
+import app.moneytracker.settings.rememberSettingsModel
 
 /** True when this run of the app shows the new layout. Fixed until the next restart. */
 val LocalNewLayout = compositionLocalOf { false }
