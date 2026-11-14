@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.moneytracker.app.LocalBackups
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.Backups

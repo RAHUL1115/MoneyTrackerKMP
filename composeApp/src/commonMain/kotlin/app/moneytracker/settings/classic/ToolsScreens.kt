@@ -37,10 +37,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.TxnDraft

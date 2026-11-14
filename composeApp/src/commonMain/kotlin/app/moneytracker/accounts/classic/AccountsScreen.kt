@@ -44,12 +44,11 @@ import app.moneytracker.accounts.billDue
 import app.moneytracker.accounts.mainTotal
 import app.moneytracker.accounts.rememberAccountsModel
 import app.moneytracker.accounts.shownBalance
-import app.moneytracker.app.LocalCurrencies
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
-import app.moneytracker.core.PrivacyEyeButton
+import app.moneytracker.core.LocalCurrencies
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.AccountSummary
@@ -65,6 +64,7 @@ import app.moneytracker.designsystem.classic.InkSoft
 import app.moneytracker.designsystem.classic.LineChart
 import app.moneytracker.designsystem.classic.PageBackground
 import app.moneytracker.designsystem.classic.PairBarChart
+import app.moneytracker.designsystem.classic.PrivacyEyeButton
 import app.moneytracker.designsystem.classic.RowAmountStyle
 import app.moneytracker.designsystem.classic.SectionTotalStyle
 import app.moneytracker.designsystem.classic.SubtleText

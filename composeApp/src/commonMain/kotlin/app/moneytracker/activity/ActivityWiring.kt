@@ -7,7 +7,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import app.moneytracker.app.LocalRepo
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.data.MoneyRepository
 
 /*

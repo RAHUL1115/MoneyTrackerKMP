@@ -45,8 +45,8 @@ import androidx.compose.ui.unit.sp
 import app.moneytracker.activity.FilterChoices
 import app.moneytracker.activity.FilterChoicesModel
 import app.moneytracker.activity.FilterLine
-import app.moneytracker.app.LocalCurrency
-import app.moneytracker.app.LocalRepo
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.classic.Accent

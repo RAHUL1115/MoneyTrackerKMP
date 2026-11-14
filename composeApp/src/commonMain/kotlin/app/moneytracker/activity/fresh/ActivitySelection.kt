@@ -28,8 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.activity.BulkEditModel
 import app.moneytracker.activity.BulkResult
-import app.moneytracker.app.LocalCurrency
-import app.moneytracker.app.LocalRepo
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.outlivingScope
 import app.moneytracker.core.tr

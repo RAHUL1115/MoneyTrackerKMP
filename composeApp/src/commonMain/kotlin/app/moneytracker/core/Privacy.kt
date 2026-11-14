@@ -1,18 +1,12 @@
 package app.moneytracker.core
 
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import app.moneytracker.app.LocalCurrencies
-import app.moneytracker.app.LocalCurrency
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
-import app.moneytracker.designsystem.classic.Accent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -52,20 +46,6 @@ object Privacy {
 
     /** A tap on a total: peeks while amounts are hidden, otherwise does [action]. */
     fun tap(action: () -> Unit): () -> Unit = { if (masked) peek() else action() }
-}
-
-/** The classic layout's eye: a top-bar button that hides or shows all amounts, accent while they're hidden. */
-@Composable
-fun PrivacyEyeButton() {
-    val repo = LocalRepo.current
-    val on = Privacy.hidden
-    androidx.compose.material3.IconButton(onClick = { Privacy.toggle(repo) }) {
-        androidx.compose.material3.Icon(
-            if (on) androidx.compose.material.icons.Icons.Outlined.VisibilityOff else androidx.compose.material.icons.Icons.Outlined.Visibility,
-            if (on) tr("Show amounts") else tr("Hide amounts"),
-            tint = if (on) Accent else androidx.compose.material3.LocalContentColor.current,
-        )
-    }
 }
 
 /** Shows [content] with real amounts even while privacy is on (adding and editing an entry). */

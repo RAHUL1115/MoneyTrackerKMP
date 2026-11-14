@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.activity.classic.AddFab
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.newId

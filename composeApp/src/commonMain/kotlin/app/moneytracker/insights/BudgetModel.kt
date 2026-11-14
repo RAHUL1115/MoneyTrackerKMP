@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
-import app.moneytracker.app.LocalRepo
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.outlivingScope
 import app.moneytracker.data.CategoryStore
 import app.moneytracker.data.MonthBudget

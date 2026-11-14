@@ -3,7 +3,7 @@ package app.moneytracker.accounts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import app.moneytracker.app.LocalRepo
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.data.EntryEditor
 
 // Wiring for the account screens of both layouts: each holder is built once per screen from the stores it needs,

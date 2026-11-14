@@ -29,10 +29,10 @@ import app.moneytracker.activity.ActivityState
 import app.moneytracker.activity.EntryListState
 import app.moneytracker.activity.UpcomingRepeats
 import app.moneytracker.activity.rememberEntryListModel
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.classic.monthShort
 import app.moneytracker.designsystem.fresh.F

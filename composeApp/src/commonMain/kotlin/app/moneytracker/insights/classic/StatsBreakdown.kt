@@ -28,12 +28,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.classic.Accent
 import app.moneytracker.designsystem.classic.AccentTint
+import app.moneytracker.designsystem.classic.ChartColors
 import app.moneytracker.designsystem.classic.DonutChart
 import app.moneytracker.designsystem.classic.ExpenseColor
 import app.moneytracker.designsystem.classic.FillColor

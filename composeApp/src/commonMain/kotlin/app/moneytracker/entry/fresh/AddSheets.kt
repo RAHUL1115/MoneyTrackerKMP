@@ -26,10 +26,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.app.LocalCurrencies
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrencies
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.formatTime
 import app.moneytracker.core.tr

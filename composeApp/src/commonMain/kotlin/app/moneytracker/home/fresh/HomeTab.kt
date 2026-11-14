@@ -38,9 +38,9 @@ import app.moneytracker.activity.fresh.ENTRY_INSET
 import app.moneytracker.activity.fresh.actMonthNames
 import app.moneytracker.activity.fresh.rememberActEntryData
 import app.moneytracker.app.FreshTab
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.Privacy
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.classic.short
@@ -51,8 +51,8 @@ import app.moneytracker.designsystem.fresh.F
 import app.moneytracker.designsystem.fresh.Glyph
 import app.moneytracker.designsystem.fresh.IconTile
 import app.moneytracker.designsystem.fresh.TabHeader
-import app.moneytracker.designsystem.fresh.newListenLook
 import app.moneytracker.domain.BudgetLine
+import app.moneytracker.entry.fresh.newListenLook
 import app.moneytracker.home.HomeDay
 import app.moneytracker.home.HomeState
 import app.moneytracker.home.rememberHomeModel

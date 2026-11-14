@@ -77,9 +77,9 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.app.LocalCurrency
-import app.moneytracker.app.LocalRepo
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.SpeechError
 import app.moneytracker.core.SpeechListener
 import app.moneytracker.core.SpeechSession

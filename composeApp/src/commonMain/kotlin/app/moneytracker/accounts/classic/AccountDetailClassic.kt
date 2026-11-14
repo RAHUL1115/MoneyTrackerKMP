@@ -56,11 +56,11 @@ import app.moneytracker.accounts.withdrawalTotal
 import app.moneytracker.activity.classic.AddFab
 import app.moneytracker.activity.classic.TxnLine
 import app.moneytracker.activity.classic.rememberPeriod
-import app.moneytracker.app.LocalCurrencies
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrencies
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType

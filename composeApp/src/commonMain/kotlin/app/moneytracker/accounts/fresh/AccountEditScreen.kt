@@ -30,9 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.accounts.AccountForm
 import app.moneytracker.accounts.rememberAccountEditModel
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.fresh.Confirm
 import app.moneytracker.designsystem.fresh.Divider

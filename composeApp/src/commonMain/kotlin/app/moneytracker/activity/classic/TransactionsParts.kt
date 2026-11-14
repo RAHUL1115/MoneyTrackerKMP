@@ -56,12 +56,12 @@ import androidx.compose.ui.unit.sp
 import app.moneytracker.activity.BulkEditModel
 import app.moneytracker.activity.BulkResult
 import app.moneytracker.activity.UpcomingRepeats
-import app.moneytracker.app.LocalCurrencies
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrencies
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.formatTime
 import app.moneytracker.core.tr

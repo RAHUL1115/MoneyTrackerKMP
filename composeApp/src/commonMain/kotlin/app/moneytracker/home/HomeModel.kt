@@ -3,7 +3,7 @@ package app.moneytracker.home
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import app.moneytracker.app.LocalRepo
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.data.CaptureStore
 import app.moneytracker.data.MonthBudget
 import app.moneytracker.data.PeriodSettings

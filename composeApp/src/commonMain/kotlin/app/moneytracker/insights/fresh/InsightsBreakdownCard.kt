@@ -26,9 +26,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.activity.fresh.ENTRY_INSET
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.classic.categoryPath
 import app.moneytracker.designsystem.classic.short

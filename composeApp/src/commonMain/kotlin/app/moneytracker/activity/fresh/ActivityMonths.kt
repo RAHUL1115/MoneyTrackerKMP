@@ -42,10 +42,10 @@ import androidx.compose.ui.unit.sp
 import app.moneytracker.activity.ActivityModel
 import app.moneytracker.activity.rememberMonthsModel
 import app.moneytracker.app.LocalBackups
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.tr
 import app.moneytracker.data.MonthRollup
 import app.moneytracker.data.MonthTotals

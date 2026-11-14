@@ -57,7 +57,10 @@ import app.moneytracker.backup.classic.BackupScreen
 import app.moneytracker.core.I18n
 import app.moneytracker.core.Languages
 import app.moneytracker.core.LaunchAction
+import app.moneytracker.core.LocalCurrencies
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.Network
 import app.moneytracker.core.Platform
 import app.moneytracker.core.Privacy
@@ -95,6 +98,7 @@ import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.entry.classic.EditTxnScreen
 import app.moneytracker.entry.classic.ListenLook
 import app.moneytracker.entry.classic.ListenSheet
+import app.moneytracker.entry.fresh.newListenLook
 import app.moneytracker.insights.classic.BudgetDetailScreen
 import app.moneytracker.insights.classic.BudgetScreen
 import app.moneytracker.insights.classic.StatsDetailScreen
@@ -120,12 +124,8 @@ import app.moneytracker.settings.classic.SecurityScreen
 import app.moneytracker.webdashboard.classic.WebDashboardScreen
 import kotlinx.coroutines.withContext
 
-val LocalRepo = compositionLocalOf<MoneyRepository> { error("No repository") }
-val LocalCurrency = compositionLocalOf { CurrencyFormat() }
 val LocalNavigator = compositionLocalOf<Navigator> { error("No navigator") }
 val LocalBackups = compositionLocalOf<Backups> { error("No backups") }
-/** Non-main currencies by ISO code, for rendering foreign amounts. */
-val LocalCurrencies = compositionLocalOf<Map<String, app.moneytracker.domain.Currency>> { emptyMap() }
 
 /** Material scheme built from the app palette (which already follows [darkTheme]). */
 private fun scheme() = (if (darkTheme) androidx.compose.material3.darkColorScheme() else lightColorScheme()).copy(
@@ -302,7 +302,7 @@ private fun UnlockedApp(
     if (session.locked) SideEffect { session.onUnlocked() }
     var voiceSheet by remember { mutableStateOf(false) }
     if (voiceSheet) {
-        val look = if (newLayout) app.moneytracker.designsystem.fresh.newListenLook() else ListenLook.classic()
+        val look = if (newLayout) newListenLook() else ListenLook.classic()
         ListenSheet(onDismiss = { voiceSheet = false }, look = look) { g -> navigator.push(Screen.EditTxn(preset = g?.draft)) }
     }
     LaunchedEffect(session.launchAction) {

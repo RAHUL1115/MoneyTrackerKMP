@@ -24,10 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.activity.classic.TxnLine
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.AccountStore
@@ -35,6 +35,7 @@ import app.moneytracker.data.CategoryStore
 import app.moneytracker.data.PeriodSettings
 import app.moneytracker.data.TxnStore
 import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.ChartColors
 import app.moneytracker.designsystem.classic.DividerColor
 import app.moneytracker.designsystem.classic.DonutChart
 import app.moneytracker.designsystem.classic.ExpenseColor

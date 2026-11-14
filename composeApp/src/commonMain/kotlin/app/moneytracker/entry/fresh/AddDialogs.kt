@@ -31,7 +31,6 @@ import app.moneytracker.designsystem.fresh.Pill
 import app.moneytracker.designsystem.fresh.PrimaryButton
 import app.moneytracker.designsystem.fresh.SectionLabel
 import app.moneytracker.designsystem.fresh.Sheet
-import app.moneytracker.designsystem.fresh.newListenLook
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.entry.classic.ListenSheet
 import kotlinx.datetime.LocalDate
@@ -141,3 +140,11 @@ internal fun RepeatSheet(
     }
     DatePickerHost(endPicker, end ?: start, { endPicker = false }, { end = it }, clearable = true)
 }
+
+/** The listening sheet in the new layout's look (canvas 7.1): rounder sheet, its own teal, "Type instead". */
+@Composable
+internal fun newListenLook() = app.moneytracker.entry.classic.ListenLook(
+    sheet = F.card, ink = F.ink, inkSoft = F.ink, muted = F.muted, accent = F.accent, onAccent = F.onAccent,
+    line = F.line, fill = F.fill, border = F.border, danger = F.danger, income = F.income, expense = F.expense,
+    radius = 28.dp, button = F.buttonShape, typeLabel = tr("Type instead"),
+)

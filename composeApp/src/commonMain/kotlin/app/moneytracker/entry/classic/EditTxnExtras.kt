@@ -52,10 +52,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.app.LocalCurrencies
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrencies
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.tr
 import app.moneytracker.data.MoneyRepository

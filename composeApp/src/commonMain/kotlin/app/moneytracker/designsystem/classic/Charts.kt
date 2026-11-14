@@ -34,7 +34,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.insights.classic.ChartColors
+
+/** Chart palette: distinct, readable on white. */
+val ChartColors = listOf(
+    Color(0xFF14B8A6), Color(0xFF6366F1), Color(0xFFF59E0B), Color(0xFFEC4899), Color(0xFF0EA5E9),
+    Color(0xFF84CC16), Color(0xFFA855F7), Color(0xFFF97316), Color(0xFF06B6D4), Color(0xFF94A3B8),
+)
 
 /** Line over evenly spaced points with a soft fill and dots; labels under each point. Zero line drawn when values cross it. */
 @Composable

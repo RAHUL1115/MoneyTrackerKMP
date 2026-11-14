@@ -34,9 +34,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.activity.EntryLookups
-import app.moneytracker.app.LocalCurrencies
-import app.moneytracker.app.LocalCurrency
-import app.moneytracker.app.LocalRepo
+import app.moneytracker.core.LocalCurrencies
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.formatTime
 import app.moneytracker.core.tr

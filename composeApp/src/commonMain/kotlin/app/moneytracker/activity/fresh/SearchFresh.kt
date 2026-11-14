@@ -53,10 +53,10 @@ import app.moneytracker.activity.SearchState
 import app.moneytracker.activity.SearchType
 import app.moneytracker.activity.classic.searchTagChoices
 import app.moneytracker.activity.entryFeed
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.classic.DatePickerHost
 import app.moneytracker.designsystem.classic.monthShort

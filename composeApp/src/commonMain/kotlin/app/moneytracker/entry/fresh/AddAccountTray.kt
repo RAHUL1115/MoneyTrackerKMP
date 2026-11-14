@@ -2,8 +2,8 @@ package app.moneytracker.entry.fresh
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import app.moneytracker.app.LocalCurrencies
-import app.moneytracker.app.LocalCurrency
+import app.moneytracker.core.LocalCurrencies
+import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.tr
 import app.moneytracker.designsystem.fresh.F
 import app.moneytracker.domain.Account

@@ -55,10 +55,10 @@ import app.moneytracker.activity.EntryLookups
 import app.moneytracker.activity.rememberCalendarModel
 import app.moneytracker.activity.rememberMonthsModel
 import app.moneytracker.app.LocalBackups
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.MonthRollup

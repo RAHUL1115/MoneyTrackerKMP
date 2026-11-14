@@ -62,11 +62,10 @@ import app.moneytracker.activity.EntryListState
 import app.moneytracker.activity.rememberActivityModel
 import app.moneytracker.activity.rememberEntryListModel
 import app.moneytracker.activity.swipeSteps
-import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Screen
-import app.moneytracker.core.PrivacyEyeButton
+import app.moneytracker.core.LocalCurrency
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.tr
@@ -84,6 +83,7 @@ import app.moneytracker.designsystem.classic.ListCardMargin
 import app.moneytracker.designsystem.classic.ListRowInset
 import app.moneytracker.designsystem.classic.MonthPickerDialog
 import app.moneytracker.designsystem.classic.MonthTopBar
+import app.moneytracker.designsystem.classic.PrivacyEyeButton
 import app.moneytracker.designsystem.classic.SummaryStrip
 import app.moneytracker.designsystem.classic.SurfaceColor
 import app.moneytracker.designsystem.classic.UnderlineTabs

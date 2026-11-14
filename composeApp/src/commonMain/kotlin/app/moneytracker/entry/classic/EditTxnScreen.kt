@@ -32,10 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
 import app.moneytracker.app.LocalNavigator
-import app.moneytracker.app.LocalRepo
 import app.moneytracker.app.Navigator
 import app.moneytracker.app.Screen
 import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.LocalRepo
 import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
