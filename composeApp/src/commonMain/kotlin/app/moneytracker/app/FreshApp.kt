@@ -29,6 +29,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.accounts.fresh.FreshAccountDetail
+import app.moneytracker.accounts.fresh.FreshEditAccount
+import app.moneytracker.accounts.fresh.MoneyTab
 import app.moneytracker.activity.fresh.ActivityTab
 import app.moneytracker.activity.fresh.FreshSearch
 import app.moneytracker.core.tr
@@ -38,18 +41,15 @@ import app.moneytracker.entry.fresh.FreshEditTxn
 import app.moneytracker.home.fresh.FreshInbox
 import app.moneytracker.home.fresh.FreshMessageSettings
 import app.moneytracker.home.fresh.HomeTab
-import app.moneytracker.ui.fresh.FreshAccountDetail
+import app.moneytracker.insights.fresh.FreshBudget
+import app.moneytracker.insights.fresh.InsightsTab
 import app.moneytracker.ui.fresh.FreshBackup
-import app.moneytracker.ui.fresh.FreshBudget
 import app.moneytracker.ui.fresh.FreshCategories
-import app.moneytracker.ui.fresh.FreshEditAccount
 import app.moneytracker.ui.fresh.FreshEditNote
 import app.moneytracker.ui.fresh.FreshHub
 import app.moneytracker.ui.fresh.FreshRepeats
 import app.moneytracker.ui.fresh.FreshSettings
 import app.moneytracker.ui.fresh.FreshWebDashboard
-import app.moneytracker.ui.fresh.InsightsTab
-import app.moneytracker.ui.fresh.MoneyTab
 
 /** Home of the new layout: the selected tab above the bottom bar. */
 @Composable

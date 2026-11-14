@@ -34,7 +34,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.ui.ChartColors
+import app.moneytracker.insights.classic.ChartColors
 
 /** Line over evenly spaced points with a soft fill and dots; labels under each point. Zero line drawn when values cross it. */
 @Composable

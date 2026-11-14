@@ -1,6 +1,9 @@
 package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.moneytracker.accounts.AccountsModel
+import app.moneytracker.accounts.ManageAccountsModel
+import app.moneytracker.accounts.NetWorthPoint
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.TxnDraft
@@ -9,9 +12,6 @@ import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 import app.moneytracker.domain.AccountType
 import app.moneytracker.domain.YearMonth
-import app.moneytracker.ui.accounts.AccountsModel
-import app.moneytracker.ui.accounts.ManageAccountsModel
-import app.moneytracker.ui.accounts.NetWorthPoint
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

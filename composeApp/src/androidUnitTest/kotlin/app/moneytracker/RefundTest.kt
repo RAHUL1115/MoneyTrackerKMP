@@ -13,7 +13,7 @@ import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.SmsParser
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.cardStatus
-import app.moneytracker.ui.byMainCategory
+import app.moneytracker.insights.byMainCategory
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

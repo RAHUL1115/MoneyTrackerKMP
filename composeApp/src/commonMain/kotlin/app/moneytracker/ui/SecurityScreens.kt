@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.accounts.classic.SwitchRow
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.BiometricStatus
