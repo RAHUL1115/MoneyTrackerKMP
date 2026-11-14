@@ -13,7 +13,7 @@
 
 ## Public-format corpus
 
-`composeApp/src/commonTest/kotlin/app/moneytracker/PublicSmsFixtures.kt` holds 11 source-linked examples from six banks. Each is checked for amount, bank, suffix, instrument, and refund direction; the repository test replays every example with same-bank bank, credit-card, and debit-card accounts present and checks both ingestion and editor selection.
+`composeApp/src/commonTest/kotlin/app/moneytracker/domain/PublicSmsFixtures.kt` holds 11 source-linked examples from six banks. Each is checked for amount, bank, suffix, instrument, and refund direction; the repository test replays every example with same-bank bank, credit-card, and debit-card accounts present and checks both ingestion and editor selection.
 
 These are **public open-source test examples, not independently authenticated bank-issued messages**. Some upstream examples are explicitly synthetic/masked. No parser implementation or ledger expectations were copied; expected behavior is defined by this app's rules. Sources are pinned to retrieved commits:
 

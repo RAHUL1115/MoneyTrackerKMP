@@ -1,0 +1,7 @@
+# Mechanical package moves (only package lines and imports changed). Use: git config blame.ignoreRevsFile .git-blame-ignore-revs
+54cd1196a0fc65dfbfcaef7b2c93402fe2868574 # Move tests next to the code they test
+ea4d6827abb20b8c0e774c6e9c7494c9853400ef # Move messages, settings, backup, web dashboard and list screens into feature packages
+7b549280672793850b9fbdeab2ea83cf8595f670 # Move accounts and insights screens into feature packages
+831fd00a40d26cdae07752b831481e5d92083904 # Move home, activity and entry screens into feature packages
+557910f1e7f32081130a138ea09739758a96103d # Move the app shell into app/ and shared widgets into designsystem/
+c16c611862182b84a8a055fa149e4b9f00163ed6 # Move foundations into core, domain/ai, data/moneymanager and Android platform/backup/data
