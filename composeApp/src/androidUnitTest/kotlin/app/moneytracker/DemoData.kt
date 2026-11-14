@@ -15,6 +15,8 @@ import kotlin.test.Test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 
 /**
@@ -78,7 +80,7 @@ internal fun seedDemoData(repo: MoneyRepository, today: LocalDate) {
     repo.reportStore.setBudget("cat_ex_5", ym.plus(-2), 2_000 * 100)
     val noon = today.toEpochDays() * 86_400_000L
     repo.noteStore.saveNote(Note("note_demo", "Trip to Goa", "Flights booked. Keep ₹15,000 aside for hotel and food.", 2, true, noon, noon))
-    repo.messageIntake.ingestMessage("SMS", "AX-HDFCBK", "Rs.1,240.00 spent on HDFC Bank Card x4821 at BIG BAZAAR on ${smsDate(today)}.", noon + 10 * 3_600_000L)
+    repo.messageIntake.ingestMessage("SMS", "AX-HDFCBK", "Rs.1,240.00 spent on HDFC Bank Card x4821 at BIG BAZAAR on ${smsDate(today)}.", today.atStartOfDayIn(TimeZone.currentSystemDefault()).toEpochMilliseconds())
 }
 
 /** Bank-SMS style date, e.g. 05-Nov-26. */

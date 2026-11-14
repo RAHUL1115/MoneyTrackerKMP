@@ -22,7 +22,6 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.LocalDate
-import org.junit.Before
 import org.junit.Rule
 import org.junit.runner.RunWith
 import org.junit.runners.model.FrameworkMethod
@@ -42,12 +41,13 @@ import org.robolectric.internal.bytecode.InstrumentationConfiguration
 abstract class ScreenshotTest(private val newLayout: Boolean) {
     @get:Rule val compose = createComposeRule()
 
-    protected val repo = demoRepository()
-
-    @Before fun pinLocaleAndClock() {
+    init {
+        // Pinned before the demo data is written, so entries stamped "at midnight here" land in this zone.
         Locale.setDefault(Locale.US)
         TimeZone.setDefault(zoneWhereItIsNow(GREETING_HOUR))
     }
+
+    protected val repo = demoRepository()
 
     /** Opens the app on its home screen with [screens] pushed on top, and waits until it has settled. */
     protected fun show(vararg screens: Screen, dark: Boolean = false) {
