@@ -31,6 +31,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.InkSoft
+import app.moneytracker.designsystem.classic.PageBackground
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 

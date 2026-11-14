@@ -3,6 +3,7 @@ package app.moneytracker.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import app.moneytracker.app.LocalNavigator
 import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.tr
 import app.moneytracker.data.ColorSet

@@ -47,9 +47,20 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrencies
+import app.moneytracker.app.LocalCurrency
 import app.moneytracker.core.formatTime
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.BorderColor
+import app.moneytracker.designsystem.classic.IncomeColor
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.InkSoft
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.TypeSegments
+import app.moneytracker.designsystem.classic.categoryPath
+import app.moneytracker.designsystem.classic.numeric
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.MODIFIED_BALANCE_NAME
 

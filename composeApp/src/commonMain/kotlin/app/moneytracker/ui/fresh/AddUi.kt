@@ -7,8 +7,8 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
+import app.moneytracker.app.Screen
 import app.moneytracker.ui.EntryForm
-import app.moneytracker.ui.Screen
 
 /** The row the tray is filling. [CLOSED]: nothing is being filled (after the note, like the classic layout); tapping a row opens its tray again. */
 internal enum class Step { AMOUNT, CATEGORY, ACCOUNT, FROM, TO, NOTE, CLOSED }

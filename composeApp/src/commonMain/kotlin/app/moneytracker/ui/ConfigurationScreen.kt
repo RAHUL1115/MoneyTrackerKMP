@@ -50,11 +50,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LayoutSwitchDialog
+import app.moneytracker.app.LocalNavigator
 import app.moneytracker.core.I18n
 import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.Setting
-import app.moneytracker.ui.fresh.LayoutSwitchDialog
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.AccentChoice
+import app.moneytracker.designsystem.classic.AccentTint
+import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.PageBackground
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
+import app.moneytracker.designsystem.classic.accentChoice
+import app.moneytracker.designsystem.classic.darkTheme
+import app.moneytracker.designsystem.classic.systemAccent
+import app.moneytracker.designsystem.classic.tones
 
 /** Classic Settings: the six preference groups, searchable, each opening its own page. */
 @Composable

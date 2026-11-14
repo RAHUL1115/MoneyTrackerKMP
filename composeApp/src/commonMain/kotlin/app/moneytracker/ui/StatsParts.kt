@@ -34,6 +34,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.classic.ExpenseColor
+import app.moneytracker.designsystem.classic.FillColor
+import app.moneytracker.designsystem.classic.IncomeColor
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.InkSoft
+import app.moneytracker.designsystem.classic.LocalChartMemory
+import app.moneytracker.designsystem.classic.SubtleText
 import app.moneytracker.domain.CurrencyFormat
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong

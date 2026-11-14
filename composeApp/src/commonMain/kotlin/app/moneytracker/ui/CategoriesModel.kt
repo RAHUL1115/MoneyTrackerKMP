@@ -4,6 +4,7 @@ import app.moneytracker.data.AccountStore
 import app.moneytracker.data.CategoryStore
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.SettingsStore
+import app.moneytracker.designsystem.classic.flattenCategories
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.CategoryKind

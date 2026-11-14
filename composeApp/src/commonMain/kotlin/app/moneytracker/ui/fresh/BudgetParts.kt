@@ -26,12 +26,20 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.classic.categoryPath
+import app.moneytracker.designsystem.classic.label
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.Gap
+import app.moneytracker.designsystem.fresh.Mark
+import app.moneytracker.designsystem.fresh.MoneyTextField
+import app.moneytracker.designsystem.fresh.PrimaryButton
+import app.moneytracker.designsystem.fresh.Sheet
+import app.moneytracker.designsystem.fresh.SheetOptionGroup
+import app.moneytracker.designsystem.fresh.choiceTap
 import app.moneytracker.ui.BudgetState
-import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.budgetAmount
-import app.moneytracker.ui.categoryPath
-import app.moneytracker.ui.label
 
 /** Amount box with a compact Save beside it; [link] on the left and Remove (red text) on the right below. */
 @Composable

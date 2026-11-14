@@ -1,4 +1,4 @@
-package app.moneytracker.ui
+package app.moneytracker.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -65,7 +65,59 @@ import app.moneytracker.data.SettingsStore
 import app.moneytracker.data.ThemeMode
 import app.moneytracker.data.TimeInput
 import app.moneytracker.data.TxnDraft
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.AccentChoice
+import app.moneytracker.designsystem.classic.AccentTint
+import app.moneytracker.designsystem.classic.DangerColor
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.FillColor
+import app.moneytracker.designsystem.classic.HeaderBackground
+import app.moneytracker.designsystem.classic.IncomeColor
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.ListPrefs
+import app.moneytracker.designsystem.classic.LocalListPrefs
+import app.moneytracker.designsystem.classic.PageBackground
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
+import app.moneytracker.designsystem.classic.accentChoice
+import app.moneytracker.designsystem.classic.colorsSwapped
+import app.moneytracker.designsystem.classic.darkTheme
 import app.moneytracker.domain.CurrencyFormat
+import app.moneytracker.ui.AboutScreen
+import app.moneytracker.ui.AccountDetailScreen
+import app.moneytracker.ui.AccountGroupsScreen
+import app.moneytracker.ui.AccountListScreen
+import app.moneytracker.ui.AccountsTab
+import app.moneytracker.ui.AccountsTrendScreen
+import app.moneytracker.ui.BackupScreen
+import app.moneytracker.ui.BudgetDetailScreen
+import app.moneytracker.ui.BudgetScreen
+import app.moneytracker.ui.CalculatorScreen
+import app.moneytracker.ui.CategoriesScreen
+import app.moneytracker.ui.ConfigurationScreen
+import app.moneytracker.ui.CurrenciesScreen
+import app.moneytracker.ui.EditAccountScreen
+import app.moneytracker.ui.EditNoteScreen
+import app.moneytracker.ui.EditTxnScreen
+import app.moneytracker.ui.HelpScreen
+import app.moneytracker.ui.InboxScreen
+import app.moneytracker.ui.LicenseScreen
+import app.moneytracker.ui.ListenLook
+import app.moneytracker.ui.ListenSheet
+import app.moneytracker.ui.LockScreen
+import app.moneytracker.ui.MessageSettingsScreen
+import app.moneytracker.ui.MoreHubScreen
+import app.moneytracker.ui.MoreTab
+import app.moneytracker.ui.OnboardingScreen
+import app.moneytracker.ui.RecurringScreen
+import app.moneytracker.ui.SearchScreen
+import app.moneytracker.ui.SecurityScreen
+import app.moneytracker.ui.StatsDetailScreen
+import app.moneytracker.ui.StatsTab
+import app.moneytracker.ui.TagsScreen
+import app.moneytracker.ui.TemplatesScreen
+import app.moneytracker.ui.TransactionsTab
+import app.moneytracker.ui.WebDashboardScreen
 import kotlinx.coroutines.withContext
 
 val LocalRepo = compositionLocalOf<MoneyRepository> { error("No repository") }
@@ -196,7 +248,7 @@ private fun AppContent(repo: MoneyRepository, backups: Backups, platform: Platfo
     val settings = repo.settingsStore
     // Above the lock screen: open screens keep their state (and what was typed) while the app is locked.
     val screenState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
-    val toaster = remember { app.moneytracker.ui.fresh.Toaster() }
+    val toaster = remember { app.moneytracker.designsystem.fresh.Toaster() }
     val currency by settings.currency.collectAsState(CurrencyFormat())
     val currencies by repo.currencyStore.currencies.collectAsState(emptyList())
     // null until read, so neither the lock screen nor onboarding flashes up.
@@ -218,11 +270,11 @@ private fun AppContent(repo: MoneyRepository, backups: Backups, platform: Platfo
         LocalPlatform provides platform,
         LocalCurrencies provides currencies.associate { it.code to it.copy(masked = masked) },
         LocalListPrefs provides ListPrefs(showTime = timeInput == TimeInput.LIST, showDescription = showDescription),
-        app.moneytracker.ui.fresh.LocalNewLayout provides session.newLayout,
-        app.moneytracker.ui.fresh.LocalToaster provides toaster,
+        app.moneytracker.app.LocalNewLayout provides session.newLayout,
+        app.moneytracker.designsystem.fresh.LocalToaster provides toaster,
     ) {
         // Content stays above the gesture bar and, when typing, above the keyboard.
-        val keyboardPadding = if (app.moneytracker.ui.fresh.KeyboardOverlay.active) Modifier else Modifier.imePadding()
+        val keyboardPadding = if (app.moneytracker.designsystem.fresh.KeyboardOverlay.active) Modifier else Modifier.imePadding()
         Box(Modifier.fillMaxSize().navigationBarsPadding().then(keyboardPadding)) {
             val pin = passcode
             when {
@@ -241,7 +293,7 @@ private fun AppContent(repo: MoneyRepository, backups: Backups, platform: Platfo
 private fun UnlockedApp(
     today: () -> kotlinx.datetime.LocalDate,
     screenState: androidx.compose.runtime.saveable.SaveableStateHolder,
-    toaster: app.moneytracker.ui.fresh.Toaster,
+    toaster: app.moneytracker.designsystem.fresh.Toaster,
     session: AppSession,
 ) {
     val navigator = session.navigator
@@ -250,7 +302,7 @@ private fun UnlockedApp(
     if (session.locked) SideEffect { session.onUnlocked() }
     var voiceSheet by remember { mutableStateOf(false) }
     if (voiceSheet) {
-        val look = if (newLayout) app.moneytracker.ui.fresh.newListenLook() else ListenLook.classic()
+        val look = if (newLayout) app.moneytracker.designsystem.fresh.newListenLook() else ListenLook.classic()
         ListenSheet(onDismiss = { voiceSheet = false }, look = look) { g -> navigator.push(Screen.EditTxn(preset = g?.draft)) }
     }
     LaunchedEffect(session.launchAction) {
@@ -259,12 +311,12 @@ private fun UnlockedApp(
         session.onLaunchHandled()
     }
     Box(Modifier.fillMaxSize()) {
-        navigator.Host(screenState, home = { if (newLayout) app.moneytracker.ui.fresh.FreshHome() else Home() }) { top ->
-            val fresh = if (newLayout) app.moneytracker.ui.fresh.freshScreen(top) else null
+        navigator.Host(screenState, home = { if (newLayout) app.moneytracker.app.FreshHome() else Home() }) { top ->
+            val fresh = if (newLayout) app.moneytracker.app.freshScreen(top) else null
             if (fresh != null) fresh() else ClassicScreen(top)
         }
         // Both layouts: Undo after adding a detected payment, and the new layout's other toasts.
-        app.moneytracker.ui.fresh.ToastHost(toaster, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
+        app.moneytracker.designsystem.fresh.ToastHost(toaster, Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp))
     }
 }
 

@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
-import app.moneytracker.ui.Screen
+import app.moneytracker.app.Screen
 import org.junit.Test
 
 /** Shots that scroll a long list to its end or long-press an entry before saving. */

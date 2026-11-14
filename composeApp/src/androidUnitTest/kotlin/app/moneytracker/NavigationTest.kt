@@ -1,12 +1,12 @@
 package app.moneytracker
 
+import app.moneytracker.app.Navigator
+import app.moneytracker.app.Screen
+import app.moneytracker.app.ScreenCodec
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.domain.RepeatType
-import app.moneytracker.ui.Navigator
-import app.moneytracker.ui.Screen
-import app.moneytracker.ui.ScreenCodec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

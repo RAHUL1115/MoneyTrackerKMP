@@ -1,4 +1,4 @@
-package app.moneytracker.ui.fresh
+package app.moneytracker.designsystem.fresh
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,7 +56,7 @@ fun TabHeader(title: String, overline: String? = null, actions: @Composable RowS
 /** The privacy eye on every main tab: hides or shows all amounts, tinted while they're hidden. */
 @Composable
 fun PrivacyEye() {
-    val repo = app.moneytracker.ui.LocalRepo.current
+    val repo = app.moneytracker.app.LocalRepo.current
     val on = app.moneytracker.core.Privacy.hidden
     IconTile(
         if (on) Glyph.EyeOff else Glyph.Eye, if (on) tr("Show amounts") else tr("Hide amounts"),

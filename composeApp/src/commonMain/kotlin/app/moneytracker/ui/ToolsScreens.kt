@@ -37,9 +37,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
+import app.moneytracker.app.Screen
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.TxnDraft
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.AccentTint
+import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.InkSoft
+import app.moneytracker.designsystem.classic.PageBackground
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
 import app.moneytracker.domain.Calc
 
 /** The calculator's expression after pressing key [k]: digits append, operators replace a trailing one, = evaluates. */

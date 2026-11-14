@@ -36,6 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.rememberSetting
@@ -43,6 +46,13 @@ import app.moneytracker.core.tr
 import app.moneytracker.data.ExchangeRates
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.RatesUpdate
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.EmptyState
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
+import app.moneytracker.designsystem.classic.monthShort
 import app.moneytracker.domain.Currency
 import kotlinx.datetime.LocalDate
 

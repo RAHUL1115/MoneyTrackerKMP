@@ -23,23 +23,39 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalBackups
+import app.moneytracker.app.LocalCurrency
 import app.moneytracker.core.Privacy
 import app.moneytracker.core.tr
-import app.moneytracker.ui.DatePickerHost
+import app.moneytracker.designsystem.classic.DatePickerHost
+import app.moneytracker.designsystem.classic.MonthPickerDialog
+import app.moneytracker.designsystem.classic.label
+import app.moneytracker.designsystem.classic.long
+import app.moneytracker.designsystem.classic.monthShort
+import app.moneytracker.designsystem.classic.short
+import app.moneytracker.designsystem.fresh.ChangeBadge
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.FCard
+import app.moneytracker.designsystem.fresh.Gap
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.HGap
+import app.moneytracker.designsystem.fresh.IconTile
+import app.moneytracker.designsystem.fresh.MoneyBar
+import app.moneytracker.designsystem.fresh.MoneyBars
+import app.moneytracker.designsystem.fresh.PeriodStepper
+import app.moneytracker.designsystem.fresh.Pill
+import app.moneytracker.designsystem.fresh.Segmented
+import app.moneytracker.designsystem.fresh.Sheet
+import app.moneytracker.designsystem.fresh.SheetOption
+import app.moneytracker.designsystem.fresh.SheetOptionGroup
+import app.moneytracker.designsystem.fresh.TabHeader
 import app.moneytracker.ui.InsightsActions
 import app.moneytracker.ui.InsightsSide
 import app.moneytracker.ui.InsightsSpan
 import app.moneytracker.ui.InsightsState
-import app.moneytracker.ui.LocalBackups
-import app.moneytracker.ui.LocalCurrency
-import app.moneytracker.ui.MonthPickerDialog
 import app.moneytracker.ui.SlotLabel
 import app.moneytracker.ui.dayCount
-import app.moneytracker.ui.label
-import app.moneytracker.ui.long
-import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.rememberInsightsModel
-import app.moneytracker.ui.short
 
 private fun InsightsSpan.label() = when (this) {
     InsightsSpan.WEEK -> "Week"

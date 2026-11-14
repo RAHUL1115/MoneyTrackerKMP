@@ -1,4 +1,4 @@
-package app.moneytracker.ui.fresh
+package app.moneytracker.app
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -8,7 +8,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.text.font.FontWeight
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.tr
-import app.moneytracker.ui.Accent
+import app.moneytracker.designsystem.classic.Accent
 import app.moneytracker.ui.rememberSettingsModel
 
 /** True when this run of the app shows the new layout. Fixed until the next restart. */

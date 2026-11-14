@@ -28,12 +28,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.SmsOriginal
 import app.moneytracker.data.TextSetting
+import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.SubtleText
 import app.moneytracker.domain.MessageRules
 
 /** Explains why detection can be late and opens the right settings page. Shared by both layouts. */

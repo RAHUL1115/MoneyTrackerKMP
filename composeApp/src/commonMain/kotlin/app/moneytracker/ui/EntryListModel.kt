@@ -3,6 +3,7 @@ package app.moneytracker.ui
 import app.moneytracker.data.CurrencyStore
 import app.moneytracker.data.RepeatStore
 import app.moneytracker.data.SettingsStore
+import app.moneytracker.designsystem.classic.categoryPath
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.Currency
 import app.moneytracker.domain.DateRange

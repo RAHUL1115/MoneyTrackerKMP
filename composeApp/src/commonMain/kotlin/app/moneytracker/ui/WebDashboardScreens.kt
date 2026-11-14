@@ -51,6 +51,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.WebDashboardControl
 import app.moneytracker.core.WebDashboardState
@@ -60,6 +62,14 @@ import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.SettingsStore
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.AccentTint
+import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.ExpenseColor
+import app.moneytracker.designsystem.classic.PageBackground
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay

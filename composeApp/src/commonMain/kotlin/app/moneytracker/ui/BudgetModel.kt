@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.outlivingScope
 import app.moneytracker.data.CategoryStore
 import app.moneytracker.data.MonthBudget
@@ -11,6 +12,7 @@ import app.moneytracker.data.Prefs
 import app.moneytracker.data.ReadModels
 import app.moneytracker.data.ReportStore
 import app.moneytracker.data.SettingsStore
+import app.moneytracker.designsystem.classic.flattenCategories
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.domain.CurrencyFormat

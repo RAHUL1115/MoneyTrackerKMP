@@ -1,4 +1,4 @@
-package app.moneytracker.ui.fresh
+package app.moneytracker.designsystem.fresh
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics

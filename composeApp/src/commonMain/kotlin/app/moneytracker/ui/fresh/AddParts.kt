@@ -45,6 +45,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.choiceTap
+import app.moneytracker.designsystem.fresh.markText
 import app.moneytracker.domain.Calc
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.ui.pressKey

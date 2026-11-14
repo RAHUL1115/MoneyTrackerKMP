@@ -17,14 +17,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalNavigator
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.nowMinutes
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.classic.DatePickerHost
+import app.moneytracker.designsystem.classic.long
+import app.moneytracker.designsystem.fresh.Confirm
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.FRow
+import app.moneytracker.designsystem.fresh.LocalToaster
+import app.moneytracker.designsystem.fresh.Pill
+import app.moneytracker.designsystem.fresh.PrimaryButton
+import app.moneytracker.designsystem.fresh.SectionLabel
+import app.moneytracker.designsystem.fresh.Sheet
+import app.moneytracker.designsystem.fresh.newListenLook
 import app.moneytracker.domain.RepeatType
-import app.moneytracker.ui.DatePickerHost
 import app.moneytracker.ui.ListenSheet
-import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.long
 import kotlinx.datetime.LocalDate
 
 // The dialogs of the add screen (AddScreen.kt): listening, pickers, the photo viewer and the confirmations.

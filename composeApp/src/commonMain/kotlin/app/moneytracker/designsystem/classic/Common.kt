@@ -1,4 +1,4 @@
-package app.moneytracker.ui
+package app.moneytracker.designsystem.classic
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

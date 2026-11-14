@@ -1,4 +1,4 @@
-package app.moneytracker.ui
+package app.moneytracker.designsystem.classic
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -34,6 +34,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.ui.ChartColors
 
 /** Line over evenly spaced points with a soft fill and dots; labels under each point. Zero line drawn when values cross it. */
 @Composable

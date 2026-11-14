@@ -25,7 +25,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.Screen
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.classic.categoryPath
+import app.moneytracker.designsystem.classic.short
+import app.moneytracker.designsystem.fresh.Bar
+import app.moneytracker.designsystem.fresh.CardTitle
+import app.moneytracker.designsystem.fresh.Divider
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.FListCard
+import app.moneytracker.designsystem.fresh.Gap
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.HGap
+import app.moneytracker.designsystem.fresh.Mark
+import app.moneytracker.designsystem.fresh.choiceTap
+import app.moneytracker.designsystem.fresh.expandState
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
 import app.moneytracker.domain.MODIFIED_BALANCE_NAME
@@ -36,15 +52,10 @@ import app.moneytracker.ui.BreakdownPart
 import app.moneytracker.ui.InsightsGroup
 import app.moneytracker.ui.InsightsSide
 import app.moneytracker.ui.InsightsState
-import app.moneytracker.ui.LocalCurrency
-import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.NO_TAG_KEY
-import app.moneytracker.ui.Screen
 import app.moneytracker.ui.TRANSFERS_KEY
 import app.moneytracker.ui.UNCATEGORIZED_KEY
 import app.moneytracker.ui.breakdownName
-import app.moneytracker.ui.categoryPath
-import app.moneytracker.ui.short
 import kotlin.math.roundToInt
 
 private fun InsightsGroup.label() = when (this) {

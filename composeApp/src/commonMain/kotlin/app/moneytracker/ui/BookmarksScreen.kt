@@ -26,6 +26,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
+import app.moneytracker.app.Screen
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.AccountStore
@@ -34,6 +38,15 @@ import app.moneytracker.data.CategoryStore
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.Template
 import app.moneytracker.data.TxnDraft
+import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.EmptyState
+import app.moneytracker.designsystem.classic.ExpenseColor
+import app.moneytracker.designsystem.classic.IncomeColor
+import app.moneytracker.designsystem.classic.InkSoft
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
+import app.moneytracker.designsystem.classic.categoryPath
 import app.moneytracker.domain.Category
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope

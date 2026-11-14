@@ -37,10 +37,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.Screen
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
-import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.Screen
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.categoryIcon
 
 // The tray under the receipt card (AddScreen.kt): one tray that follows the row being filled (keypad, categories,
 // accounts, then the phone keyboard for the note). Picking moves on to the next empty row; tapping a row jumps to

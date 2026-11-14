@@ -1,4 +1,4 @@
-package app.moneytracker.ui.fresh
+package app.moneytracker.designsystem.fresh
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor

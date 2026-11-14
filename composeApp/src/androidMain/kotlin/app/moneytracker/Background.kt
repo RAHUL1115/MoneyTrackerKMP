@@ -427,8 +427,8 @@ private class WidgetStyle(ctx: Context, r: app.moneytracker.data.MoneyRepository
     val incomeColor = if (swapped) 0xFFE5484D.toInt() else 0xFF16A34A.toInt()
     val expenseColor = if (swapped) 0xFF16A34A.toInt() else 0xFFE5484D.toInt()
     /** The app's accent and its light tint; "Follow system" reads the wallpaper colours like MainActivity does. */
-    private val accentChoice = app.moneytracker.ui.AccentChoice.entries.firstOrNull { it.name == r.settingsStore.settingNow(Prefs.ACCENT) } ?: app.moneytracker.ui.AccentChoice.TEAL
-    private val systemAccent = accentChoice == app.moneytracker.ui.AccentChoice.SYSTEM && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    private val accentChoice = app.moneytracker.designsystem.classic.AccentChoice.entries.firstOrNull { it.name == r.settingsStore.settingNow(Prefs.ACCENT) } ?: app.moneytracker.designsystem.classic.AccentChoice.TEAL
+    private val systemAccent = accentChoice == app.moneytracker.designsystem.classic.AccentChoice.SYSTEM && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val accent: Int =
         if (systemAccent) ctx.getColor(if (dark) android.R.color.system_accent1_200 else android.R.color.system_accent1_600)
         else (if (dark) accentChoice.dark else accentChoice.light).toInt()

@@ -77,12 +77,25 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.SpeechError
 import app.moneytracker.core.SpeechListener
 import app.moneytracker.core.SpeechSession
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.BorderColor
+import app.moneytracker.designsystem.classic.DangerColor
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.ExpenseColor
+import app.moneytracker.designsystem.classic.FillColor
+import app.moneytracker.designsystem.classic.IncomeColor
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.InkSoft
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
 import app.moneytracker.domain.CurrencyFormat
 
 /**

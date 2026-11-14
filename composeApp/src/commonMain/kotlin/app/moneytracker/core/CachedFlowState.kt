@@ -4,10 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState as composeCollectAsState
 import androidx.compose.runtime.remember
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.data.CachedFlow
 import app.moneytracker.data.Setting
 import app.moneytracker.data.SettingsStore
-import app.moneytracker.ui.LocalRepo
 import kotlinx.coroutines.flow.Flow
 
 /**

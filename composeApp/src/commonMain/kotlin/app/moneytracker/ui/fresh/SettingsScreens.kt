@@ -47,24 +47,43 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LayoutSwitchDialog
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.Screen
 import app.moneytracker.core.I18n
 import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.Setting
-import app.moneytracker.ui.AccentChoice
+import app.moneytracker.designsystem.classic.AccentChoice
+import app.moneytracker.designsystem.classic.accentChoice
+import app.moneytracker.designsystem.classic.darkTheme
+import app.moneytracker.designsystem.classic.systemAccent
+import app.moneytracker.designsystem.classic.tones
+import app.moneytracker.designsystem.fresh.Confirm
+import app.moneytracker.designsystem.fresh.Divider
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.FCard
+import app.moneytracker.designsystem.fresh.FListCard
+import app.moneytracker.designsystem.fresh.FRow
+import app.moneytracker.designsystem.fresh.FSwitchRow
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.LocalToaster
+import app.moneytracker.designsystem.fresh.PrimaryButton
+import app.moneytracker.designsystem.fresh.Sheet
+import app.moneytracker.designsystem.fresh.SheetOption
+import app.moneytracker.designsystem.fresh.SheetOptionGroup
+import app.moneytracker.designsystem.fresh.StgField
+import app.moneytracker.designsystem.fresh.SubScreen
+import app.moneytracker.designsystem.fresh.pick
 import app.moneytracker.ui.BackClosesGroup
 import app.moneytracker.ui.ChoiceHost
 import app.moneytracker.ui.ChoiceSpec
 import app.moneytracker.ui.DisclosureDialog
-import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.MorePlace
-import app.moneytracker.ui.Screen
 import app.moneytracker.ui.SettingDialog
 import app.moneytracker.ui.SettingGroup
 import app.moneytracker.ui.SettingsModel
-import app.moneytracker.ui.accentChoice
-import app.moneytracker.ui.darkTheme
 import app.moneytracker.ui.rememberMorePlaces
 import app.moneytracker.ui.rememberSettingGroups
 import app.moneytracker.ui.rememberSettingHubs
@@ -74,8 +93,6 @@ import app.moneytracker.ui.rememberTextEdit
 import app.moneytracker.ui.searchRows
 import app.moneytracker.ui.searchSettings
 import app.moneytracker.ui.settingActions
-import app.moneytracker.ui.systemAccent
-import app.moneytracker.ui.tones
 
 private typealias SRow = app.moneytracker.ui.SettingRow
 

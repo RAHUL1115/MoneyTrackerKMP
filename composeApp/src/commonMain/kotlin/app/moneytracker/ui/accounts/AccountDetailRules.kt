@@ -3,6 +3,7 @@ package app.moneytracker.ui.accounts
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.TxnDraft
+import app.moneytracker.designsystem.classic.monthShort
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 import app.moneytracker.domain.AccountLine
@@ -11,7 +12,6 @@ import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.Periods
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.YearMonth
-import app.moneytracker.ui.monthShort
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus

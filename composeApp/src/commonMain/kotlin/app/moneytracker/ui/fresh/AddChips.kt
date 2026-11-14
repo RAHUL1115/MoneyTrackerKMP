@@ -29,13 +29,19 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrencies
+import app.moneytracker.app.LocalCurrency
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.NoteSuggestion
-import app.moneytracker.ui.LocalCurrencies
-import app.moneytracker.ui.LocalCurrency
-import app.moneytracker.ui.categoryPath
+import app.moneytracker.designsystem.classic.categoryPath
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.LocalToaster
+import app.moneytracker.designsystem.fresh.PrimaryButton
+import app.moneytracker.designsystem.fresh.bleedScroll
+import app.moneytracker.designsystem.fresh.choiceTap
 
 // The chips, Save row and note suggestions of the add screen (AddScreen.kt).
 

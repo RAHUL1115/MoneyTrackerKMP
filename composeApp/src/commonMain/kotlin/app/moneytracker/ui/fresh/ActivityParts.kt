@@ -32,9 +32,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
 import app.moneytracker.core.Privacy
 import app.moneytracker.core.tr
-import app.moneytracker.ui.LocalCurrency
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.Mark
+import app.moneytracker.designsystem.fresh.choiceTap
 
 /** ‹ October 2026 ›; tapping the label opens the month picker. [under] spreads the arrows to the edges with it below the label. */
 @Composable

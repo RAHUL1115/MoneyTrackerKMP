@@ -23,7 +23,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
+import app.moneytracker.app.Screen
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.classic.monthShort
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.FCard
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.Mark
+import app.moneytracker.designsystem.fresh.entryCardItems
 import app.moneytracker.domain.Totals
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.YearMonth
@@ -31,12 +41,7 @@ import app.moneytracker.ui.ActKind
 import app.moneytracker.ui.ActivityModel
 import app.moneytracker.ui.ActivityState
 import app.moneytracker.ui.EntryListState
-import app.moneytracker.ui.LocalCurrency
-import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalRepo
-import app.moneytracker.ui.Screen
 import app.moneytracker.ui.UpcomingRepeats
-import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.rememberEntryListModel
 import kotlinx.datetime.LocalDate
 

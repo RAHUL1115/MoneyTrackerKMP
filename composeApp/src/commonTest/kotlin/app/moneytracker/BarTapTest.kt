@@ -1,6 +1,6 @@
 package app.moneytracker
 
-import app.moneytracker.ui.barIndexAt
+import app.moneytracker.designsystem.classic.barIndexAt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

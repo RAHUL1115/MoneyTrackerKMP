@@ -2,12 +2,17 @@ package app.moneytracker.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.Screen
 import app.moneytracker.core.I18n
 import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.tr
 import app.moneytracker.data.FlagSetting
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.Setting
+import app.moneytracker.designsystem.classic.accentChoice
+import app.moneytracker.designsystem.classic.label
 import app.moneytracker.domain.Periods
 
 /*

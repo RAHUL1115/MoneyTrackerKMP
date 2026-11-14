@@ -1,6 +1,6 @@
 package app.moneytracker
 
-import app.moneytracker.ui.donutSliceAt
+import app.moneytracker.designsystem.classic.donutSliceAt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

@@ -22,14 +22,20 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.Screen
 import app.moneytracker.core.Privacy
 import app.moneytracker.core.tr
-import app.moneytracker.ui.LocalCurrency
-import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.Screen
+import app.moneytracker.designsystem.classic.darkTheme
+import app.moneytracker.designsystem.classic.monthShort
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.Gap
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.MoneyBar
+import app.moneytracker.designsystem.fresh.MoneyBars
+import app.moneytracker.designsystem.fresh.expandState
 import app.moneytracker.ui.accounts.NetWorthPoint
-import app.moneytracker.ui.darkTheme
-import app.moneytracker.ui.monthShort
 
 /** Tapping the card opens or closes the last six months of net worth. */
 @Composable

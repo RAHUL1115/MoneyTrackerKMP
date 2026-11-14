@@ -1,4 +1,4 @@
-package app.moneytracker.ui.fresh
+package app.moneytracker.designsystem.fresh
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,12 +18,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.ui.Accent
-import app.moneytracker.ui.AccentChoice
-import app.moneytracker.ui.AccentTint
-import app.moneytracker.ui.accentChoice
-import app.moneytracker.ui.colorsSwapped
-import app.moneytracker.ui.darkTheme
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.AccentChoice
+import app.moneytracker.designsystem.classic.AccentTint
+import app.moneytracker.designsystem.classic.accentChoice
+import app.moneytracker.designsystem.classic.colorsSwapped
+import app.moneytracker.designsystem.classic.darkTheme
 
 // The new layout's look: calm greens on an off-white page, big rounded cards, one clear action per screen.
 // Colours follow the app's dark style, accent choice and income/expense colour setting like the classic layout.
@@ -42,7 +42,7 @@ object F {
     val track: Color get() = pick(0xFFE6E8E4, 0xFF2A302D)
     /** A switch that is off. */
     val switchOff: Color get() = pick(0xFFC9CFCC, 0xFF46504B)
-    private val teal get() = accentChoice == AccentChoice.TEAL || (accentChoice == AccentChoice.SYSTEM && app.moneytracker.ui.systemAccent == null)
+    private val teal get() = accentChoice == AccentChoice.TEAL || (accentChoice == AccentChoice.SYSTEM && app.moneytracker.designsystem.classic.systemAccent == null)
     /** Primary actions, selection, the hero card. */
     val accent: Color get() = if (teal) pick(0xFF0F5E4E, 0xFF4FC2A6) else Accent
     val accentTint: Color get() = if (teal) pick(0xFFE3F2EE, 0xFF173A31) else AccentTint

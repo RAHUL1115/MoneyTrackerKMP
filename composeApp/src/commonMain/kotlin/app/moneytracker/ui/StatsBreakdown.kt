@@ -28,7 +28,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.Screen
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.AccentTint
+import app.moneytracker.designsystem.classic.DonutChart
+import app.moneytracker.designsystem.classic.ExpenseColor
+import app.moneytracker.designsystem.classic.FillColor
+import app.moneytracker.designsystem.classic.IncomeColor
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.InkSoft
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.card
+import app.moneytracker.designsystem.classic.label
+import app.moneytracker.designsystem.classic.short
 import app.moneytracker.domain.TxnKind
 import kotlin.math.roundToInt
 

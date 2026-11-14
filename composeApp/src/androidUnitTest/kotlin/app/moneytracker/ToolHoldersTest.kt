@@ -1,6 +1,7 @@
 package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.moneytracker.app.Screen
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
@@ -12,7 +13,6 @@ import app.moneytracker.domain.Currency
 import app.moneytracker.domain.Tag
 import app.moneytracker.ui.BookmarksModel
 import app.moneytracker.ui.CurrenciesModel
-import app.moneytracker.ui.Screen
 import app.moneytracker.ui.StatsDetailModel
 import app.moneytracker.ui.TagsModel
 import app.moneytracker.ui.currencyInputValid

@@ -7,12 +7,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import app.moneytracker.app.LocalCurrencies
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
-import app.moneytracker.ui.Accent
-import app.moneytracker.ui.LocalCurrencies
-import app.moneytracker.ui.LocalCurrency
-import app.moneytracker.ui.LocalRepo
+import app.moneytracker.designsystem.classic.Accent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

@@ -42,8 +42,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.AccentTint
+import app.moneytracker.designsystem.classic.FillColor
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
+import app.moneytracker.designsystem.classic.UnderlineTabs
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.Txn

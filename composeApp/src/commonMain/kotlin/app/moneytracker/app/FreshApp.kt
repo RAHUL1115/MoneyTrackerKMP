@@ -1,4 +1,4 @@
-package app.moneytracker.ui.fresh
+package app.moneytracker.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,8 +30,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.core.tr
-import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.Screen
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.ui.fresh.ActivityTab
+import app.moneytracker.ui.fresh.FreshAccountDetail
+import app.moneytracker.ui.fresh.FreshBackup
+import app.moneytracker.ui.fresh.FreshBudget
+import app.moneytracker.ui.fresh.FreshCategories
+import app.moneytracker.ui.fresh.FreshEditAccount
+import app.moneytracker.ui.fresh.FreshEditNote
+import app.moneytracker.ui.fresh.FreshEditTxn
+import app.moneytracker.ui.fresh.FreshHub
+import app.moneytracker.ui.fresh.FreshInbox
+import app.moneytracker.ui.fresh.FreshMessageSettings
+import app.moneytracker.ui.fresh.FreshRepeats
+import app.moneytracker.ui.fresh.FreshSearch
+import app.moneytracker.ui.fresh.FreshSettings
+import app.moneytracker.ui.fresh.FreshWebDashboard
+import app.moneytracker.ui.fresh.HomeTab
+import app.moneytracker.ui.fresh.InsightsTab
+import app.moneytracker.ui.fresh.MoneyTab
 
 /** Home of the new layout: the selected tab above the bottom bar. */
 @Composable

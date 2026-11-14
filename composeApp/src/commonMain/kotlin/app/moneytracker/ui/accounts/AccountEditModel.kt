@@ -1,6 +1,8 @@
 package app.moneytracker.ui.accounts
 
 import androidx.compose.runtime.saveable.Saver
+import app.moneytracker.app.StateReader
+import app.moneytracker.app.StateWriter
 import app.moneytracker.core.outlivingScope
 import app.moneytracker.core.tr
 import app.moneytracker.data.AccountStore
@@ -10,8 +12,6 @@ import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 import app.moneytracker.domain.Currency
 import app.moneytracker.domain.CurrencyFormat
-import app.moneytracker.ui.StateReader
-import app.moneytracker.ui.StateWriter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted

@@ -1,9 +1,9 @@
 package app.moneytracker.screenshots
 
+import app.moneytracker.app.Screen
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.CategoryKind
-import app.moneytracker.ui.Screen
 import org.junit.Test
 
 /** The new layout's main screens over the demo data. */

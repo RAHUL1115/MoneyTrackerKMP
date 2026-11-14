@@ -41,12 +41,27 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
+import app.moneytracker.app.Screen
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.AccentTint
+import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.BorderColor
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.EmptyState
+import app.moneytracker.designsystem.classic.InkSoft
+import app.moneytracker.designsystem.classic.PageBackground
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
+import app.moneytracker.designsystem.classic.long
+import app.moneytracker.designsystem.fresh.choiceTap
 import app.moneytracker.domain.Tag
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.classify
-import app.moneytracker.ui.fresh.choiceTap
 
 /**
  * Tags to offer under a search box: the selected ones first, then the rest. While the text starts with #,

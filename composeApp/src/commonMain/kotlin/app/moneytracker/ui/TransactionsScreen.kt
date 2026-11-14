@@ -56,12 +56,32 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
+import app.moneytracker.app.Screen
 import app.moneytracker.core.PrivacyEyeButton
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.Swipe
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.CardShape
+import app.moneytracker.designsystem.classic.DayHeader
+import app.moneytracker.designsystem.classic.EmptyState
+import app.moneytracker.designsystem.classic.ExpenseColor
+import app.moneytracker.designsystem.classic.IncomeColor
+import app.moneytracker.designsystem.classic.IncomeExpenseStrip
+import app.moneytracker.designsystem.classic.InkSoft
+import app.moneytracker.designsystem.classic.ListCardMargin
+import app.moneytracker.designsystem.classic.ListRowInset
+import app.moneytracker.designsystem.classic.MonthPickerDialog
+import app.moneytracker.designsystem.classic.MonthTopBar
+import app.moneytracker.designsystem.classic.SummaryStrip
+import app.moneytracker.designsystem.classic.SurfaceColor
+import app.moneytracker.designsystem.classic.UnderlineTabs
+import app.moneytracker.designsystem.classic.label
 import app.moneytracker.domain.classify
 
 /** Remembers the selected report month (per tab). */

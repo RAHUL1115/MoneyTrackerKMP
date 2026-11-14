@@ -3,6 +3,7 @@ package app.moneytracker.ui.fresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.data.CaptureStore
 import app.moneytracker.data.MonthBudget
 import app.moneytracker.data.PeriodSettings
@@ -18,7 +19,6 @@ import app.moneytracker.domain.Totals
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.totals
-import app.moneytracker.ui.LocalRepo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

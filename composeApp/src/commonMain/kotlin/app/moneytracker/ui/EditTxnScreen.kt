@@ -31,11 +31,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
+import app.moneytracker.app.Navigator
+import app.moneytracker.app.Screen
 import app.moneytracker.core.LocalPlatform
 import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.Prefs
+import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.SurfaceColor
 
 internal enum class Panel { NONE, AMOUNT, FEE, CATEGORY, ACCOUNT, TO_ACCOUNT }
 

@@ -1,7 +1,7 @@
 package app.moneytracker.screenshots
 
+import app.moneytracker.app.Screen
 import app.moneytracker.data.Prefs
-import app.moneytracker.ui.Screen
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import org.junit.Test

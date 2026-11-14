@@ -1,6 +1,7 @@
 package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.moneytracker.app.Screen
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.EntryProblem
@@ -17,7 +18,6 @@ import app.moneytracker.ui.AccountGuess
 import app.moneytracker.ui.EntryFormModel
 import app.moneytracker.ui.EntrySaved
 import app.moneytracker.ui.EntrySetup
-import app.moneytracker.ui.Screen
 import app.moneytracker.ui.SmartGuess
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest

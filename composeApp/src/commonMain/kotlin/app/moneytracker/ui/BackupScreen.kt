@@ -39,12 +39,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.moneytracker.app.LocalBackups
+import app.moneytracker.app.LocalCurrency
+import app.moneytracker.app.LocalNavigator
 import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.Backups
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.LocalBackup
 import app.moneytracker.data.moneymanager.TabularImport
+import app.moneytracker.designsystem.classic.Accent
+import app.moneytracker.designsystem.classic.BackTopBar
+import app.moneytracker.designsystem.classic.BorderColor
+import app.moneytracker.designsystem.classic.DangerColor
+import app.moneytracker.designsystem.classic.DividerColor
+import app.moneytracker.designsystem.classic.ExpenseColor
+import app.moneytracker.designsystem.classic.IncomeColor
+import app.moneytracker.designsystem.classic.Ink
+import app.moneytracker.designsystem.classic.PageBackground
+import app.moneytracker.designsystem.classic.RowCheckbox
+import app.moneytracker.designsystem.classic.SubtleText
+import app.moneytracker.designsystem.classic.SurfaceColor
+import app.moneytracker.designsystem.classic.monthShort
+import app.moneytracker.designsystem.classic.short
 
 /** Classic backup: snapshots, the backup folder, files in and out, Money Manager export and reset. */
 @Composable

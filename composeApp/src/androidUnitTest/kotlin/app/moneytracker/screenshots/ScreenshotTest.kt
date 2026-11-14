@@ -9,14 +9,14 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.moneytracker.app.App
+import app.moneytracker.app.Navigator
+import app.moneytracker.app.Screen
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.ThemeMode
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.seedDemoData
-import app.moneytracker.ui.App
-import app.moneytracker.ui.Navigator
-import app.moneytracker.ui.Screen
 import com.github.takahirom.roborazzi.captureRoboImage
 import java.util.Locale
 import java.util.TimeZone

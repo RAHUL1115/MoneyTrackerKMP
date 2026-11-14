@@ -30,14 +30,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.app.LocalNavigator
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.tr
 import app.moneytracker.data.newId
+import app.moneytracker.designsystem.fresh.Confirm
+import app.moneytracker.designsystem.fresh.Divider
+import app.moneytracker.designsystem.fresh.EmptyCard
+import app.moneytracker.designsystem.fresh.F
+import app.moneytracker.designsystem.fresh.FCard
+import app.moneytracker.designsystem.fresh.FListCard
+import app.moneytracker.designsystem.fresh.Glyph
+import app.moneytracker.designsystem.fresh.HGap
+import app.moneytracker.designsystem.fresh.LocalToaster
+import app.moneytracker.designsystem.fresh.Mark
+import app.moneytracker.designsystem.fresh.PrimaryButton
+import app.moneytracker.designsystem.fresh.Segmented
+import app.moneytracker.designsystem.fresh.Sheet
+import app.moneytracker.designsystem.fresh.StgChips
+import app.moneytracker.designsystem.fresh.StgField
+import app.moneytracker.designsystem.fresh.StgLabel
+import app.moneytracker.designsystem.fresh.StgTextButton
+import app.moneytracker.designsystem.fresh.SubScreen
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.ui.CategoriesModel
 import app.moneytracker.ui.CategoriesState
-import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalRepo
 
 /** What the Categories screen asks of its holder. */
 private class CategoryActions(

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
+import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.collectAsState
 import app.moneytracker.data.BookmarkStore
 import app.moneytracker.data.CaptureStore

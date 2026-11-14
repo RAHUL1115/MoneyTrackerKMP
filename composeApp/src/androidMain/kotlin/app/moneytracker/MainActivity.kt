@@ -14,13 +14,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.fragment.app.FragmentActivity
+import app.moneytracker.app.App
+import app.moneytracker.app.Navigator
 import app.moneytracker.backup.AndroidBackupController
 import app.moneytracker.backup.capabilities
 import app.moneytracker.core.LaunchAction
 import app.moneytracker.core.Log
 import app.moneytracker.platform.AndroidPlatform
-import app.moneytracker.ui.App
-import app.moneytracker.ui.Navigator
 
 /** FragmentActivity (not just ComponentActivity) because BiometricPrompt needs it. */
 class MainActivity : FragmentActivity() {
@@ -99,11 +99,11 @@ class MainActivity : FragmentActivity() {
     private fun readSystemAccent() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         fun c(id: Int) = getColor(id).toLong() and 0xFFFFFFFFL
-        val tones = app.moneytracker.ui.SystemAccent(
+        val tones = app.moneytracker.designsystem.classic.SystemAccent(
             light = c(android.R.color.system_accent1_600), dark = c(android.R.color.system_accent1_200),
             tintLight = c(android.R.color.system_accent1_100), tintDark = c(android.R.color.system_accent1_800),
         )
-        if (app.moneytracker.ui.systemAccent != tones) app.moneytracker.ui.systemAccent = tones
+        if (app.moneytracker.designsystem.classic.systemAccent != tones) app.moneytracker.designsystem.classic.systemAccent = tones
     }
 
     override fun onStop() {
