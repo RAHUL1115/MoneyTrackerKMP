@@ -20,6 +20,22 @@ These are what detekt enforces. New code stays inside them:
 | Function | ≤ 40 lines, ≤ 4 levels of nesting |
 | Composable | Draws only: no database calls, no `withContext`, no business rules |
 
+## Where code goes
+
+Code is grouped by feature under `app.moneytracker` (why: `docs/adr/0018-package-by-feature.md`).
+
+| New thing | Goes in |
+|---|---|
+| Screen | `<feature>/fresh/` for the new layout, `<feature>/classic/` for the classic one |
+| State holder shared by both layouts | the `<feature>/` root |
+| Store, coordinator, database code | `data/` (Money Manager formats in `data/moneymanager/`) |
+| Money rule or parser with no UI | `domain/` (smart entry in `domain/ai/`) |
+| Shared Compose part | `designsystem/fresh/` or `designsystem/classic/` |
+| Platform capability interface | `core/Platform.kt`, with its Android side in `androidMain/.../platform/` |
+| Widget, receiver, service, activity | the `androidMain` package root, so the manifest names stay the same |
+
+Features: `home`, `activity`, `entry`, `accounts`, `insights`, `messages`, `settings`, `backup`, `webdashboard`, `lists`. A test sits in the same package as the code it tests.
+
 ## Names and comments
 
 - Name things in the app's own words from `GLOSSARY.md` (entry, repeat, capture, adjustment). Avoid generic names like `Manager`, `Helper`, `Util` or `Data`.
@@ -35,7 +51,7 @@ These are what detekt enforces. New code stays inside them:
 
 ## Screens: state holders (S, D, DRY)
 
-Follow the existing `ui/SettingsModel.kt` pattern: **one plain class shared by both layouts**, with each layout only drawing it.
+Follow the existing `settings/SettingsModel.kt` pattern: **one plain class shared by both layouts**, with each layout only drawing it.
 
 ```kotlin
 class AccountsModel(private val accounts: AccountStore, private val scope: CoroutineScope) {

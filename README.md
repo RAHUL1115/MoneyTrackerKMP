@@ -135,10 +135,17 @@ composeApp/src/
   commonMain/
     sqldelight/.../Money.sq      schema + SQL (balances, reports, budgets, recurring)
     kotlin/app/moneytracker/
-      domain/                   entities, money rules, SMS parsing and matching
-      data/                     repository, backups and import/export
-      ui/                       Compose screens
+      core/                     logging, translation, platform capability interfaces
+      domain/                   entities, money rules, SMS parsing and matching (ai/: smart entry)
+      data/                     stores, repository, backups (moneymanager/: import/export)
+      designsystem/             shared Compose parts: classic/ and fresh/ (the new layout)
+      app/                      app shell, navigation, layout switch
+      home/ activity/ entry/ accounts/ insights/ messages/
+      settings/ backup/ webdashboard/ lists/
+                                one package per feature: shared state holders at its root,
+                                each layout's screens in classic/ and fresh/
   androidMain/                  Android platform integrations, SMS receiver, notifications, widgets
+                                (platform/, backup/, data/; manifest components stay at the root)
   commonTest/                   domain/parser tests and public-format SMS fixtures
   androidUnitTest/              SQLite-backed repository tests
   androidInstrumentedTest/      device notification tests and opt-in telephony smoke test

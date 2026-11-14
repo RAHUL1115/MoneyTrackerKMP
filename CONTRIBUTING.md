@@ -17,6 +17,8 @@ Thanks for helping. Bug reports, translations and pull requests are all welcome.
 ```
 Debug builds install as a separate app (`in.amrahul.moneytracker.debug`), next to a release install. See [README.md](README.md) for the layout and core rules.
 
+Code is grouped by feature, with each layout's screens in `classic/` and `fresh/` inside the feature ([ADR 0018](docs/adr/0018-package-by-feature.md)). To keep `git blame` past the commits that moved files, run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once.
+
 ## Pull requests
 - Keep each PR focused, and add or update tests for behaviour changes.
 - New user-facing text goes through `tr("…")`. English is the key; translations live in `composeApp/src/androidMain/assets/i18n/`.

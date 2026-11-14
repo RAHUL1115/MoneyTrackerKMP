@@ -2,7 +2,7 @@
 
 How the new layout looks, and which value wins when the design canvas and the app disagree. The design canvas
 ("MoneyTracker Redesign") shows the screens; this guide fixes the shared rules. Tokens and shared components live in
-`composeApp/src/commonMain/kotlin/app/moneytracker/ui/fresh/Kit.kt`.
+`composeApp/src/commonMain/kotlin/app/moneytracker/designsystem/fresh/Kit.kt`.
 
 Decided on 2026-11-01:
 - **Type follows the app, not the canvas.** The canvas draws extra-bold (800) titles and amounts at larger sizes. The app
@@ -187,7 +187,7 @@ type scale wins), **Kept** (deliberate app choice, canvas to be updated).
 
 ## Settings structure (both layouts, 2026-11-04)
 
-Both layouts use one structure, defined once in `ui/SettingsModel.kt`; each layout only draws it.
+Both layouts use one structure, defined once in `settings/SettingsModel.kt`; each layout only draws it.
 
 - **Places** (classic More tab, top of new-layout Settings), each with a status line: Categories & tags, Budget, Repeat & bookmarks, Bank SMS, Backup & security, then Settings (classic) or Help & about (new layout). Categories & tags, Repeat & bookmarks, Bank SMS (detected transactions + SMS settings), Backup & security and Help & about each open a short screen of their rows.
 - **Alignment (new layout):** tiles in a row share one height; their content, the PREFERENCES label and card rows all start 14 in; the label sits 8 above its card.
