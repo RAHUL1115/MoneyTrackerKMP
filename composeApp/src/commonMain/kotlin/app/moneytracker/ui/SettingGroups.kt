@@ -14,6 +14,7 @@ import app.moneytracker.data.Setting
 import app.moneytracker.designsystem.classic.accentChoice
 import app.moneytracker.designsystem.classic.label
 import app.moneytracker.domain.Periods
+import app.moneytracker.entry.classic.save
 
 /*
  * One settings structure for both layouts: the More places, the combined screens and the six preference groups

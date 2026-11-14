@@ -68,6 +68,7 @@ import app.moneytracker.designsystem.classic.SubtleText
 import app.moneytracker.designsystem.classic.SurfaceColor
 import app.moneytracker.designsystem.classic.weekday
 import app.moneytracker.domain.Note
+import app.moneytracker.entry.classic.save
 import kotlinx.datetime.LocalDate
 
 private val NoteColors = listOf(SurfaceColor, Color(0xFFFFF4D6), Color(0xFFE3F2FD), Color(0xFFE8F5E9), Color(0xFFFCE4EC))

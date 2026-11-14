@@ -1,6 +1,18 @@
 package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.moneytracker.activity.ActKind
+import app.moneytracker.activity.ActivityFilterRequest
+import app.moneytracker.activity.ActivityModel
+import app.moneytracker.activity.BulkEditModel
+import app.moneytracker.activity.BulkResult
+import app.moneytracker.activity.CalendarModel
+import app.moneytracker.activity.EntryListModel
+import app.moneytracker.activity.MonthsModel
+import app.moneytracker.activity.calendarGrid
+import app.moneytracker.activity.classic.TxnFilter
+import app.moneytracker.activity.entryFeed
+import app.moneytracker.activity.filterChoices
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
@@ -10,18 +22,6 @@ import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
-import app.moneytracker.ui.ActKind
-import app.moneytracker.ui.ActivityFilterRequest
-import app.moneytracker.ui.ActivityModel
-import app.moneytracker.ui.BulkEditModel
-import app.moneytracker.ui.BulkResult
-import app.moneytracker.ui.CalendarModel
-import app.moneytracker.ui.EntryListModel
-import app.moneytracker.ui.MonthsModel
-import app.moneytracker.ui.TxnFilter
-import app.moneytracker.ui.calendarGrid
-import app.moneytracker.ui.entryFeed
-import app.moneytracker.ui.filterChoices
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

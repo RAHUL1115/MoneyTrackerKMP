@@ -28,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.activity.classic.ChoiceDialog
+import app.moneytracker.activity.classic.DisclosureDialog
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.LocalPlatform

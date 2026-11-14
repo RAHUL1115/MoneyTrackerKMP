@@ -14,11 +14,11 @@ import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
 import app.moneytracker.domain.TxnKind
-import app.moneytracker.ui.AccountGuess
-import app.moneytracker.ui.EntryFormModel
-import app.moneytracker.ui.EntrySaved
-import app.moneytracker.ui.EntrySetup
-import app.moneytracker.ui.SmartGuess
+import app.moneytracker.entry.AccountGuess
+import app.moneytracker.entry.EntryFormModel
+import app.moneytracker.entry.EntrySaved
+import app.moneytracker.entry.EntrySetup
+import app.moneytracker.entry.SmartGuess
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

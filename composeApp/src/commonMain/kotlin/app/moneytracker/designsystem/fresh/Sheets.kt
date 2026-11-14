@@ -118,7 +118,7 @@ fun EmptyCard(text: String, action: String? = null, onAction: (() -> Unit)? = nu
 
 /** The listening sheet in the new layout's look (canvas 7.1): rounder sheet, its own teal, "Type instead". */
 @Composable
-internal fun newListenLook() = app.moneytracker.ui.ListenLook(
+internal fun newListenLook() = app.moneytracker.entry.classic.ListenLook(
     sheet = F.card, ink = F.ink, inkSoft = F.ink, muted = F.muted, accent = F.accent, onAccent = F.onAccent,
     line = F.line, fill = F.fill, border = F.border, danger = F.danger, income = F.income, expense = F.expense,
     radius = 28.dp, button = F.buttonShape, typeLabel = tr("Type instead"),

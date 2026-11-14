@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.activity.classic.AddFab
 import app.moneytracker.app.LocalCurrency
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.LocalRepo
@@ -54,6 +55,7 @@ import app.moneytracker.designsystem.classic.SubtleText
 import app.moneytracker.designsystem.classic.SurfaceColor
 import app.moneytracker.designsystem.classic.monthShort
 import app.moneytracker.domain.Currency
+import app.moneytracker.entry.classic.save
 import kotlinx.datetime.LocalDate
 
 /** Other currencies: wiring for [CurrenciesContent]. */

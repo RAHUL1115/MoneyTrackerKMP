@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.activity.classic.DisclosureDialog
 import app.moneytracker.app.LayoutSwitchDialog
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.Screen
@@ -79,7 +80,6 @@ import app.moneytracker.designsystem.fresh.pick
 import app.moneytracker.ui.BackClosesGroup
 import app.moneytracker.ui.ChoiceHost
 import app.moneytracker.ui.ChoiceSpec
-import app.moneytracker.ui.DisclosureDialog
 import app.moneytracker.ui.MorePlace
 import app.moneytracker.ui.SettingDialog
 import app.moneytracker.ui.SettingGroup

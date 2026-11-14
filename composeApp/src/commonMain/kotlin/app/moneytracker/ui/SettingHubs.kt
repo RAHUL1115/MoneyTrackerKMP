@@ -14,6 +14,7 @@ import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.domain.CategoryKind
+import app.moneytracker.entry.classic.save
 import app.moneytracker.ui.fresh.snapshotWhen
 
 /** The screens that gather related places. */

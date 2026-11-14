@@ -45,6 +45,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.activity.classic.SearchScreen
+import app.moneytracker.activity.classic.TransactionsTab
 import app.moneytracker.core.I18n
 import app.moneytracker.core.Languages
 import app.moneytracker.core.LaunchAction
@@ -83,6 +85,9 @@ import app.moneytracker.designsystem.classic.accentChoice
 import app.moneytracker.designsystem.classic.colorsSwapped
 import app.moneytracker.designsystem.classic.darkTheme
 import app.moneytracker.domain.CurrencyFormat
+import app.moneytracker.entry.classic.EditTxnScreen
+import app.moneytracker.entry.classic.ListenLook
+import app.moneytracker.entry.classic.ListenSheet
 import app.moneytracker.ui.AboutScreen
 import app.moneytracker.ui.AccountDetailScreen
 import app.moneytracker.ui.AccountGroupsScreen
@@ -98,25 +103,20 @@ import app.moneytracker.ui.ConfigurationScreen
 import app.moneytracker.ui.CurrenciesScreen
 import app.moneytracker.ui.EditAccountScreen
 import app.moneytracker.ui.EditNoteScreen
-import app.moneytracker.ui.EditTxnScreen
 import app.moneytracker.ui.HelpScreen
 import app.moneytracker.ui.InboxScreen
 import app.moneytracker.ui.LicenseScreen
-import app.moneytracker.ui.ListenLook
-import app.moneytracker.ui.ListenSheet
 import app.moneytracker.ui.LockScreen
 import app.moneytracker.ui.MessageSettingsScreen
 import app.moneytracker.ui.MoreHubScreen
 import app.moneytracker.ui.MoreTab
 import app.moneytracker.ui.OnboardingScreen
 import app.moneytracker.ui.RecurringScreen
-import app.moneytracker.ui.SearchScreen
 import app.moneytracker.ui.SecurityScreen
 import app.moneytracker.ui.StatsDetailScreen
 import app.moneytracker.ui.StatsTab
 import app.moneytracker.ui.TagsScreen
 import app.moneytracker.ui.TemplatesScreen
-import app.moneytracker.ui.TransactionsTab
 import app.moneytracker.ui.WebDashboardScreen
 import kotlinx.coroutines.withContext
 

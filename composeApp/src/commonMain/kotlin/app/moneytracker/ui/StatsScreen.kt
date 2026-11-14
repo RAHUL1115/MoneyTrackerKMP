@@ -81,6 +81,7 @@ import app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
 import app.moneytracker.domain.MODIFIED_BALANCE_NAME
 import app.moneytracker.domain.TOTAL_BUDGET
 import app.moneytracker.domain.TxnKind
+import app.moneytracker.entry.classic.save
 import kotlin.math.roundToInt
 
 /** Chart palette: distinct, readable on white. */

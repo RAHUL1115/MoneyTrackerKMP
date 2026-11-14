@@ -13,6 +13,7 @@ import app.moneytracker.data.Prefs
 import app.moneytracker.data.Setting
 import app.moneytracker.data.SettingsStore
 import app.moneytracker.data.UiLayout
+import app.moneytracker.entry.classic.save
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

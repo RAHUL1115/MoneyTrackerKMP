@@ -31,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.activity.classic.AddFab
+import app.moneytracker.activity.classic.FlowChips
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.LocalRepo
 import app.moneytracker.core.collectAsState
@@ -42,6 +44,7 @@ import app.moneytracker.designsystem.classic.EmptyState
 import app.moneytracker.designsystem.classic.SubtleText
 import app.moneytracker.designsystem.classic.SurfaceColor
 import app.moneytracker.domain.Tag
+import app.moneytracker.entry.classic.save
 
 /** A [TagsModel] working in the calling screen's scope. */
 @Composable

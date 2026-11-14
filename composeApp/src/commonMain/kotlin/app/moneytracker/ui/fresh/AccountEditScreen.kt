@@ -54,6 +54,7 @@ import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 import app.moneytracker.domain.Currency
 import app.moneytracker.domain.CurrencyFormat
+import app.moneytracker.entry.fresh.accountName
 import app.moneytracker.ui.accounts.AccountForm
 import app.moneytracker.ui.accounts.rememberAccountEditModel
 

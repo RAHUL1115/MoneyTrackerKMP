@@ -10,7 +10,7 @@ import app.moneytracker.domain.CaptureStatus
 import app.moneytracker.domain.TOTAL_BUDGET
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
-import app.moneytracker.ui.fresh.HomeModel
+import app.moneytracker.home.HomeModel
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

@@ -17,6 +17,7 @@ import app.moneytracker.data.ThemeMode
 import app.moneytracker.data.TimeInput
 import app.moneytracker.data.TimeSort
 import app.moneytracker.domain.Periods
+import app.moneytracker.entry.classic.save
 import kotlinx.datetime.DayOfWeek
 
 /*

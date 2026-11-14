@@ -8,7 +8,7 @@ import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.ai.SmartParser
-import app.moneytracker.ui.SmartEntry
+import app.moneytracker.entry.SmartEntry
 import java.io.File
 import kotlin.test.BeforeTest
 import kotlin.test.Test
