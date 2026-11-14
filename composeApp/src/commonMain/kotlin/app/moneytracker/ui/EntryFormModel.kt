@@ -1,10 +1,11 @@
 package app.moneytracker.ui
 
-import app.moneytracker.data.NoteSuggestion
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
+import app.moneytracker.core.nowMinutes
+import app.moneytracker.core.outlivingScope
 import app.moneytracker.data.BookmarkStore
 import app.moneytracker.data.CaptureStore
 import app.moneytracker.data.CategoryStore
@@ -12,6 +13,7 @@ import app.moneytracker.data.DraftType
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.EntryProblem
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.NoteSuggestion
 import app.moneytracker.data.PhotoStore
 import app.moneytracker.data.Template
 import app.moneytracker.data.TxnDraft

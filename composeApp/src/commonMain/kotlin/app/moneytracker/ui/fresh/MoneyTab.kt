@@ -29,7 +29,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
@@ -38,12 +37,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.data.AccountSummary
 import app.moneytracker.domain.AccountGroup
 import app.moneytracker.domain.AccountLine
@@ -62,7 +63,6 @@ import app.moneytracker.ui.accounts.mainTotal
 import app.moneytracker.ui.accounts.rememberAccountsModel
 import app.moneytracker.ui.accounts.shownBalance
 import app.moneytracker.ui.short
-import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
 
 @Composable

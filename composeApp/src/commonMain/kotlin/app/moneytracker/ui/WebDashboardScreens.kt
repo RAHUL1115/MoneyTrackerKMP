@@ -31,7 +31,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +51,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.WebDashboardControl
+import app.moneytracker.core.WebDashboardState
+import app.moneytracker.core.WebVisitor
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.rememberSetting
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.SettingsStore
 import kotlinx.coroutines.CoroutineDispatcher

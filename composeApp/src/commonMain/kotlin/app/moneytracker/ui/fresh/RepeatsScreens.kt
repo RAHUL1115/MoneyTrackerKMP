@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.RepeatTiming
 import app.moneytracker.domain.Category
@@ -52,7 +53,6 @@ import app.moneytracker.ui.flattenCategories
 import app.moneytracker.ui.long
 import app.moneytracker.ui.mainCategoryName
 import app.moneytracker.ui.short
-import app.moneytracker.ui.tr
 
 private fun timingOptions() = app.moneytracker.ui.choiceSpec(Prefs.REPEAT_TIMING, newLayout = true)
 

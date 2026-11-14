@@ -14,9 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -42,12 +42,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.SmsOriginal
 import app.moneytracker.data.TextSetting
 import app.moneytracker.domain.MessageRules
 import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.MessageSettingsModel
 import app.moneytracker.ui.MessageSettingsState
@@ -60,7 +61,6 @@ import app.moneytracker.ui.expandable
 import app.moneytracker.ui.hasAutostartManager
 import app.moneytracker.ui.rememberSmsHealth
 import app.moneytracker.ui.smsPermissionSteps
-import app.moneytracker.ui.tr
 
 /** What the Bank SMS settings screen asks for: its holder's settings plus the phone's SMS and background controls. */
 private class SmsSettingsActions(

@@ -8,12 +8,12 @@ import app.moneytracker.web.WebPassword
 import app.moneytracker.web.daysSoFar
 import app.moneytracker.web.requestedMonth
 import app.moneytracker.web.requestedRange
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
 
 /** The web dashboard's pure pieces: periods asked for in the query, tag names from the form, password checks. */
 class WebPartsTest {

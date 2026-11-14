@@ -1,9 +1,9 @@
 package app.moneytracker.data
 
-import app.moneytracker.Log
+import app.moneytracker.core.Log
+import app.moneytracker.db.RecurringRule as RuleRow
 import app.moneytracker.domain.Recurrence
 import app.moneytracker.domain.RecurringRule
-import app.moneytracker.db.RecurringRule as RuleRow
 
 /** Repeats: rules that add the same entry on a schedule, and turning their due dates into real entries. */
 class RepeatStore(private val db: Db, private val settings: SettingsStore, private val writer: EntryWriter) {

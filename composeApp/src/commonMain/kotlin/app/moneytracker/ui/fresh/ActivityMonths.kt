@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.data.MonthRollup
 import app.moneytracker.data.MonthTotals
 import app.moneytracker.domain.Totals
@@ -51,7 +52,6 @@ import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.rememberMonthsModel
-import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
 
 /** Side padding of a month row's content and of the dividers between months. */

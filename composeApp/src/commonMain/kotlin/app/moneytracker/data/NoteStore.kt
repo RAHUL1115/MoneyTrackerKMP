@@ -1,7 +1,7 @@
 package app.moneytracker.data
 
-import app.moneytracker.domain.Note
 import app.moneytracker.db.Note as NoteRow
+import app.moneytracker.domain.Note
 
 /** The free-text notes page (not an entry's note line). */
 class NoteStore(private val db: Db) {

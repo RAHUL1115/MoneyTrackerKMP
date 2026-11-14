@@ -1,20 +1,20 @@
 package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.moneytracker.core.BiometricStatus
+import app.moneytracker.core.PinSecurity
+import app.moneytracker.core.unlock
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
 import app.moneytracker.db.MoneyDatabase
-import app.moneytracker.ui.BiometricStatus
-import app.moneytracker.ui.PinSecurity
-import app.moneytracker.ui.unlock
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.datetime.LocalDate
 
 /** The lock screen's passcode rules: old hashes upgrade, the passcode from before a restore still works, wrong ones don't. */
 class UnlockTest {

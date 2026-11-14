@@ -53,6 +53,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.formatTime
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.Flow
 import app.moneytracker.domain.MODIFIED_BALANCE_NAME

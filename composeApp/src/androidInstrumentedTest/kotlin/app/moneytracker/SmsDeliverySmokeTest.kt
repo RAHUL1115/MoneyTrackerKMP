@@ -1,6 +1,5 @@
 package app.moneytracker
 
-import app.moneytracker.data.Prefs
 import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -15,13 +14,8 @@ import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.Prefs
 import app.moneytracker.domain.Account
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import org.junit.Assume.assumeTrue
-import org.junit.Test
-import org.junit.runner.RunWith
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -32,6 +26,12 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.Assume.assumeTrue
+import org.junit.Test
+import org.junit.runner.RunWith
 
 /** Opt-in emulator smoke test. Adds synthetic accounts/messages and leaves notifications for inspection. */
 @Suppress("DEPRECATION")

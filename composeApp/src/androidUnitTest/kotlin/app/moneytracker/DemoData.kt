@@ -8,14 +8,14 @@ import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.Note
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.YearMonth
-import kotlinx.coroutines.Dispatchers
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
 import java.io.File
 import java.util.Properties
 import kotlin.random.Random
 import kotlin.test.Test
+import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 
 /**
  * Builds a made-up dataset for store screenshots (no real accounts or numbers). Skipped unless DEMO_DB_OUT is set:

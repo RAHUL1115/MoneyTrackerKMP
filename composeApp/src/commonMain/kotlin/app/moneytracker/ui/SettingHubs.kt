@@ -3,6 +3,10 @@ package app.moneytracker.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.rememberSetting
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.ui.fresh.snapshotWhen

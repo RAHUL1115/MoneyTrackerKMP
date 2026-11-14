@@ -1,7 +1,5 @@
 package app.moneytracker.ui
 
-import app.moneytracker.data.SmsOriginal
-import app.moneytracker.data.TextSetting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,15 +20,20 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
+import app.moneytracker.data.SmsOriginal
+import app.moneytracker.data.TextSetting
 import app.moneytracker.domain.MessageRules
 
 /** Explains why detection can be late and opens the right settings page. Shared by both layouts. */

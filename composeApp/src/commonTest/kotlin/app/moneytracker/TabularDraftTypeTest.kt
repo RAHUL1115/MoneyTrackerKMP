@@ -1,7 +1,7 @@
 package app.moneytracker
 
 import app.moneytracker.data.DraftType
-import app.moneytracker.data.TabularImport
+import app.moneytracker.data.moneymanager.TabularImport
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

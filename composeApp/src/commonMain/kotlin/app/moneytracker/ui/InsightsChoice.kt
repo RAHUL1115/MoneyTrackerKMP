@@ -2,13 +2,13 @@ package app.moneytracker.ui
 
 import app.moneytracker.data.PeriodSettings
 import app.moneytracker.domain.DateRange
+import app.moneytracker.domain.Flow as MoneyFlow
 import app.moneytracker.domain.Totals
 import app.moneytracker.domain.YearMonth
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import app.moneytracker.domain.Flow as MoneyFlow
 
 /** How long a period Insights (new layout) and Stats (classic) show. Each layout words the choices itself. */
 enum class InsightsSpan { WEEK, MONTH, YEAR, CUSTOM }

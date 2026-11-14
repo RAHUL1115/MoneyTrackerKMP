@@ -3,8 +3,6 @@ package app.moneytracker.ui.fresh
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -34,18 +34,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.moneytracker.core.tr
 import app.moneytracker.data.BackupFolder
 import app.moneytracker.data.Backups
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.LocalBackup
-import app.moneytracker.data.TabularImport
+import app.moneytracker.data.moneymanager.TabularImport
 import app.moneytracker.ui.LocalBackups
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
@@ -53,7 +54,6 @@ import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.RowCheckbox
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.short
-import app.moneytracker.ui.tr
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus

@@ -2,7 +2,7 @@ package app.moneytracker.data
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import app.moneytracker.Log
+import app.moneytracker.core.Log
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.Fx

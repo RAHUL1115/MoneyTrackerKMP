@@ -1,15 +1,16 @@
 package app.moneytracker.ui
 
-import app.moneytracker.data.Suggestion
-import app.moneytracker.ai.SmartParser
+import app.moneytracker.core.SmartModels
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.domain.SmsParser
+import app.moneytracker.data.Suggestion
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.domain.CurrencyFormat
+import app.moneytracker.domain.SmsParser
+import app.moneytracker.domain.ai.SmartParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -47,10 +48,10 @@ object SmartEntry {
      */
     @Suppress("TooGenericExceptionCaught")
     private fun load(models: SmartModels): SmartParser? = try {
-        app.moneytracker.Log.timed("Smart", "model load") { SmartParser.load { name -> models.readSmartModel(name) ?: error("missing $name") } }
+        app.moneytracker.core.Log.timed("Smart", "model load") { SmartParser.load { name -> models.readSmartModel(name) ?: error("missing $name") } }
     } catch (t: Throwable) {
         failed = true
-        app.moneytracker.Log.e("Smart", t) { "Smart entry models failed to load" }
+        app.moneytracker.core.Log.e("Smart", t) { "Smart entry models failed to load" }
         null
     }
 
@@ -66,7 +67,7 @@ object SmartEntry {
         val expense = categories.filter { it.kind == CategoryKind.EXPENSE }
         val income = categories.filter { it.kind == CategoryKind.INCOME }
         val visible = accounts.filter { !it.hidden }
-        val r = app.moneytracker.Log.timed("Smart", "parse of ${text.length} chars") {
+        val r = app.moneytracker.core.Log.timed("Smart", "parse of ${text.length} chars") {
             parser.parse(text, expense.map { it.name }.distinct(), income.map { it.name }.distinct(), visible.map { it.name })
         }
         val type = draftTypeOf(r.type)

@@ -1,5 +1,6 @@
 package app.moneytracker.ui
 
+import app.moneytracker.core.nowMinutes
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.EntryProblem
 import app.moneytracker.data.InputOrder

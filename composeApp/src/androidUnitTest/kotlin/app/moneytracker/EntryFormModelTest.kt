@@ -1,12 +1,12 @@
 package app.moneytracker
 
-import app.moneytracker.data.NoteSuggestion
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.EntryProblem
 import app.moneytracker.data.InputOrder
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.NoteSuggestion
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
@@ -19,6 +19,14 @@ import app.moneytracker.ui.EntrySaved
 import app.moneytracker.ui.EntrySetup
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.SmartGuess
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,14 +36,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 /** The entry form both layouts draw: defaults, rules, checks, save and delete paths, and saved state. */
 @OptIn(ExperimentalCoroutinesApi::class)

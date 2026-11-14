@@ -1,9 +1,9 @@
 package app.moneytracker.data
 
-import app.moneytracker.Log
+import app.moneytracker.core.Log
+import app.moneytracker.db.Currency as CurrencyRow
 import app.moneytracker.domain.Currency
 import kotlin.coroutines.cancellation.CancellationException
-import app.moneytracker.db.Currency as CurrencyRow
 
 /** The other currencies the person uses, with the rate each is converted at, and the daily online rate update. */
 class CurrencyStore(private val db: Db, private val settings: SettingsStore) {

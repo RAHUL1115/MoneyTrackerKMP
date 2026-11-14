@@ -3,8 +3,8 @@ package app.moneytracker
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
-import app.moneytracker.data.TabularImport
 import app.moneytracker.data.TxnDraft
+import app.moneytracker.data.moneymanager.TabularImport
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.Periods

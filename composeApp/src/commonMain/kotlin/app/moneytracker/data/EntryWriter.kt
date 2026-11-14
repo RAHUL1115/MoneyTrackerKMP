@@ -1,5 +1,6 @@
 package app.moneytracker.data
 
+import app.moneytracker.db.Txn as TxnRow
 import app.moneytracker.domain.Currency
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.Fx
@@ -8,7 +9,6 @@ import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.splitInstallments
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.plus
-import app.moneytracker.db.Txn as TxnRow
 
 /**
  * Turns an editor draft into stored entry rows: one row, an installment plan, or a transfer's legs and fee, each

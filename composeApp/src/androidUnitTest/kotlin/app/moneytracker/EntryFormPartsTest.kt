@@ -1,6 +1,8 @@
 package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.moneytracker.core.SmartModels
+import app.moneytracker.core.SpeechError
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.TxnDraft
@@ -11,20 +13,12 @@ import app.moneytracker.ui.EntryForm
 import app.moneytracker.ui.EntryHints
 import app.moneytracker.ui.ListenModel
 import app.moneytracker.ui.ListenState
-import app.moneytracker.ui.SmartModels
-import app.moneytracker.ui.SpeechError
 import app.moneytracker.ui.fresh.Step
 import app.moneytracker.ui.fresh.accountTray
 import app.moneytracker.ui.fresh.firstMissing
 import app.moneytracker.ui.fresh.stepOrder
 import app.moneytracker.ui.pressKey
 import app.moneytracker.ui.suggestedCategory
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -32,6 +26,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 
 /** What surrounds the entry form: hints while typing, the new layout's tray, the keypad and the listening sheet. */
 class EntryFormPartsTest {

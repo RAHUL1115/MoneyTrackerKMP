@@ -1,5 +1,6 @@
 package app.moneytracker.ui.fresh
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,10 +20,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.background
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.Privacy
+import app.moneytracker.core.tr
 import app.moneytracker.ui.DatePickerHost
 import app.moneytracker.ui.InsightsActions
 import app.moneytracker.ui.InsightsSide
@@ -31,7 +33,6 @@ import app.moneytracker.ui.InsightsState
 import app.moneytracker.ui.LocalBackups
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.MonthPickerDialog
-import app.moneytracker.ui.Privacy
 import app.moneytracker.ui.SlotLabel
 import app.moneytracker.ui.dayCount
 import app.moneytracker.ui.label
@@ -39,7 +40,6 @@ import app.moneytracker.ui.long
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.rememberInsightsModel
 import app.moneytracker.ui.short
-import app.moneytracker.ui.tr
 
 private fun InsightsSpan.label() = when (this) {
     InsightsSpan.WEEK -> "Week"

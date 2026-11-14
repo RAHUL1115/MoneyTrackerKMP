@@ -10,13 +10,13 @@ import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.totals
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class RepositoryTest {
     private var today = LocalDate.parse("2026-03-15")

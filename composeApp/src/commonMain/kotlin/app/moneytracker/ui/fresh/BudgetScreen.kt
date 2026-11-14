@@ -14,13 +14,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.data.MonthBudget
 import app.moneytracker.domain.BudgetLine
 import app.moneytracker.domain.Category
@@ -37,7 +38,6 @@ import app.moneytracker.ui.categoryPath
 import app.moneytracker.ui.label
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.rememberBudgetModel
-import app.moneytracker.ui.tr
 import kotlin.math.roundToInt
 
 @Composable internal fun FreshBudget() = BudgetBody()

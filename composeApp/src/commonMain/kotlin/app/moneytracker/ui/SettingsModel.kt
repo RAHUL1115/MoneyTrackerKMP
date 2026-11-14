@@ -3,6 +3,9 @@ package app.moneytracker.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import app.moneytracker.core.BackgroundJobs
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.tr
 import app.moneytracker.data.ClockTime
 import app.moneytracker.data.LearningStore
 import app.moneytracker.data.Prefs

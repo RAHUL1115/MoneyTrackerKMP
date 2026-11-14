@@ -1,5 +1,12 @@
 package app.moneytracker.data
 
+import app.moneytracker.db.Account as AccountRow
+import app.moneytracker.db.AccountGroup as GroupRow
+import app.moneytracker.db.Capture as CaptureRow
+import app.moneytracker.db.Category as CategoryRow
+import app.moneytracker.db.Currency as CurrencyRow
+import app.moneytracker.db.RecurringRule as RuleRow
+import app.moneytracker.db.Txn as TxnRow
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 import app.moneytracker.domain.AccountType
@@ -13,13 +20,6 @@ import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
 import kotlinx.datetime.LocalDate
-import app.moneytracker.db.Account as AccountRow
-import app.moneytracker.db.AccountGroup as GroupRow
-import app.moneytracker.db.Capture as CaptureRow
-import app.moneytracker.db.Category as CategoryRow
-import app.moneytracker.db.Currency as CurrencyRow
-import app.moneytracker.db.RecurringRule as RuleRow
-import app.moneytracker.db.Txn as TxnRow
 
 // Stored rows → domain objects, shared by the stores that read the same tables.
 

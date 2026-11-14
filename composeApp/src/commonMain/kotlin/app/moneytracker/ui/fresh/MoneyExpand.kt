@@ -3,7 +3,7 @@ package app.moneytracker.ui.fresh
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import app.moneytracker.ui.tr
+import app.moneytracker.core.tr
 
 // TalkBack state for the money screens' open / close headers (account groups, net worth, breakdown parts, budgets).
 

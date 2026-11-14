@@ -6,10 +6,10 @@ import android.os.Build
 import android.provider.Settings
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Test
-import org.junit.runner.RunWith
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import org.junit.Test
+import org.junit.runner.RunWith
 
 /** Run on a fresh debug install; channel sound/importance remain under the user's control. */
 @Suppress("DEPRECATION")

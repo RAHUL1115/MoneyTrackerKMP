@@ -1,6 +1,6 @@
 package app.moneytracker.data
 
-import app.moneytracker.Log
+import app.moneytracker.core.Log
 import app.moneytracker.domain.Capture
 import app.moneytracker.domain.CaptureStatus
 import app.moneytracker.domain.CategoryKind

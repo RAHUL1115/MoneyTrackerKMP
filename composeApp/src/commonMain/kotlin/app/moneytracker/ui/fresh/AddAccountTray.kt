@@ -2,6 +2,7 @@ package app.moneytracker.ui.fresh
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountLine
 import app.moneytracker.domain.Txn
@@ -9,7 +10,6 @@ import app.moneytracker.ui.EntryChoices
 import app.moneytracker.ui.EntryForm
 import app.moneytracker.ui.LocalCurrencies
 import app.moneytracker.ui.LocalCurrency
-import app.moneytracker.ui.tr
 
 private const val RECENT_TAB = "recent"
 private const val OTHER_TAB = "other"

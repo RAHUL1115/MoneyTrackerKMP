@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.Tag
 import app.moneytracker.domain.Txn
@@ -62,7 +63,6 @@ import app.moneytracker.ui.SearchType
 import app.moneytracker.ui.entryFeed
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.searchTagChoices
-import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
 
 private fun LocalDate.searchLabel() = "$dayOfMonth ${monthShort(monthNumber)} $year"

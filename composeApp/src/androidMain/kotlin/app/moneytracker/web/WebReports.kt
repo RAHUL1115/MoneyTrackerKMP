@@ -8,9 +8,9 @@ import app.moneytracker.data.Prefs
 import app.moneytracker.data.ReadModels
 import app.moneytracker.data.ReportStore
 import app.moneytracker.data.SettingsStore
-import app.moneytracker.data.TabularImport
 import app.moneytracker.data.TagStore
 import app.moneytracker.data.TxnStore
+import app.moneytracker.data.moneymanager.TabularImport
 import app.moneytracker.domain.AccountLine
 import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.Fx

@@ -2,12 +2,12 @@ package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.DraftType
-import app.moneytracker.data.MoneyManagerBackup
-import app.moneytracker.data.MoneyManagerExport
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
-import app.moneytracker.data.RowSink
 import app.moneytracker.data.TxnDraft
+import app.moneytracker.data.moneymanager.MoneyManagerBackup
+import app.moneytracker.data.moneymanager.MoneyManagerExport
+import app.moneytracker.data.moneymanager.RowSink
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.Currency
 import app.moneytracker.domain.DateRange
@@ -15,16 +15,16 @@ import app.moneytracker.domain.Note
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.TAG_PREPAYMENT
 import app.moneytracker.domain.YearMonth
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 import java.sql.Connection
 import java.sql.DriverManager
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 
 /** JDBC-backed [RowSink] for tests (the app uses Android's SQLiteDatabase). */
 class JdbcRowSink(private val c: Connection) : RowSink {

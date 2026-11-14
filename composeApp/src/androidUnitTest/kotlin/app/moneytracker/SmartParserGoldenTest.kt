@@ -1,7 +1,7 @@
 package app.moneytracker
 
 import app.moneytracker.ai.MiniJsonForTest
-import app.moneytracker.ai.SmartParser
+import app.moneytracker.domain.ai.SmartParser
 import java.io.File
 import kotlin.math.abs
 import kotlin.test.Test

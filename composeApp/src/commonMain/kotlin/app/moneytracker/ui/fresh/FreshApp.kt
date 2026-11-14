@@ -29,9 +29,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.Screen
-import app.moneytracker.ui.tr
 
 /** Home of the new layout: the selected tab above the bottom bar. */
 @Composable
@@ -87,7 +87,7 @@ private fun NavItem(tab: FreshTab, icon: ImageVector, selected: FreshTab, onSele
  * (help, licences and other plain screens are shared by both layouts).
  */
 fun freshScreen(screen: Screen): (@Composable () -> Unit)? = when (screen) {
-    is Screen.EditTxn -> show { app.moneytracker.ui.Unmasked { FreshEditTxn(screen) } }
+    is Screen.EditTxn -> show { app.moneytracker.core.Unmasked { FreshEditTxn(screen) } }
     Screen.Inbox -> show { FreshInbox() }
     Screen.MessageSettings -> show { FreshMessageSettings() }
     Screen.WebDashboard -> show { FreshWebDashboard() }

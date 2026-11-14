@@ -18,6 +18,8 @@ import app.moneytracker.ui.App
 import app.moneytracker.ui.Navigator
 import app.moneytracker.ui.Screen
 import com.github.takahirom.roborazzi.captureRoboImage
+import java.util.Locale
+import java.util.TimeZone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.LocalDate
 import org.junit.Before
@@ -28,8 +30,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.internal.bytecode.InstrumentationConfiguration
-import java.util.Locale
-import java.util.TimeZone
 
 /**
  * Draws the real app ([App]) over the demo data on a fixed day, opens a screen and saves it as a PNG under

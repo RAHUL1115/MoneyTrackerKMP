@@ -56,6 +56,10 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import app.moneytracker.core.PrivacyEyeButton
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.rememberSetting
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.Swipe
 import app.moneytracker.domain.classify

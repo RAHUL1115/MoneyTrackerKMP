@@ -25,21 +25,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.offset
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.Privacy
+import app.moneytracker.core.tr
 import app.moneytracker.domain.BudgetLine
-import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalCurrency
-import app.moneytracker.ui.Privacy
+import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.short
-import app.moneytracker.ui.tr
 import app.moneytracker.ui.weekday
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -91,7 +91,7 @@ private fun HomeContent(state: HomeState, entryData: app.moneytracker.ui.EntryLo
 @Composable
 private fun SmartAddBar() {
     val nav = LocalNavigator.current
-    val voice = app.moneytracker.ui.LocalPlatform.current.voice
+    val voice = app.moneytracker.core.LocalPlatform.current.voice
     var open by remember { mutableStateOf<Boolean?>(null) }   // true: typing, false: speaking
     Row(
         Modifier.fillMaxWidth().height(56.dp).clip(F.cardShape).background(F.card)

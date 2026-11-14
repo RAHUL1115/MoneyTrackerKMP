@@ -34,7 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.ui.tr
+import app.moneytracker.core.tr
 
 // The frame around every new-layout screen: tab headers, header tiles and pushed sub-screens.
 
@@ -57,10 +57,10 @@ fun TabHeader(title: String, overline: String? = null, actions: @Composable RowS
 @Composable
 fun PrivacyEye() {
     val repo = app.moneytracker.ui.LocalRepo.current
-    val on = app.moneytracker.ui.Privacy.hidden
+    val on = app.moneytracker.core.Privacy.hidden
     IconTile(
         if (on) Glyph.EyeOff else Glyph.Eye, if (on) tr("Show amounts") else tr("Hide amounts"),
-        { app.moneytracker.ui.Privacy.toggle(repo) },
+        { app.moneytracker.core.Privacy.toggle(repo) },
         tint = if (on) F.accent else F.ink, background = if (on) F.accentTint else F.card,
     )
 }
@@ -113,7 +113,7 @@ fun SubScreen(
                 if (subtitle != null) Text(subtitle, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             // While amounts are hidden, every screen offers the eye, not just the main tabs.
-            if (app.moneytracker.ui.Privacy.hidden) PrivacyEye()
+            if (app.moneytracker.core.Privacy.hidden) PrivacyEye()
             actions()
         }
         Column(

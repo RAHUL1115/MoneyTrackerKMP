@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 import app.moneytracker.domain.Currency
@@ -37,7 +38,6 @@ import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.accounts.AccountForm
 import app.moneytracker.ui.accounts.rememberAccountEditModel
-import app.moneytracker.ui.tr
 
 /** The form's pick-one sheets. */
 private enum class AccountEditSheet { CURRENCY, PAY_FROM, BASIS }

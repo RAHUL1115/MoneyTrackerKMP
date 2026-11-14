@@ -1,18 +1,18 @@
 package app.moneytracker
 
-import app.moneytracker.data.Prefs
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.Prefs
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.SmsParser
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class SmsAccountMatchingTest {
     private lateinit var repo: MoneyRepository

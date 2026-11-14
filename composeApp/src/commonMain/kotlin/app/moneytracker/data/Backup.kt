@@ -1,5 +1,6 @@
 package app.moneytracker.data
 
+import app.moneytracker.data.moneymanager.TabularImport
 import kotlinx.coroutines.flow.StateFlow
 
 data class LocalBackup(val name: String, val sizeBytes: Long, val createdAtMillis: Long)

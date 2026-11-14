@@ -1,8 +1,8 @@
 package app.moneytracker
 
-import app.moneytracker.ai.LabelRun
-import app.moneytracker.ai.SmartText
-import app.moneytracker.ai.labelRuns
+import app.moneytracker.domain.ai.LabelRun
+import app.moneytracker.domain.ai.SmartText
+import app.moneytracker.domain.ai.labelRuns
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

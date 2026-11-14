@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Totals
 import app.moneytracker.domain.Txn
 import app.moneytracker.ui.ActivityModel
@@ -48,7 +49,6 @@ import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.rememberCalendarModel
-import app.moneytracker.ui.tr
 import app.moneytracker.ui.weekday
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DayOfWeek

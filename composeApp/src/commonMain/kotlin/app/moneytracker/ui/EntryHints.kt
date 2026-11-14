@@ -1,10 +1,10 @@
 package app.moneytracker.ui
 
-import app.moneytracker.data.NoteSuggestion
 import app.moneytracker.data.CachedFlow
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.LearningStore
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.NoteSuggestion
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.SettingsStore
 import app.moneytracker.data.SmsOriginal

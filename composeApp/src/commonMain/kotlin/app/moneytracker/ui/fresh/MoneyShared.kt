@@ -1,8 +1,7 @@
 package app.moneytracker.ui.fresh
 
-import app.moneytracker.ui.outlivingScope
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,11 +36,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.ui.tr
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import app.moneytracker.core.outlivingScope
+import app.moneytracker.core.tr
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // Pieces shared by the Insights, Budget and Money screens of the new layout.
 

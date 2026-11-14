@@ -1,6 +1,5 @@
 package app.moneytracker.ui.fresh
 
-import app.moneytracker.ui.outlivingScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +26,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.outlivingScope
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 import app.moneytracker.domain.Category
@@ -37,10 +39,8 @@ import app.moneytracker.ui.BulkResult
 import app.moneytracker.ui.DatePickerHost
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalRepo
-import app.moneytracker.ui.collectAsState
 import app.moneytracker.ui.flattenCategories
 import app.moneytracker.ui.monthShort
-import app.moneytracker.ui.tr
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus

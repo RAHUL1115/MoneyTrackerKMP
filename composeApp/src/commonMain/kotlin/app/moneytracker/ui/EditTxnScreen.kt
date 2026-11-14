@@ -31,6 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.rememberSetting
+import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.Prefs
 

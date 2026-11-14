@@ -1,16 +1,18 @@
 package app.moneytracker.ui
 
-import app.moneytracker.data.Suggestion
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import app.moneytracker.ai.SmartParser
+import app.moneytracker.core.SmartModels
+import app.moneytracker.core.SpeechError
 import app.moneytracker.data.AccountStore
 import app.moneytracker.data.CategoryStore
 import app.moneytracker.data.LearningStore
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.Suggestion
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.domain.TxnKind
+import app.moneytracker.domain.ai.SmartParser
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

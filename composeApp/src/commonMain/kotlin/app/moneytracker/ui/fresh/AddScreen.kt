@@ -1,9 +1,6 @@
 package app.moneytracker.ui.fresh
 
-import app.moneytracker.data.NoteSuggestion
 import androidx.compose.foundation.background
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +14,8 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -36,24 +35,25 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.rememberSetting
+import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.NoteSuggestion
 import app.moneytracker.data.Prefs
 import app.moneytracker.ui.EntryChoices
 import app.moneytracker.ui.EntryFormModel
 import app.moneytracker.ui.EntryHints
 import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.Screen
-import app.moneytracker.ui.collectAsState
 import app.moneytracker.ui.collectEntryChoices
 import app.moneytracker.ui.rememberAccountSummary
 import app.moneytracker.ui.rememberEntryForm
 import app.moneytracker.ui.rememberEntryHints
-import app.moneytracker.ui.rememberSetting
 import app.moneytracker.ui.suggestedCategory
-import app.moneytracker.ui.tr
 
 /** The new layout's add / edit entry screen: wiring. */
 @Composable

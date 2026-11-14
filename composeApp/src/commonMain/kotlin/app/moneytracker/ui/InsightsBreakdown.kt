@@ -1,12 +1,13 @@
 package app.moneytracker.ui
 
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Category
+import app.moneytracker.domain.Flow as MoneyFlow
 import app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
 import app.moneytracker.domain.ReportRow
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.classify
 import app.moneytracker.domain.isRefund
-import app.moneytracker.domain.Flow as MoneyFlow
 
 /** Breakdown key for money moved to savings or investments. */
 const val TRANSFERS_KEY = "__transfers"

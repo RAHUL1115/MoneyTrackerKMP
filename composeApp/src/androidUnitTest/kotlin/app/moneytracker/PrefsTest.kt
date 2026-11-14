@@ -11,17 +11,17 @@ import app.moneytracker.data.StartScreen
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.ui.choiceSpecs
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 
 /** Typed settings: one default per setting, forgiving reads, and the stored text other code (backups, imports) relies on. */
 class PrefsTest {

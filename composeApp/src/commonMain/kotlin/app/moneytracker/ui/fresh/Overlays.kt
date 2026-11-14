@@ -30,7 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.moneytracker.ui.tr
+import app.moneytracker.core.tr
 import kotlinx.coroutines.delay
 
 // Things drawn over every screen of the new layout: the toast and the keyboard-over-content switch.

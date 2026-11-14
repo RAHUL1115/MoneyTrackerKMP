@@ -1,19 +1,14 @@
 package app.moneytracker
 
-import app.moneytracker.data.Prefs
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import app.moneytracker.data.IosMoneyManagerSource
-import app.moneytracker.data.MoneyManagerBackup
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.Prefs
+import app.moneytracker.data.moneymanager.IosMoneyManagerSource
+import app.moneytracker.data.moneymanager.MoneyManagerBackup
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 import java.sql.Connection
 import java.sql.DriverManager
 import kotlin.test.Test
@@ -21,6 +16,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 
 class IosMoneyManagerImportTest {
     private fun repo(): MoneyRepository {

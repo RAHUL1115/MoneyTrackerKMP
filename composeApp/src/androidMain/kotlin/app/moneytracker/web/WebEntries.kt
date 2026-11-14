@@ -5,10 +5,10 @@ import app.moneytracker.data.ReportStore
 import app.moneytracker.data.TagStore
 import app.moneytracker.data.TxnStore
 import app.moneytracker.domain.DateRange
+import app.moneytracker.domain.Flow as MoneyFlow
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.classify
 import java.security.SecureRandom
-import app.moneytracker.domain.Flow as MoneyFlow
 
 /** The /api/txns and /api/undo routes: list, add, edit and delete entries, and take a delete back. */
 internal class WebEntries(

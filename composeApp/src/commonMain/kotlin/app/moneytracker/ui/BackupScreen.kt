@@ -39,10 +39,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.tr
 import app.moneytracker.data.Backups
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.LocalBackup
-import app.moneytracker.data.TabularImport
+import app.moneytracker.data.moneymanager.TabularImport
 
 /** Classic backup: snapshots, the backup folder, files in and out, Money Manager export and reset. */
 @Composable

@@ -24,6 +24,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.Privacy
+import app.moneytracker.core.tr
 import app.moneytracker.domain.AccountLine
 import app.moneytracker.domain.CardStatus
 import app.moneytracker.domain.Category
@@ -33,13 +35,11 @@ import app.moneytracker.domain.Periods
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.cardUsage
-import app.moneytracker.ui.Privacy
 import app.moneytracker.ui.accounts.AccountHistory
 import app.moneytracker.ui.accounts.billDue
 import app.moneytracker.ui.accounts.displayName
 import app.moneytracker.ui.categoryPath
 import app.moneytracker.ui.label
-import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
 
 // The pieces of the new layout's account detail screen: the balance card, action tiles, totals and entry rows.

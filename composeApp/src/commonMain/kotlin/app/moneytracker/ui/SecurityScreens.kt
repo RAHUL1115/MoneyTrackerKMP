@@ -27,7 +27,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import app.moneytracker.ui.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +38,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.BiometricStatus
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.rememberSetting
+import app.moneytracker.core.tr
+import app.moneytracker.core.unlock
 import app.moneytracker.data.Prefs
 
 private const val PIN_LENGTH = 4

@@ -1,7 +1,7 @@
 package app.moneytracker.data
 
-import app.moneytracker.domain.Category
 import app.moneytracker.db.Category as CategoryRow
+import app.moneytracker.domain.Category
 
 /** Income and expense categories, main and sub. */
 class CategoryStore(private val db: Db) {

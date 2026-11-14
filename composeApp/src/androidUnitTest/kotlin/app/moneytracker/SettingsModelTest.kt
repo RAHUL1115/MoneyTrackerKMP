@@ -1,6 +1,8 @@
 package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.moneytracker.core.BackgroundJobs
+import app.moneytracker.core.BackgroundState
 import app.moneytracker.data.ClockTime
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
@@ -9,13 +11,17 @@ import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.BudgetEntry
 import app.moneytracker.domain.Tag
 import app.moneytracker.domain.YearMonth
-import app.moneytracker.ui.BackgroundJobs
-import app.moneytracker.ui.BackgroundState
 import app.moneytracker.ui.SettingRow
 import app.moneytracker.ui.SettingsModel
 import app.moneytracker.ui.SettingsOverviewModel
 import app.moneytracker.ui.budgetedCount
 import app.moneytracker.ui.searchRows
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,12 +29,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /** The settings screens' holders: every write lands in the store, and the overview counts what is there. */
 class SettingsModelTest {

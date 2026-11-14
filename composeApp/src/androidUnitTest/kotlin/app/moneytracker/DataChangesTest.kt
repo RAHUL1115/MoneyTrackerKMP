@@ -7,11 +7,11 @@ import app.moneytracker.data.Prefs
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.data.watchAllTables
 import app.moneytracker.db.MoneyDatabase
-import kotlinx.coroutines.Dispatchers
-import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.LocalDate
 
 /** Widgets follow the database on their own: every kind of write is seen, once per transaction. */
 class DataChangesTest {

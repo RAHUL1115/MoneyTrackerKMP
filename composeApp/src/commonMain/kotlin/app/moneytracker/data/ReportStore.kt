@@ -2,6 +2,8 @@ package app.moneytracker.data
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.moneytracker.db.BudgetAmount as BudgetRow
+import app.moneytracker.db.ReportRows as ReportRowsRow
 import app.moneytracker.domain.AccountType
 import app.moneytracker.domain.BudgetEntry
 import app.moneytracker.domain.DateRange
@@ -13,8 +15,6 @@ import app.moneytracker.domain.YearMonth
 import app.moneytracker.domain.totals
 import kotlinx.coroutines.flow.combine
 import kotlinx.datetime.LocalDate
-import app.moneytracker.db.BudgetAmount as BudgetRow
-import app.moneytracker.db.ReportRows as ReportRowsRow
 
 /** The rows reports and totals are built from, and the budgets they are measured against. */
 class ReportStore(private val db: Db, private val settings: SettingsStore, private val accounts: AccountStore) {

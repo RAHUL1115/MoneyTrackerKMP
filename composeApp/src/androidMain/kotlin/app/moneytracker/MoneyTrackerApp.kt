@@ -1,6 +1,8 @@
 package app.moneytracker
 
 import android.app.Application
+import app.moneytracker.data.DatabaseManager
+import app.moneytracker.platform.AndroidLog
 
 class MoneyTrackerApp : Application() {
     val database by lazy { DatabaseManager(this).also { it.open() } }

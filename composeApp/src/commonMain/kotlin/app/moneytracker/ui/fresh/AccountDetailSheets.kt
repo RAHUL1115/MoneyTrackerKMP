@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountLine
 import app.moneytracker.domain.CurrencyFormat
@@ -29,9 +30,8 @@ import app.moneytracker.ui.accounts.cardPayment
 import app.moneytracker.ui.accounts.owed
 import app.moneytracker.ui.accounts.parseBalance
 import app.moneytracker.ui.short
-import app.moneytracker.ui.tr
-import kotlinx.datetime.LocalDate
 import kotlin.math.abs
+import kotlinx.datetime.LocalDate
 
 /** Pay a card bill: amount, from which account and when; saved as a transfer, with Undo. */
 @Composable

@@ -17,10 +17,10 @@ import app.moneytracker.domain.cardStatus
 import app.moneytracker.domain.classify
 import app.moneytracker.domain.effectiveBudgets
 import app.moneytracker.domain.splitInstallments
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlinx.datetime.LocalDate
 
 class RulesTest {
     private fun d(s: String) = LocalDate.parse(s)

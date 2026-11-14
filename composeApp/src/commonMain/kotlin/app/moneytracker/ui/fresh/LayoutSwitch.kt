@@ -6,10 +6,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.text.font.FontWeight
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.tr
 import app.moneytracker.ui.Accent
-import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.rememberSettingsModel
-import app.moneytracker.ui.tr
 
 /** True when this run of the app shows the new layout. Fixed until the next restart. */
 val LocalNewLayout = compositionLocalOf { false }

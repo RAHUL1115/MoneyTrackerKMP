@@ -1,6 +1,5 @@
 package app.moneytracker.web
 
-import app.moneytracker.Log
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -27,16 +26,17 @@ import app.moneytracker.MainActivity
 import app.moneytracker.MoneyTrackerApp
 import app.moneytracker.R
 import app.moneytracker.SummaryWidget
+import app.moneytracker.core.Log
+import app.moneytracker.core.WebDashboardState
+import app.moneytracker.core.WebVisitor
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
-import app.moneytracker.ui.WebDashboardState
-import app.moneytracker.ui.WebVisitor
-import app.moneytracker.ui.tr
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import java.io.IOException
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.net.SocketException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * The web dashboard's server, owned by [WebDashboardService] while it runs. It listens only on the phone's

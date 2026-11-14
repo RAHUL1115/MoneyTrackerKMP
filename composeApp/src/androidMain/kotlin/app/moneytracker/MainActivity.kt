@@ -14,8 +14,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.fragment.app.FragmentActivity
+import app.moneytracker.backup.AndroidBackupController
+import app.moneytracker.backup.capabilities
+import app.moneytracker.core.LaunchAction
+import app.moneytracker.core.Log
+import app.moneytracker.platform.AndroidPlatform
 import app.moneytracker.ui.App
-import app.moneytracker.ui.LaunchAction
 import app.moneytracker.ui.Navigator
 
 /** FragmentActivity (not just ComponentActivity) because BiometricPrompt needs it. */
@@ -34,7 +38,7 @@ class MainActivity : FragmentActivity() {
         // Older passcode hashes only work with this install's salt; store them with it so backups carry the passcode.
         db.repo?.let { repo ->
             val hash = repo.settingsStore.settingNow(app.moneytracker.data.Prefs.PASSCODE)
-            if (!hash.isNullOrBlank() && !app.moneytracker.ui.isPortablePinHash(hash))
+            if (!hash.isNullOrBlank() && !app.moneytracker.core.isPortablePinHash(hash))
                 platform.portablePinHash(hash)?.let { repo.settingsStore.putSetting(app.moneytracker.data.Prefs.PASSCODE, it) }
         }
         val backup = AndroidBackupController(this, db, hashPin = platform::hashPin, portablePinHash = platform::portablePinHash)

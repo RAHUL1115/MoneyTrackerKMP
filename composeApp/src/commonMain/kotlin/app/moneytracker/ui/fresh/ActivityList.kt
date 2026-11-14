@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Totals
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.YearMonth
@@ -37,7 +38,6 @@ import app.moneytracker.ui.Screen
 import app.moneytracker.ui.UpcomingRepeats
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.rememberEntryListModel
-import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
 
 /** Space between the List view's sections and day cards. */

@@ -1,21 +1,15 @@
 package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import app.moneytracker.core.BiometricStatus
+import app.moneytracker.core.PinSecurity
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.Prefs
 import app.moneytracker.db.MoneyDatabase
-import app.moneytracker.ui.BiometricStatus
 import app.moneytracker.ui.LockModel
 import app.moneytracker.ui.LockSetup
 import app.moneytracker.ui.PasscodeModel
-import app.moneytracker.ui.PinSecurity
 import app.moneytracker.ui.PinStep
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -23,6 +17,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.datetime.LocalDate
 
 /** The passcode screen's steps: set it twice, confirm before changing or removing it, and the biometric switch. */
 class PasscodeModelTest {

@@ -1,9 +1,9 @@
 package app.moneytracker.data
 
-import app.moneytracker.Log
+import app.moneytracker.core.Log
+import app.moneytracker.db.Capture as CaptureRow
 import app.moneytracker.domain.Capture
 import app.moneytracker.domain.CaptureStatus
-import app.moneytracker.db.Capture as CaptureRow
 
 /** Detected payments: bank messages read and waiting until they are added or dismissed. */
 class CaptureStore(private val db: Db) {

@@ -22,6 +22,12 @@ import app.moneytracker.ui.accounts.cycles
 import app.moneytracker.ui.accounts.parseBalance
 import app.moneytracker.ui.accounts.paySources
 import app.moneytracker.ui.accounts.periodSums
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,12 +37,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 /** An account's detail screen: its history, period summaries, card cycles, balance correction and bill payment. */
 class AccountDetailModelTest {

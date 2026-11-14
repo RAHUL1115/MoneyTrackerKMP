@@ -2,12 +2,12 @@ package app.moneytracker.data
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.moneytracker.db.Account as AccountRow
+import app.moneytracker.db.AccountGroup as GroupRow
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import app.moneytracker.db.Account as AccountRow
-import app.moneytracker.db.AccountGroup as GroupRow
 
 /** Accounts and account groups: saving, ordering, hiding, deleting and restoring them, and their balances. */
 class AccountStore(private val db: Db) {

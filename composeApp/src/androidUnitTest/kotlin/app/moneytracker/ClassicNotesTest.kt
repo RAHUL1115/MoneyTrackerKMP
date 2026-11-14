@@ -9,16 +9,16 @@ import app.moneytracker.ui.NoteEditorModel
 import app.moneytracker.ui.NoteOrder
 import app.moneytracker.ui.NotesModel
 import app.moneytracker.ui.noteDay
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.datetime.LocalDate
 
 /** What the notes holders do for the classic layout: stored order, saving every time, closing after the write. */
 class ClassicNotesTest {

@@ -50,6 +50,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.I18n
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.Setting
 import app.moneytracker.ui.fresh.LayoutSwitchDialog

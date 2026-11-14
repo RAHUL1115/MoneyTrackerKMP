@@ -9,10 +9,6 @@ import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.TxnKind
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,6 +16,10 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 
 /** The one save path shared by both phone layouts and the web dashboard. */
 class EntryEditorTest {

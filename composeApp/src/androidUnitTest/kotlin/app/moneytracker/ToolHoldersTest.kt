@@ -17,6 +17,12 @@ import app.moneytracker.ui.StatsDetailModel
 import app.moneytracker.ui.TagsModel
 import app.moneytracker.ui.currencyInputValid
 import app.moneytracker.ui.pressCalcKey
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -24,12 +30,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /** The holders behind the tool screens both layouts share: currencies, tags, bookmarks, the stats drill-down, the calculator. */
 class ToolHoldersTest {

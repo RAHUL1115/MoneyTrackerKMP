@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.FlowCollector
  * A database flow that remembers its latest value, so a screen can draw real data on its first frame instead of
  * an empty list until the query answers. Collecting it still runs the live query (and keeps [current] fresh);
  * [loadNow] reads synchronously the first time nothing has been seen yet. Plain Kotlin: screens collect it with
- * app.moneytracker.ui.collectAsState, which starts from [current].
+ * app.moneytracker.core.collectAsState, which starts from [current].
  */
 class CachedFlow<T>(private val source: Flow<T>, private val loadNow: () -> T) : Flow<T> {
     @kotlin.concurrent.Volatile private var last: Any? = Unset

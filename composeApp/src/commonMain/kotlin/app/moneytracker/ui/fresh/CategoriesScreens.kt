@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.data.newId
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.CategoryKind
@@ -37,7 +38,6 @@ import app.moneytracker.ui.CategoriesModel
 import app.moneytracker.ui.CategoriesState
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.LocalRepo
-import app.moneytracker.ui.tr
 
 /** What the Categories screen asks of its holder. */
 private class CategoryActions(

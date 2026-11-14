@@ -11,16 +11,16 @@ import app.moneytracker.domain.TOTAL_BUDGET
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
 import app.moneytracker.ui.fresh.HomeModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.datetime.LocalDate
 
 /** Home (new layout): today, yesterday and this period's spending, the budget left, waiting SMS and recent entries. */
 class HomeModelTest {

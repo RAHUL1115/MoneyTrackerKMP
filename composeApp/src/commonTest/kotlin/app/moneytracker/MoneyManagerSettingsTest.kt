@@ -1,7 +1,7 @@
 package app.moneytracker
 
-import app.moneytracker.data.MoneyManagerSettings
 import app.moneytracker.data.Prefs
+import app.moneytracker.data.moneymanager.MoneyManagerSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

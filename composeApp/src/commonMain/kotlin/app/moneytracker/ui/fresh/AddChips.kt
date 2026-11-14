@@ -1,6 +1,5 @@
 package app.moneytracker.ui.fresh
 
-import app.moneytracker.data.NoteSuggestion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,12 +29,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
+import app.moneytracker.data.NoteSuggestion
 import app.moneytracker.ui.LocalCurrencies
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.categoryPath
-import app.moneytracker.ui.tr
 
 // The chips, Save row and note suggestions of the add screen (AddScreen.kt).
 

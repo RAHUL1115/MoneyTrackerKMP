@@ -47,6 +47,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.PrivacyEyeButton
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.tr
 import app.moneytracker.domain.BudgetLine
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.CurrencyFormat

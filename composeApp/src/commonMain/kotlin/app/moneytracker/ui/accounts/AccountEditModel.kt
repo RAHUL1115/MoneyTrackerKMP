@@ -1,7 +1,8 @@
 package app.moneytracker.ui.accounts
 
-import app.moneytracker.ui.outlivingScope
 import androidx.compose.runtime.saveable.Saver
+import app.moneytracker.core.outlivingScope
+import app.moneytracker.core.tr
 import app.moneytracker.data.AccountStore
 import app.moneytracker.data.CurrencyStore
 import app.moneytracker.data.newId
@@ -11,7 +12,6 @@ import app.moneytracker.domain.Currency
 import app.moneytracker.domain.CurrencyFormat
 import app.moneytracker.ui.StateReader
 import app.moneytracker.ui.StateWriter
-import app.moneytracker.ui.tr
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted

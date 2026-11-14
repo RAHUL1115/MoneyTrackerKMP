@@ -19,17 +19,17 @@ import app.moneytracker.ui.SearchState
 import app.moneytracker.ui.SearchType
 import app.moneytracker.ui.entryFeed
 import app.moneytracker.ui.searchRange
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 
 /** The search screen's holder: what is searched, how results are narrowed, and the filter it hands to Activity. */
 class SearchModelTest {

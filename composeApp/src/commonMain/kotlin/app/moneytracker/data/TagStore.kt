@@ -1,9 +1,9 @@
 package app.moneytracker.data
 
+import app.moneytracker.db.Tag as TagRow
 import app.moneytracker.domain.TAG_PREPAYMENT
 import app.moneytracker.domain.TAG_USAGE_EXCEPTION
 import app.moneytracker.domain.Tag
-import app.moneytracker.db.Tag as TagRow
 
 /** Tags and which entries carry them, including the two built-in card tags. */
 class TagStore(private val db: Db) {

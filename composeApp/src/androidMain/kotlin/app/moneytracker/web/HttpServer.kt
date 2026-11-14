@@ -1,6 +1,6 @@
 package app.moneytracker.web
 
-import app.moneytracker.Log
+import app.moneytracker.core.Log
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
 import java.io.Closeable

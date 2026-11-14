@@ -1,6 +1,6 @@
 package app.moneytracker.ui.accounts
 
-import app.moneytracker.ui.outlivingScope
+import app.moneytracker.core.outlivingScope
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.data.TxnStore

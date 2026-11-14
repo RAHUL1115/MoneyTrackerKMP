@@ -9,15 +9,15 @@ import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.TOTAL_BUDGET
 import app.moneytracker.domain.YearMonth
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 
 /** The finished views: each flow and its snapshot agree, and every screen's numbers come from one mapping. */
 class ReadModelsTest {

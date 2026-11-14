@@ -33,6 +33,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.formatTime
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Flow
 import app.moneytracker.domain.MODIFIED_BALANCE_NAME
 import app.moneytracker.domain.Txn
@@ -44,11 +47,8 @@ import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalListPrefs
 import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.categoryPath
-import app.moneytracker.ui.collectAsState
-import app.moneytracker.ui.formatTime
 import app.moneytracker.ui.mainCategoryName
 import app.moneytracker.ui.monthShort
-import app.moneytracker.ui.tr
 import kotlin.math.abs
 
 /** Lookups every entry row needs, for screens that draw entry rows without a holder of their own. */

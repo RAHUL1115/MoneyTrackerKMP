@@ -71,10 +71,10 @@ class Navigator {
     val canPop get() = stack.isNotEmpty() || backInterceptors.isNotEmpty()
 
     // Class names only: a screen's fields can hold names the person typed.
-    fun push(s: Screen) { stack.add(s); app.moneytracker.Log.d("Nav") { "→ ${s::class.simpleName} (depth ${stack.size})" } }
+    fun push(s: Screen) { stack.add(s); app.moneytracker.core.Log.d("Nav") { "→ ${s::class.simpleName} (depth ${stack.size})" } }
     fun pop(): Boolean = if (stack.isEmpty()) false else {
         val gone = stack.removeAt(stack.lastIndex)
-        app.moneytracker.Log.d("Nav") { "← ${gone::class.simpleName} (depth ${stack.size})" }
+        app.moneytracker.core.Log.d("Nav") { "← ${gone::class.simpleName} (depth ${stack.size})" }
         true
     }
     /** Back to the home screen (a shortcut or notification starts from there). */
@@ -107,7 +107,7 @@ class Navigator {
     fun restoreState(saved: List<String>) {
         stack.clear()
         stack.addAll(saved.asSequence().map { ScreenCodec.decode(it) }.takeWhile { it != null }.filterNotNull())
-        app.moneytracker.Log.d("Nav") { "restored ${stack.size} of ${saved.size} screens" }
+        app.moneytracker.core.Log.d("Nav") { "restored ${stack.size} of ${saved.size} screens" }
     }
 
     /**

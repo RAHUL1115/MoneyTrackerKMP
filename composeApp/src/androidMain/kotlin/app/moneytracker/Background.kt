@@ -10,19 +10,20 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.media.AudioAttributes
+import android.os.Build
 import android.provider.Settings
 import android.provider.Telephony
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import app.moneytracker.core.LaunchAction
+import app.moneytracker.core.Log
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
-import app.moneytracker.ui.LaunchAction
-import app.moneytracker.ui.tr
-import org.json.JSONException
 import java.io.IOException
 import java.util.Calendar
+import org.json.JSONException
 
 /** Intent extra / action names shared by shortcuts, widgets and notifications. */
 object Launch {
@@ -68,7 +69,7 @@ object Translations {
 
     /** For notifications and widgets (no Compose): the table the user picked, or the phone's language. */
     fun current(ctx: Context, setting: String?): Map<String, String> =
-        load(ctx, setting?.takeIf { it.isNotEmpty() } ?: app.moneytracker.ui.I18n.resolve(
+        load(ctx, setting?.takeIf { it.isNotEmpty() } ?: app.moneytracker.core.I18n.resolve(
             android.content.res.Resources.getSystem().configuration.locales[0].toLanguageTag()))
 }
 
@@ -76,7 +77,7 @@ private fun repo(ctx: Context) = (ctx.applicationContext as MoneyTrackerApp).dat
 
 /** Receivers and widgets can run without the UI: load the user's language before building text. */
 private fun ensureTranslations(ctx: Context, r: app.moneytracker.data.MoneyRepository = repo(ctx)) {
-    if (app.moneytracker.ui.I18n.table.isEmpty()) app.moneytracker.ui.I18n.table = Translations.current(ctx, r.settingsStore.settingNow(Prefs.LANGUAGE))
+    if (app.moneytracker.core.I18n.table.isEmpty()) app.moneytracker.core.I18n.table = Translations.current(ctx, r.settingsStore.settingNow(Prefs.LANGUAGE))
 }
 
 // ───────────────────────── notifications

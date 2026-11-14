@@ -18,15 +18,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Account
 import app.moneytracker.domain.AccountGroup
 import app.moneytracker.domain.AccountLine
@@ -35,7 +36,6 @@ import app.moneytracker.ui.Screen
 import app.moneytracker.ui.accounts.ManageAccountsState
 import app.moneytracker.ui.accounts.displayName
 import app.moneytracker.ui.accounts.rememberManageAccountsModel
-import app.moneytracker.ui.tr
 
 /** Order groups, hide whole groups, restore deleted accounts; links to the detailed lists. Each change offers Undo. */
 @Composable

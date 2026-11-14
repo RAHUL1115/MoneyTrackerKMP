@@ -37,6 +37,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.tr
 
 /** Where the source and project documents live. */
 private const val REPO_URL = "https://github.com/RAHUL1115/MoneyTrackerKMP"

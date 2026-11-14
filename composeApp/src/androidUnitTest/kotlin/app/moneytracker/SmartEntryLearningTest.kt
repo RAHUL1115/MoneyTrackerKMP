@@ -1,23 +1,23 @@
 package app.moneytracker
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import app.moneytracker.ai.SmartParser
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.MoneyRepository
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.CategoryKind
 import app.moneytracker.domain.CurrencyFormat
+import app.moneytracker.domain.ai.SmartParser
 import app.moneytracker.ui.SmartEntry
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.LocalDate
 import java.io.File
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 
 /** Smart entry learns from the person's own saved entries: words the model can't know follow their past choices, on the phone. */
 class SmartEntryLearningTest {

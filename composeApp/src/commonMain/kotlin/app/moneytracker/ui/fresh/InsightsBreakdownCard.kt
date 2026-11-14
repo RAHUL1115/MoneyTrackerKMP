@@ -12,19 +12,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.MODIFIED_BALANCE_CATEGORY
 import app.moneytracker.domain.MODIFIED_BALANCE_NAME
@@ -44,7 +45,6 @@ import app.moneytracker.ui.UNCATEGORIZED_KEY
 import app.moneytracker.ui.breakdownName
 import app.moneytracker.ui.categoryPath
 import app.moneytracker.ui.short
-import app.moneytracker.ui.tr
 import kotlin.math.roundToInt
 
 private fun InsightsGroup.label() = when (this) {

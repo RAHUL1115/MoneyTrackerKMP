@@ -21,11 +21,6 @@ import app.moneytracker.ui.NoteEditorModel
 import app.moneytracker.ui.NotesModel
 import app.moneytracker.ui.RepeatsModel
 import app.moneytracker.ui.noteDay
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -34,6 +29,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.datetime.LocalDate
 
 /** The state holders behind Repeats, Notes, Categories and Bank SMS, over an in-memory database. */
 class FeatureScreenModelsTest {

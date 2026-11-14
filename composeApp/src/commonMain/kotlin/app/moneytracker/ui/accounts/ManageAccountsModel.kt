@@ -1,6 +1,6 @@
 package app.moneytracker.ui.accounts
 
-import app.moneytracker.ui.outlivingScope
+import app.moneytracker.core.outlivingScope
 import app.moneytracker.data.AccountStore
 import app.moneytracker.data.newId
 import app.moneytracker.domain.Account

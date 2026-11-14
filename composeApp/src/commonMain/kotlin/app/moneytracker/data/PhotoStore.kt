@@ -2,10 +2,10 @@ package app.moneytracker.data
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.moneytracker.db.Photo as PhotoRow
 import app.moneytracker.domain.Photo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import app.moneytracker.db.Photo as PhotoRow
 
 /** Which photo files belong to which entry. The files themselves live on the platform side. */
 class PhotoStore(private val db: Db) {

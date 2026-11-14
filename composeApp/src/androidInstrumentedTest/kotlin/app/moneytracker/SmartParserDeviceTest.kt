@@ -4,12 +4,12 @@ import android.os.Debug
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import app.moneytracker.ai.SmartParser
+import app.moneytracker.domain.ai.SmartParser
+import kotlin.math.abs
 import org.json.JSONObject
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.math.abs
 
 /**
  * Runs the Smart entry engine on a real device/emulator from the APK's assets: load time, memory, speed, and the same

@@ -7,12 +7,12 @@ import app.moneytracker.domain.RepeatType
 import app.moneytracker.ui.Navigator
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.ScreenCodec
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.datetime.LocalDate
 
 /** The back stack survives the app being closed in the background: every screen writes to a string and back. */
 class NavigationTest {

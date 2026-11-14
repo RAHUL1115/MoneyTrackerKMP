@@ -34,6 +34,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.rememberSetting
+import app.moneytracker.core.tr
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.StartScreen
 import app.moneytracker.data.Swipe
@@ -45,15 +48,12 @@ import app.moneytracker.ui.FilterSheet
 import app.moneytracker.ui.ListenSheet
 import app.moneytracker.ui.LocalBackups
 import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.LocalRepo
 import app.moneytracker.ui.MonthPickerDialog
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.rememberActivityModel
-import app.moneytracker.ui.rememberSetting
 import app.moneytracker.ui.swipeSteps
-import app.moneytracker.ui.tr
 import app.moneytracker.ui.weekday
 import kotlinx.datetime.LocalDate
 

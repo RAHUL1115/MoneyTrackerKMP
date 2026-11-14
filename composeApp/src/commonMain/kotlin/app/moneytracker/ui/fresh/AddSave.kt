@@ -1,11 +1,11 @@
 package app.moneytracker.ui.fresh
 
 import androidx.compose.runtime.Composable
+import app.moneytracker.core.tr
 import app.moneytracker.data.EntryEditor
 import app.moneytracker.ui.EntrySaved
 import app.moneytracker.ui.LocalNavigator
 import app.moneytracker.ui.message
-import app.moneytracker.ui.tr
 
 // Saving from the add screen (AddScreen.kt): the button's wording and what happens after.
 

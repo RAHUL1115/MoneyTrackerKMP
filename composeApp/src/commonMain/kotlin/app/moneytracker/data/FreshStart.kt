@@ -1,10 +1,10 @@
 package app.moneytracker.data
 
-import app.moneytracker.domain.AccountType
-import app.moneytracker.domain.CategoryKind
 import app.moneytracker.db.Account as AccountRow
 import app.moneytracker.db.AccountGroup as GroupRow
 import app.moneytracker.db.Category as CategoryRow
+import app.moneytracker.domain.AccountType
+import app.moneytracker.domain.CategoryKind
 
 /** The starter book a new install gets (groups, a few accounts, categories), and wiping back to it. */
 class FreshStart(private val db: Db, private val settings: SettingsStore, private val tags: TagStore) {

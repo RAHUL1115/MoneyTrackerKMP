@@ -9,14 +9,14 @@ import app.moneytracker.db.MoneyDatabase
 import app.moneytracker.domain.Currency
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.domain.TxnKind
-import kotlinx.coroutines.Dispatchers
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 
 /** "Remember usual accounts" and the amount brought back by note autocomplete. */
 class HabitAccountTest {

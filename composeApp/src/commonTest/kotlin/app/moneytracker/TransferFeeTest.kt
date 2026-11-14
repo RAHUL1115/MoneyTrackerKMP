@@ -2,10 +2,10 @@ package app.moneytracker
 
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlinx.datetime.LocalDate
 
 /** A transfer's fee is the expense row in a transfer group; nothing else counts as one. */
 class TransferFeeTest {

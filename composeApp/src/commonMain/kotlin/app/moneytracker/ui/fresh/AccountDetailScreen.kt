@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.tr
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.Account
@@ -55,7 +56,6 @@ import app.moneytracker.ui.label
 import app.moneytracker.ui.long
 import app.moneytracker.ui.rememberPeriod
 import app.moneytracker.ui.short
-import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
 
 /** Side padding of the entry and period rows inside their cards; the dividers between rows use the same inset. */

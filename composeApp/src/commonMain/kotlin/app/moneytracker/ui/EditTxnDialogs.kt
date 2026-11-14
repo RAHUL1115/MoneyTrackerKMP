@@ -38,6 +38,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.nowMinutes
+import app.moneytracker.core.tr
 import app.moneytracker.domain.RepeatType
 import kotlinx.datetime.LocalDate
 

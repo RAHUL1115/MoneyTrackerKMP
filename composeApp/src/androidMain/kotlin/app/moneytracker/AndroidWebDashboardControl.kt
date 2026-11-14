@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import app.moneytracker.ui.WebDashboardControl
+import app.moneytracker.core.WebDashboardControl
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -18,7 +18,7 @@ class AndroidWebDashboardControl(
 ) : WebDashboardControl {
     private val ctx: Context get() = activity.applicationContext
 
-    override val state: StateFlow<app.moneytracker.ui.WebDashboardState> = app.moneytracker.web.WebDashboard.state
+    override val state: StateFlow<app.moneytracker.core.WebDashboardState> = app.moneytracker.web.WebDashboard.state
 
     override fun refreshWebDashboard() = app.moneytracker.web.WebDashboard.refresh()
 

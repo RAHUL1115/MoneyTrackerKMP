@@ -4,10 +4,9 @@ package app.moneytracker.ui.fresh
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,16 +14,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.nowMinutes
+import app.moneytracker.core.tr
 import app.moneytracker.domain.RepeatType
 import app.moneytracker.ui.DatePickerHost
 import app.moneytracker.ui.ListenSheet
 import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.long
-import app.moneytracker.ui.nowMinutes
-import app.moneytracker.ui.tr
 import kotlinx.datetime.LocalDate
 
 // The dialogs of the add screen (AddScreen.kt): listening, pickers, the photo viewer and the confirmations.

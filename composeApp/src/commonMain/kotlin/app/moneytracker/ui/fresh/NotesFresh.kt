@@ -1,6 +1,5 @@
 package app.moneytracker.ui.fresh
 
-import app.moneytracker.ui.outlivingScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,10 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -50,6 +49,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.collectAsState
+import app.moneytracker.core.outlivingScope
+import app.moneytracker.core.tr
 import app.moneytracker.domain.Note
 import app.moneytracker.ui.DatePickerHost
 import app.moneytracker.ui.LocalNavigator
@@ -58,12 +60,10 @@ import app.moneytracker.ui.NoteDraft
 import app.moneytracker.ui.NoteEditorModel
 import app.moneytracker.ui.NotesModel
 import app.moneytracker.ui.Screen
-import app.moneytracker.ui.collectAsState
 import app.moneytracker.ui.darkTheme
 import app.moneytracker.ui.monthShort
 import app.moneytracker.ui.noteDate
 import app.moneytracker.ui.noteDay
-import app.moneytracker.ui.tr
 import app.moneytracker.ui.weekday
 import kotlinx.datetime.LocalDate
 

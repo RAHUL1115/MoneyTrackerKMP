@@ -2,6 +2,9 @@ package app.moneytracker.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import app.moneytracker.core.I18n
+import app.moneytracker.core.rememberSetting
+import app.moneytracker.core.tr
 import app.moneytracker.data.FlagSetting
 import app.moneytracker.data.Prefs
 import app.moneytracker.data.Setting

@@ -22,21 +22,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.formatTime
+import app.moneytracker.core.tr
 import app.moneytracker.ui.LocalCurrencies
 import app.moneytracker.ui.LocalCurrency
 import app.moneytracker.ui.LocalNavigator
-import app.moneytracker.ui.LocalPlatform
 import app.moneytracker.ui.Screen
 import app.moneytracker.ui.categoryPath
-import app.moneytracker.ui.formatTime
 import app.moneytracker.ui.long
 import app.moneytracker.ui.short
 import kotlinx.datetime.DatePeriod
-import app.moneytracker.ui.tr
 import kotlinx.datetime.minus
 
 // The small sheets the add screen's chips open (AddScreen.kt).

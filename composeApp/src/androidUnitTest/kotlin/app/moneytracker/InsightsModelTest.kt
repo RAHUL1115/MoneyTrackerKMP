@@ -18,16 +18,16 @@ import app.moneytracker.ui.NO_TAG_KEY
 import app.moneytracker.ui.TRANSFERS_KEY
 import app.moneytracker.ui.UNCATEGORIZED_KEY
 import app.moneytracker.ui.statsTrendOf
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.datetime.LocalDate
 
 /** Insights (new layout) and Stats (classic): the period choice and the figures both layouts draw. */
 class InsightsModelTest {

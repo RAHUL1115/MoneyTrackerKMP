@@ -6,6 +6,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import app.moneytracker.core.BackgroundState
+import app.moneytracker.core.LocalPlatform
+import app.moneytracker.core.tr
 
 /** Whether detection can run (SMS permission) and how the phone treats the app in the background; re-checked while shown. */
 internal data class SmsHealth(val permission: Boolean, val background: BackgroundState)
