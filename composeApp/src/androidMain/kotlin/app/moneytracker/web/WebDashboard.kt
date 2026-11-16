@@ -150,7 +150,7 @@ object WebDashboard {
 class WebDashboardService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var wakeLock: PowerManager.WakeLock? = null
-    private var wifiLock: WifiManager.WifiLock? = null
+    private val wifiLocks = mutableListOf<WifiManager.WifiLock>()
     private var stopping = false
 
     private val tick = object : Runnable {
@@ -236,14 +236,18 @@ class WebDashboardService : Service() {
     private fun acquireLocks() {
         if (wakeLock == null) wakeLock = getSystemService(PowerManager::class.java)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MoneyTracker:webDashboard").apply { setReferenceCounted(false); acquire() }
-        if (wifiLock == null) wifiLock = newWifiLock()
+        if (wifiLocks.isEmpty()) {
+            // Low latency only works while the app is in front with the screen on. High-perf keeps Wi-Fi power
+            // save off once the screen is off; without it the phone answers the page late or not at all.
+            @Suppress("DEPRECATION")
+            newWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF)?.let(wifiLocks::add)
+            if (Build.VERSION.SDK_INT >= 29) newWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY)?.let(wifiLocks::add)
+        }
     }
 
     /** Keeps Wi-Fi awake for the page; the dashboard still runs, just slower, without it. */
-    private fun newWifiLock(): WifiManager.WifiLock? {
+    private fun newWifiLock(mode: Int): WifiManager.WifiLock? {
         val wm = applicationContext.getSystemService(WifiManager::class.java) ?: return null
-        @Suppress("DEPRECATION")
-        val mode = if (Build.VERSION.SDK_INT >= 29) WifiManager.WIFI_MODE_FULL_LOW_LATENCY else WifiManager.WIFI_MODE_FULL_HIGH_PERF
         return try {
             wm.createWifiLock(mode, "MoneyTracker:webDashboard").apply { setReferenceCounted(false); acquire() }
         } catch (e: SecurityException) {
@@ -253,11 +257,11 @@ class WebDashboardService : Service() {
     }
 
     private fun releaseLocks() {
-        // Both locks are not reference-counted, so releasing a held one can't under-lock.
+        // None of the locks are reference-counted, so releasing a held one can't under-lock.
         wakeLock?.takeIf { it.isHeld }?.release()
-        wifiLock?.takeIf { it.isHeld }?.release()
+        wifiLocks.filter { it.isHeld }.forEach { it.release() }
         wakeLock = null
-        wifiLock = null
+        wifiLocks.clear()
     }
 
     private fun copy(text: String) {
