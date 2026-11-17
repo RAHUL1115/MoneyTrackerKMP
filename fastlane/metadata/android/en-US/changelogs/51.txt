@@ -1,0 +1,1 @@
+MoneyTracker 0.5.0 beta 3. Web dashboard: the page opens quickly instead of sometimes waiting several seconds, and its notification comes back if swiped away, so Stop is always one tap away.
