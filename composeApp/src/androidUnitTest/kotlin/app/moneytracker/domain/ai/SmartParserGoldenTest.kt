@@ -83,7 +83,7 @@ class SmartParserGoldenTest {
         assertTrue(p("Got my salary 50,000").let { it.type == "income" && it.itemsHeard == listOf("salary") })
         // The card is the subject here, not how it was paid.
         assertTrue(p("Got 200 credit card cashback").itemsHeard == listOf("credit card cashback"))
-        p("Paid my credit card bill 12,000 from SBI").let { assertTrue(it.account == "SBI Account" && it.itemsHeard == listOf("credit card"), "$it") }
+        p("Paid my credit card bill 12,000 from SBI").let { assertTrue(it.account == "SBI Account" && it.itemsHeard == listOf("credit card bill"), "$it") }
         assertTrue(p("Bought a gift card for 500").itemsHeard == listOf("gift card"))
     }
 }

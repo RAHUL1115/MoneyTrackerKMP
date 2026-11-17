@@ -211,8 +211,8 @@
 ],
 "top3": [
 "Food",
-"Groceries",
-"Shopping"
+"Shopping",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -375,8 +375,8 @@
 "tomatoes"
 ],
 "top3": [
-"Groceries",
 "Food",
+"Groceries",
 "Transport"
 ],
 "categories": [
@@ -433,7 +433,7 @@
 "top3": [
 "Groceries",
 "Food",
-"Shopping"
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -596,8 +596,8 @@
 ],
 "top3": [
 "Transport",
-"Bills",
-"Education"
+"Food",
+"Bills"
 ],
 "categories": [
 "Food",
@@ -652,8 +652,8 @@
 "uber to station"
 ],
 "top3": [
-"Travel",
 "Transport",
+"Travel",
 "Housing"
 ],
 "categories": [
@@ -1330,7 +1330,7 @@
 "top3": [
 "Bills",
 "Housing",
-"Transport"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -1598,8 +1598,8 @@
 ],
 "top3": [
 "Shopping",
-"Finance",
-"Education"
+"Groceries",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -1702,7 +1702,7 @@
 ],
 "tags": [
 "DATE",
-"ITEM",
+"O",
 "ITEM",
 "ITEM",
 "O",
@@ -1719,12 +1719,12 @@
 "daysAgo": 0,
 "account": "Cash",
 "items": [
-"bought a mop"
+"mop"
 ],
 "top3": [
 "Shopping",
 "Housing",
-"Finance"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -2106,8 +2106,8 @@
 ],
 "top3": [
 "Gifts",
-"Education",
-"Housing"
+"Family",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -2194,8 +2194,8 @@
 "car"
 ],
 "tags": [
-"ACC",
-"ACC",
+"ITEM",
+"ITEM",
 "ITEM",
 "ITEM",
 "AMT",
@@ -2206,15 +2206,15 @@
 "type": "expense",
 "amount": 12400.0,
 "daysAgo": 0,
-"account": "HDFC Credit Card",
+"account": "",
 "items": [
-"insurance premium",
+"hdfc card insurance premium",
 "car"
 ],
 "top3": [
 "Finance",
 "Bills",
-"Transport"
+"Housing"
 ],
 "categories": [
 "Food",
@@ -2320,8 +2320,8 @@
 "sip"
 ],
 "top3": [
-"Travel",
 "Finance",
+"Family",
 "Groceries"
 ],
 "categories": [
@@ -2419,9 +2419,9 @@
 "bags"
 ],
 "top3": [
-"Bills",
 "Food",
-"Transport"
+"Bills",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -2511,8 +2511,8 @@
 ],
 "top3": [
 "Business",
-"Bonus",
-"Other"
+"Other",
+"Bonus"
 ],
 "categories": [
 "Salary",
@@ -2586,7 +2586,7 @@
 "top3": [
 "Interest",
 "Salary",
-"Business"
+"Allowance"
 ],
 "categories": [
 "Salary",
@@ -2653,7 +2653,7 @@
 "O",
 "AMT",
 "O",
-"ITEM",
+"ACC",
 "ITEM",
 "O",
 "O"
@@ -2663,12 +2663,12 @@
 "daysAgo": 0,
 "account": "Cash",
 "items": [
-"cash back"
+"back"
 ],
 "top3": [
 "Refund/Cashback",
-"Allowance",
-"Bonus"
+"Bonus",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -2707,8 +2707,8 @@
 ],
 "top3": [
 "Allowance",
-"Refund/Cashback",
-"Salary"
+"Salary",
+"Interest"
 ],
 "categories": [
 "Salary",
@@ -2742,14 +2742,18 @@
 "ITEM",
 "ITEM"
 ],
-"type": "transfer",
+"type": "expense",
 "amount": 6000.0,
 "daysAgo": 0,
 "account": "",
 "items": [
 "betvin my ovn acounts"
 ],
-"top3": [],
+"top3": [
+"Finance",
+"Family",
+"Bills"
+],
 "categories": [
 "Food",
 "Groceries",
@@ -2821,7 +2825,7 @@
 ],
 "tags": [
 "ITEM",
-"ITEM",
+"O",
 "AMT",
 "O",
 "O"
@@ -2831,11 +2835,11 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"flipkart refund"
+"flipkart"
 ],
 "top3": [
-"Other",
-"Gifts",
+"Shopping",
+"Entertainment",
 "Finance"
 ],
 "categories": [
@@ -2891,8 +2895,8 @@
 ],
 "top3": [
 "Food",
-"Bills",
-"Shopping"
+"Shopping",
+"Bills"
 ],
 "categories": [
 "Food",
@@ -2939,8 +2943,8 @@
 "panir"
 ],
 "top3": [
-"Food",
 "Groceries",
+"Food",
 "Shopping"
 ],
 "categories": [
@@ -3127,7 +3131,7 @@
 "top3": [
 "Education",
 "Shopping",
-"Entertainment"
+"Gifts"
 ],
 "categories": [
 "Food",
@@ -3616,7 +3620,7 @@
 "top3": [
 "Health",
 "Entertainment",
-"Subscriptions"
+"Education"
 ],
 "categories": [
 "Food",
@@ -3667,7 +3671,7 @@
 "top3": [
 "Shopping",
 "Personal care",
-"Food"
+"Finance"
 ],
 "categories": [
 "Food",
@@ -3719,8 +3723,8 @@
 ],
 "top3": [
 "Other",
-"Business",
-"Bonus"
+"Bonus",
+"Refund/Cashback"
 ],
 "categories": [
 "Salary",
@@ -3759,7 +3763,7 @@
 ],
 "top3": [
 "Food",
-"Entertainment",
+"Health",
 "Groceries"
 ],
 "categories": [
@@ -4046,9 +4050,9 @@
 "spinach"
 ],
 "top3": [
+"Shopping",
 "Food",
-"Health",
-"Entertainment"
+"Health"
 ],
 "categories": [
 "Food",
@@ -4601,7 +4605,7 @@
 "top3": [
 "Entertainment",
 "Travel",
-"Subscriptions"
+"Transport"
 ],
 "categories": [
 "Food",
@@ -4847,7 +4851,7 @@
 "top3": [
 "Shopping",
 "Housing",
-"Health"
+"Food"
 ],
 "categories": [
 "Food",
@@ -4942,8 +4946,8 @@
 ],
 "top3": [
 "Personal care",
-"Shopping",
-"Groceries"
+"Groceries",
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -5140,8 +5144,8 @@
 ],
 "top3": [
 "Transport",
-"Travel",
-"Education"
+"Education",
+"Travel"
 ],
 "categories": [
 "Food",
@@ -5191,8 +5195,8 @@
 ],
 "top3": [
 "Gifts",
-"Shopping",
-"Personal care"
+"Family",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -5243,8 +5247,8 @@
 ],
 "top3": [
 "Gifts",
-"Education",
-"Family"
+"Family",
+"Food"
 ],
 "categories": [
 "Food",
@@ -5296,7 +5300,7 @@
 "top3": [
 "Family",
 "Groceries",
-"Food"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -5395,8 +5399,8 @@
 "health insurance"
 ],
 "top3": [
-"Bills",
 "Finance",
+"Bills",
 "Health"
 ],
 "categories": [
@@ -5499,8 +5503,8 @@
 ],
 "top3": [
 "Finance",
-"Travel",
-"Subscriptions"
+"Family",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -5600,9 +5604,9 @@
 "cat vacination"
 ],
 "top3": [
+"Food",
 "Health",
-"Bills",
-"Education"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -5688,8 +5692,8 @@
 ],
 "top3": [
 "Business",
-"Other",
-"Bonus"
+"Bonus",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -5714,7 +5718,7 @@
 ],
 "tags": [
 "O",
-"ITEM",
+"AMT",
 "ITEM",
 "ITEM",
 "O",
@@ -5854,8 +5858,8 @@
 ],
 "top3": [
 "Refund/Cashback",
-"Business",
-"Bonus"
+"Bonus",
+"Salary"
 ],
 "categories": [
 "Salary",
@@ -5894,8 +5898,8 @@
 ],
 "top3": [
 "Salary",
-"Other",
-"Allowance"
+"Allowance",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -6077,7 +6081,7 @@
 "top3": [
 "Food",
 "Personal care",
-"Shopping"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -6124,9 +6128,9 @@
 "samose"
 ],
 "top3": [
+"Shopping",
 "Food",
-"Finance",
-"Shopping"
+"Finance"
 ],
 "categories": [
 "Food",
@@ -6232,7 +6236,7 @@
 "top3": [
 "Food",
 "Family",
-"Finance"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -6436,9 +6440,9 @@
 "kirna saman"
 ],
 "top3": [
+"Travel",
 "Groceries",
-"Food",
-"Housing"
+"Food"
 ],
 "categories": [
 "Food",
@@ -6597,8 +6601,8 @@
 ],
 "top3": [
 "Transport",
-"Bills",
-"Education"
+"Food",
+"Bills"
 ],
 "categories": [
 "Food",
@@ -6704,7 +6708,7 @@
 "top3": [
 "Transport",
 "Entertainment",
-"Travel"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -6925,8 +6929,8 @@
 ],
 "top3": [
 "Travel",
-"Groceries",
-"Gifts"
+"Entertainment",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -7088,7 +7092,7 @@
 "top3": [
 "Housing",
 "Family",
-"Bills"
+"Finance"
 ],
 "categories": [
 "Food",
@@ -7190,7 +7194,7 @@
 "top3": [
 "Bills",
 "Other",
-"Finance"
+"Subscriptions"
 ],
 "categories": [
 "Food",
@@ -7393,13 +7397,13 @@
 "DATE",
 "ITEM",
 "O",
-"QTY",
+"AMT",
 "ITEM",
 "AMT",
 "ACC"
 ],
 "type": "expense",
-"amount": 540.0,
+"amount": 542.0,
 "daysAgo": 1,
 "account": "Cash",
 "items": [
@@ -7517,8 +7521,8 @@
 ],
 "top3": [
 "Entertainment",
-"Food",
-"Groceries"
+"Groceries",
+"Food"
 ],
 "categories": [
 "Food",
@@ -7572,7 +7576,7 @@
 "top3": [
 "Shopping",
 "Finance",
-"Housing"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -7851,8 +7855,8 @@
 ],
 "top3": [
 "Health",
-"Education",
-"Food"
+"Personal care",
+"Education"
 ],
 "categories": [
 "Food",
@@ -7958,7 +7962,7 @@
 "top3": [
 "Education",
 "Finance",
-"Health"
+"Family"
 ],
 "categories": [
 "Food",
@@ -8070,7 +8074,7 @@
 "top3": [
 "Education",
 "Gifts",
-"Food"
+"Family"
 ],
 "categories": [
 "Food",
@@ -8107,7 +8111,7 @@
 ],
 "tags": [
 "ITEM",
-"O",
+"ITEM",
 "ITEM",
 "AMT",
 "O",
@@ -8122,13 +8126,12 @@
 "daysAgo": 0,
 "account": "SBI Account",
 "items": [
-"bai",
-"tankha"
+"bai ki tankha"
 ],
 "top3": [
-"Family",
 "Transport",
-"Food"
+"Family",
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -8181,8 +8184,8 @@
 "bike insurance diya"
 ],
 "top3": [
-"Bills",
 "Finance",
+"Bills",
 "Travel"
 ],
 "categories": [
@@ -8292,8 +8295,8 @@
 ],
 "top3": [
 "Finance",
-"Travel",
-"Subscriptions"
+"Family",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -8344,8 +8347,8 @@
 ],
 "top3": [
 "Transport",
-"Other",
-"Finance"
+"Health",
+"Food"
 ],
 "categories": [
 "Food",
@@ -8430,7 +8433,7 @@
 "O",
 "ITEM"
 ],
-"type": "expense",
+"type": "income",
 "amount": 42000.0,
 "daysAgo": 0,
 "account": "",
@@ -8439,26 +8442,17 @@
 "ayi"
 ],
 "top3": [
-"Transport",
-"Family",
-"Finance"
+"Salary",
+"Other",
+"Bonus"
 ],
 "categories": [
-"Food",
-"Groceries",
-"Transport",
-"Travel",
-"Housing",
-"Bills",
-"Subscriptions",
-"Entertainment",
-"Shopping",
-"Personal care",
-"Health",
-"Education",
-"Gifts",
-"Family",
-"Finance",
+"Salary",
+"Business",
+"Bonus",
+"Interest",
+"Allowance",
+"Refund/Cashback",
 "Other"
 ]
 },
@@ -8533,8 +8527,8 @@
 ],
 "top3": [
 "Bonus",
-"Other",
-"Refund/Cashback"
+"Refund/Cashback",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -8571,8 +8565,8 @@
 ],
 "top3": [
 "Interest",
-"Other",
-"Salary"
+"Salary",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -8617,7 +8611,7 @@
 "top3": [
 "Allowance",
 "Refund/Cashback",
-"Bonus"
+"Salary"
 ],
 "categories": [
 "Salary",
@@ -8697,9 +8691,9 @@
 "kiraya"
 ],
 "top3": [
-"Other",
 "Salary",
-"Allowance"
+"Allowance",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -8798,7 +8792,7 @@
 ],
 "top3": [
 "Travel",
-"Other",
+"Transport",
 "Shopping"
 ],
 "categories": [
@@ -8945,9 +8939,9 @@
 "makhan"
 ],
 "top3": [
-"Food",
 "Groceries",
-"Other"
+"Food",
+"Family"
 ],
 "categories": [
 "Food",
@@ -9048,8 +9042,8 @@
 ],
 "top3": [
 "Shopping",
-"Gifts",
-"Housing"
+"Housing",
+"Gifts"
 ],
 "categories": [
 "Food",
@@ -9096,7 +9090,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Family"
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -9143,8 +9137,8 @@
 "pens"
 ],
 "top3": [
-"Education",
 "Entertainment",
+"Education",
 "Shopping"
 ],
 "categories": [
@@ -9195,8 +9189,8 @@
 ],
 "top3": [
 "Education",
-"Finance",
-"Entertainment"
+"Entertainment",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -9451,8 +9445,8 @@
 ],
 "top3": [
 "Entertainment",
-"Food",
-"Education"
+"Travel",
+"Food"
 ],
 "categories": [
 "Food",
@@ -9599,7 +9593,7 @@
 ],
 "top3": [
 "Business",
-"Refund/Cashback",
+"Other",
 "Salary"
 ],
 "categories": [
@@ -10487,9 +10481,9 @@
 "electrician ko"
 ],
 "top3": [
+"Bills",
 "Shopping",
-"Housing",
-"Bills"
+"Housing"
 ],
 "categories": [
 "Food",
@@ -10538,8 +10532,8 @@
 ],
 "top3": [
 "Bills",
-"Transport",
-"Housing"
+"Housing",
+"Transport"
 ],
 "categories": [
 "Food",
@@ -10787,7 +10781,7 @@
 ],
 "top3": [
 "Shopping",
-"Education",
+"Groceries",
 "Health"
 ],
 "categories": [
@@ -10882,8 +10876,8 @@
 "takiya"
 ],
 "top3": [
-"Travel",
-"Entertainment",
+"Shopping",
+"Housing",
 "Food"
 ],
 "categories": [
@@ -10979,8 +10973,8 @@
 ],
 "top3": [
 "Personal care",
-"Shopping",
-"Health"
+"Groceries",
+"Food"
 ],
 "categories": [
 "Food",
@@ -11075,8 +11069,8 @@
 "banvaya"
 ],
 "top3": [
+"Health",
 "Transport",
-"Shopping",
 "Food"
 ],
 "categories": [
@@ -11127,8 +11121,8 @@
 ],
 "top3": [
 "Education",
-"Entertainment",
-"Personal care"
+"Personal care",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -11179,7 +11173,7 @@
 "top3": [
 "Education",
 "Bills",
-"Family"
+"Finance"
 ],
 "categories": [
 "Food",
@@ -11228,7 +11222,7 @@
 "top3": [
 "Gifts",
 "Entertainment",
-"Shopping"
+"Family"
 ],
 "categories": [
 "Food",
@@ -11278,9 +11272,9 @@
 "dan diye"
 ],
 "top3": [
-"Education",
 "Gifts",
-"Family"
+"Family",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -11333,7 +11327,7 @@
 "top3": [
 "Family",
 "Gifts",
-"Other"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -11385,9 +11379,9 @@
 "tankha"
 ],
 "top3": [
-"Family",
 "Food",
-"Groceries"
+"Family",
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -11437,7 +11431,7 @@
 "top3": [
 "Finance",
 "Bills",
-"Housing"
+"Health"
 ],
 "categories": [
 "Food",
@@ -11537,8 +11531,8 @@
 ],
 "top3": [
 "Finance",
-"Travel",
-"Subscriptions"
+"Family",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -11636,8 +11630,8 @@
 ],
 "top3": [
 "Bills",
-"Personal care",
-"Education"
+"Food",
+"Personal care"
 ],
 "categories": [
 "Food",
@@ -11676,7 +11670,7 @@
 "O",
 "ITEM"
 ],
-"type": "income",
+"type": "expense",
 "amount": 3600.0,
 "daysAgo": 0,
 "account": "",
@@ -11685,17 +11679,26 @@
 "mili"
 ],
 "top3": [
-"Salary",
-"Business",
-"Allowance"
+"Family",
+"Bills",
+"Finance"
 ],
 "categories": [
-"Salary",
-"Business",
-"Bonus",
-"Interest",
-"Allowance",
-"Refund/Cashback",
+"Food",
+"Groceries",
+"Transport",
+"Travel",
+"Housing",
+"Bills",
+"Subscriptions",
+"Entertainment",
+"Shopping",
+"Personal care",
+"Health",
+"Education",
+"Gifts",
+"Family",
+"Finance",
 "Other"
 ]
 },
@@ -11726,8 +11729,8 @@
 ],
 "top3": [
 "Business",
-"Bonus",
-"Refund/Cashback"
+"Other",
+"Bonus"
 ],
 "categories": [
 "Salary",
@@ -11764,8 +11767,8 @@
 ],
 "top3": [
 "Bonus",
-"Interest",
-"Refund/Cashback"
+"Refund/Cashback",
+"Interest"
 ],
 "categories": [
 "Salary",
@@ -11838,7 +11841,7 @@
 "ITEM",
 "ITEM",
 "O",
-"O",
+"ITEM",
 "O",
 "O",
 "AMT",
@@ -11851,6 +11854,7 @@
 "account": "",
 "items": [
 "mumy ne mahine",
+"kharch",
 "bheje"
 ],
 "top3": [
@@ -11941,8 +11945,8 @@
 "garage ka kiraya"
 ],
 "top3": [
-"Other",
 "Salary",
+"Other",
 "Allowance"
 ],
 "categories": [
@@ -11971,11 +11975,11 @@
 ],
 "tags": [
 "ITEM",
-"ITEM",
-"ITEM",
+"ACC",
+"ACC",
 "O",
 "ITEM",
-"ACC",
+"ITEM",
 "O",
 "AMT",
 "O",
@@ -11984,10 +11988,10 @@
 "type": "transfer",
 "amount": 800.0,
 "daysAgo": 0,
-"account": "",
+"account": "ICICI Bank",
 "items": [
-"apne bank acount",
-"apne"
+"apne",
+"apne valet"
 ],
 "top3": [],
 "categories": [
@@ -12048,8 +12052,8 @@
 ],
 "top3": [
 "Health",
-"Shopping",
-"Finance"
+"Finance",
+"Other"
 ],
 "categories": [
 "Food",
@@ -12098,9 +12102,9 @@
 "flight cancelation"
 ],
 "top3": [
-"Salary",
+"Interest",
 "Other",
-"Business"
+"Salary"
 ],
 "categories": [
 "Salary",
@@ -12364,8 +12368,8 @@
 ],
 "top3": [
 "Food",
-"Health",
-"Groceries"
+"Groceries",
+"Health"
 ],
 "categories": [
 "Food",
@@ -12418,7 +12422,7 @@
 "top3": [
 "Groceries",
 "Food",
-"Family"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -12521,7 +12525,7 @@
 ],
 "top3": [
 "Shopping",
-"Entertainment",
+"Travel",
 "Finance"
 ],
 "categories": [
@@ -12572,9 +12576,9 @@
 "kele"
 ],
 "top3": [
-"Shopping",
-"Finance",
-"Personal care"
+"Groceries",
+"Food",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -12693,7 +12697,7 @@
 "top3": [
 "Transport",
 "Food",
-"Groceries"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -12746,7 +12750,7 @@
 "top3": [
 "Transport",
 "Family",
-"Shopping"
+"Personal care"
 ],
 "categories": [
 "Food",
@@ -12801,7 +12805,7 @@
 "top3": [
 "Transport",
 "Travel",
-"Family"
+"Food"
 ],
 "categories": [
 "Food",
@@ -12977,7 +12981,7 @@
 "top3": [
 "Shopping",
 "Transport",
-"Entertainment"
+"Subscriptions"
 ],
 "categories": [
 "Food",
@@ -13212,8 +13216,8 @@
 ],
 "top3": [
 "Housing",
-"Finance",
-"Family"
+"Family",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -13271,7 +13275,7 @@
 "top3": [
 "Bills",
 "Housing",
-"Entertainment"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -13325,8 +13329,8 @@
 ],
 "top3": [
 "Bills",
-"Other",
-"Finance"
+"Food",
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -13449,7 +13453,7 @@
 "top3": [
 "Bills",
 "Housing",
-"Transport"
+"Health"
 ],
 "categories": [
 "Food",
@@ -13506,9 +13510,9 @@
 "netafliks"
 ],
 "top3": [
-"Bills",
+"Subscriptions",
 "Entertainment",
-"Education"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -13614,9 +13618,9 @@
 "manjha"
 ],
 "top3": [
-"Shopping",
+"Entertainment",
 "Food",
-"Groceries"
+"Family"
 ],
 "categories": [
 "Food",
@@ -13732,7 +13736,7 @@
 "top3": [
 "Shopping",
 "Housing",
-"Health"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -13792,7 +13796,7 @@
 ],
 "top3": [
 "Shopping",
-"Travel",
+"Groceries",
 "Entertainment"
 ],
 "categories": [
@@ -13908,8 +13912,8 @@
 ],
 "top3": [
 "Personal care",
-"Family",
-"Shopping"
+"Shopping",
+"Food"
 ],
 "categories": [
 "Food",
@@ -13968,8 +13972,8 @@
 ],
 "top3": [
 "Health",
-"Groceries",
-"Shopping"
+"Personal care",
+"Food"
 ],
 "categories": [
 "Food",
@@ -14016,7 +14020,7 @@
 "ITEM",
 "AMT",
 "AMT",
-"ITEM",
+"O",
 "AMT",
 "AMT",
 "O",
@@ -14030,8 +14034,7 @@
 "account": "Axis Bank",
 "items": [
 "bachchon",
-"doktar ko",
-"nahin"
+"doktar ko"
 ],
 "top3": [
 "Health",
@@ -14089,9 +14092,9 @@
 "tairaki ki fis"
 ],
 "top3": [
-"Education",
-"Finance",
-"Family"
+"Health",
+"Food",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -14131,7 +14134,7 @@
 "AMT",
 "AMT",
 "ACC",
-"ITEM",
+"ACC",
 "O"
 ],
 "type": "expense",
@@ -14139,13 +14142,12 @@
 "daysAgo": 2,
 "account": "HDFC Credit Card",
 "items": [
-"parson pustakalay fis",
-"khate"
+"parson pustakalay fis"
 ],
 "top3": [
 "Education",
-"Family",
-"Finance"
+"Entertainment",
+"Health"
 ],
 "categories": [
 "Food",
@@ -14204,8 +14206,8 @@
 ],
 "top3": [
 "Gifts",
-"Travel",
-"Food"
+"Food",
+"Family"
 ],
 "categories": [
 "Food",
@@ -14256,8 +14258,8 @@
 ],
 "top3": [
 "Gifts",
-"Education",
-"Entertainment"
+"Family",
+"Education"
 ],
 "categories": [
 "Food",
@@ -14298,7 +14300,7 @@
 "ITEM",
 "AMT",
 "AMT",
-"ITEM",
+"O",
 "AMT",
 "AMT",
 "O",
@@ -14311,13 +14313,12 @@
 "daysAgo": 0,
 "account": "SBI Account",
 "items": [
-"kamvali ko",
-"nahin"
+"kamvali ko"
 ],
 "top3": [
 "Family",
-"Personal care",
-"Education"
+"Shopping",
+"Housing"
 ],
 "categories": [
 "Food",
@@ -14372,8 +14373,8 @@
 "jivan bima bhara"
 ],
 "top3": [
-"Bills",
 "Finance",
+"Bills",
 "Personal care"
 ],
 "categories": [
@@ -14470,7 +14471,7 @@
 "AMT",
 "O",
 "ACC",
-"ITEM",
+"ACC",
 "O",
 "ITEM"
 ],
@@ -14480,13 +14481,12 @@
 "account": "SBI Account",
 "items": [
 "esaipi men",
-"khate",
 "lagae"
 ],
 "top3": [
-"Family",
 "Finance",
-"Bills"
+"Family",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -14580,14 +14580,14 @@
 "ITEM",
 "ITEM",
 "ITEM",
-"QTY",
+"AMT",
 "O",
 "AMT",
 "AMT",
 "AMT"
 ],
 "type": "expense",
-"amount": 240.0,
+"amount": 243.0,
 "daysAgo": 0,
 "account": "",
 "items": [
@@ -14642,8 +14642,8 @@
 ],
 "top3": [
 "Salary",
-"Business",
-"Allowance"
+"Allowance",
+"Business"
 ],
 "categories": [
 "Salary",
@@ -14685,9 +14685,9 @@
 "lekh likhne"
 ],
 "top3": [
+"Other",
 "Bonus",
-"Business",
-"Other"
+"Business"
 ],
 "categories": [
 "Salary",
@@ -14807,7 +14807,7 @@
 "O",
 "O"
 ],
-"type": "income",
+"type": "expense",
 "amount": 2000.0,
 "daysAgo": 0,
 "account": "",
@@ -14815,17 +14815,26 @@
 "ghar se kharch"
 ],
 "top3": [
-"Allowance",
-"Salary",
-"Other"
+"Family",
+"Housing",
+"Finance"
 ],
 "categories": [
-"Salary",
-"Business",
-"Bonus",
-"Interest",
-"Allowance",
-"Refund/Cashback",
+"Food",
+"Groceries",
+"Transport",
+"Travel",
+"Housing",
+"Bills",
+"Subscriptions",
+"Entertainment",
+"Shopping",
+"Personal care",
+"Health",
+"Education",
+"Gifts",
+"Family",
+"Finance",
 "Other"
 ]
 },
@@ -14856,8 +14865,8 @@
 ],
 "top3": [
 "Refund/Cashback",
-"Business",
-"Bonus"
+"Bonus",
+"Business"
 ],
 "categories": [
 "Salary",
@@ -14902,8 +14911,8 @@
 ],
 "top3": [
 "Salary",
-"Other",
-"Allowance"
+"Allowance",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -14934,7 +14943,7 @@
 "ITEM",
 "QTY",
 "ITEM",
-"ITEM",
+"O",
 "ITEM",
 "ITEM",
 "ITEM",
@@ -14949,7 +14958,8 @@
 "account": "",
 "items": [
 "apne",
-"khate se dusre men men",
+"khate",
+"dusre men men",
 "bheje"
 ],
 "top3": [
@@ -15005,7 +15015,7 @@
 "top3": [
 "Finance",
 "Other",
-"Shopping"
+"Food"
 ],
 "categories": [
 "Food",
@@ -15057,7 +15067,7 @@
 "top3": [
 "Shopping",
 "Food",
-"Finance"
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -15213,7 +15223,7 @@
 "top3": [
 "Transport",
 "Finance",
-"Other"
+"Travel"
 ],
 "categories": [
 "Food",
@@ -15268,9 +15278,9 @@
 "jute rakhne ka raik"
 ],
 "top3": [
-"Gifts",
 "Shopping",
-"Entertainment"
+"Entertainment",
+"Health"
 ],
 "categories": [
 "Food",
@@ -15375,9 +15385,9 @@
 "kopiyon"
 ],
 "top3": [
-"Shopping",
+"Education",
 "Food",
-"Education"
+"Personal care"
 ],
 "categories": [
 "Food",
@@ -15429,8 +15439,8 @@
 ],
 "top3": [
 "Shopping",
-"Finance",
-"Family"
+"Housing",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -15472,7 +15482,7 @@
 "AMT",
 "O",
 "O",
-"O",
+"ITEM",
 "O"
 ],
 "type": "expense",
@@ -15480,7 +15490,8 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"sofa safai"
+"sofa safai",
+"darj"
 ],
 "top3": [
 "Shopping",
@@ -15589,7 +15600,7 @@
 "top3": [
 "Food",
 "Transport",
-"Bills"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -15638,8 +15649,8 @@
 "odibal"
 ],
 "top3": [
-"Entertainment",
 "Subscriptions",
+"Entertainment",
 "Health"
 ],
 "categories": [
@@ -15692,8 +15703,8 @@
 ],
 "top3": [
 "Family",
-"Finance",
-"Education"
+"Gifts",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -15743,9 +15754,9 @@
 "chimta"
 ],
 "top3": [
-"Shopping",
 "Food",
-"Housing"
+"Shopping",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -15850,8 +15861,8 @@
 ],
 "top3": [
 "Business",
-"Salary",
-"Other"
+"Other",
+"Salary"
 ],
 "categories": [
 "Salary",
@@ -15943,8 +15954,8 @@
 "li"
 ],
 "top3": [
-"Groceries",
-"Food",
+"Personal care",
+"Health",
 "Shopping"
 ],
 "categories": [
@@ -15987,7 +15998,7 @@
 "ITEM",
 "AMT",
 "AMT",
-"ITEM",
+"O",
 "AMT",
 "AMT",
 "AMT",
@@ -15999,13 +16010,12 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"khane ka rifand",
-"nahin"
+"khane ka rifand"
 ],
 "top3": [
 "Refund/Cashback",
-"Interest",
-"Bonus"
+"Bonus",
+"Interest"
 ],
 "categories": [
 "Salary",
@@ -16041,8 +16051,8 @@
 "parathe"
 ],
 "top3": [
-"Health",
 "Food",
+"Groceries",
 "Shopping"
 ],
 "categories": [
@@ -16091,7 +16101,7 @@
 "top3": [
 "Finance",
 "Groceries",
-"Health"
+"Food"
 ],
 "categories": [
 "Food",
@@ -16138,9 +16148,9 @@
 "kadhi chaval"
 ],
 "top3": [
-"Groceries",
 "Food",
-"Family"
+"Family",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -16235,9 +16245,9 @@
 "kharidi"
 ],
 "top3": [
-"Finance",
 "Groceries",
-"Travel"
+"Finance",
+"Food"
 ],
 "categories": [
 "Food",
@@ -16286,8 +16296,8 @@
 "mungafli ka tel"
 ],
 "top3": [
-"Food",
 "Groceries",
+"Food",
 "Health"
 ],
 "categories": [
@@ -16334,8 +16344,8 @@
 "li"
 ],
 "top3": [
-"Groceries",
 "Food",
+"Groceries",
 "Family"
 ],
 "categories": [
@@ -16485,9 +16495,9 @@
 "safar"
 ],
 "top3": [
-"Transport",
 "Travel",
-"Entertainment"
+"Transport",
+"Food"
 ],
 "categories": [
 "Food",
@@ -16595,8 +16605,8 @@
 "men"
 ],
 "top3": [
-"Transport",
 "Travel",
+"Transport",
 "Entertainment"
 ],
 "categories": [
@@ -16646,8 +16656,8 @@
 "amritsar men hotel"
 ],
 "top3": [
-"Food",
 "Travel",
+"Food",
 "Housing"
 ],
 "categories": [
@@ -16748,9 +16758,9 @@
 "tala thik karvane"
 ],
 "top3": [
-"Transport",
-"Other",
-"Shopping"
+"Shopping",
+"Housing",
+"Transport"
 ],
 "categories": [
 "Food",
@@ -16802,8 +16812,8 @@
 "kiya"
 ],
 "top3": [
-"Entertainment",
 "Bills",
+"Entertainment",
 "Subscriptions"
 ],
 "categories": [
@@ -16855,8 +16865,8 @@
 "aple music ki sadasyata"
 ],
 "top3": [
-"Entertainment",
 "Subscriptions",
+"Entertainment",
 "Shopping"
 ],
 "categories": [
@@ -16892,7 +16902,7 @@
 ],
 "tags": [
 "ITEM",
-"ITEM",
+"O",
 "ITEM",
 "O",
 "AMT",
@@ -16905,7 +16915,8 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"natak ke tikat"
+"natak",
+"tikat"
 ],
 "top3": [
 "Entertainment",
@@ -16960,9 +16971,9 @@
 "bij"
 ],
 "top3": [
-"Bills",
-"Housing",
-"Food"
+"Entertainment",
+"Food",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -17011,9 +17022,9 @@
 "parti ki sajavat"
 ],
 "top3": [
-"Groceries",
 "Entertainment",
-"Gifts"
+"Gifts",
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -17216,9 +17227,9 @@
 "mehandi lagvane"
 ],
 "top3": [
-"Food",
-"Education",
-"Gifts"
+"Personal care",
+"Shopping",
+"Health"
 ],
 "categories": [
 "Food",
@@ -17267,9 +17278,9 @@
 "dadhi ka tel"
 ],
 "top3": [
-"Groceries",
+"Personal care",
 "Food",
-"Personal care"
+"Health"
 ],
 "categories": [
 "Food",
@@ -17325,7 +17336,7 @@
 "top3": [
 "Health",
 "Shopping",
-"Housing"
+"Personal care"
 ],
 "categories": [
 "Food",
@@ -17479,7 +17490,7 @@
 ],
 "top3": [
 "Education",
-"Finance",
+"Family",
 "Personal care"
 ],
 "categories": [
@@ -17588,8 +17599,8 @@
 ],
 "top3": [
 "Gifts",
-"Education",
-"Personal care"
+"Family",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -17625,7 +17636,7 @@
 "tags": [
 "ITEM",
 "O",
-"O",
+"ITEM",
 "O",
 "O",
 "AMT",
@@ -17637,12 +17648,13 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"dadi"
+"dadi",
+"kharch"
 ],
 "top3": [
 "Family",
-"Personal care",
-"Bills"
+"Housing",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -17690,9 +17702,9 @@
 "vetan diya"
 ],
 "top3": [
+"Shopping",
 "Family",
-"Finance",
-"Bills"
+"Housing"
 ],
 "categories": [
 "Food",
@@ -17740,8 +17752,8 @@
 ],
 "top3": [
 "Travel",
-"Finance",
-"Bills"
+"Bills",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -17844,8 +17856,8 @@
 ],
 "top3": [
 "Finance",
-"Travel",
-"Subscriptions"
+"Family",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -17895,8 +17907,8 @@
 ],
 "top3": [
 "Finance",
-"Bills",
-"Other"
+"Other",
+"Bills"
 ],
 "categories": [
 "Food",
@@ -17948,9 +17960,9 @@
 "pinjare"
 ],
 "top3": [
-"Bills",
+"Family",
 "Food",
-"Family"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -18002,7 +18014,7 @@
 "top3": [
 "Salary",
 "Bonus",
-"Allowance"
+"Other"
 ],
 "categories": [
 "Salary",
@@ -18042,7 +18054,7 @@
 "top3": [
 "Business",
 "Bonus",
-"Refund/Cashback"
+"Other"
 ],
 "categories": [
 "Salary",
@@ -18081,8 +18093,8 @@
 ],
 "top3": [
 "Bonus",
-"Other",
-"Business"
+"Refund/Cashback",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -18114,7 +18126,7 @@
 "AMT",
 "O",
 "ITEM",
-"ITEM"
+"O"
 ],
 "type": "income",
 "amount": 1600.0,
@@ -18122,12 +18134,12 @@
 "account": "",
 "items": [
 "dakghar ki jama",
-"byaj mila"
+"byaj"
 ],
 "top3": [
 "Interest",
-"Refund/Cashback",
-"Bonus"
+"Allowance",
+"Refund/Cashback"
 ],
 "categories": [
 "Salary",
@@ -18204,7 +18216,7 @@
 ],
 "tags": [
 "ITEM",
-"ITEM",
+"O",
 "AMT",
 "O",
 "ITEM",
@@ -18215,13 +18227,13 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"amajon se",
+"amajon",
 "kaishbaik mila"
 ],
 "top3": [
 "Refund/Cashback",
 "Bonus",
-"Allowance"
+"Other"
 ],
 "categories": [
 "Salary",
@@ -18309,8 +18321,8 @@
 "bheje"
 ],
 "top3": [
-"Shopping",
 "Family",
+"Shopping",
 "Finance"
 ],
 "categories": [
@@ -18360,7 +18372,7 @@
 "ITEM",
 "O"
 ],
-"type": "income",
+"type": "expense",
 "amount": 5500.0,
 "daysAgo": 0,
 "account": "Cash",
@@ -18369,17 +18381,26 @@
 "apne khate men jama"
 ],
 "top3": [
-"Interest",
-"Allowance",
-"Salary"
+"Family",
+"Finance",
+"Bills"
 ],
 "categories": [
-"Salary",
-"Business",
-"Bonus",
-"Interest",
-"Allowance",
-"Refund/Cashback",
+"Food",
+"Groceries",
+"Transport",
+"Travel",
+"Housing",
+"Bills",
+"Subscriptions",
+"Entertainment",
+"Shopping",
+"Personal care",
+"Health",
+"Education",
+"Gifts",
+"Family",
+"Finance",
 "Other"
 ]
 },
@@ -18398,7 +18419,7 @@
 ],
 "tags": [
 "ITEM",
-"ITEM",
+"O",
 "ITEM",
 "ITEM",
 "O",
@@ -18412,13 +18433,14 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"myntra se lautae juton",
+"myntra",
+"lautae juton",
 "vapas mile"
 ],
 "top3": [
 "Refund/Cashback",
-"Interest",
-"Bonus"
+"Other",
+"Interest"
 ],
 "categories": [
 "Salary",
@@ -18463,7 +18485,7 @@
 "top3": [
 "Transport",
 "Food",
-"Shopping"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -18704,7 +18726,7 @@
 "DATE",
 "O",
 "O",
-"O",
+"ITEM",
 "AMT",
 "ACC",
 "ACC"
@@ -18713,11 +18735,13 @@
 "amount": 1640.0,
 "daysAgo": 1,
 "account": "SBI Account",
-"items": [],
+"items": [
+"electricitybil"
+],
 "top3": [
 "Bills",
 "Housing",
-"Finance"
+"Transport"
 ],
 "categories": [
 "Food",
@@ -19130,7 +19154,7 @@
 "top3": [
 "Bills",
 "Housing",
-"Entertainment"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -19232,7 +19256,7 @@
 "top3": [
 "Family",
 "Finance",
-"Shopping"
+"Subscriptions"
 ],
 "categories": [
 "Food",
@@ -19626,8 +19650,8 @@
 ],
 "top3": [
 "Bills",
-"Transport",
-"Other"
+"Shopping",
+"Transport"
 ],
 "categories": [
 "Food",
@@ -19714,10 +19738,10 @@
 "tags": [
 "DATE",
 "ITEM",
-"ITEM",
+"O",
 "AMT",
 "O",
-"ACC",
+"ITEM",
 "ACC",
 "ACC"
 ],
@@ -19726,7 +19750,8 @@
 "daysAgo": 0,
 "account": "SBI Account",
 "items": [
-"sent sent"
+"sent",
+"mother"
 ],
 "top3": [],
 "categories": [
@@ -19775,8 +19800,8 @@
 ],
 "top3": [
 "Entertainment",
-"Bills",
-"Subscriptions"
+"Subscriptions",
+"Bills"
 ],
 "categories": [
 "Food",
@@ -19872,7 +19897,7 @@
 "O",
 "O"
 ],
-"type": "income",
+"type": "expense",
 "amount": 12000.0,
 "daysAgo": 0,
 "account": "HDFC Credit Card",
@@ -19880,17 +19905,26 @@
 "year end bonus"
 ],
 "top3": [
-"Bonus",
-"Refund/Cashback",
-"Interest"
+"Family",
+"Finance",
+"Bills"
 ],
 "categories": [
-"Salary",
-"Business",
-"Bonus",
-"Interest",
-"Allowance",
-"Refund/Cashback",
+"Food",
+"Groceries",
+"Transport",
+"Travel",
+"Housing",
+"Bills",
+"Subscriptions",
+"Entertainment",
+"Shopping",
+"Personal care",
+"Health",
+"Education",
+"Gifts",
+"Family",
+"Finance",
 "Other"
 ]
 },
@@ -19975,7 +20009,7 @@
 "top3": [
 "Bills",
 "Housing",
-"Transport"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -20073,8 +20107,8 @@
 ],
 "top3": [
 "Health",
-"Food",
-"Shopping"
+"Education",
+"Food"
 ],
 "categories": [
 "Food",
@@ -20485,9 +20519,9 @@
 "shampu botles total"
 ],
 "top3": [
-"Personal care",
+"Groceries",
 "Shopping",
-"Health"
+"Food"
 ],
 "categories": [
 "Food",
@@ -20530,7 +20564,7 @@
 "top3": [
 "Transport",
 "Housing",
-"Bills"
+"Travel"
 ],
 "categories": [
 "Food",
@@ -20828,7 +20862,7 @@
 "top3": [
 "Refund/Cashback",
 "Business",
-"Other"
+"Bonus"
 ],
 "categories": [
 "Salary",
@@ -20866,7 +20900,7 @@
 "top3": [
 "Transport",
 "Travel",
-"Education"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -20914,7 +20948,7 @@
 "top3": [
 "Food",
 "Shopping",
-"Groceries"
+"Housing"
 ],
 "categories": [
 "Food",
@@ -21146,7 +21180,7 @@
 "top3": [
 "Entertainment",
 "Transport",
-"Travel"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -21703,7 +21737,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Shopping"
+"Gifts"
 ],
 "categories": [
 "Food",
@@ -21748,7 +21782,7 @@
 "top3": [
 "Transport",
 "Bills",
-"Entertainment"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -21791,7 +21825,7 @@
 "top3": [
 "Shopping",
 "Groceries",
-"Transport"
+"Food"
 ],
 "categories": [
 "Food",
@@ -22015,7 +22049,7 @@
 "top3": [
 "Travel",
 "Transport",
-"Finance"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -22060,8 +22094,8 @@
 "chise slices"
 ],
 "top3": [
-"Groceries",
 "Food",
+"Groceries",
 "Health"
 ],
 "categories": [
@@ -22109,8 +22143,8 @@
 ],
 "top3": [
 "Housing",
-"Shopping",
-"Transport"
+"Transport",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -22201,8 +22235,8 @@
 ],
 "top3": [
 "Business",
-"Other",
-"Bonus"
+"Bonus",
+"Refund/Cashback"
 ],
 "categories": [
 "Salary",
@@ -22343,8 +22377,8 @@
 "entry"
 ],
 "top3": [
+"Transport",
 "Shopping",
-"Travel",
 "Finance"
 ],
 "categories": [
@@ -22490,8 +22524,8 @@
 ],
 "top3": [
 "Food",
-"Education",
-"Gifts"
+"Groceries",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -22542,8 +22576,8 @@
 ],
 "top3": [
 "Shopping",
-"Bills",
-"Other"
+"Finance",
+"Bills"
 ],
 "categories": [
 "Food",
@@ -22680,9 +22714,9 @@
 "veb site maintenance payment"
 ],
 "top3": [
-"Salary",
 "Business",
-"Other"
+"Other",
+"Salary"
 ],
 "categories": [
 "Salary",
@@ -22818,7 +22852,7 @@
 "top3": [
 "Shopping",
 "Personal care",
-"Food"
+"Finance"
 ],
 "categories": [
 "Food",
@@ -22865,7 +22899,7 @@
 "top3": [
 "Health",
 "Family",
-"Food"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -22908,8 +22942,8 @@
 "cloud storage"
 ],
 "top3": [
-"Subscriptions",
 "Entertainment",
+"Subscriptions",
 "Shopping"
 ],
 "categories": [
@@ -22961,9 +22995,9 @@
 "deposit cash into ovn bank"
 ],
 "top3": [
-"Other",
 "Finance",
-"Gifts"
+"Other",
+"Family"
 ],
 "categories": [
 "Food",
@@ -23012,8 +23046,8 @@
 ],
 "top3": [
 "Family",
-"Shopping",
-"Food"
+"Personal care",
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -23057,7 +23091,7 @@
 ],
 "top3": [
 "Food",
-"Education",
+"Groceries",
 "Gifts"
 ],
 "categories": [
@@ -23141,9 +23175,9 @@
 "pasport fotos"
 ],
 "top3": [
+"Transport",
 "Entertainment",
-"Travel",
-"Other"
+"Travel"
 ],
 "categories": [
 "Food",
@@ -23194,9 +23228,9 @@
 "canceled treking buking"
 ],
 "top3": [
-"Salary",
+"Interest",
 "Refund/Cashback",
-"Other"
+"Bonus"
 ],
 "categories": [
 "Salary",
@@ -23450,8 +23484,8 @@
 ],
 "top3": [
 "Food",
-"Education",
-"Health"
+"Health",
+"Education"
 ],
 "categories": [
 "Food",
@@ -23508,7 +23542,7 @@
 "top3": [
 "Housing",
 "Food",
-"Transport"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -23563,8 +23597,8 @@
 ],
 "top3": [
 "Food",
-"Other",
-"Shopping"
+"Health",
+"Other"
 ],
 "categories": [
 "Food",
@@ -23716,7 +23750,7 @@
 ],
 "top3": [
 "Shopping",
-"Education",
+"Groceries",
 "Health"
 ],
 "categories": [
@@ -24084,8 +24118,8 @@
 "AMT",
 "ACC",
 "ACC",
+"ACC",
 "O",
-"ITEM",
 "O",
 "O"
 ],
@@ -24094,8 +24128,7 @@
 "daysAgo": 0,
 "account": "ICICI Bank",
 "items": [
-"ap store",
-"aya"
+"ap store"
 ],
 "top3": [
 "Shopping",
@@ -24272,7 +24305,7 @@
 ],
 "top3": [
 "Travel",
-"Other",
+"Transport",
 "Shopping"
 ],
 "categories": [
@@ -24378,8 +24411,8 @@
 "healthinsurance premium"
 ],
 "top3": [
-"Bills",
 "Finance",
+"Bills",
 "Health"
 ],
 "categories": [
@@ -24419,24 +24452,24 @@
 "ITEM",
 "ITEM",
 "AMT",
-"ITEM",
+"ACC",
 "O",
 "O",
 "O",
-"O"
+"ITEM"
 ],
 "type": "income",
 "amount": 1000.0,
 "daysAgo": 0,
-"account": "",
+"account": "PhonePe",
 "items": [
 "referal bonus",
-"fonepe"
+"kar"
 ],
 "top3": [
 "Bonus",
-"Interest",
-"Refund/Cashback"
+"Refund/Cashback",
+"Interest"
 ],
 "categories": [
 "Salary",
@@ -24477,8 +24510,8 @@
 ],
 "top3": [
 "Entertainment",
-"Other",
-"Food"
+"Food",
+"Other"
 ],
 "categories": [
 "Food",
@@ -24531,7 +24564,7 @@
 "top3": [
 "Subscriptions",
 "Entertainment",
-"Finance"
+"Education"
 ],
 "categories": [
 "Food",
@@ -24641,8 +24674,8 @@
 ],
 "top3": [
 "Food",
-"Entertainment",
-"Health"
+"Health",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -24695,8 +24728,8 @@
 ],
 "top3": [
 "Transport",
-"Food",
-"Travel"
+"Travel",
+"Food"
 ],
 "categories": [
 "Food",
@@ -24917,7 +24950,7 @@
 "top3": [
 "Food",
 "Travel",
-"Housing"
+"Personal care"
 ],
 "categories": [
 "Food",
@@ -24977,7 +25010,7 @@
 "top3": [
 "Shopping",
 "Transport",
-"Subscriptions"
+"Education"
 ],
 "categories": [
 "Food",
@@ -25015,7 +25048,7 @@
 "tags": [
 "ITEM",
 "O",
-"ACC",
+"ITEM",
 "ITEM",
 "O",
 "AMT",
@@ -25027,10 +25060,10 @@
 "type": "transfer",
 "amount": 2000.0,
 "daysAgo": 0,
-"account": "ICICI Bank",
+"account": "SBI Account",
 "items": [
 "comiti",
-"rd"
+"bank rd"
 ],
 "top3": [],
 "categories": [
@@ -25079,8 +25112,8 @@
 ],
 "top3": [
 "Business",
-"Refund/Cashback",
-"Bonus"
+"Bonus",
+"Refund/Cashback"
 ],
 "categories": [
 "Salary",
@@ -25347,7 +25380,7 @@
 "tags": [
 "ITEM",
 "ITEM",
-"O",
+"ITEM",
 "AMT",
 "AMT",
 "AMT"
@@ -25357,12 +25390,12 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"fysio ko"
+"fysio ko diye"
 ],
 "top3": [
 "Health",
-"Education",
-"Housing"
+"Family",
+"Education"
 ],
 "categories": [
 "Food",
@@ -25593,9 +25626,9 @@
 "building vatchman tip"
 ],
 "top3": [
-"Housing",
 "Family",
-"Entertainment"
+"Entertainment",
+"Housing"
 ],
 "categories": [
 "Food",
@@ -25640,8 +25673,8 @@
 "hand vash refil"
 ],
 "top3": [
-"Shopping",
 "Transport",
+"Shopping",
 "Housing"
 ],
 "categories": [
@@ -25742,8 +25775,8 @@
 ],
 "top3": [
 "Finance",
-"Travel",
-"Education"
+"Family",
+"Gifts"
 ],
 "categories": [
 "Food",
@@ -25841,7 +25874,7 @@
 ],
 "top3": [
 "Personal care",
-"Housing",
+"Shopping",
 "Health"
 ],
 "categories": [
@@ -25984,7 +26017,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Personal care"
+"Transport"
 ],
 "categories": [
 "Food",
@@ -26021,7 +26054,7 @@
 ],
 "tags": [
 "ITEM",
-"O",
+"ITEM",
 "O",
 "O",
 "AMT",
@@ -26036,13 +26069,13 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"kurti",
+"kurti return",
 "raha hun"
 ],
 "top3": [
 "Shopping",
 "Finance",
-"Housing"
+"Gifts"
 ],
 "categories": [
 "Food",
@@ -26233,8 +26266,8 @@
 ],
 "top3": [
 "Food",
-"Health",
-"Groceries"
+"Groceries",
+"Health"
 ],
 "categories": [
 "Food",
@@ -26335,8 +26368,8 @@
 ],
 "top3": [
 "Travel",
-"Gifts",
-"Education"
+"Entertainment",
+"Family"
 ],
 "categories": [
 "Food",
@@ -26391,8 +26424,8 @@
 ],
 "top3": [
 "Salary",
-"Other",
-"Allowance"
+"Allowance",
+"Business"
 ],
 "categories": [
 "Salary",
@@ -26428,7 +26461,7 @@
 "top3": [
 "Health",
 "Food",
-"Groceries"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -26511,7 +26544,7 @@
 ],
 "tags": [
 "ITEM",
-"O",
+"ITEM",
 "ITEM",
 "ITEM",
 "AMT"
@@ -26521,8 +26554,7 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"adha",
-"badam total"
+"adha kilo badam total"
 ],
 "top3": [
 "Groceries",
@@ -26626,8 +26658,8 @@
 ],
 "top3": [
 "Education",
-"Housing",
-"Family"
+"Food",
+"Housing"
 ],
 "categories": [
 "Food",
@@ -26677,7 +26709,7 @@
 "top3": [
 "Interest",
 "Bonus",
-"Other"
+"Salary"
 ],
 "categories": [
 "Salary",
@@ -26765,8 +26797,8 @@
 ],
 "top3": [
 "Food",
-"Shopping",
-"Personal care"
+"Personal care",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -26863,7 +26895,7 @@
 "top3": [
 "Finance",
 "Other",
-"Food"
+"Transport"
 ],
 "categories": [
 "Food",
@@ -26959,7 +26991,7 @@
 "top3": [
 "Shopping",
 "Transport",
-"Subscriptions"
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -27012,7 +27044,7 @@
 "top3": [
 "Finance",
 "Housing",
-"Travel"
+"Family"
 ],
 "categories": [
 "Food",
@@ -27106,7 +27138,7 @@
 "top3": [
 "Food",
 "Gifts",
-"Health"
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -27157,7 +27189,7 @@
 "top3": [
 "Interest",
 "Salary",
-"Bonus"
+"Business"
 ],
 "categories": [
 "Salary",
@@ -27294,7 +27326,7 @@
 "top3": [
 "Bills",
 "Shopping",
-"Housing"
+"Food"
 ],
 "categories": [
 "Food",
@@ -27342,8 +27374,8 @@
 ],
 "top3": [
 "Bonus",
-"Interest",
-"Refund/Cashback"
+"Refund/Cashback",
+"Interest"
 ],
 "categories": [
 "Salary",
@@ -27383,7 +27415,7 @@
 "top3": [
 "Health",
 "Shopping",
-"Education"
+"Travel"
 ],
 "categories": [
 "Food",
@@ -27429,7 +27461,7 @@
 ],
 "top3": [
 "Health",
-"Subscriptions",
+"Shopping",
 "Groceries"
 ],
 "categories": [
@@ -27736,7 +27768,7 @@
 "top3": [
 "Subscriptions",
 "Entertainment",
-"Shopping"
+"Education"
 ],
 "categories": [
 "Food",
@@ -27782,7 +27814,7 @@
 "top3": [
 "Allowance",
 "Salary",
-"Interest"
+"Bonus"
 ],
 "categories": [
 "Salary",
@@ -27858,13 +27890,13 @@
 "tags": [
 "ITEM",
 "ITEM",
-"O",
+"AMT",
 "AMT",
 "AMT",
 "ITEM"
 ],
 "type": "expense",
-"amount": 4000.0,
+"amount": 4500.0,
 "daysAgo": 0,
 "account": "",
 "items": [
@@ -27873,8 +27905,8 @@
 ],
 "top3": [
 "Travel",
-"Other",
-"Entertainment"
+"Entertainment",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -28009,8 +28041,8 @@
 ],
 "top3": [
 "Education",
-"Entertainment",
-"Shopping"
+"Shopping",
+"Gifts"
 ],
 "categories": [
 "Food",
@@ -28256,7 +28288,7 @@
 "top3": [
 "Food",
 "Family",
-"Other"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -28316,7 +28348,7 @@
 "top3": [
 "Groceries",
 "Food",
-"Education"
+"Gifts"
 ],
 "categories": [
 "Food",
@@ -28378,9 +28410,9 @@
 "ech di ef si card"
 ],
 "top3": [
-"Food",
 "Transport",
-"Finance"
+"Food",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -28422,7 +28454,7 @@
 "O",
 "AMT",
 "AMT",
-"ACC",
+"ITEM",
 "ACC",
 "O",
 "O"
@@ -28432,12 +28464,13 @@
 "daysAgo": 1,
 "account": "",
 "items": [
-"silai"
+"silai",
+"fon"
 ],
 "top3": [
 "Shopping",
 "Bills",
-"Finance"
+"Family"
 ],
 "categories": [
 "Food",
@@ -28551,7 +28584,7 @@
 ],
 "top3": [
 "Business",
-"Salary",
+"Other",
 "Bonus"
 ],
 "categories": [
@@ -28603,9 +28636,9 @@
 "daudne vale jute"
 ],
 "top3": [
-"Food",
 "Shopping",
-"Entertainment"
+"Entertainment",
+"Food"
 ],
 "categories": [
 "Food",
@@ -28719,7 +28752,7 @@
 "top3": [
 "Food",
 "Bills",
-"Housing"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -28776,9 +28809,9 @@
 "kitabon ki almari"
 ],
 "top3": [
-"Shopping",
-"Travel",
-"Housing"
+"Education",
+"Entertainment",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -28823,7 +28856,7 @@
 "AMT",
 "AMT",
 "ACC",
-"ITEM",
+"ACC",
 "O",
 "O",
 "O",
@@ -28834,13 +28867,12 @@
 "daysAgo": 0,
 "account": "SBI Account",
 "items": [
-"safai karmachari ko",
-"khate"
+"safai karmachari ko"
 ],
 "top3": [
+"Shopping",
 "Family",
-"Transport",
-"Groceries"
+"Housing"
 ],
 "categories": [
 "Food",
@@ -28974,7 +29006,7 @@
 "top3": [
 "Finance",
 "Bills",
-"Transport"
+"Food"
 ],
 "categories": [
 "Food",
@@ -29073,7 +29105,7 @@
 "O",
 "AMT",
 "AMT",
-"ITEM",
+"ACC",
 "ITEM",
 "ITEM",
 "ITEM"
@@ -29081,15 +29113,15 @@
 "type": "income",
 "amount": 2000.0,
 "daysAgo": 0,
-"account": "",
+"account": "SBI Account",
 "items": [
 "pichle hafte nani se kharch",
-"sbi khate men mile"
+"khate men mile"
 ],
 "top3": [
 "Allowance",
 "Salary",
-"Interest"
+"Business"
 ],
 "categories": [
 "Salary",
@@ -29123,7 +29155,7 @@
 "ITEM",
 "AMT",
 "AMT",
-"ACC",
+"ITEM",
 "ACC",
 "O"
 ],
@@ -29132,12 +29164,13 @@
 "daysAgo": 1,
 "account": "",
 "items": [
-"fast taig ri charj"
+"fast taig ri charj",
+"fon"
 ],
 "top3": [
 "Finance",
 "Other",
-"Food"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -29198,8 +29231,8 @@
 ],
 "top3": [
 "Entertainment",
-"Finance",
-"Family"
+"Food",
+"Finance"
 ],
 "categories": [
 "Food",
@@ -29261,7 +29294,7 @@
 "top3": [
 "Education",
 "Food",
-"Groceries"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -29302,7 +29335,7 @@
 "ITEM",
 "ITEM",
 "ITEM",
-"ITEM",
+"O",
 "ITEM",
 "ITEM",
 "ITEM",
@@ -29315,12 +29348,13 @@
 "daysAgo": 1,
 "account": "Paytm",
 "items": [
-"jale hue balb ki jagah naya balb"
+"jale hue balb",
+"jagah naya balb"
 ],
 "top3": [
 "Shopping",
 "Food",
-"Housing"
+"Family"
 ],
 "categories": [
 "Food",
@@ -29366,7 +29400,7 @@
 "ITEM",
 "AMT",
 "AMT",
-"ITEM",
+"O",
 "AMT",
 "AMT",
 "ACC",
@@ -29379,13 +29413,12 @@
 "account": "ICICI Bank",
 "items": [
 "apne dusre khate men",
-"nahin",
 "bheje"
 ],
 "top3": [
 "Family",
 "Finance",
-"Food"
+"Personal care"
 ],
 "categories": [
 "Food",
@@ -29502,7 +29535,7 @@
 "top3": [
 "Health",
 "Groceries",
-"Bills"
+"Personal care"
 ],
 "categories": [
 "Food",
@@ -29547,7 +29580,7 @@
 "AMT",
 "AMT",
 "AMT",
-"ITEM",
+"ACC",
 "ITEM",
 "O",
 "O",
@@ -29556,15 +29589,15 @@
 "type": "income",
 "amount": 627.0,
 "daysAgo": 0,
-"account": "",
+"account": "Kotak Bank",
 "items": [
 "jama par byaj",
-"kotak men"
+"men"
 ],
 "top3": [
 "Interest",
-"Salary",
-"Refund/Cashback"
+"Refund/Cashback",
+"Allowance"
 ],
 "categories": [
 "Salary",
@@ -29671,7 +29704,7 @@
 "top3": [
 "Transport",
 "Finance",
-"Travel"
+"Education"
 ],
 "categories": [
 "Food",
@@ -29789,9 +29822,9 @@
 "din pahle are bijli mistri"
 ],
 "top3": [
-"Bills",
 "Housing",
-"Other"
+"Shopping",
+"Bills"
 ],
 "categories": [
 "Food",
@@ -29897,8 +29930,8 @@
 ],
 "top3": [
 "Salary",
-"Refund/Cashback",
-"Other"
+"Interest",
+"Allowance"
 ],
 "categories": [
 "Salary",
@@ -29991,7 +30024,7 @@
 "AMT",
 "ACC"
 ],
-"type": "expense",
+"type": "income",
 "amount": 80,
 "daysAgo": 0,
 "account": "Cash",
@@ -29999,26 +30032,17 @@
 "mo mo plet"
 ],
 "top3": [
-"Shopping",
-"Food",
-"Transport"
+"Other",
+"Bonus",
+"Business"
 ],
 "categories": [
-"Food",
-"Groceries",
-"Transport",
-"Travel",
-"Housing",
-"Bills",
-"Subscriptions",
-"Entertainment",
-"Shopping",
-"Personal care",
-"Health",
-"Education",
-"Gifts",
-"Family",
-"Finance",
+"Salary",
+"Business",
+"Bonus",
+"Interest",
+"Allowance",
+"Refund/Cashback",
 "Other"
 ]
 },
@@ -30102,9 +30126,9 @@
 "ji"
 ],
 "top3": [
+"Shopping",
 "Personal care",
-"Health",
-"Shopping"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -30146,15 +30170,15 @@
 "ITEM",
 "ITEM",
 "ITEM",
+"ITEM",
+"ITEM",
+"AMT",
+"AMT",
 "O",
-"ITEM",
-"AMT",
-"AMT",
-"ITEM",
 "AMT",
 "AMT",
 "ACC",
-"ITEM",
+"ACC",
 "O"
 ],
 "type": "expense",
@@ -30162,15 +30186,12 @@
 "daysAgo": 0,
 "account": "HDFC Credit Card",
 "items": [
-"credit card bil",
-"bhugtan",
-"nahin",
-"khate"
+"credit card bil ka bhugtan"
 ],
 "top3": [
 "Finance",
-"Family",
-"Bills"
+"Bills",
+"Family"
 ],
 "categories": [
 "Food",
@@ -30228,9 +30249,9 @@
 "jod"
 ],
 "top3": [
-"Food",
-"Shopping",
-"Personal care"
+"Health",
+"Personal care",
+"Food"
 ],
 "categories": [
 "Food",
@@ -30386,8 +30407,8 @@
 ],
 "top3": [
 "Education",
-"Family",
-"Gifts"
+"Health",
+"Family"
 ],
 "categories": [
 "Food",
@@ -30443,7 +30464,7 @@
 "top3": [
 "Interest",
 "Salary",
-"Allowance"
+"Business"
 ],
 "categories": [
 "Salary",
@@ -30489,7 +30510,7 @@
 ],
 "top3": [
 "Shopping",
-"Food",
+"Subscriptions",
 "Bills"
 ],
 "categories": [
@@ -30543,8 +30564,8 @@
 ],
 "top3": [
 "Health",
-"Housing",
-"Personal care"
+"Personal care",
+"Transport"
 ],
 "categories": [
 "Food",
@@ -30596,8 +30617,8 @@
 "jod"
 ],
 "top3": [
-"Shopping",
 "Education",
+"Shopping",
 "Food"
 ],
 "categories": [
@@ -30689,8 +30710,8 @@
 ],
 "top3": [
 "Bills",
-"Entertainment",
-"Subscriptions"
+"Subscriptions",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -30742,8 +30763,8 @@
 ],
 "top3": [
 "Business",
-"Bonus",
-"Other"
+"Other",
+"Bonus"
 ],
 "categories": [
 "Salary",
@@ -30772,7 +30793,7 @@
 "AMT",
 "AMT",
 "AMT",
-"ITEM",
+"O",
 "AMT",
 "AMT",
 "AMT"
@@ -30782,13 +30803,12 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"balti",
-"nahin"
+"balti"
 ],
 "top3": [
 "Shopping",
-"Family",
-"Housing"
+"Housing",
+"Food"
 ],
 "categories": [
 "Food",
@@ -30824,7 +30844,7 @@
 "ITEM",
 "AMT",
 "AMT",
-"ITEM",
+"O",
 "ITEM"
 ],
 "type": "expense",
@@ -30871,7 +30891,7 @@
 ],
 "tags": [
 "ITEM",
-"O",
+"ITEM",
 "ITEM",
 "ITEM",
 "AMT",
@@ -30882,13 +30902,12 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"adha",
-"panir kul"
+"adha kilo panir kul"
 ],
 "top3": [
 "Food",
 "Groceries",
-"Shopping"
+"Health"
 ],
 "categories": [
 "Food",
@@ -30993,8 +31012,8 @@
 ],
 "top3": [
 "Gifts",
-"Education",
-"Family"
+"Family",
+"Other"
 ],
 "categories": [
 "Food",
@@ -31146,9 +31165,9 @@
 "akhbar ka bil"
 ],
 "top3": [
-"Bills",
-"Finance",
-"Entertainment"
+"Subscriptions",
+"Entertainment",
+"Bills"
 ],
 "categories": [
 "Food",
@@ -31201,8 +31220,8 @@
 ],
 "top3": [
 "Personal care",
-"Family",
-"Food"
+"Food",
+"Health"
 ],
 "categories": [
 "Food",
@@ -31242,7 +31261,7 @@
 "ITEM",
 "AMT",
 "AMT",
-"ITEM",
+"O",
 "AMT",
 "AMT",
 "ITEM"
@@ -31253,7 +31272,6 @@
 "account": "",
 "items": [
 "hom lon kist",
-"nahin",
 "gai"
 ],
 "top3": [
@@ -31304,7 +31322,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Personal care"
+"Health"
 ],
 "categories": [
 "Food",
@@ -31392,8 +31410,8 @@
 ],
 "top3": [
 "Shopping",
-"Health",
-"Bills"
+"Food",
+"Housing"
 ],
 "categories": [
 "Food",
@@ -31547,9 +31565,9 @@
 "are sardi ki bhap vali mashin"
 ],
 "top3": [
-"Groceries",
+"Family",
 "Food",
-"Family"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -31651,8 +31669,8 @@
 ],
 "top3": [
 "Education",
-"Transport",
-"Gifts"
+"Gifts",
+"Transport"
 ],
 "categories": [
 "Food",
@@ -31699,9 +31717,9 @@
 "eyar kular ki ghas"
 ],
 "top3": [
-"Transport",
-"Groceries",
-"Housing"
+"Family",
+"Housing",
+"Transport"
 ],
 "categories": [
 "Food",
@@ -31835,7 +31853,7 @@
 "O",
 "ITEM",
 "ITEM",
-"ITEM",
+"O",
 "O",
 "AMT",
 "AMT"
@@ -31845,12 +31863,12 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"havai ade ki"
+"havai ade"
 ],
 "top3": [
 "Travel",
 "Transport",
-"Groceries"
+"Food"
 ],
 "categories": [
 "Food",
@@ -31897,9 +31915,9 @@
 "paudhe kul"
 ],
 "top3": [
+"Entertainment",
 "Groceries",
-"Food",
-"Entertainment"
+"Food"
 ],
 "categories": [
 "Food",
@@ -32006,9 +32024,9 @@
 "nahin"
 ],
 "top3": [
-"Groceries",
+"Transport",
 "Shopping",
-"Transport"
+"Food"
 ],
 "categories": [
 "Food",
@@ -32108,9 +32126,9 @@
 "litar farsh saf karne vala kul"
 ],
 "top3": [
-"Groceries",
 "Food",
-"Finance"
+"Groceries",
+"Education"
 ],
 "categories": [
 "Food",
@@ -32144,7 +32162,7 @@
 "ITEM",
 "ITEM",
 "AMT",
-"ITEM",
+"O",
 "AMT"
 ],
 "type": "expense",
@@ -32152,8 +32170,7 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"skutar helmet",
-"nahin"
+"skutar helmet"
 ],
 "top3": [
 "Transport",
@@ -32248,8 +32265,8 @@
 "thik hai"
 ],
 "top3": [
-"Entertainment",
 "Subscriptions",
+"Entertainment",
 "Shopping"
 ],
 "categories": [
@@ -32295,8 +32312,8 @@
 "jute ki maramat"
 ],
 "top3": [
-"Transport",
 "Shopping",
+"Health",
 "Entertainment"
 ],
 "categories": [
@@ -32343,8 +32360,8 @@
 ],
 "top3": [
 "Education",
-"Gifts",
-"Shopping"
+"Shopping",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -32393,8 +32410,8 @@
 ],
 "top3": [
 "Gifts",
-"Shopping",
-"Entertainment"
+"Entertainment",
+"Family"
 ],
 "categories": [
 "Food",
@@ -32435,7 +32452,7 @@
 "ITEM",
 "AMT"
 ],
-"type": "income",
+"type": "expense",
 "amount": 460.0,
 "daysAgo": 0,
 "account": "",
@@ -32443,17 +32460,26 @@
 "restorent ki dabal pement vapas ai"
 ],
 "top3": [
-"Refund/Cashback",
-"Interest",
-"Bonus"
+"Food",
+"Finance",
+"Family"
 ],
 "categories": [
-"Salary",
-"Business",
-"Bonus",
-"Interest",
-"Allowance",
-"Refund/Cashback",
+"Food",
+"Groceries",
+"Transport",
+"Travel",
+"Housing",
+"Bills",
+"Subscriptions",
+"Entertainment",
+"Shopping",
+"Personal care",
+"Health",
+"Education",
+"Gifts",
+"Family",
+"Finance",
 "Other"
 ]
 },
@@ -32587,7 +32613,7 @@
 "top3": [
 "Travel",
 "Transport",
-"Entertainment"
+"Education"
 ],
 "categories": [
 "Food",
@@ -32671,8 +32697,8 @@
 "rupye"
 ],
 "tags": [
-"O",
-"O",
+"ITEM",
+"ITEM",
 "ITEM",
 "O",
 "ITEM",
@@ -32686,7 +32712,7 @@
 "daysAgo": 0,
 "account": "",
 "items": [
-"bank",
+"mile mile bank",
 "revard points"
 ],
 "top3": [
@@ -32737,7 +32763,7 @@
 "top3": [
 "Shopping",
 "Food",
-"Entertainment"
+"Family"
 ],
 "categories": [
 "Food",
@@ -32785,8 +32811,8 @@
 ],
 "top3": [
 "Entertainment",
-"Family",
-"Education"
+"Education",
+"Health"
 ],
 "categories": [
 "Food",
@@ -32831,7 +32857,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Personal care"
+"Family"
 ],
 "categories": [
 "Food",
@@ -32885,7 +32911,7 @@
 "top3": [
 "Transport",
 "Finance",
-"Travel"
+"Other"
 ],
 "categories": [
 "Food",
@@ -32977,7 +33003,7 @@
 "top3": [
 "Food",
 "Housing",
-"Transport"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -33117,8 +33143,8 @@
 ],
 "top3": [
 "Bonus",
-"Interest",
-"Other"
+"Other",
+"Salary"
 ],
 "categories": [
 "Salary",
@@ -33219,8 +33245,8 @@
 ],
 "top3": [
 "Refund/Cashback",
-"Allowance",
-"Other"
+"Business",
+"Bonus"
 ],
 "categories": [
 "Salary",
@@ -33308,7 +33334,7 @@
 "ITEM",
 "O",
 "O",
-"ITEM",
+"AMT",
 "ITEM"
 ],
 "type": "income",
@@ -33364,8 +33390,8 @@
 "hotel nahin hostel bed"
 ],
 "top3": [
-"Food",
 "Travel",
+"Food",
 "Housing"
 ],
 "categories": [
@@ -33415,8 +33441,8 @@
 ],
 "top3": [
 "Personal care",
-"Health",
-"Shopping"
+"Shopping",
+"Health"
 ],
 "categories": [
 "Food",
@@ -33470,8 +33496,8 @@
 "nahin"
 ],
 "top3": [
-"Other",
 "Business",
+"Other",
 "Salary"
 ],
 "categories": [
@@ -33502,8 +33528,8 @@
 "dahi"
 ],
 "top3": [
-"Groceries",
 "Food",
+"Groceries",
 "Other"
 ],
 "categories": [
@@ -33543,9 +33569,9 @@
 "thehi"
 ],
 "top3": [
-"Personal care",
 "Food",
-"Shopping"
+"Entertainment",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -33847,7 +33873,7 @@
 ],
 "tags": [
 "ITEM",
-"O",
+"ITEM",
 "AMT",
 "O",
 "ACC"
@@ -33857,12 +33883,12 @@
 "daysAgo": 0,
 "account": "slice Credit Card",
 "items": [
-"svigy"
+"svigy order"
 ],
 "top3": [
 "Food",
 "Entertainment",
-"Subscriptions"
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -33905,7 +33931,7 @@
 "top3": [
 "Bills",
 "Subscriptions",
-"Entertainment"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -34131,8 +34157,8 @@
 "mom"
 ],
 "top3": [
-"Family",
 "Gifts",
+"Family",
 "Food"
 ],
 "categories": [
@@ -34484,7 +34510,7 @@
 "top3": [
 "Education",
 "Health",
-"Family"
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -34614,8 +34640,8 @@
 ],
 "top3": [
 "Interest",
-"Business",
-"Refund/Cashback"
+"Refund/Cashback",
+"Salary"
 ],
 "categories": [
 "Salary",
@@ -34651,7 +34677,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Gifts"
+"Housing"
 ],
 "categories": [
 "Food",
@@ -34695,8 +34721,8 @@
 ],
 "top3": [
 "Food",
-"Shopping",
-"Personal care"
+"Personal care",
+"Groceries"
 ],
 "categories": [
 "Food",
