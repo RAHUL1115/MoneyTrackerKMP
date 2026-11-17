@@ -1,0 +1,1 @@
+MoneyTracker 0.5.0 beta 5. A much smaller download: the app shrinks from about 16 MB to under 10 MB by trimming the smart-entry word list to the languages it actually uses. Smart entry works the same.
