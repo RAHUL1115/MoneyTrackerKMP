@@ -2751,8 +2751,8 @@
 ],
 "top3": [
 "Finance",
-"Family",
-"Bills"
+"Bills",
+"Family"
 ],
 "categories": [
 "Food",
@@ -3528,7 +3528,7 @@
 "top3": [
 "Groceries",
 "Food",
-"Family"
+"Bills"
 ],
 "categories": [
 "Food",
@@ -3763,8 +3763,8 @@
 ],
 "top3": [
 "Food",
-"Health",
-"Groceries"
+"Groceries",
+"Health"
 ],
 "categories": [
 "Food",
@@ -3858,7 +3858,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Bills"
+"Family"
 ],
 "categories": [
 "Food",
@@ -5652,8 +5652,8 @@
 ],
 "top3": [
 "Salary",
-"Business",
-"Allowance"
+"Allowance",
+"Business"
 ],
 "categories": [
 "Salary",
@@ -8742,8 +8742,8 @@
 ],
 "top3": [
 "Family",
-"Health",
-"Personal care"
+"Personal care",
+"Health"
 ],
 "categories": [
 "Food",
@@ -8941,7 +8941,7 @@
 "top3": [
 "Groceries",
 "Food",
-"Family"
+"Other"
 ],
 "categories": [
 "Food",
@@ -9090,7 +9090,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Entertainment"
+"Family"
 ],
 "categories": [
 "Food",
@@ -10279,7 +10279,7 @@
 ],
 "top3": [
 "Transport",
-"Travel",
+"Bills",
 "Food"
 ],
 "categories": [
@@ -10878,7 +10878,7 @@
 "top3": [
 "Shopping",
 "Housing",
-"Food"
+"Travel"
 ],
 "categories": [
 "Food",
@@ -13620,7 +13620,7 @@
 "top3": [
 "Entertainment",
 "Food",
-"Family"
+"Health"
 ],
 "categories": [
 "Food",
@@ -13797,7 +13797,7 @@
 "top3": [
 "Shopping",
 "Groceries",
-"Entertainment"
+"Food"
 ],
 "categories": [
 "Food",
@@ -13912,8 +13912,8 @@
 ],
 "top3": [
 "Personal care",
-"Shopping",
-"Food"
+"Food",
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -14316,8 +14316,8 @@
 "kamvali ko"
 ],
 "top3": [
-"Family",
 "Shopping",
+"Family",
 "Housing"
 ],
 "categories": [
@@ -15223,7 +15223,7 @@
 "top3": [
 "Transport",
 "Finance",
-"Travel"
+"Other"
 ],
 "categories": [
 "Food",
@@ -15440,7 +15440,7 @@
 "top3": [
 "Shopping",
 "Housing",
-"Finance"
+"Family"
 ],
 "categories": [
 "Food",
@@ -15861,8 +15861,8 @@
 ],
 "top3": [
 "Business",
-"Other",
-"Salary"
+"Salary",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -16344,8 +16344,8 @@
 "li"
 ],
 "top3": [
-"Food",
 "Groceries",
+"Food",
 "Family"
 ],
 "categories": [
@@ -16708,8 +16708,8 @@
 ],
 "top3": [
 "Housing",
-"Family",
-"Food"
+"Food",
+"Family"
 ],
 "categories": [
 "Food",
@@ -17804,7 +17804,7 @@
 "top3": [
 "Finance",
 "Shopping",
-"Education"
+"Subscriptions"
 ],
 "categories": [
 "Food",
@@ -19006,7 +19006,7 @@
 ],
 "top3": [
 "Salary",
-"Allowance",
+"Refund/Cashback",
 "Business"
 ],
 "categories": [
@@ -20473,8 +20473,8 @@
 ],
 "top3": [
 "Shopping",
-"Family",
-"Housing"
+"Housing",
+"Personal care"
 ],
 "categories": [
 "Food",
@@ -20861,8 +20861,8 @@
 ],
 "top3": [
 "Refund/Cashback",
-"Business",
-"Bonus"
+"Bonus",
+"Business"
 ],
 "categories": [
 "Salary",
@@ -21179,8 +21179,8 @@
 ],
 "top3": [
 "Entertainment",
-"Transport",
-"Shopping"
+"Shopping",
+"Travel"
 ],
 "categories": [
 "Food",
@@ -21364,7 +21364,7 @@
 "top3": [
 "Shopping",
 "Transport",
-"Family"
+"Housing"
 ],
 "categories": [
 "Food",
@@ -21502,7 +21502,7 @@
 "top3": [
 "Personal care",
 "Health",
-"Shopping"
+"Family"
 ],
 "categories": [
 "Food",
@@ -22235,8 +22235,8 @@
 ],
 "top3": [
 "Business",
-"Bonus",
-"Refund/Cashback"
+"Refund/Cashback",
+"Bonus"
 ],
 "categories": [
 "Salary",
@@ -23045,9 +23045,9 @@
 "okay okay coming"
 ],
 "top3": [
-"Family",
 "Personal care",
-"Shopping"
+"Shopping",
+"Family"
 ],
 "categories": [
 "Food",
@@ -23229,8 +23229,8 @@
 ],
 "top3": [
 "Interest",
-"Refund/Cashback",
-"Bonus"
+"Bonus",
+"Refund/Cashback"
 ],
 "categories": [
 "Salary",
@@ -24842,8 +24842,8 @@
 ],
 "top3": [
 "Food",
-"Groceries",
-"Shopping"
+"Shopping",
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -24950,7 +24950,7 @@
 "top3": [
 "Food",
 "Travel",
-"Personal care"
+"Transport"
 ],
 "categories": [
 "Food",
@@ -25009,8 +25009,8 @@
 ],
 "top3": [
 "Shopping",
-"Transport",
-"Education"
+"Education",
+"Transport"
 ],
 "categories": [
 "Food",
@@ -25540,7 +25540,7 @@
 "top3": [
 "Business",
 "Salary",
-"Interest"
+"Refund/Cashback"
 ],
 "categories": [
 "Salary",
@@ -25581,7 +25581,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Entertainment"
+"Family"
 ],
 "categories": [
 "Food",
@@ -25921,8 +25921,8 @@
 ],
 "top3": [
 "Education",
-"Health",
-"Finance"
+"Finance",
+"Health"
 ],
 "categories": [
 "Food",
@@ -26073,8 +26073,8 @@
 "raha hun"
 ],
 "top3": [
+"Food",
 "Shopping",
-"Finance",
 "Gifts"
 ],
 "categories": [
@@ -26123,8 +26123,8 @@
 ],
 "top3": [
 "Gifts",
-"Shopping",
-"Entertainment"
+"Entertainment",
+"Shopping"
 ],
 "categories": [
 "Food",
@@ -26895,7 +26895,7 @@
 "top3": [
 "Finance",
 "Other",
-"Transport"
+"Food"
 ],
 "categories": [
 "Food",
@@ -27415,7 +27415,7 @@
 "top3": [
 "Health",
 "Shopping",
-"Travel"
+"Transport"
 ],
 "categories": [
 "Food",
@@ -27767,8 +27767,8 @@
 ],
 "top3": [
 "Subscriptions",
-"Entertainment",
-"Education"
+"Shopping",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -28138,8 +28138,8 @@
 ],
 "top3": [
 "Entertainment",
-"Family",
-"Health"
+"Health",
+"Family"
 ],
 "categories": [
 "Food",
@@ -29354,7 +29354,7 @@
 "top3": [
 "Shopping",
 "Food",
-"Family"
+"Groceries"
 ],
 "categories": [
 "Food",
@@ -30406,8 +30406,8 @@
 "janm praman patr ki fis"
 ],
 "top3": [
-"Education",
 "Health",
+"Education",
 "Family"
 ],
 "categories": [
@@ -31772,8 +31772,8 @@
 ],
 "top3": [
 "Business",
-"Other",
-"Salary"
+"Salary",
+"Other"
 ],
 "categories": [
 "Salary",
@@ -32514,8 +32514,8 @@
 ],
 "top3": [
 "Family",
-"Health",
-"Food"
+"Food",
+"Health"
 ],
 "categories": [
 "Food",
@@ -33496,8 +33496,8 @@
 "nahin"
 ],
 "top3": [
-"Business",
 "Other",
+"Business",
 "Salary"
 ],
 "categories": [
@@ -33570,8 +33570,8 @@
 ],
 "top3": [
 "Food",
-"Entertainment",
-"Groceries"
+"Groceries",
+"Entertainment"
 ],
 "categories": [
 "Food",
@@ -33755,8 +33755,8 @@
 ],
 "top3": [
 "Salary",
-"Business",
-"Allowance"
+"Allowance",
+"Business"
 ],
 "categories": [
 "Salary",
@@ -34385,7 +34385,7 @@
 "top3": [
 "Food",
 "Groceries",
-"Bills"
+"Family"
 ],
 "categories": [
 "Food",
