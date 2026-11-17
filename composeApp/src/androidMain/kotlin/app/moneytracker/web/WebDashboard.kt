@@ -169,6 +169,11 @@ class WebDashboardService : Service() {
                 WebDashboard.state.value.address?.let { copy("http://$it") }
                 return START_NOT_STICKY
             }
+            // Android 14+ lets the user swipe the notification away; while the server runs, put it straight back.
+            ACTION_DISMISSED -> {
+                if (current === this && WebDashboard.state.value.running) updateNotification() else if (current == null) stopSelf()
+                return START_NOT_STICKY
+            }
         }
         current = this
         stopping = false
@@ -300,6 +305,7 @@ class WebDashboardService : Service() {
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(open)
+            .setDeleteIntent(action(ACTION_DISMISSED, 43))
             .addAction(0, tr("Stop"), action(ACTION_STOP, 41))
             .addAction(0, tr("Copy address"), action(ACTION_COPY, 42))
             .build()
@@ -310,6 +316,7 @@ class WebDashboardService : Service() {
         const val ID = 7
         const val ACTION_STOP = "app.moneytracker.web.STOP"
         const val ACTION_COPY = "app.moneytracker.web.COPY"
+        const val ACTION_DISMISSED = "app.moneytracker.web.DISMISSED"
         /** MainActivity opens the Web dashboard screen for this. */
         const val ACTION_OPEN = "app.moneytracker.WEB_DASHBOARD"
         const val DEFAULT_AUTO_STOP = 30
