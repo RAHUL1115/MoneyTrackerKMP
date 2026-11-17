@@ -13,8 +13,10 @@ import java.net.Socket
 import java.net.SocketException
 import java.net.URLDecoder
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 /** [headers] keys are lower-case. [remote] is the client's IP address. */
 class HttpRequest(
@@ -67,7 +69,11 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
                 continue
             }
             socket = s
-            val p = Executors.newFixedThreadPool(4) { r -> Thread(r, "web-dashboard").apply { isDaemon = true } }
+            // Browsers open spare connections ahead of time and may send nothing on them. With only a few
+            // workers those idle sockets held every one until the read timed out, and the page waited.
+            val p = ThreadPoolExecutor(0, MAX_WORKERS, 30, TimeUnit.SECONDS, SynchronousQueue()) { r ->
+                Thread(r, "web-dashboard").apply { isDaemon = true }
+            }
             pool = p
             Thread({ accept(s, p) }, "web-dashboard-accept").apply { isDaemon = true }.start()
             return port
@@ -100,7 +106,7 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
         try {
             p.execute { serve(client) }
         } catch (_: RejectedExecutionException) {
-            client.closeLogged("rejected connection") // stop() shut the pool down
+            client.closeLogged("rejected connection") // stop() shut the pool down, or every worker is busy
         }
     }
 
@@ -233,5 +239,6 @@ class HttpServer(private val handler: (HttpRequest) -> HttpResponse) {
     companion object {
         const val MAX_BODY = 256 * 1024
         const val MAX_HEAD = 16 * 1024
+        private const val MAX_WORKERS = 32
     }
 }
