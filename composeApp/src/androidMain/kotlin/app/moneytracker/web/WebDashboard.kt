@@ -164,30 +164,32 @@ class WebDashboardService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_STOP -> { shutdown(null); return START_NOT_STICKY }
-            ACTION_COPY -> {
-                WebDashboard.state.value.address?.let { copy("http://$it") }
-                return START_NOT_STICKY
-            }
-            // Android 14+ lets the user swipe the notification away; while the server runs, put it straight back.
-            ACTION_DISMISSED -> {
-                if (current === this && WebDashboard.state.value.running) updateNotification() else if (current == null) stopSelf()
-                return START_NOT_STICKY
-            }
+            ACTION_STOP -> shutdown(null)
+            ACTION_COPY -> WebDashboard.state.value.address?.let { copy("http://$it") }
+            ACTION_DISMISSED -> onDismissed()
+            else -> begin()
         }
+        return START_NOT_STICKY
+    }
+
+    /** Android 14+ lets the user swipe the notification away; while the server runs, put it straight back. */
+    private fun onDismissed() {
+        if (current === this && WebDashboard.state.value.running) updateNotification() else if (current == null) stopSelf()
+    }
+
+    private fun begin() {
         current = this
         stopping = false
         createChannel(this)
         // Foreground first (Android requires it within seconds of starting), then the server.
         startForegroundCompat(build(tr("Starting…")))
         if (!WebDashboard.state.value.running) {
-            if (WebDashboard.startServer(this) == null) { shutdown(null, keepError = true); return START_NOT_STICKY }
+            if (WebDashboard.startServer(this) == null) return shutdown(null, keepError = true)
         }
         acquireLocks()
         updateNotification()
         handler.removeCallbacks(tick)
         handler.postDelayed(tick, CHECK_MS)
-        return START_NOT_STICKY
     }
 
     private fun startForegroundCompat(n: Notification) {
