@@ -32,6 +32,7 @@ import app.moneytracker.core.collectAsState
 import app.moneytracker.core.tr
 import app.moneytracker.data.AccountStore
 import app.moneytracker.data.CategoryStore
+import app.moneytracker.data.CachedFlow
 import app.moneytracker.data.PeriodSettings
 import app.moneytracker.data.TxnStore
 import app.moneytracker.designsystem.classic.BackTopBar
@@ -51,6 +52,8 @@ import app.moneytracker.designsystem.classic.short
 import app.moneytracker.domain.Category
 import app.moneytracker.domain.DateRange
 import app.moneytracker.domain.Flow
+import app.moneytracker.domain.ReportRules
+import app.moneytracker.domain.classify
 import app.moneytracker.domain.Txn
 import app.moneytracker.domain.TxnKind
 import app.moneytracker.domain.YearMonth
@@ -74,13 +77,17 @@ data class StatsDetailState(
     val total: Long get() = bySub.values.sum()
 }
 
-/** The drill-down behind a Stats slice, for the main category in [screen] and the period it names. */
+/**
+ * The drill-down behind a Stats slice, for the main category in [screen] and the period it names. Counts only what
+ * Stats counts under [rules]: with "card expenses at payment" on, card purchases wait for the bill and are left out.
+ */
 class StatsDetailModel(
     private val screen: Screen.StatsDetail,
     txns: TxnStore,
     categories: CategoryStore,
     accounts: AccountStore,
     periods: PeriodSettings,
+    rules: CachedFlow<ReportRules>,
     scope: CoroutineScope,
 ) {
     private val kind = if (screen.income) TxnKind.INCOME else TxnKind.EXPENSE
@@ -89,11 +96,15 @@ class StatsDetailModel(
     private val shown = txns.txnsBetween(DateRange(screen.from, screen.to))
     private val trendTxns = txns.txnsBetween(DateRange(monthRanges.first().start, monthRanges.last().endInclusive))
 
-    val state: StateFlow<StatsDetailState> = combine(shown, trendTxns, categories.categoryById, accounts.accountNames, ::stateOf)
-        .stateIn(scope, SharingStarted.Eagerly, stateOf(shown.current, trendTxns.current, categories.categoryById.current, accounts.accountNames.current))
+    private val counted = if (screen.income) Flow.INCOME else Flow.EXPENSE
 
-    private fun stateOf(list: List<Txn>, trendList: List<Txn>, catById: Map<String, Category>, names: Map<String, String>): StatsDetailState {
-        fun inCategory(t: Txn) = t.kind == kind && t.categoryId?.let { catById[it] }?.let { (it.parentId ?: it.id) == screen.mainCategoryId } == true
+    val state: StateFlow<StatsDetailState> = combine(shown, trendTxns, categories.categoryById, accounts.accountNames, rules, ::stateOf)
+        .stateIn(scope, SharingStarted.Eagerly,
+            stateOf(shown.current, trendTxns.current, categories.categoryById.current, accounts.accountNames.current, rules.current))
+
+    private fun stateOf(list: List<Txn>, trendList: List<Txn>, catById: Map<String, Category>, names: Map<String, String>, rules: ReportRules): StatsDetailState {
+        fun inCategory(t: Txn) = t.kind == kind && classify(rules.row(t)) == counted &&
+            t.categoryId?.let { catById[it] }?.let { (it.parentId ?: it.id) == screen.mainCategoryId } == true
         val inCat = list.filter(::inCategory)
         val bySub = inCat.groupBy { t -> catById[t.categoryId]?.takeIf { it.parentId != null }?.id ?: screen.mainCategoryId }.mapValues { (_, v) -> v.sumOf { it.amount } }
         val trend = monthRanges.map { r -> trendList.filter { t -> inCategory(t) && t.date >= r.start && t.date <= r.endInclusive }.sumOf { it.amount } }
@@ -106,7 +117,7 @@ fun StatsDetailScreen(s: Screen.StatsDetail) {
     val repo = LocalRepo.current
     val scope = rememberCoroutineScope()
     val model = remember(repo, s) {
-        StatsDetailModel(s, repo.txnStore, repo.categoryStore, repo.accountStore, repo.settingsStore.periodSettingsNow(), scope)
+        StatsDetailModel(s, repo.txnStore, repo.categoryStore, repo.accountStore, repo.settingsStore.periodSettingsNow(), repo.reportStore.reportRules, scope)
     }
     val state by model.state.collectAsState()
     StatsDetailContent(s, state)

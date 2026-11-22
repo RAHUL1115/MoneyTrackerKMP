@@ -112,13 +112,25 @@ class ToolHoldersTest {
         repo.txnStore.create(TxnDraft(DraftType.EXPENSE, LocalDate.parse("2026-01-10"), "acc_cash", categoryId = sub, amount = 500))
         repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_1", amount = 9_999))
         val screen = Screen.StatsDetail("cat_ex_0", income = false, from = LocalDate.parse("2026-03-01"), to = LocalDate.parse("2026-03-31"), title = "Food")
-        val model = StatsDetailModel(screen, repo.txnStore, repo.categoryStore, repo.accountStore, repo.settingsStore.periodSettingsNow(), scope)
+        val model = StatsDetailModel(screen, repo.txnStore, repo.categoryStore, repo.accountStore, repo.settingsStore.periodSettingsNow(), repo.reportStore.reportRules, scope)
         val s = model.state.value
         assertEquals(mapOf("cat_ex_0" to 1_000L, sub to 3_000L), s.bySub)
         assertEquals(4_000L, s.total)
         assertEquals(2, s.txns.size)
         assertEquals(8, s.months.size)
         assertEquals(listOf(0L, 0L, 0L, 0L, 0L, 500L, 0L, 4_000L), s.trend)
+    }
+
+    /** Like Stats: with "card expenses at payment" on, an unpaid card purchase is not in the category's total yet. */
+    @Test fun statsDetailLeavesOutCardPurchasesCountedAtPayment() = runTest {
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_cash", categoryId = "cat_ex_0", amount = 1_000))
+        repo.txnStore.create(TxnDraft(DraftType.EXPENSE, today, "acc_card", categoryId = "cat_ex_0", amount = 3_000))
+        repo.settingsStore.putSetting(Prefs.CARD_AT_PAYMENT.key, "1")
+        val screen = Screen.StatsDetail("cat_ex_0", income = false, from = LocalDate.parse("2026-03-01"), to = LocalDate.parse("2026-03-31"), title = "Food")
+        val model = StatsDetailModel(screen, repo.txnStore, repo.categoryStore, repo.accountStore, repo.settingsStore.periodSettingsNow(), repo.reportStore.reportRules, scope)
+        val s = model.state.first { it.total == 1_000L }
+        assertEquals(1, s.txns.size)
+        assertEquals(1_000L, s.trend.last())
     }
 
     @Test fun calculatorKeysBuildAnExpression() {

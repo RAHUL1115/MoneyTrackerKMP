@@ -183,7 +183,7 @@ private fun PartEntries(part: BreakdownPart, name: String, state: InsightsState)
         Text(tr("Top entries").uppercase(), Modifier.padding(horizontal = PANEL_INSET), color = F.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp)
         part.entries.sortedByDescending { it.amount }.take(3).forEach { r -> EntryLine(r, state.accountName, state.catById, inset = PANEL_INSET) }
         if (seeAll != null) Text(
-            if (part.group == InsightsGroup.ACCOUNT) tr("Open account ›") else tr("See all {0} entries ›", part.entries.size),
+            if (part.group == InsightsGroup.ACCOUNT) tr("Open account ›") else (if (part.entries.size == 1) tr("See the entry ›") else tr("See all {0} entries ›", part.entries.size)),
             Modifier.padding(start = PANEL_INSET, top = 4.dp).clip(F.tagShape).clickable(role = Role.Button, onClick = seeAll).padding(vertical = 6.dp),
             color = F.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium,
         )

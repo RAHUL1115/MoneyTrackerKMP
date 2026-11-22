@@ -42,6 +42,7 @@ import app.moneytracker.home.fresh.FreshInbox
 import app.moneytracker.home.fresh.FreshMessageSettings
 import app.moneytracker.home.fresh.HomeTab
 import app.moneytracker.insights.fresh.FreshBudget
+import app.moneytracker.insights.fresh.FreshCategoryEntries
 import app.moneytracker.insights.fresh.InsightsTab
 import app.moneytracker.lists.fresh.FreshCategories
 import app.moneytracker.lists.fresh.FreshEditNote
@@ -111,6 +112,7 @@ fun freshScreen(screen: Screen): (@Composable () -> Unit)? = when (screen) {
     Screen.Search -> show { FreshSearch() }
     is Screen.EditNote -> show { FreshEditNote(screen.noteId) }
     Screen.Budget -> show { FreshBudget() }
+    is Screen.StatsDetail -> show { FreshCategoryEntries(screen) }
     is Screen.AccountDetail -> show { FreshAccountDetail(screen.accountId) }
     is Screen.EditAccount -> show { FreshEditAccount(screen.accountId) }
     Screen.Configuration -> show { FreshSettings() }

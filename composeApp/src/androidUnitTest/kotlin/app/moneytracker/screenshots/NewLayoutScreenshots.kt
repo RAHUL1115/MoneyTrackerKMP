@@ -4,6 +4,7 @@ import app.moneytracker.app.Screen
 import app.moneytracker.data.DraftType
 import app.moneytracker.data.TxnDraft
 import app.moneytracker.domain.CategoryKind
+import kotlinx.datetime.LocalDate
 import org.junit.Test
 
 /** The new layout's main screens over the demo data. */
@@ -19,6 +20,10 @@ class NewLayoutScreenshots : ScreenshotTest(newLayout = true) {
     @Test fun addExpenseDark() { show(Screen.EditTxn(preset = lunchDraft), dark = true); shoot("add_expense_dark") }
     @Test fun accountDetail() { show(Screen.AccountDetail("acc_bank")); shoot("account_detail") }
     @Test fun budget() { show(Screen.Budget); shoot("budget") }
+    @Test fun categoryEntries() {
+        show(Screen.StatsDetail("cat_ex_0", income = false, from = LocalDate(2026, 10, 1), to = LocalDate(2026, 10, 31), title = "Food"))
+        shoot("category_entries")
+    }
     @Test fun settings() { show(Screen.Configuration); shoot("settings") }
     @Test fun settingsTab() { show(); tap("Settings"); shoot("settings_tab") }
     @Test fun settingsEntering() { show(Screen.Configuration); scrollToAndTap("Entering"); shoot("settings_entering") }
