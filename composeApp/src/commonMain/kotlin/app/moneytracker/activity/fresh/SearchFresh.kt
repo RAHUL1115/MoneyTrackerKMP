@@ -106,7 +106,7 @@ internal fun FreshSearch() {
         onApply = {
             nav.setResult(ACTIVITY_FILTER, state.activityRequest(model.query))
             nav.pop()
-            toaster.show(tr("Filter applied to Activity"))
+            toaster.show(tr("Filter applied to the list on Home"))
         },
     )
 }
@@ -131,7 +131,7 @@ private fun SearchContent(q: SearchQuery, state: SearchState, model: SearchModel
                 Modifier.height(52.dp).clip(F.buttonShape).background(F.card).clickable(role = Role.Button, onClick = model::clear).padding(horizontal = 20.dp),
                 contentAlignment = Alignment.Center,
             ) { Text(tr("Clear"), color = F.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
-            PrimaryButton(tr("Apply filter to Activity"), onApply, Modifier.weight(1f))
+            PrimaryButton(tr("Apply filter to Home"), onApply, Modifier.weight(1f))
         }
     }
     if (datesSheet) DatesSheet(q, state, model, onDismiss = { datesSheet = false })

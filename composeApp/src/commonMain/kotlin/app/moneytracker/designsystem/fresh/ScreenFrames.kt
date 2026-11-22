@@ -92,7 +92,8 @@ fun IconTile(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Mo
 @Composable
 fun SubScreen(
     title: String,
-    onBack: () -> Unit,
+    /** Null on a main tab (Settings): no back arrow, and the title is drawn like [TabHeader]'s. */
+    onBack: (() -> Unit)?,
     actions: @Composable RowScope.() -> Unit = {},
     /** A muted line under the title (e.g. "2 to review"). */
     subtitle: String? = null,
@@ -106,10 +107,15 @@ fun SubScreen(
     val pageScroll = scrollState ?: rememberScrollState()
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(F.page).statusBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = F.gutter).padding(top = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconTile(Glyph.Back, tr("Back"), onBack)
+        val asTab = onBack == null
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = F.gutter).padding(top = if (asTab) 18.dp else 16.dp, bottom = 8.dp)
+                .then(if (asTab) Modifier.height(52.dp) else Modifier),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (onBack != null) IconTile(Glyph.Back, tr("Back"), onBack)
             Column(Modifier.weight(1f)) {
-                Text(title, color = F.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(title, color = F.ink, fontSize = if (asTab) 22.sp else 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (subtitle != null) Text(subtitle, color = F.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             // While amounts are hidden, every screen offers the eye, not just the main tabs.

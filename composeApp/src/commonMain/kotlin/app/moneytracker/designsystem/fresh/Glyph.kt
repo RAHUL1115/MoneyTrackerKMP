@@ -45,6 +45,8 @@ object Glyph {
     val Activity by lazy { lineIcon("Activity", "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01") }
     val Insights by lazy { lineIcon("Insights", "M21 12A9 9 0 1 1 12 3v9z", "M15 3.5A9 9 0 0 1 20.5 9H15z") }
     val Money by lazy { lineIcon("Money", rect(3f, 6f, 18f, 14f, 2f), "M3 10h18M16 15h2") }
+    /** Two sliders: the Settings tab (simpler than the gear, so it matches the other tab icons). */
+    val SettingsTab by lazy { lineIcon("SettingsTab", "M4 7h9M17 7h3M4 17h3M11 17h9", circle(15f, 7f, 2f), circle(9f, 17f, 2f)) }
 
     // Actions
     val Filter by lazy { lineIcon("Filter", "M4 5h16l-6 7.5V19l-4 1.5v-8z") }

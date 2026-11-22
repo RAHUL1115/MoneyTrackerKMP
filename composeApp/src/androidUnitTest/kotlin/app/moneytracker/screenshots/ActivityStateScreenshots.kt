@@ -36,10 +36,10 @@ abstract class ActivityStateShots(newLayout: Boolean) : ScreenshotTest(newLayout
 
 /** Activity, search and calendar states the main shots don't reach: list ends, an open month, selecting entries. */
 class NewActivityStateScreenshots : ActivityStateShots(newLayout = true) {
-    @Test fun activityListEnd() { show(); tap("Activity"); scrollToEnd(); shoot("activity_list_end") }
-    @Test fun activitySelecting() { show(); tap("Activity"); longPress("Taxi"); shoot("activity_selecting") }
-    @Test fun activityCalendarDayEnd() { show(); tap("Activity"); tap("Calendar"); scrollToEnd(); shoot("activity_calendar_day_end") }
-    @Test fun activityMonthsOpen() { show(); tap("Activity"); tap("Months"); scrollToEnd(); shoot("activity_months_open") }
+    @Test fun activityListEnd() { show(); scrollToEnd(); shoot("activity_list_end") }
+    @Test fun activitySelecting() { show(); longPress("Taxi"); shoot("activity_selecting") }
+    @Test fun activityCalendarDayEnd() { show(); tap("Calendar"); scrollToEnd(); shoot("activity_calendar_day_end") }
+    @Test fun activityMonthsOpen() { show(); tap("Months"); scrollToEnd(); shoot("activity_months_open") }
     @Test fun searchEnd() { show(Screen.Search); type("Coffee"); scrollToEnd(); shoot("search_end") }
 }
 

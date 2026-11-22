@@ -200,7 +200,7 @@ private fun ClassicLayoutDialog(onDismiss: () -> Unit, onSwitch: () -> Unit) {
             Column(Modifier.selectableGroup()) {
                 listOf(
                     Triple(tr("Classic"), tr("The familiar tabs: Trans., Stats, Accounts, More"), true),
-                    Triple(tr("New"), tr("Home with today's spending and Smart add, then Activity, Insights and Accounts"), false),
+                    Triple(tr("New"), tr("Home with today's spending, Smart add and every entry, then Insights, Accounts and Settings"), false),
                 ).forEach { (label, hint, current) ->
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).selectable(current, role = Role.RadioButton) { if (current) onDismiss() else onSwitch() }

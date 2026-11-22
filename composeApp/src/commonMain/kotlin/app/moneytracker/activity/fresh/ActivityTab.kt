@@ -26,6 +26,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -65,12 +72,14 @@ import app.moneytracker.entry.classic.ListenSheet
 import app.moneytracker.entry.fresh.newListenLook
 import app.moneytracker.lists.fresh.ActivityNotesView
 import kotlinx.datetime.LocalDate
+import kotlin.math.roundToInt
 
-// Activity tab: every entry by day, as a calendar, by month, and the notes. Replaces the classic Trans. tab.
+// The entries part of the Home tab: every entry by day, as a calendar, by month, and the notes. Replaces the classic
+// Trans. tab. Home puts its summary (today's spending, Smart add, bank SMS) on top; it slides away as the view scrolls.
 
 internal enum class ActView(val title: String) { LIST("List"), CALENDAR("Calendar"), MONTHS("Months"), NOTES("Notes") }
 
-/** Search › "Apply filter to Activity" leaves its filter for the tab under this navigator result key. */
+/** Search › "Apply filter" leaves its filter for the Home tab under this navigator result key. */
 internal const val ACTIVITY_FILTER = "activityFilter"
 
 internal val actMonthNames = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
@@ -99,14 +108,21 @@ internal class ActSelection {
 /** Which of the tab's sheets and dialogs is open. */
 private enum class ActSheet { FILTER, MORE, LISTEN, MONTH }
 
+/**
+ * The Home tab's frame: the header ([title] under [overline]), then [summary], then the view switch and the picked view.
+ * [summary] gets a callback that shows this month's list; scrolling a view up first slides the summary away, and
+ * pulling down at the top of a view brings it back.
+ */
 @Composable
-internal fun ActivityTab() {
+internal fun ActivityTab(title: String, overline: String?, summary: @Composable (onShowList: () -> Unit) -> Unit) {
     val nav = LocalNavigator.current
+    val repo = LocalRepo.current
     val model = rememberActivityModel()
     val state by model.state.collectAsState()
     var view by rememberSaveable { mutableStateOf(startView(model.startScreen)) }
     val selection = remember { ActSelection() }
     var sheet by remember { mutableStateOf<ActSheet?>(null) }
+    val collapse = rememberCollapsingTop()
 
     val filterArrived = nav.hasResult(ACTIVITY_FILTER)
     LaunchedEffect(filterArrived) {
@@ -119,8 +135,13 @@ internal fun ActivityTab() {
         onDispose { remove() }
     }
 
-    Column(Modifier.fillMaxSize()) {
-        ActivityHeader(state, view, selection, onSheet = { sheet = it })
+    Column(Modifier.fillMaxSize().nestedScroll(collapse.connection)) {
+        ActivityHeader(state, view, selection, title, overline, onSheet = { sheet = it })
+        Box(Modifier.collapsingTop(collapse)) {
+            Column(Modifier.padding(horizontal = F.gutter).padding(top = 8.dp, bottom = 16.dp)) {
+                summary { view = ActView.LIST; model.showMonth(state.periods.labelFor(repo.today())) }
+            }
+        }
         Segmented(ActView.entries.map { tr(it.title) }, view.ordinal, { view = ActView.entries[it] }, Modifier.padding(horizontal = F.gutter))
         if (state.filter.isActive && view != ActView.NOTES) {
             ActFilterBar(state.filterNames(), onEdit = { sheet = ActSheet.FILTER }, onClear = model::clearFilter)
@@ -130,10 +151,53 @@ internal fun ActivityTab() {
     ActivitySheets(model, state, sheet, onSheet = { sheet = it }, onSelect = if (view == ActView.LIST) ({ sheet = null; selection.active = true }) else null)
 }
 
+/** How much of the summary above the views is showing; [connection] slides it away before a view scrolls. */
+internal class CollapsingTop {
+    /** The summary's full height, in px, once measured. */
+    var height by mutableStateOf(0)
+    /** How far it has slid up, 0 (all showing) to [height] (gone). */
+    var hidden by mutableStateOf(0f)
+
+    val connection = object : NestedScrollConnection {
+        // Scrolling up: hide the summary before the view moves.
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            if (available.y >= 0f) return Offset.Zero
+            return Offset(0f, -slide(-available.y))
+        }
+
+        // Pulling down once the view is at its top: bring the summary back.
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            if (available.y <= 0f) return Offset.Zero
+            return Offset(0f, -slide(-available.y))
+        }
+    }
+
+    /** Moves the summary by [by] px (positive hides more) and returns how much it actually moved. */
+    private fun slide(by: Float): Float {
+        val next = (hidden + by).coerceIn(0f, height.toFloat())
+        val moved = next - hidden
+        hidden = next
+        return moved
+    }
+}
+
 @Composable
-private fun ActivityHeader(state: ActivityState, view: ActView, selection: ActSelection, onSheet: (ActSheet) -> Unit) {
+private fun rememberCollapsingTop() = remember { CollapsingTop() }
+
+/** Lays the summary out at its full height but takes only the part still showing, slid up by [CollapsingTop.hidden]. */
+private fun Modifier.collapsingTop(top: CollapsingTop): Modifier = this
+    .clipToBounds()
+    .layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+        top.height = placeable.height
+        val hidden = top.hidden.roundToInt().coerceIn(0, placeable.height)
+        layout(placeable.width, placeable.height - hidden) { placeable.place(0, -hidden) }
+    }
+
+@Composable
+private fun ActivityHeader(state: ActivityState, view: ActView, selection: ActSelection, title: String, overline: String?, onSheet: (ActSheet) -> Unit) {
     val nav = LocalNavigator.current
-    TabHeader(if (selection.active) tr("Select") else tr("Activity")) {
+    TabHeader(if (selection.active) tr("Select") else title, overline = if (selection.active) null else overline) {
         if (selection.active) HeaderButton(tr("Done"), filled = true) { selection.end() }
         else {
             IconTile(Glyph.Search, tr("Search"), { nav.push(Screen.Search) })
@@ -215,7 +279,7 @@ private fun MoreSheet(pending: Int, onDismiss: () -> Unit, onSelect: (() -> Unit
     val nav = LocalNavigator.current
     val voice = LocalPlatform.current.voice
     val fileTransfer = LocalBackups.current.files
-    Sheet(tr("Activity"), onDismiss) {
+    Sheet(tr("More"), onDismiss) {
         if (onSelect != null) SheetOption(tr("Select entries"), subtitle = tr("Change or delete several at once"), onClick = onSelect)
         SheetOption(tr("Detected transactions"), subtitle = if (pending > 0) tr("{0} to review", pending) else null) { onDismiss(); nav.push(Screen.Inbox) }
         if (voice.speechAvailable) SheetOption(tr("Smart add"), subtitle = tr("Say or type it, e.g. “1,200 for new shoes”")) { onDismiss(); onVoice() }

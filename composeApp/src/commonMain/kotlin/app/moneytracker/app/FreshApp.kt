@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.sp
 import app.moneytracker.accounts.fresh.FreshAccountDetail
 import app.moneytracker.accounts.fresh.FreshEditAccount
 import app.moneytracker.accounts.fresh.MoneyTab
-import app.moneytracker.activity.fresh.ActivityTab
 import app.moneytracker.activity.fresh.FreshSearch
 import app.moneytracker.backup.fresh.FreshBackup
 import app.moneytracker.core.tr
@@ -51,7 +50,7 @@ import app.moneytracker.settings.fresh.FreshHub
 import app.moneytracker.settings.fresh.FreshSettings
 import app.moneytracker.webdashboard.fresh.FreshWebDashboard
 
-/** Home of the new layout: the selected tab above the bottom bar. */
+/** Home of the new layout: the selected tab (Home, Insights, Accounts, Settings) above the bottom bar. */
 @Composable
 fun FreshHome() {
     var tab by rememberSaveable { mutableStateOf(FreshTab.HOME) }
@@ -60,9 +59,9 @@ fun FreshHome() {
         Box(Modifier.weight(1f).fillMaxWidth().statusBarsPadding()) {
             when (tab) {
                 FreshTab.HOME -> HomeTab(onOpenTab = { tab = it })
-                FreshTab.ACTIVITY -> ActivityTab()
                 FreshTab.INSIGHTS -> InsightsTab()
                 FreshTab.MONEY -> MoneyTab()
+                FreshTab.SETTINGS -> FreshSettings(asTab = true)
             }
         }
         BottomBar(tab, onSelect = { tab = it }, onAdd = { nav.push(Screen.EditTxn()) })
@@ -75,14 +74,14 @@ private fun BottomBar(selected: FreshTab, onSelect: (FreshTab) -> Unit, onAdd: (
         Box(Modifier.fillMaxWidth().height(1.dp).background(F.border))
         Row(Modifier.fillMaxWidth().height(68.dp).padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceAround) {
             NavItem(FreshTab.HOME, Glyph.Home, selected, onSelect)
-            NavItem(FreshTab.ACTIVITY, Glyph.Activity, selected, onSelect)
+            NavItem(FreshTab.INSIGHTS, Glyph.Insights, selected, onSelect)
             Box(
                 Modifier.offset(y = (-18).dp).size(58.dp).shadow(8.dp, RoundedCornerShape(20.dp))
                     .clip(RoundedCornerShape(20.dp)).background(F.accent).clickable(onClickLabel = tr("Add entry"), onClick = onAdd),
                 contentAlignment = Alignment.Center,
             ) { Icon(Glyph.Add, tr("Add entry"), tint = F.onAccent, modifier = Modifier.size(28.dp)) }
-            NavItem(FreshTab.INSIGHTS, Glyph.Insights, selected, onSelect)
             NavItem(FreshTab.MONEY, Glyph.Money, selected, onSelect)
+            NavItem(FreshTab.SETTINGS, Glyph.SettingsTab, selected, onSelect)
         }
     }
 }

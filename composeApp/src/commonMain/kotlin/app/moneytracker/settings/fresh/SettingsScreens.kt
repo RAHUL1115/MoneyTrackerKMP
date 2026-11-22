@@ -98,7 +98,7 @@ private typealias SRow = app.moneytracker.settings.classic.SettingRow
 
 /** New-layout Settings: the places as tiles, then the six preference groups, all searchable. */
 @Composable
-internal fun FreshSettings() {
+internal fun FreshSettings(asTab: Boolean = false) {
     val nav = LocalNavigator.current
     val model = rememberSettingsModel()
     val overview by rememberSettingsOverview()
@@ -112,7 +112,13 @@ internal fun FreshSettings() {
     val group = groups.firstOrNull { it.id == groupId }
     BackClosesGroup(group != null) { groupId = null }
 
-    SubScreen(group?.title ?: tr("Settings"), { if (group != null) groupId = null else nav.pop() }) {
+    // As the Settings tab the top level has no back arrow; a group inside it still does.
+    val onBack: (() -> Unit)? = when {
+        group != null -> ({ groupId = null })
+        asTab -> null
+        else -> ({ nav.pop() })
+    }
+    SubScreen(group?.title ?: tr("Settings"), onBack) {
         if (group != null) {
             RowsCard(group.rows.map { null to it })
             Text(tr("Changes save right away."), Modifier.fillMaxWidth(), color = F.muted, fontSize = 12.sp, textAlign = TextAlign.Center)
@@ -216,7 +222,7 @@ private fun FreshSettingDialog(d: SettingDialog, model: SettingsModel, open: (Se
         SettingDialog.LayoutChoice -> Sheet(tr("Layout"), close) {
             SheetOptionGroup {
                 SheetOption(tr("Classic"), selected = false, subtitle = tr("The familiar tabs: Trans., Stats, Accounts, More")) { open(SettingDialog.LayoutSwitch) }
-                SheetOption(tr("New"), selected = true, subtitle = tr("Home with today's spending and Smart add, then Activity, Insights and Accounts"), onClick = close)
+                SheetOption(tr("New"), selected = true, subtitle = tr("Home with today's spending, Smart add and every entry, then Insights, Accounts and Settings"), onClick = close)
             }
             Text(tr("MoneyTracker restarts to switch. Your entries, accounts and settings stay the same."), Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 color = F.muted, fontSize = 12.sp)

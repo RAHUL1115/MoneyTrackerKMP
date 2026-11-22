@@ -98,7 +98,7 @@ private fun LayoutPage(f: OnboardingForm) {
     Text(tr("Choose your layout"), fontSize = 28.sp, fontWeight = FontWeight.Bold)
     Text(tr("You can switch any time in Settings › Look › Layout."), Modifier.padding(top = 12.dp), color = SubtleText)
     Column(Modifier.padding(top = 24.dp).selectableGroup(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        LayoutChoice(tr("New (recommended)"), tr("Home with today's spending and Smart add, then Activity, Insights and Accounts. Clean, simple screens."), f.newLayout) { f.newLayout = true }
+        LayoutChoice(tr("New (recommended)"), tr("Home with today's spending, Smart add and every entry, then Insights, Accounts and Settings. Clean, simple screens."), f.newLayout) { f.newLayout = true }
         LayoutChoice(tr("Classic"), tr("The familiar tabs: Trans., Stats, Accounts and More, with daily, calendar and monthly views."), !f.newLayout) { f.newLayout = false }
     }
 }

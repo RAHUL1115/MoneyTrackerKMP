@@ -193,7 +193,7 @@ private fun BookmarkSheet(c: AddContext, close: () -> Unit) {
             }, Modifier.weight(1f), enabled = name.isNotBlank())
         }
     }) {
-        Text(tr("Saves this entry so you can start a new one from it later: Activity › ☆ Bookmarks."), color = F.muted, fontSize = 13.sp)
+        Text(tr("Saves this entry so you can start a new one from it later: Home › ⋯ › Bookmarks."), color = F.muted, fontSize = 13.sp)
         Spacer(Modifier.height(8.dp))
         AddInput(name, { name = it }, tr("Name"), Modifier.fillMaxWidth())
     }

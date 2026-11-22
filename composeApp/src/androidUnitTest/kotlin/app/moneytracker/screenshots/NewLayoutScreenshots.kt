@@ -10,10 +10,8 @@ import org.junit.Test
 class NewLayoutScreenshots : ScreenshotTest(newLayout = true) {
     @Test fun home() { show(); shoot("home") }
     @Test fun homeDark() { show(dark = true); shoot("home_dark") }
-    @Test fun activity() { show(); tap("Activity"); shoot("activity") }
-    @Test fun activityDark() { show(dark = true); tap("Activity"); shoot("activity_dark") }
-    @Test fun activityCalendar() { show(); tap("Activity"); tap("Calendar"); shoot("activity_calendar") }
-    @Test fun notes() { show(); tap("Activity"); tap("Notes"); shoot("notes") }
+    @Test fun activityCalendar() { show(); tap("Calendar"); shoot("activity_calendar") }
+    @Test fun notes() { show(); tap("Notes"); shoot("notes") }
     @Test fun insights() { show(); tap("Insights"); shoot("insights") }
     @Test fun accounts() { show(); tap("Accounts"); shoot("accounts") }
     @Test fun search() { show(Screen.Search); type("Coffee"); shoot("search") }
@@ -22,6 +20,7 @@ class NewLayoutScreenshots : ScreenshotTest(newLayout = true) {
     @Test fun accountDetail() { show(Screen.AccountDetail("acc_bank")); shoot("account_detail") }
     @Test fun budget() { show(Screen.Budget); shoot("budget") }
     @Test fun settings() { show(Screen.Configuration); shoot("settings") }
+    @Test fun settingsTab() { show(); tap("Settings"); shoot("settings_tab") }
     @Test fun settingsEntering() { show(Screen.Configuration); scrollToAndTap("Entering"); shoot("settings_entering") }
     @Test fun bankSms() { show(Screen.MessageSettings); shoot("bank_sms") }
     @Test fun repeats() { show(Screen.Recurring); shoot("repeats") }
