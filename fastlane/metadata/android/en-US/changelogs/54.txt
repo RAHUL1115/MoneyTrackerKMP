@@ -1,0 +1,1 @@
+MoneyTracker 0.5.0 beta 6. The new layout now has four tabs: Home, Insights, Accounts and Settings. Home brings today's spending and every entry together on one page: the summary sits on top and slides away as you scroll the List, Calendar, Months or Notes. Settings has its own tab instead of the gear on Home. Bookmarks, Select entries and Smart add are under ⋯ on Home.
