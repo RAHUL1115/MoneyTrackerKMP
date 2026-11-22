@@ -1,0 +1,1 @@
+MoneyTracker 0.5.0 beta 7. In the new layout, Insights › a category › See all entries now opens a new screen in the same look: the total and its change, the last six months, the split by sub-category and every entry by day. Its totals now match Insights when card purchases are counted at payment (this was also wrong on the classic screen).
