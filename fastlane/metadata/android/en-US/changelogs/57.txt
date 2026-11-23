@@ -1,0 +1,1 @@
+MoneyTracker 0.5.0 beta 9. In the new layout, swiping now gives feedback: the new page slides in from the side you swiped and the tab highlight slides with it, while taps change instantly. Insights follows your swipe setting (change tab between Spending, Income and Net, change period, or off), keeping the period and tabs in place while the cards slide.
