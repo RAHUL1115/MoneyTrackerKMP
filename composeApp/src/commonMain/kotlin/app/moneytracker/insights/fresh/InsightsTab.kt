@@ -24,6 +24,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.moneytracker.app.LocalBackups
+import app.moneytracker.activity.fresh.SwipeFeedback
+import app.moneytracker.activity.fresh.SwipeSlide
+import app.moneytracker.activity.fresh.swipeGesture
+import app.moneytracker.activity.fresh.rememberSwipeFeedback
+import app.moneytracker.data.Swipe
+import app.moneytracker.data.Prefs
+import app.moneytracker.core.rememberSetting
 import app.moneytracker.core.LocalCurrency
 import app.moneytracker.core.Privacy
 import app.moneytracker.core.tr
@@ -104,23 +111,44 @@ private fun InsightsContent(state: InsightsState, actions: InsightsActions, onEx
             // Just the calendar icon; its label says which period is showing.
             IconTile(Glyph.Calendar, tr("Period: {0}", periodTileLabel(state)), { pickers.periodSheet = true })
         }
-        Column(
-            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = F.gutter),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            PeriodControls(state, actions, pickers)
-            Segmented(InsightsSide.entries.map { tr(it.label()) }, state.choice.side.ordinal, { actions.pickSide(InsightsSide.entries[it]); openKey = null })
-            InsightsHero(state, actions)
-            BudgetSummaryCard(state.budgetMonth, state.budget, state.catById)
-            BreakdownCard(state, openKey, onGroup = { actions.pickGroup(it); openKey = null }) { key -> openKey = if (openKey == key) null else key }
-            TopEntriesCard(state)
-            Gap(24.dp)
+        // The swipe preference applies here as on Home: change tab (Spending / Income / Net), change period, or off.
+        // The whole page takes the swipe, but only the cards under the period and the tabs slide.
+        val swipe by rememberSetting(Prefs.SWIPE)
+        val feedback = rememberSwipeFeedback()
+        val gesture = Modifier.swipeGesture(swipe != Swipe.NONE, feedback, state.choice.side to range.start) { dir ->
+            if (swipe == Swipe.TAB) actions.pickSide(InsightsSide.entries[(state.choice.side.ordinal + dir).coerceIn(0, InsightsSide.entries.lastIndex)])
+            else actions.step(dir)
+            openKey = null
         }
+        InsightsPage(state, actions, pickers, openKey, feedback, Modifier.weight(1f).fillMaxWidth().then(gesture)) { openKey = it }
     }
 
     if (pickers.periodSheet) PeriodSheet(state, onDismiss = { pickers.periodSheet = false }) { s ->
         actions.pickSpan(s); pickers.periodSheet = false; openKey = null
         if (s == InsightsSpan.CUSTOM) pickers.pickStart = true
+    }
+}
+
+/** The scrolling part under the header: period controls and side stay put; hero, budget, breakdown and top entries slide on a swipe. */
+@Composable
+private fun InsightsPage(state: InsightsState, actions: InsightsActions, pickers: InsightsPickers, openKey: String?, feedback: SwipeFeedback,
+                         modifier: Modifier, onOpenKey: (String?) -> Unit) {
+    Column(
+        modifier.verticalScroll(rememberScrollState()).padding(horizontal = F.gutter),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        PeriodControls(state, actions, pickers)
+        Segmented(InsightsSide.entries.map { tr(it.label()) }, state.choice.side.ordinal,
+            { feedback.fromSwipe = false; actions.pickSide(InsightsSide.entries[it]); onOpenKey(null) }, animate = feedback.fromSwipe)
+        SwipeSlide(state.choice.side to state.range.start.toEpochDays(), { (side, day) -> side.ordinal * 10_000_000 + day.toInt() }, feedback) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                InsightsHero(state, actions)
+                BudgetSummaryCard(state.budgetMonth, state.budget, state.catById)
+                BreakdownCard(state, openKey, onGroup = { actions.pickGroup(it); onOpenKey(null) }) { key -> onOpenKey(if (openKey == key) null else key) }
+                TopEntriesCard(state)
+                Gap(24.dp)
+            }
+        }
     }
 }
 

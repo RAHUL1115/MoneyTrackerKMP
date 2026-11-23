@@ -1,6 +1,11 @@
 package app.moneytracker.designsystem.fresh
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -138,15 +143,22 @@ fun Modifier.choiceTap(selected: Boolean, role: Role?, onClick: () -> Unit): Mod
 
 /** Segmented switch (Week / Month / Year, Expense / Income / Transfer). TalkBack reads it as tabs, the selected one marked. */
 @Composable
-fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().height(42.dp).clip(F.controlShape).background(F.track).padding(4.dp).selectableGroup()) {
-        options.forEachIndexed { i, o ->
-            val on = i == selected
-            Box(
-                Modifier.weight(1f).fillMaxSize().clip(F.innerShape).background(if (on) F.card else Color.Transparent)
-                    .selectable(on, role = Role.Tab) { onSelect(i) },
-                contentAlignment = Alignment.Center,
-            ) { Text(o, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1) }
+/** [animate]: slide the highlight to the new option (used when a swipe changed it); otherwise it moves at once. */
+fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, animate: Boolean = false) {
+    BoxWithConstraints(modifier.fillMaxWidth().height(42.dp).clip(F.controlShape).background(F.track).padding(4.dp)) {
+        // One highlight: it slides to the picked option after a swipe (a short ease, no bounce), and jumps on a tap.
+        val segment = maxWidth / options.size.coerceAtLeast(1)
+        val x by animateDpAsState(segment * selected, if (animate) tween(200) else snap(), label = "segment")
+        Box(Modifier.offset(x = x).width(segment).fillMaxHeight().clip(F.innerShape).background(F.card))
+        Row(Modifier.fillMaxSize().selectableGroup()) {
+            options.forEachIndexed { i, o ->
+                val on = i == selected
+                // No press ripple: the white highlight jumping to the tab is the feedback; a ripple on it flashed and faded.
+                Box(
+                    Modifier.weight(1f).fillMaxSize().selectable(on, interactionSource = null, indication = null, role = Role.Tab) { onSelect(i) },
+                    contentAlignment = Alignment.Center,
+                ) { Text(o, color = if (on) F.ink else F.muted, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1) }
+            }
         }
     }
 }

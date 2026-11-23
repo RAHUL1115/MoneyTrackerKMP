@@ -46,7 +46,6 @@ import app.moneytracker.activity.ActivityModel
 import app.moneytracker.activity.ActivityState
 import app.moneytracker.activity.classic.FilterSheet
 import app.moneytracker.activity.rememberActivityModel
-import app.moneytracker.activity.swipeSteps
 import app.moneytracker.app.LocalBackups
 import app.moneytracker.app.LocalNavigator
 import app.moneytracker.app.Screen
@@ -123,6 +122,7 @@ internal fun ActivityTab(title: String, overline: String?, summary: @Composable 
     val selection = remember { ActSelection() }
     var sheet by remember { mutableStateOf<ActSheet?>(null) }
     val collapse = rememberCollapsingTop()
+    val feedback = rememberSwipeFeedback()
 
     val filterArrived = nav.hasResult(ACTIVITY_FILTER)
     LaunchedEffect(filterArrived) {
@@ -142,11 +142,12 @@ internal fun ActivityTab(title: String, overline: String?, summary: @Composable 
                 summary { view = ActView.LIST; model.showMonth(state.periods.labelFor(repo.today())) }
             }
         }
-        Segmented(ActView.entries.map { tr(it.title) }, view.ordinal, { view = ActView.entries[it] }, Modifier.padding(horizontal = F.gutter))
+        Segmented(ActView.entries.map { tr(it.title) }, view.ordinal, { feedback.fromSwipe = false; view = ActView.entries[it] },
+            Modifier.padding(horizontal = F.gutter), animate = feedback.fromSwipe)
         if (state.filter.isActive && view != ActView.NOTES) {
             ActFilterBar(state.filterNames(), onEdit = { sheet = ActSheet.FILTER }, onClear = model::clearFilter)
         }
-        ActivityBody(model, state, view, selection, onView = { view = it }, onPickMonth = { sheet = ActSheet.MONTH }, modifier = Modifier.weight(1f))
+        ActivityBody(model, state, view, selection, feedback, onView = { view = it }, onPickMonth = { sheet = ActSheet.MONTH }, modifier = Modifier.weight(1f))
     }
     ActivitySheets(model, state, sheet, onSheet = { sheet = it }, onSelect = if (view == ActView.LIST) ({ sheet = null; selection.active = true }) else null)
 }
@@ -213,16 +214,23 @@ private fun ActivityHeader(state: ActivityState, view: ActView, selection: ActSe
 /** The picked view under the tabs; a horizontal swipe changes the month (or year), or the view. */
 @Composable
 private fun ActivityBody(
-    model: ActivityModel, state: ActivityState, view: ActView, selection: ActSelection,
+    model: ActivityModel, state: ActivityState, view: ActView, selection: ActSelection, feedback: SwipeFeedback,
     onView: (ActView) -> Unit, onPickMonth: () -> Unit, modifier: Modifier,
 ) {
     val swipe by rememberSetting(Prefs.SWIPE)
-    val swipeModifier = if (swipe == Swipe.NONE || selection.active) Modifier else Modifier.swipeSteps(swipe, view, state.period) { dir ->
-        if (swipe == Swipe.TAB) onView(ActView.entries[(view.ordinal + dir).coerceIn(0, ActView.entries.lastIndex)])
-        else if (view != ActView.NOTES) model.stepMonths(dir * if (view == ActView.MONTHS) 12 else 1)
-    }
-    Box(modifier.fillMaxWidth().padding(top = 12.dp).then(swipeModifier)) {
-        when (view) {
+    // A page is the view plus the month it shows; swiping, the month arrows and the picker all slide it the right way.
+    SwipePages(
+        page = view to state.period,
+        order = { (v, p) -> v.ordinal * 1_000_000 + p.key },
+        enabled = swipe != Swipe.NONE && !selection.active,
+        feedback = feedback,
+        onStep = { dir ->
+            if (swipe == Swipe.TAB) onView(ActView.entries[(view.ordinal + dir).coerceIn(0, ActView.entries.lastIndex)])
+            else if (view != ActView.NOTES) model.stepMonths(dir * if (view == ActView.MONTHS) 12 else 1)
+        },
+        modifier = modifier.fillMaxWidth().padding(top = 12.dp),
+    ) { (v, _) ->
+        when (v) {
             ActView.LIST -> ActList(model, selection, onPickMonth)
             ActView.CALENDAR -> ActivityCalendarView(model, onPickMonth)
             ActView.MONTHS -> ActivityMonthsView(model, onOpenList = { model.showMonth(it); onView(ActView.LIST) }, onPickMonth = onPickMonth)
