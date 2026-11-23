@@ -43,11 +43,18 @@ object SmsParser {
     private val amountAfterRe = Regex("""(?i)(?:debited|credited|spent|paid|received|withdrawn|sent)\s+(?:by|for|of|with)?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)""")
     private val digitsRe = Regex("""(?i)(?:a/c|acct|account|card|ac)\s*(?:no\.?)?\s*(?:ending(?:\s+with|\s+in)?|xx+|\*+|x+|no\.?)?\s*[x*]*(\d{3,6})\b""")
     private val vendorRes = listOf(
+        Regex("""(?i)debited\b[^;]{0,80};\s*([a-z0-9][a-z0-9 &'._/-]{0,40}?)\s+credited"""),  // ICICI "debited for Rs X on D; NAME credited"
+        Regex("""(?i)\bfor\s+upi-\d+-([a-z0-9][a-z0-9 &'._-]{0,40}?)(?=\.|\s+to\b|$)"""),      // "for UPI-123456789012-NAME."
+        Regex("""(?i)\bon\s+\d{1,2}-[a-z]{3}-\d{2,4}\s+(?:on|at)\s+([a-z0-9*][a-z0-9 &'.*_/-]{1,40}?)\s*-?\.\s*avl"""),  // card spend "on 12-Jan-26 at SHOP. Avl Lmt"
+        Regex("""\n\d{2}-\d{2}-\d{2,4}\s+[\d:]+(?:\s*IST)?\n([^\n]{2,40})\nAvl"""),          // Axis multi-line: the shop on its own line
+        Regex("""^([A-Za-z][A-Za-z0-9 &'.-]{2,60}?)\s+has received\b"""),                    // "XYZ Mutual Fund has received Rs X from your a/c"
+        Regex("""(?i)\bsender:\s*([a-z][a-z0-9 &'._-]{1,40}?)\s*\."""),                       // NEFT "Sender:NAME ."
         Regex("""(?i)@\s*upi[_-]([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+\d|[.,]|$)"""),           // YES Bank "@UPI_SHOP NAME 18-01-…"
-        Regex("""(?i)\bvpa\s+([a-z0-9._-]+)@[a-z]+"""),                                   // UPI handle → name part
-        Regex("""(?i)\b(?:at|@)\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+(?:on|via|ref|txn|using|for|avl|avbl|\d)|[.,]|$)"""),
-        Regex("""(?i)\bto\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+(?:on|via|ref|rrn|upi|txn|from|avl|avbl|utr|\d)|[.,]|$)"""),
-        Regex("""(?i)\bfrom\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+(?:on|via|ref|upi|txn|avl|avbl|\d)|[.,]|$)"""),
+        Regex("""(?i)\bvpa\s+([a-z0-9._-]+@[a-z]+)"""),                                     // UPI handle
+        Regex("""(?i)\b(?:from|to|at)\s+([a-z0-9._-]+@[a-z]+)"""),                           // "from name@okicici on …", "At shop@paytm"
+        Regex("""(?i)\b(?:at|@)\s+([a-z0-9*][a-z0-9 &'.*_-]{1,40}?)(?=\s+(?:on|via|ref|txn|using|for|avl|avbl|has|is|was|\d)|\s*\(|[.,]|$)"""),
+        Regex("""(?i)\bto\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+(?:on|via|ref|rrn|upi|txn|from|avl|avbl|utr|\d)|\s*\(|[.,]|$)"""),
+        Regex("""(?i)\bfrom\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=\s+(?:on|via|ref|upi|txn|avl|avbl|\d)|\s*\(|[.,]|$)"""),
         Regex("""(?i)\binfo:?\s*([a-z0-9][a-z0-9 &'./_-]{1,40}?)(?=[.,]|$)"""),
         Regex("""(?i)\btowards\s+([a-z0-9][a-z0-9 &'._-]{1,40}?)(?=[.,]|$)"""),
     )
@@ -148,15 +155,18 @@ object SmsParser {
     /** The merchant or person named by the first vendor pattern that finds a real name. */
     fun vendorOf(text: String): String? = vendorRes.firstNotNullOfOrNull { re ->
         re.find(text)?.groupValues?.get(1)?.let { v ->
-            val cleaned = v.trim().trimEnd('.', '-', '_').replace(spacesRe, " ")
+            val cleaned = upiName(v.trim().trimEnd('.', '-', '_').replace(spacesRe, " "))
             if (isPlaceholder(cleaned)) null else softenCapitals(cleaned)
         }
     }
 
+    /** A UPI handle shows its name part ("swiggy" from "swiggy@ybl"); a phone-number handle then reads as no vendor. */
+    private fun upiName(v: String): String = if ('@' in v && ' ' !in v) v.substringBefore('@') else v
+
     private val spacesRe = Regex("""\s+""")
     private val longNumberRe = Regex("""^\d{5,}\b""")
     private val notVendors = setOf("your", "your a/c", "a/c", "account", "card", "you", "bank", "vpa", "rs", "inr")
-    private val notVendorPhrases = listOf("dispute", "if not you", "credit card account")
+    private val notVendorPhrases = listOf("dispute", "if not you", "credit card account", "realisation", "realization", "clearing", "nav of")
 
     /** Masked digits, "your a/c", a long number or a disclaimer phrase caught by a vendor pattern. */
     private fun isPlaceholder(cleaned: String): Boolean {

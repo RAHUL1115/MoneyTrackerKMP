@@ -172,6 +172,27 @@ class SmsParserTest {
         assertTrue(SmsParser.parse("VM-HDFCBK", "Refund of Rs.899.00 from AMAZON credited to your HDFC Bank Credit Card xx1234 on 09/08/26.")!!.isRefund)
     }
 
+    /** Payee formats found missing in a review of real alerts; the messages here are made up in each bank's layout. */
+    @Test fun readsMorePayeeLayouts() {
+        // Finding the payee is what's tested; capitals are tidied by softenCapitals separately.
+        fun vendor(sender: String, text: String) = SmsParser.parse(sender, text)!!.vendor?.lowercase()
+        assertEquals("raju tea stall", vendor("AX-ICICIT", "ICICI Bank Acct XX123 debited for Rs 40.00 on 10-Sep-26; RAJU TEA STALL credited. UPI:612345678901. Call 18002662 for dispute."))
+        assertEquals("fresh mart", vendor("AX-ICICIT", "Your ICICI Bank Acct XX123 has been debited with INR 52.00 on 05-Jul-26 for UPI-612345678901-FRESH MART. To dispute call 18002662"))
+        assertEquals("amazon india", vendor("AX-ICICIT", "INR 999.00 spent using ICICI Bank Card XX4321 on 12-Jan-26 on AMAZON INDIA. Avl Limit: INR 45,000.00. If not you, call 18002662"))
+        assertEquals("ind*irctc", vendor("AX-ICICIT", "INR 650.00 spent on ICICI Bank Card XX4321 on 03-Jun-26 at IND*IRCTC. Avl Lmt: INR 9,000.00. To dispute call 18002662"))
+        assertEquals("airtel paym", vendor("AX-AXISBK", "Spent\nCard no. XX4321\nINR 299\n12-01-26 10:15:22 IST\nAIRTEL PAYM\nAvl Limit: INR 50000\nNot you? SMS BLOCK 4321 to 919951860002"))
+        assertEquals("sample mutual fund", vendor("VM-SAMPMF", "Sample Mutual Fund has received Rs 2000.00 from your a/c XX1234 via NEFT-N123456789012 towards SIP."))
+        assertEquals("ravi.kumar", vendor("VM-KOTAKB", "Received Rs.150.00 in your Kotak Bank AC X1234 from ravi.kumar@okicici on 12-01-26.UPI Ref:612345678901."))
+        assertEquals("acme solutions", vendor("VM-UNIONB", "Your A/c XX1234 credited for Rs.50000 on 01-01-2026 10:00 by NEFT.Sender:ACME SOLUTIONS .UTR:N123456789012 Avl Bal Rs.60000"))
+        assertEquals("girgaon store", vendor("VM-SLCBNK", "Rs. 30 sent from a/c xx1234 on 12-Jan-26 to GIRGAON STORE (UPI Ref: 612345678901). Not you? Call 08048329999"))
+        assertEquals("cred", vendor("VM-JTEDGE", "Rs.100.00 spent on your Edge CSB Bank RuPay Credit Card ending 1234 at CRED is successful. Avl limit Rs.5000"))
+    }
+
+    /** Boilerplate after "subject to …" or a fund's NAV line is never a payee. */
+    @Test fun vendorIgnoresClearingAndNavPhrases() {
+        assertNull(SmsParser.parse("VM-HDFCBK", "Update! INR 5,000.00 deposited in HDFC Bank A/c XX1234 on 01-JAN-26 for cheque deposit. Cheque deposits are subject to realisation.")!!.vendor)
+    }
+
     @Test fun vendorSkipsBoilerplate() {
         assertEquals("Shree Balaji Medical", SmsParser.parse("VA-YESBNK-S", "INR 35.00 spent on YES BANK Card X1234 @UPI_SHREE BALAJI MEDICAL 18-01-2026 04:55:02 pm. Avl Lmt INR 1,50,000.00. SMS BLKCC 1234 to 9840909000 if not you")!!.vendor)
         assertNull(SmsParser.parse("VM-FEDBNK-S", "Rs 70.00 debited from your A/c using UPI on 02-11-2026 16:23:19 to VPA 9876543210@ybl - (UPI Ref No 612345678901)-Federal Bank")!!.vendor)
